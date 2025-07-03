@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Edit, Settings, BarChart3, Plus } from "lucide-react"
 import { StudyLogo } from "./study-logo"
+import { getStatusColor, getStatusText, StudyStatus } from "@/lib/status-utils"
 
 interface Study {
   id: string
   name: string
   type: string
   form: string
-  status: string
+  status: StudyStatus
   logo_url?: string | null
   is_public?: boolean
 }
@@ -24,19 +25,8 @@ interface StudyHeaderProps {
   actions?: React.ReactNode
 }
 
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "active":
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktivní</Badge>
-    case "completed":
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Dokončené</Badge>
-    case "paused":
-      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pozastavené</Badge>
-    case "abandoned":
-      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Zanechaný</Badge>
-    default:
-      return <Badge variant="outline">{status}</Badge>
-  }
+function getStatusBadge(status: StudyStatus) {
+  return <Badge className={getStatusColor(status)}>{getStatusText(status)}</Badge>
 }
 
 export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }: StudyHeaderProps) {

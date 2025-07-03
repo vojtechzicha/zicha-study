@@ -9,20 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit } from "lucide-react"
 import { StudyLogo } from "@/components/study-logo"
 import { useRouter } from "next/navigation"
-
-interface Study {
-  id: string
-  name: string
-  type: string
-  form: string
-  start_year: number
-  end_year?: number
-  status: "active" | "completed" | "paused" | "abandoned"
-  logo_url?: string
-  is_public?: boolean
-  public_slug?: string
-  created_at: string
-}
+import { Study, getStatusColor, getStatusText, sortStudiesByStatus } from "@/lib/status-utils"
 
 interface DashboardProps {
   user: User
@@ -39,10 +26,12 @@ export function Dashboard({ user }: DashboardProps) {
   }, [])
 
   const fetchStudies = async () => {
-    const { data, error } = await supabase.from("studies").select("*").order("created_at", { ascending: false })
+    const { data, error } = await supabase.from("studies").select("*")
 
     if (!error && data) {
-      setStudies(data)
+      // Sort studies by status priority, then by created_at
+      const sortedStudies = sortStudiesByStatus(data)
+      setStudies(sortedStudies)
     }
     setLoading(false)
   }
@@ -51,35 +40,6 @@ export function Dashboard({ user }: DashboardProps) {
     await supabase.auth.signOut()
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800 border-green-200"
-      case "completed":
-        return "bg-blue-100 text-blue-800 border-blue-200"
-      case "paused":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
-      case "abandoned":
-        return "bg-red-100 text-red-800 border-red-200"
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Aktivní"
-      case "completed":
-        return "Dokončeno"
-      case "paused":
-        return "Pozastaveno"
-      case "abandoned":
-        return "Zanechaný"
-      default:
-        return status
-    }
-  }
 
   const getUserDisplayName = () => {
     if (user.user_metadata?.full_name) {

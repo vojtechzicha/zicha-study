@@ -8,6 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StudyLogo } from "./study-logo"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { BookOpen, Target, Clock, Trophy } from "lucide-react"
+import { 
+  getStatusColor, 
+  getStatusText, 
+  StudyStatus,
+  getSubjectStatus,
+  getSubjectStateColor,
+  getSubjectStateText,
+  isFieldVisibleForState
+} from "@/lib/status-utils"
 
 interface Study {
   id: string
@@ -16,7 +25,7 @@ interface Study {
   form: string
   start_year: number
   end_year?: number
-  status: "active" | "completed" | "paused" | "abandoned"
+  status: StudyStatus
   logo_url?: string
   public_description?: string
   last_updated?: string
@@ -39,6 +48,7 @@ interface Subject {
   completed: boolean
   exam_completed: boolean
   credit_completed: boolean
+  planned?: boolean
   final_date?: string
   created_at: string
 }
@@ -56,6 +66,13 @@ const sortSubjects = (subjects: Subject[]) => {
     Ostatní: 4,
   }
 
+  // Get subject status priority (Active > Completed > Planned)
+  const getStatusPriority = (subject: Subject) => {
+    if (subject.planned) return 3  // Planned
+    if (subject.completed) return 2  // Completed
+    return 1  // Active
+  }
+
   const getSemesterOrder = (semester: string) => {
     const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
     if (match) {
@@ -67,6 +84,13 @@ const sortSubjects = (subjects: Subject[]) => {
   }
 
   return [...subjects].sort((a, b) => {
+    // First sort by status priority (Active > Completed > Planned)
+    const aStatusPriority = getStatusPriority(a)
+    const bStatusPriority = getStatusPriority(b)
+    if (aStatusPriority !== bStatusPriority) {
+      return aStatusPriority - bStatusPriority
+    }
+
     const aSemesterOrder = getSemesterOrder(a.semester)
     const bSemesterOrder = getSemesterOrder(b.semester)
     if (aSemesterOrder !== bSemesterOrder) {
@@ -104,6 +128,9 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
     const totalWeights = subjectsWithPoints.reduce((sum, s) => sum + s.credits, 0)
     const weightedAverage = totalWeights > 0 ? weightedSum / totalWeights : 0
 
+    const subjectsWithCredits = subjects.filter((s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp"))
+    const subjectsWithExams = subjects.filter((s) => s.completion_type.includes("Zk"))
+    
     const remainingCredits = subjects.filter(
       (s) => !s.credit_completed && (s.completion_type.includes("Zp") || s.completion_type.includes("KZp")),
     ).length
@@ -121,8 +148,10 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
       totalHours,
       weightedAverage,
       completionRate: total > 0 ? (completed / total) * 100 : 0,
-      creditCompletionRate: total > 0 ? (creditsCompleted / total) * 100 : 0,
-      examCompletionRate: total > 0 ? (examsCompleted / total) * 100 : 0,
+      creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
+      examCompletionRate: subjectsWithExams.length > 0 ? (examsCompleted / subjectsWithExams.length) * 100 : 0,
+      totalSubjectsWithCredits: subjectsWithCredits.length,
+      totalSubjectsWithExams: subjectsWithExams.length,
     }
   }, [subjects])
 
@@ -141,23 +170,12 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
     return grouped
   }, [subjects])
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktivní</Badge>
-      case "completed":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Dokončené</Badge>
-      case "paused":
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pozastavené</Badge>
-      case "abandoned":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Zanechaný</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
+  const getStatusBadge = (status: StudyStatus) => {
+    return <Badge className={getStatusColor(status)}>{getStatusText(status)}</Badge>
   }
 
   const getCompletionBadge = (type: string) => {
-    const shortType = type.match(/$$([^)]+)$$$/)?.[1] || type
+    const shortType = type.match(/\(([^)]+)\)$/)?.[1] || type
     switch (shortType) {
       case "Zp+Zk":
         return (
@@ -215,7 +233,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
       case "Ostatní":
         return (
           <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700">
-            O
+            -
           </Badge>
         )
       default:
@@ -338,7 +356,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">
-                    {stats.creditsCompleted} z {stats.total}
+                    {stats.creditsCompleted} z {stats.totalSubjectsWithCredits}
                   </span>
                   <span className="font-medium">{stats.creditCompletionRate.toFixed(1)}%</span>
                 </div>
@@ -355,7 +373,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">
-                    {stats.examsCompleted} z {stats.total}
+                    {stats.examsCompleted} z {stats.totalSubjectsWithExams}
                   </span>
                   <span className="font-medium">{stats.examCompletionRate.toFixed(1)}%</span>
                 </div>
@@ -371,7 +389,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
             <Card key={semester} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-xl font-bold text-gray-900">{semester}</CardTitle>
+                  <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">{semester}</CardTitle>
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <span>
                       {semesterSubjects.filter((s) => s.completed).length}/{semesterSubjects.length} dokončeno
@@ -392,6 +410,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                         <TableHead className="w-[80px]">Kredity</TableHead>
                         <TableHead className="w-[80px]">Body</TableHead>
                         <TableHead className="w-[100px]">Známka</TableHead>
+                        <TableHead className="w-[120px]">Datum ukončení</TableHead>
                         <TableHead className="w-[60px]">Stav</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -404,29 +423,46 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                           <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>
                           <TableCell className="text-center font-medium">{subject.credits}</TableCell>
                           <TableCell className="text-center">
-                            {subject.points ? (
-                              <span className="font-medium">{subject.points}</span>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
+                            {(() => {
+                              const subjectState = getSubjectStatus(subject)
+                              return isFieldVisibleForState("points", subjectState) && subject.points ? (
+                                <span className="font-medium">{subject.points}</span>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )
+                            })()}
                           </TableCell>
                           <TableCell className="text-center">
-                            {subject.grade ? (
-                              <Badge variant="outline" className="font-medium">
-                                {subject.grade}
-                              </Badge>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
+                            {(() => {
+                              const subjectState = getSubjectStatus(subject)
+                              return isFieldVisibleForState("grade", subjectState) && subject.grade ? (
+                                <Badge variant="outline" className="font-medium">
+                                  {subject.grade}
+                                </Badge>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )
+                            })()}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {(() => {
+                              const subjectState = getSubjectStatus(subject)
+                              return isFieldVisibleForState("final_date", subjectState) && subject.final_date ? (
+                                <span className="text-sm">{subject.final_date}</span>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )
+                            })()}
                           </TableCell>
                           <TableCell>
-                            {subject.completed ? (
-                              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Dokončeno</Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-gray-600">
-                                Probíhá
-                              </Badge>
-                            )}
+                            {(() => {
+                              const subjectState = getSubjectStatus(subject)
+                              return (
+                                <Badge className={getSubjectStateColor(subjectState)}>
+                                  {getSubjectStateText(subjectState)}
+                                </Badge>
+                              )
+                            })()}
                           </TableCell>
                         </TableRow>
                       ))}

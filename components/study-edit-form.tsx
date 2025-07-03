@@ -31,7 +31,7 @@ interface Study {
   form: string
   start_year: number
   end_year?: number
-  status: "active" | "completed" | "paused" | "abandoned"
+  status: "active" | "completed" | "paused" | "abandoned" | "planned"
   logo_url?: string
   created_at: string
 }
@@ -332,9 +332,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="active">Aktivní</SelectItem>
-                      <SelectItem value="completed">Dokončeno</SelectItem>
-                      <SelectItem value="paused">Pozastaveno</SelectItem>
-                      <SelectItem value="abandoned">Zanechaný</SelectItem>
+                      <SelectItem value="planned">Plánované</SelectItem>
+                      <SelectItem value="completed">Dokončené</SelectItem>
+                      <SelectItem value="paused">Pozastavené</SelectItem>
+                      <SelectItem value="abandoned">Zanechané</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

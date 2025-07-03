@@ -10,42 +10,72 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, Save } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ArrowLeft, Save, Trash2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { SubjectState, isFieldVisibleForState, getSubjectStateText } from "@/lib/status-utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { SubjectState, isFieldVisibleForState, getSubjectStateText, getSubjectStatus, requiresCredit, requiresExam } from "@/lib/status-utils"
 
-interface Study {
+interface Subject {
   id: string
+  study_id: string
+  semester: string
+  abbreviation: string
   name: string
-  type: string
-  start_year: number
-  end_year?: number
-  status: string
+  completion_type: string
+  subject_type: string
+  credits: number
+  hours?: number
+  points?: number
+  grade?: string
+  lecturer?: string
+  department?: string
+  completed: boolean
+  exam_completed: boolean
+  credit_completed: boolean
+  planned?: boolean
+  final_date?: string
+  created_at: string
 }
 
-interface SubjectFormProps {
-  study: Study
+interface SubjectEditFormProps {
+  subject: Subject
+  open: boolean
   onClose: () => void
   onSuccess: () => void
 }
 
-export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
-  const [subjectState, setSubjectState] = useState<SubjectState>("planned")
+export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEditFormProps) {
+  const [subjectState, setSubjectState] = useState<SubjectState>(getSubjectStatus(subject))
   const [formData, setFormData] = useState({
-    semester: "",
-    abbreviation: "",
-    name: "",
-    completion_type: "",
-    subject_type: "",
-    credits: 0,
-    hours: 0,
-    points: "",
-    grade: "",
-    lecturer: "",
-    department: "",
-    final_date: "",
+    semester: subject.semester,
+    abbreviation: subject.abbreviation,
+    name: subject.name,
+    completion_type: subject.completion_type,
+    subject_type: subject.subject_type,
+    credits: subject.credits,
+    hours: subject.hours || 0,
+    points: subject.points?.toString() || "",
+    grade: subject.grade || "",
+    lecturer: subject.lecturer || "",
+    department: subject.department || "",
+    final_date: subject.final_date || "",
+    credit_completed: subject.credit_completed,
+    exam_completed: subject.exam_completed,
   })
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
@@ -54,9 +84,9 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.from("subjects").insert([
-      {
-        study_id: study.id,
+    const { error } = await supabase
+      .from("subjects")
+      .update({
         semester: formData.semester,
         abbreviation: formData.abbreviation,
         name: formData.name,
@@ -70,11 +100,11 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
         department: formData.department || null,
         final_date: isFieldVisibleForState("final_date", subjectState) && formData.final_date ? formData.final_date : null,
         completed: subjectState === "completed",
-        exam_completed: false,
-        credit_completed: false,
+        exam_completed: formData.exam_completed,
+        credit_completed: formData.credit_completed,
         planned: subjectState === "planned",
-      },
-    ])
+      })
+      .eq("id", subject.id)
 
     if (error) {
       setError("Chyba při ukládání předmětu. Zkuste to prosím znovu.")
@@ -84,29 +114,36 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
     }
   }
 
+  const handleDelete = async () => {
+    setDeleting(true)
+    setError(null)
+
+    const { error } = await supabase.from("subjects").delete().eq("id", subject.id)
+
+    if (error) {
+      setError("Chyba při mazání předmětu. Zkuste to prosím znovu.")
+      setDeleting(false)
+    } else {
+      onSuccess()
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={onClose} className="text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Zpět na {study.name}
-          </Button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-gray-900">
+            Úprava předmětu {subject.abbreviation}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-6 p-1">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-900">Přidat nový předmět</CardTitle>
-            <CardDescription>Přidejte předmět do studia {study.name}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="semester">Semestr *</Label>
@@ -138,7 +175,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                     id="abbreviation"
                     value={formData.abbreviation}
                     onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value })}
-                    placeholder="např. MI1, KMA1-E"
+                    placeholder="např. IZP"
                     required
                   />
                 </div>
@@ -150,20 +187,20 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="např. Mikroekonomie I"
+                  placeholder="celý název předmětu"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="completion_type">Typ ukončení *</Label>
+                  <Label htmlFor="completion_type">Způsob ukončení *</Label>
                   <Select
                     value={formData.completion_type}
                     onValueChange={(value) => setFormData({ ...formData, completion_type: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Vyberte typ ukončení" />
+                      <SelectValue placeholder="Vyberte způsob ukončení" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Zápočet (Zp)">Zápočet (Zp)</SelectItem>
@@ -193,9 +230,9 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="credits">Kredity *</Label>
+                  <Label htmlFor="credits">Počet kreditů *</Label>
                   <Input
                     id="credits"
                     type="number"
@@ -219,7 +256,9 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                     placeholder="volitelné"
                   />
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {isFieldVisibleForState("points", subjectState) && (
                   <div className="space-y-2">
                     <Label htmlFor="points">Počet bodů</Label>
@@ -234,9 +273,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                     />
                   </div>
                 )}
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {isFieldVisibleForState("grade", subjectState) && (
                   <div className="space-y-2">
                     <Label htmlFor="grade">Známka</Label>
@@ -306,10 +343,83 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                 </RadioGroup>
               </div>
 
-              <div className="flex gap-4 pt-4">
+              {/* Credit and Exam Completion Toggles */}
+              {subjectState === "active" && (
+                <div className="space-y-3 p-4 border rounded-lg bg-blue-50">
+                  <Label className="text-sm font-medium">Průběžné plnění</Label>
+                  <div className="space-y-3">
+                    {requiresCredit(formData.completion_type) && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="credit_completed"
+                          checked={formData.credit_completed}
+                          onCheckedChange={(checked) => 
+                            setFormData({ ...formData, credit_completed: checked as boolean })
+                          }
+                          className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          style={formData.credit_completed ? {
+                            backgroundColor: 'rgb(37, 99, 235)',
+                            borderColor: 'rgb(37, 99, 235)',
+                            color: 'white'
+                          } : {}}
+                        />
+                        <Label htmlFor="credit_completed" className="cursor-pointer">
+                          Zápočet splněn
+                        </Label>
+                      </div>
+                    )}
+                    {requiresExam(formData.completion_type) && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="exam_completed"
+                          checked={formData.exam_completed}
+                          onCheckedChange={(checked) => 
+                            setFormData({ ...formData, exam_completed: checked as boolean })
+                          }
+                          className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          style={formData.exam_completed ? {
+                            backgroundColor: 'rgb(37, 99, 235)',
+                            borderColor: 'rgb(37, 99, 235)',
+                            color: 'white'
+                          } : {}}
+                        />
+                        <Label htmlFor="exam_completed" className="cursor-pointer">
+                          Zkouška splněna
+                        </Label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
                   Zrušit
                 </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive" disabled={deleting}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {deleting ? "Mazání..." : "Smazat"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Smazat předmět?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Opravdu chcete smazat předmět "{subject.name}"? Tato akce je nevratná.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                        Smazat
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
                 <Button
                   type="submit"
                   disabled={
@@ -324,13 +434,11 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                   className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {loading ? "Ukládání..." : "Uložit předmět"}
+                  {loading ? "Ukládání..." : "Uložit změny"}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

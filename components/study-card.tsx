@@ -5,19 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Edit } from "lucide-react"
 import { StudyLogo } from "@/components/study-logo"
-
-interface Study {
-  id: string
-  name: string
-  type: string
-  form: string
-  start_year: number
-  end_year?: number
-  status: "active" | "completed" | "paused" | "abandoned"
-  logo_url?: string
-  created_at: string
-  is_public?: boolean
-}
+import { Study, getStatusColor, getStatusText } from "@/lib/status-utils"
 
 interface StudyCardProps {
   study: Study
@@ -25,20 +13,6 @@ interface StudyCardProps {
   onEdit?: (study: Study) => void // edit button click
 }
 
-function getStatusColor(status: Study["status"]) {
-  switch (status) {
-    case "active":
-      return "bg-green-100 text-green-800 border-green-200"
-    case "completed":
-      return "bg-blue-100 text-blue-800 border-blue-200"
-    case "paused":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200"
-    case "abandoned":
-      return "bg-red-100 text-red-800 border-red-200"
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-200"
-  }
-}
 
 export default function StudyCard({ study, onSelect, onEdit }: StudyCardProps) {
   return (
@@ -61,7 +35,7 @@ export default function StudyCard({ study, onSelect, onEdit }: StudyCardProps) {
           </div>
 
           <div className="flex flex-col items-end gap-2">
-            <Badge className={getStatusColor(study.status)}>{/* Czech labels handled elsewhere */ study.status}</Badge>
+            <Badge className={getStatusColor(study.status)}>{getStatusText(study.status)}</Badge>
 
             {onEdit && (
               <Button

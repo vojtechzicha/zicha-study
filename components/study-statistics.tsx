@@ -122,6 +122,9 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     const creditsCompleted = filteredSubjects.filter((s) => s.credit_completed).length
     const examsCompleted = filteredSubjects.filter((s) => s.exam_completed).length
 
+    const subjectsWithCredits = filteredSubjects.filter((s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp"))
+    const subjectsWithExams = filteredSubjects.filter((s) => s.completion_type.includes("Zk"))
+
     const remainingCredits = filteredSubjects.filter(
       (s) => !s.credit_completed && (s.completion_type.includes("Zp") || s.completion_type.includes("KZp")),
     ).length
@@ -152,8 +155,10 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       totalHours,
       weightedAverage,
       completionRate: total > 0 ? (completed / total) * 100 : 0,
-      creditCompletionRate: total > 0 ? (creditsCompleted / total) * 100 : 0,
-      examCompletionRate: total > 0 ? (examsCompleted / total) * 100 : 0,
+      creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
+      examCompletionRate: subjectsWithExams.length > 0 ? (examsCompleted / subjectsWithExams.length) * 100 : 0,
+      totalSubjectsWithCredits: subjectsWithCredits.length,
+      totalSubjectsWithExams: subjectsWithExams.length,
     }
   }, [filteredSubjects])
 
@@ -385,7 +390,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{stats.remainingExams}</div>
               <p className="text-xs text-gray-600 mt-1">
-                Dokončeno: {stats.examsCompleted} ({stats.examCompletionRate.toFixed(1)}%)
+                Dokončeno: {stats.examsCompleted} z {stats.totalSubjectsWithExams} ({stats.examCompletionRate.toFixed(1)}%)
               </p>
             </CardContent>
           </Card>
@@ -398,7 +403,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{stats.remainingCredits}</div>
               <p className="text-xs text-gray-600 mt-1">
-                Dokončeno: {stats.creditsCompleted} ({stats.creditCompletionRate.toFixed(1)}%)
+                Dokončeno: {stats.creditsCompleted} z {stats.totalSubjectsWithCredits} ({stats.creditCompletionRate.toFixed(1)}%)
               </p>
             </CardContent>
           </Card>
