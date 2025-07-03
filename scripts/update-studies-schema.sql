@@ -1,11 +1,13 @@
--- Add logo column to studies table
-DO $$ 
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'studies' AND column_name = 'logo_url') THEN
-        ALTER TABLE studies ADD COLUMN logo_url TEXT;
-    END IF;
-END $$;
+-- Add logo_url column to studies table if it doesn't exist
+ALTER TABLE studies 
+ADD COLUMN IF NOT EXISTS logo_url TEXT;
 
--- Create a function to handle logo uploads (this would be used with Supabase Storage)
--- The logo_url will store the path to the uploaded image in Supabase Storage
+-- Update existing studies to have default values for new columns
+UPDATE studies 
+SET is_public = FALSE 
+WHERE is_public IS NULL;
+
+-- Add constraints
+ALTER TABLE studies 
+ADD CONSTRAINT check_public_slug_format 
+CHECK (public_slug IS NULL OR (public_slug ~ '^[a-z0-9_-]{3,50}$'));

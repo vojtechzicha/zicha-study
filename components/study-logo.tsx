@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -8,29 +9,32 @@ interface StudyLogoProps {
   studyName: string
   size?: "sm" | "md" | "lg" | "xl"
   className?: string
-  fallback?: boolean
 }
 
 const sizeClasses = {
-  sm: "w-6 h-6",
-  md: "w-8 h-8",
-  lg: "w-12 h-12",
-  xl: "w-16 h-16",
+  sm: "w-8 h-8 text-xs",
+  md: "w-12 h-12 text-sm",
+  lg: "w-16 h-16 text-base",
+  xl: "w-24 h-24 text-lg",
 }
 
-const fallbackSizeClasses = {
-  sm: "w-6 h-6 text-xs",
-  md: "w-8 h-8 text-sm",
-  lg: "w-12 h-12 text-lg",
-  xl: "w-16 h-16 text-xl",
-}
+export function StudyLogo({ logoUrl, studyName, size = "md", className }: StudyLogoProps) {
+  const [imageError, setImageError] = useState(false)
 
-export function StudyLogo({ logoUrl, studyName, size = "md", className, fallback = true }: StudyLogoProps) {
-  if (logoUrl) {
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  if (logoUrl && !imageError) {
     return (
       <div
         className={cn(
-          "relative overflow-hidden rounded-lg bg-white border border-gray-200 flex items-center justify-center",
+          "relative overflow-hidden rounded-lg border border-gray-200 bg-white p-1",
           sizeClasses[size],
           className,
         )}
@@ -39,34 +43,23 @@ export function StudyLogo({ logoUrl, studyName, size = "md", className, fallback
           src={logoUrl || "/placeholder.svg"}
           alt={`${studyName} logo`}
           fill
-          className="object-contain p-1"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-contain"
+          onError={() => setImageError(true)}
         />
       </div>
     )
   }
 
-  if (fallback) {
-    // Create initials from study name
-    const initials = studyName
-      .split(" ")
-      .map((word) => word.charAt(0))
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
-
-    return (
-      <div
-        className={cn(
-          "bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold",
-          fallbackSizeClasses[size],
-          className,
-        )}
-      >
-        {initials}
-      </div>
-    )
-  }
-
-  return null
+  // Fallback to initials
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center rounded-lg border border-gray-200 bg-gradient-to-br from-blue-100 to-indigo-100 font-semibold text-blue-700",
+        sizeClasses[size],
+        className,
+      )}
+    >
+      {getInitials(studyName)}
+    </div>
+  )
 }
