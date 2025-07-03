@@ -130,14 +130,26 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
   const handleStateChange = async (subjectId: string, newState: SubjectState) => {
     setActionLoading({ ...actionLoading, [subjectId]: true })
 
+    // Find the subject to get its completion_type
+    const subject = subjects.find(s => s.id === subjectId)
+    if (!subject) return
+
     const updates: any = {
       planned: newState === "planned",
       completed: newState === "completed",
     }
 
-    // If changing to completed, we need to set a final_date
+    // If changing to completed, we need to set a final_date and mark credit/exam as completed
     if (newState === "completed") {
       updates.final_date = new Date().toISOString().split('T')[0] // Today's date
+      
+      // Automatically mark credit and exam as completed if required by completion type
+      if (requiresCredit(subject.completion_type)) {
+        updates.credit_completed = true
+      }
+      if (requiresExam(subject.completion_type)) {
+        updates.exam_completed = true
+      }
     }
 
     // If changing away from completed, clear completion-related fields
@@ -377,6 +389,7 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                               size="sm"
                               disabled={actionLoading[subject.id]}
                               title="Označit jako dokončený"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
@@ -390,7 +403,10 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Zrušit</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleStateChange(subject.id, "completed")}>
+                              <AlertDialogAction 
+                                onClick={() => handleStateChange(subject.id, "completed")}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
                                 Označit jako dokončený
                               </AlertDialogAction>
                             </AlertDialogFooter>

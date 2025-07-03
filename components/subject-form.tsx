@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowLeft, Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { SubjectState, isFieldVisibleForState, getSubjectStateText } from "@/lib/status-utils"
+import { SubjectState, isFieldVisibleForState, getSubjectStateText, requiresCredit, requiresExam } from "@/lib/status-utils"
 
 interface Study {
   id: string
@@ -54,27 +54,41 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.from("subjects").insert([
-      {
-        study_id: study.id,
-        semester: formData.semester,
-        abbreviation: formData.abbreviation,
-        name: formData.name,
-        completion_type: formData.completion_type,
-        subject_type: formData.subject_type,
-        credits: formData.credits,
-        hours: formData.hours || null,
-        points: isFieldVisibleForState("points", subjectState) && formData.points ? Number.parseInt(formData.points) : null,
-        grade: isFieldVisibleForState("grade", subjectState) ? (formData.grade || null) : null,
-        lecturer: formData.lecturer || null,
-        department: formData.department || null,
-        final_date: isFieldVisibleForState("final_date", subjectState) && formData.final_date ? formData.final_date : null,
-        completed: subjectState === "completed",
-        exam_completed: false,
-        credit_completed: false,
-        planned: subjectState === "planned",
-      },
-    ])
+    // Prepare insert data
+    const insertData: any = {
+      study_id: study.id,
+      semester: formData.semester,
+      abbreviation: formData.abbreviation,
+      name: formData.name,
+      completion_type: formData.completion_type,
+      subject_type: formData.subject_type,
+      credits: formData.credits,
+      hours: formData.hours || null,
+      points: isFieldVisibleForState("points", subjectState) && formData.points ? Number.parseInt(formData.points) : null,
+      grade: isFieldVisibleForState("grade", subjectState) ? (formData.grade || null) : null,
+      lecturer: formData.lecturer || null,
+      department: formData.department || null,
+      final_date: isFieldVisibleForState("final_date", subjectState) && formData.final_date ? formData.final_date : null,
+      completed: subjectState === "completed",
+      planned: subjectState === "planned",
+    }
+
+    // Set credit and exam completion based on state and completion type
+    if (subjectState === "completed") {
+      // If completed, automatically mark credit and exam as completed if required
+      insertData.credit_completed = requiresCredit(formData.completion_type)
+      insertData.exam_completed = requiresExam(formData.completion_type)
+      // Set final date to today if not provided
+      if (!insertData.final_date) {
+        insertData.final_date = new Date().toISOString().split('T')[0]
+      }
+    } else {
+      // Otherwise, start with both uncompleted
+      insertData.credit_completed = false
+      insertData.exam_completed = false
+    }
+
+    const { error } = await supabase.from("subjects").insert([insertData])
 
     if (error) {
       setError("Chyba při ukládání předmětu. Zkuste to prosím znovu.")

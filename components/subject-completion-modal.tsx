@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { isFieldVisibleForState } from "@/lib/status-utils"
+import { isFieldVisibleForState, requiresCredit, requiresExam } from "@/lib/status-utils"
 
 interface Subject {
   id: string
@@ -78,6 +78,14 @@ export function SubjectCompletionModal({
       updates.completed = true
       updates.planned = false
       updates.final_date = formData.final_date || new Date().toISOString().split('T')[0]
+      
+      // Automatically mark credit and exam as completed if required
+      if (requiresCredit(subject.completion_type)) {
+        updates.credit_completed = true
+      }
+      if (requiresExam(subject.completion_type)) {
+        updates.exam_completed = true
+      }
     }
 
     const { error } = await supabase

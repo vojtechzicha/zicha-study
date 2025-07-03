@@ -84,26 +84,49 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
     setLoading(true)
     setError(null)
 
+    // Prepare update data
+    const updateData: any = {
+      semester: formData.semester,
+      abbreviation: formData.abbreviation,
+      name: formData.name,
+      completion_type: formData.completion_type,
+      subject_type: formData.subject_type,
+      credits: formData.credits,
+      hours: formData.hours || null,
+      points: isFieldVisibleForState("points", subjectState) && formData.points ? Number.parseInt(formData.points) : null,
+      grade: isFieldVisibleForState("grade", subjectState) ? (formData.grade || null) : null,
+      lecturer: formData.lecturer || null,
+      department: formData.department || null,
+      final_date: isFieldVisibleForState("final_date", subjectState) && formData.final_date ? formData.final_date : null,
+      completed: subjectState === "completed",
+      planned: subjectState === "planned",
+    }
+
+    // If marking as completed, automatically mark credit and exam as completed if required
+    if (subjectState === "completed") {
+      if (requiresCredit(formData.completion_type)) {
+        updateData.credit_completed = true
+      }
+      if (requiresExam(formData.completion_type)) {
+        updateData.exam_completed = true
+      }
+      // Set final date to today if not provided
+      if (!updateData.final_date) {
+        updateData.final_date = new Date().toISOString().split('T')[0]
+      }
+    } else if (subjectState === "active") {
+      // For active subjects, preserve the checkbox states
+      updateData.exam_completed = formData.exam_completed
+      updateData.credit_completed = formData.credit_completed
+    } else {
+      // For planned subjects, clear completion fields
+      updateData.exam_completed = false
+      updateData.credit_completed = false
+    }
+
     const { error } = await supabase
       .from("subjects")
-      .update({
-        semester: formData.semester,
-        abbreviation: formData.abbreviation,
-        name: formData.name,
-        completion_type: formData.completion_type,
-        subject_type: formData.subject_type,
-        credits: formData.credits,
-        hours: formData.hours || null,
-        points: isFieldVisibleForState("points", subjectState) && formData.points ? Number.parseInt(formData.points) : null,
-        grade: isFieldVisibleForState("grade", subjectState) ? (formData.grade || null) : null,
-        lecturer: formData.lecturer || null,
-        department: formData.department || null,
-        final_date: isFieldVisibleForState("final_date", subjectState) && formData.final_date ? formData.final_date : null,
-        completed: subjectState === "completed",
-        exam_completed: formData.exam_completed,
-        credit_completed: formData.credit_completed,
-        planned: subjectState === "planned",
-      })
+      .update(updateData)
       .eq("id", subject.id)
 
     if (error) {
