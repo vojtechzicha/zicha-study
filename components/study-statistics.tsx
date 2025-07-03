@@ -134,6 +134,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     const completedCredits = filteredSubjects.filter((s) => s.completed).reduce((sum, s) => sum + s.credits, 0)
 
     const totalHours = filteredSubjects.reduce((sum, s) => sum + (s.hours || 0), 0)
+    const completedHours = filteredSubjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
 
     // Calculate weighted average
     const subjectsWithPoints = filteredSubjects.filter(
@@ -153,6 +154,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       totalCredits,
       completedCredits,
       totalHours,
+      completedHours,
       weightedAverage,
       completionRate: total > 0 ? (completed / total) * 100 : 0,
       creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
@@ -467,8 +469,10 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <p className="text-2xl font-bold text-gray-900">{stats.totalHours}</p>
-                <p className="text-sm text-gray-600">hodin výuky</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.completedHours}</p>
+                <p className="text-sm text-gray-600">
+                  z {stats.totalHours} hodin ({stats.totalHours > 0 ? ((stats.completedHours / stats.totalHours) * 100).toFixed(1) : 0}%)
+                </p>
               </div>
             </CardContent>
           </Card>

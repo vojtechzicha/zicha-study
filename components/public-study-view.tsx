@@ -121,6 +121,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
     const totalCredits = subjects.reduce((sum, s) => sum + s.credits, 0)
     const completedCredits = subjects.filter((s) => s.completed).reduce((sum, s) => sum + s.credits, 0)
     const totalHours = subjects.reduce((sum, s) => sum + (s.hours || 0), 0)
+    const completedHours = subjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
 
     // Calculate weighted average
     const subjectsWithPoints = subjects.filter((s) => s.points && s.completed)
@@ -146,6 +147,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
       totalCredits,
       completedCredits,
       totalHours,
+      completedHours,
       weightedAverage,
       completionRate: total > 0 ? (completed / total) * 100 : 0,
       creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
@@ -323,8 +325,10 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
               <Clock className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalHours}</div>
-              <p className="text-xs text-gray-600 mt-1">hodin výuky</p>
+              <div className="text-2xl font-bold text-gray-900">{stats.completedHours}</div>
+              <p className="text-xs text-gray-600 mt-1">
+                z {stats.totalHours} hodin ({stats.totalHours > 0 ? ((stats.completedHours / stats.totalHours) * 100).toFixed(1) : 0}%)
+              </p>
             </CardContent>
           </Card>
         </div>

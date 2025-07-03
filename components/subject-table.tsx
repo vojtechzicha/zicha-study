@@ -231,6 +231,7 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
             <TableHead>Typ</TableHead>
             <TableHead>Ukončení</TableHead>
             <TableHead>Kredity</TableHead>
+            <TableHead>Hodiny</TableHead>
             <TableHead>Body</TableHead>
             <TableHead>Známka</TableHead>
             <TableHead>Datum ukončení</TableHead>
@@ -242,13 +243,13 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={11} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={12} className="text-center py-8 text-gray-500">
                 Načítání předmětů...
               </TableCell>
             </TableRow>
           ) : sortedSubjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={11} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={12} className="text-center py-8 text-gray-500">
                 Žádné předměty nenalezeny.
               </TableCell>
             </TableRow>
@@ -280,6 +281,9 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
 
                   {/* Credits */}
                   <TableCell>{subject.credits}</TableCell>
+
+                  {/* Hours */}
+                  <TableCell>{subject.hours || "-"}</TableCell>
 
                   {/* Points */}
                   <TableCell>
