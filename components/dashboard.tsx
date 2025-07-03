@@ -7,11 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit } from "lucide-react"
-import { StudyForm } from "@/components/study-form"
-import { StudyDetail } from "@/components/study-detail"
-import { StudyEditForm } from "@/components/study-edit-form"
-import { StudySettings } from "@/components/study-settings"
 import { StudyLogo } from "@/components/study-logo"
+import { useRouter } from "next/navigation"
 
 interface Study {
   id: string
@@ -33,12 +30,9 @@ interface DashboardProps {
 
 export function Dashboard({ user }: DashboardProps) {
   const [studies, setStudies] = useState<Study[]>([])
-  const [showStudyForm, setShowStudyForm] = useState(false)
-  const [selectedStudy, setSelectedStudy] = useState<Study | null>(null)
-  const [editingStudy, setEditingStudy] = useState<Study | null>(null)
-  const [settingsStudy, setSettingsStudy] = useState<Study | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
     fetchStudies()
@@ -97,47 +91,6 @@ export function Dashboard({ user }: DashboardProps) {
     return user.email?.split("@")[0] || "Uživatel"
   }
 
-  if (selectedStudy) {
-    return <StudyDetail study={selectedStudy} onBack={() => setSelectedStudy(null)} user={user} />
-  }
-
-  if (showStudyForm) {
-    return (
-      <StudyForm
-        onClose={() => setShowStudyForm(false)}
-        onSuccess={() => {
-          setShowStudyForm(false)
-          fetchStudies()
-        }}
-      />
-    )
-  }
-
-  if (editingStudy) {
-    return (
-      <StudyEditForm
-        study={editingStudy}
-        onClose={() => setEditingStudy(null)}
-        onSuccess={() => {
-          setEditingStudy(null)
-          fetchStudies()
-        }}
-      />
-    )
-  }
-
-  if (settingsStudy) {
-    return (
-      <StudySettings
-        study={settingsStudy}
-        onClose={() => setSettingsStudy(null)}
-        onSuccess={() => {
-          setSettingsStudy(null)
-          fetchStudies()
-        }}
-      />
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -209,7 +162,7 @@ export function Dashboard({ user }: DashboardProps) {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Vaše studia</h2>
           <Button
-            onClick={() => setShowStudyForm(true)}
+            onClick={() => router.push("/studies/new")}
             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -239,7 +192,7 @@ export function Dashboard({ user }: DashboardProps) {
               <h3 className="text-lg font-medium text-gray-900 mb-2">Zatím nemáte žádná studia</h3>
               <p className="text-gray-600 mb-6">Začněte přidáním vašeho prvního studia</p>
               <Button
-                onClick={() => setShowStudyForm(true)}
+                onClick={() => router.push("/studies/new")}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -256,7 +209,7 @@ export function Dashboard({ user }: DashboardProps) {
               >
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div className="flex items-start gap-3 flex-1 min-w-0" onClick={() => setSelectedStudy(study)}>
+                    <div className="flex items-start gap-3 flex-1 min-w-0" onClick={() => router.push(`/studies/${study.id}`)}>
                       <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="lg" />
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight break-words">
@@ -281,7 +234,7 @@ export function Dashboard({ user }: DashboardProps) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setEditingStudy(study)
+                          router.push(`/studies/${study.id}/edit`)
                         }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
                       >
@@ -290,7 +243,7 @@ export function Dashboard({ user }: DashboardProps) {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent onClick={() => setSelectedStudy(study)}>
+                <CardContent onClick={() => router.push(`/studies/${study.id}`)}>
                   <div className="text-sm text-gray-600">
                     <p>Začátek: {study.start_year}</p>
                     {study.end_year && <p>Konec: {study.end_year}</p>}

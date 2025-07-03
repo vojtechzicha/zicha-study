@@ -8,13 +8,11 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings } from "lucide-react"
 import { SubjectForm } from "./subject-form"
 import { SubjectTable } from "./subject-table"
-import { StudyStatistics } from "./study-statistics"
-import { StudyEditForm } from "./study-edit-form"
 import { StudyLogo } from "./study-logo"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import type { User } from "@supabase/supabase-js"
-import { StudySettings } from "./study-settings"
+import { useRouter } from "next/navigation"
 
 interface Study {
   id: string
@@ -59,11 +57,9 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const [showSubjectForm, setShowSubjectForm] = useState(false)
-  const [showStatistics, setShowStatistics] = useState(false)
-  const [showEditForm, setShowEditForm] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
   const [currentStudy, setCurrentStudy] = useState<Study>(study)
   const supabase = createClient()
+  const router = useRouter()
   
   // Extract and apply theme colors from logo
   const { extractedColor, isLoading: colorLoading } = useLogoTheme(currentStudy.logo_url)
@@ -100,8 +96,6 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   }
 
   const handleStudyUpdated = () => {
-    setShowEditForm(false)
-    setShowSettings(false)
     fetchStudyData()
   }
 
@@ -122,17 +116,6 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   }
 
 
-  if (showStatistics) {
-    return <StudyStatistics subjects={subjects} studyName={currentStudy.name} studyLogoUrl={currentStudy.logo_url} onBack={() => setShowStatistics(false)} />
-  }
-
-  if (showSettings) {
-    return <StudySettings study={currentStudy} onClose={() => setShowSettings(false)} onSuccess={handleStudyUpdated} />
-  }
-
-  if (showEditForm) {
-    return <StudyEditForm study={currentStudy} onClose={() => setShowEditForm(false)} onSuccess={handleStudyUpdated} />
-  }
 
   return (
     <div 
@@ -147,15 +130,15 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
         onBack={onBack}
         actions={
           <>
-            <Button variant="outline" onClick={() => setShowEditForm(true)} className="text-gray-700">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/edit`)} className="text-gray-700">
               <Edit className="mr-2 h-4 w-4" />
               Upravit
             </Button>
-            <Button variant="outline" onClick={() => setShowSettings(true)} className="text-gray-700">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/settings`)} className="text-gray-700">
               <Settings className="mr-2 h-4 w-4" />
               Sdílení
             </Button>
-            <Button variant="outline" onClick={() => setShowStatistics(true)} className="text-gray-700">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/statistics`)} className="text-gray-700">
               <BarChart3 className="mr-2 h-4 w-4" />
               Statistiky
             </Button>
