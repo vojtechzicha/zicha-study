@@ -6,9 +6,10 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Plus, BookOpen, Calculator, Calendar } from "lucide-react"
+import { ArrowLeft, Plus, BookOpen, Calculator, Calendar, TrendingUp } from "lucide-react"
 import { SubjectForm } from "@/components/subject-form"
 import { SubjectTable } from "@/components/subject-table"
+import { StudyStatistics } from "@/components/study-statistics"
 
 interface Study {
   id: string
@@ -49,6 +50,7 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const [showSubjectForm, setShowSubjectForm] = useState(false)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const [showStatistics, setShowStatistics] = useState(false)
 
   useEffect(() => {
     fetchSubjects()
@@ -116,6 +118,10 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
     )
   }
 
+  if (showStatistics) {
+    return <StudyStatistics study={study} onBack={() => setShowStatistics(false)} />
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -133,13 +139,19 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
               </div>
               <Badge className={getStatusColor(study.status)}>{getStatusText(study.status)}</Badge>
             </div>
-            <Button
-              onClick={() => setShowSubjectForm(true)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Přidat předmět
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowStatistics(true)} variant="outline" className="bg-white/80 hover:bg-white">
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Statistiky
+              </Button>
+              <Button
+                onClick={() => setShowSubjectForm(true)}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Přidat předmět
+              </Button>
+            </div>
           </div>
         </div>
       </header>

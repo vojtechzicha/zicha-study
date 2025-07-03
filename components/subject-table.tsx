@@ -39,7 +39,14 @@ interface SubjectTableProps {
 export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps) {
   const [editingDates, setEditingDates] = useState<{ [key: string]: boolean }>({})
   const [tempDates, setTempDates] = useState<{
-    [key: string]: { final_date?: string; grade?: string }
+    [key: string]: {
+      final_date?: string
+      grade?: string
+      lecturer?: string
+      department?: string
+      points?: string
+      hours?: string
+    }
   }>({})
   const supabase = createClient()
 
@@ -62,6 +69,10 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
         [subjectId]: {
           final_date: subject.final_date || "",
           grade: subject.grade || "",
+          lecturer: subject.lecturer || "",
+          department: subject.department || "",
+          points: subject.points?.toString() || "",
+          hours: subject.hours?.toString() || "",
         },
       })
       setEditingDates({ ...editingDates, [subjectId]: true })
@@ -76,6 +87,10 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
         .update({
           final_date: data.final_date || null,
           grade: data.grade || null,
+          lecturer: data.lecturer || null,
+          department: data.department || null,
+          points: data.points ? Number.parseInt(data.points) : null,
+          hours: data.hours ? Number.parseInt(data.hours) : null,
         })
         .eq("id", subjectId)
 
@@ -228,8 +243,51 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                 />
               </TableCell>
               <TableCell className="text-center font-medium">{subject.credits}</TableCell>
-              <TableCell className="text-center">{subject.hours || "-"}</TableCell>
-              <TableCell className="text-center font-medium">{subject.points || "-"}</TableCell>
+              <TableCell className="text-center">
+                {editingDates[subject.id] ? (
+                  <Input
+                    type="number"
+                    value={tempDates[subject.id]?.hours || ""}
+                    onChange={(e) =>
+                      setTempDates({
+                        ...tempDates,
+                        [subject.id]: {
+                          ...tempDates[subject.id],
+                          hours: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full text-xs"
+                    placeholder="hodiny"
+                    min="0"
+                  />
+                ) : (
+                  <span className="text-sm">{subject.hours || "-"}</span>
+                )}
+              </TableCell>
+              <TableCell className="text-center font-medium">
+                {editingDates[subject.id] ? (
+                  <Input
+                    type="number"
+                    value={tempDates[subject.id]?.points || ""}
+                    onChange={(e) =>
+                      setTempDates({
+                        ...tempDates,
+                        [subject.id]: {
+                          ...tempDates[subject.id],
+                          points: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full text-xs"
+                    placeholder="body"
+                    min="0"
+                    max="100"
+                  />
+                ) : (
+                  <span className="text-sm">{subject.points || "-"}</span>
+                )}
+              </TableCell>
               <TableCell>
                 {editingDates[subject.id] ? (
                   <Input
@@ -250,8 +308,46 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                   <span className="text-sm">{subject.grade || "-"}</span>
                 )}
               </TableCell>
-              <TableCell className="text-sm">{subject.lecturer || "-"}</TableCell>
-              <TableCell className="text-sm">{subject.department || "-"}</TableCell>
+              <TableCell>
+                {editingDates[subject.id] ? (
+                  <Input
+                    value={tempDates[subject.id]?.lecturer || ""}
+                    onChange={(e) =>
+                      setTempDates({
+                        ...tempDates,
+                        [subject.id]: {
+                          ...tempDates[subject.id],
+                          lecturer: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full text-xs"
+                    placeholder="přednášející"
+                  />
+                ) : (
+                  <span className="text-sm">{subject.lecturer || "-"}</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {editingDates[subject.id] ? (
+                  <Input
+                    value={tempDates[subject.id]?.department || ""}
+                    onChange={(e) =>
+                      setTempDates({
+                        ...tempDates,
+                        [subject.id]: {
+                          ...tempDates[subject.id],
+                          department: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full text-xs"
+                    placeholder="katedra"
+                  />
+                ) : (
+                  <span className="text-sm">{subject.department || "-"}</span>
+                )}
+              </TableCell>
               <TableCell>
                 {editingDates[subject.id] ? (
                   <Input
