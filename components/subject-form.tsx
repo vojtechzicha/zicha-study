@@ -58,7 +58,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
     const insertData: any = {
       study_id: study.id,
       semester: formData.semester,
-      abbreviation: formData.abbreviation,
+      abbreviation: formData.abbreviation || null,
       name: formData.name,
       completion_type: formData.completion_type,
       subject_type: formData.subject_type,
@@ -147,13 +147,12 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="abbreviation">Zkratka *</Label>
+                  <Label htmlFor="abbreviation">Zkratka</Label>
                   <Input
                     id="abbreviation"
                     value={formData.abbreviation}
                     onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value })}
                     placeholder="např. MI1, KMA1-E"
-                    required
                   />
                 </div>
               </div>
@@ -330,7 +329,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                   disabled={
                     loading ||
                     !formData.semester ||
-                    !formData.abbreviation ||
                     !formData.name ||
                     !formData.completion_type ||
                     !formData.subject_type ||

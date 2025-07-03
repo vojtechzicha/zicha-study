@@ -60,7 +60,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
   const [subjectState, setSubjectState] = useState<SubjectState>(getSubjectStatus(subject))
   const [formData, setFormData] = useState({
     semester: subject.semester,
-    abbreviation: subject.abbreviation,
+    abbreviation: subject.abbreviation || "",
     name: subject.name,
     completion_type: subject.completion_type,
     subject_type: subject.subject_type,
@@ -87,7 +87,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
     // Prepare update data
     const updateData: any = {
       semester: formData.semester,
-      abbreviation: formData.abbreviation,
+      abbreviation: formData.abbreviation || null,
       name: formData.name,
       completion_type: formData.completion_type,
       subject_type: formData.subject_type,
@@ -193,13 +193,12 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="abbreviation">Zkratka *</Label>
+                  <Label htmlFor="abbreviation">Zkratka</Label>
                   <Input
                     id="abbreviation"
                     value={formData.abbreviation}
                     onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value })}
                     placeholder="např. IZP"
-                    required
                   />
                 </div>
               </div>
@@ -449,7 +448,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                   disabled={
                     loading ||
                     !formData.semester ||
-                    !formData.abbreviation ||
                     !formData.name ||
                     !formData.completion_type ||
                     !formData.subject_type ||

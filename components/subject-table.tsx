@@ -272,8 +272,10 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                   {/* Subject */}
                   <TableCell>
                     <div>
-                      <div className="font-medium">{subject.abbreviation}</div>
-                      <div className="text-sm text-gray-600">{subject.name}</div>
+                      <div className="font-medium">{subject.abbreviation || subject.name}</div>
+                      {subject.abbreviation && (
+                        <div className="text-sm text-gray-600">{subject.name}</div>
+                      )}
                     </div>
                   </TableCell>
 
