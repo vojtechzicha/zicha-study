@@ -5,10 +5,14 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp } from "lucide-react"
+import { ArrowLeft, Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings } from "lucide-react"
 import { SubjectForm } from "./subject-form"
 import { SubjectTable } from "./subject-table"
 import { StudyStatistics } from "./study-statistics"
+import { StudyEditForm } from "./study-edit-form"
+import { StudyLogo } from "./study-logo"
+import type { User } from "@supabase/supabase-js"
+import { StudySettings } from "./study-settings"
 
 interface Study {
   id: string
@@ -18,6 +22,7 @@ interface Study {
   start_year: number
   end_year?: number
   status: "active" | "completed" | "paused" | "abandoned"
+  logo_url?: string
   created_at: string
 }
 
@@ -45,13 +50,17 @@ interface Subject {
 interface StudyDetailProps {
   study: Study
   onBack: () => void
+  user: User
 }
 
-export function StudyDetail({ study, onBack }: StudyDetailProps) {
+export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const [showSubjectForm, setShowSubjectForm] = useState(false)
   const [showStatistics, setShowStatistics] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [currentStudy, setCurrentStudy] = useState<Study>(study)
   const supabase = createClient()
 
   useEffect(() => {
@@ -72,9 +81,22 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
     setLoading(false)
   }
 
+  const fetchStudyData = async () => {
+    const { data, error } = await supabase.from("studies").select("*").eq("id", study.id).single()
+
+    if (!error && data) {
+      setCurrentStudy(data)
+    }
+  }
+
   const handleSubjectAdded = () => {
     setShowSubjectForm(false)
     fetchSubjects()
+  }
+
+  const handleStudyUpdated = () => {
+    setShowEditForm(false)
+    fetchStudyData()
   }
 
   // Calculate statistics
@@ -109,7 +131,15 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
   }
 
   if (showStatistics) {
-    return <StudyStatistics subjects={subjects} studyName={study.name} onBack={() => setShowStatistics(false)} />
+    return <StudyStatistics subjects={subjects} studyName={currentStudy.name} onBack={() => setShowStatistics(false)} />
+  }
+
+  if (showSettings) {
+    return <StudySettings study={currentStudy} onBack={() => setShowSettings(false)} onSuccess={handleStudyUpdated} />
+  }
+
+  if (showEditForm) {
+    return <StudyEditForm study={currentStudy} onClose={() => setShowEditForm(false)} onSuccess={handleStudyUpdated} />
   }
 
   return (
@@ -123,18 +153,29 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Zpět
               </Button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{study.name}</h1>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <span>{study.type}</span>
-                  <span>•</span>
-                  <span>{study.form}</span>
-                  <span>•</span>
-                  {getStatusBadge(study.status)}
+              <div className="flex items-center space-x-3">
+                <StudyLogo logoUrl={currentStudy.logo_url} studyName={currentStudy.name} size="lg" />
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">{currentStudy.name}</h1>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <span>{currentStudy.type}</span>
+                    <span>•</span>
+                    <span>{currentStudy.form}</span>
+                    <span>•</span>
+                    {getStatusBadge(currentStudy.status)}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <Button variant="outline" onClick={() => setShowEditForm(true)} className="text-gray-700">
+                <Edit className="mr-2 h-4 w-4" />
+                Upravit
+              </Button>
+              <Button variant="outline" onClick={() => setShowSettings(true)} className="text-gray-700">
+                <Settings className="mr-2 h-4 w-4" />
+                Sdílení
+              </Button>
               <Button variant="outline" onClick={() => setShowStatistics(true)} className="text-gray-700">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Statistiky

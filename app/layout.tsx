@@ -12,23 +12,18 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/favicon.ico",
-        sizes: "any",
+        url: "/favicon.png",
+        type: "image/svg+xml",
       },
       {
-        url: "/icon.svg",
+        url: "/icon.png",
         type: "image/svg+xml",
       },
     ],
-    apple: [
-      {
-        url: "/apple-touch-icon.png",
-        sizes: "180x180",
-        type: "image/png",
-      },
-    ],
+    shortcut: "/favicon.png",
+    apple: "/icon.png",
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
