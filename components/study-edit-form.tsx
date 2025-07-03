@@ -9,8 +9,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Upload, X } from "lucide-react"
+import { ArrowLeft, Upload, X, Trash2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useRouter } from "next/navigation"
 
 interface Study {
   id: string
@@ -42,8 +54,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(study.logo_url || null)
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
+  const router = useRouter()
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -132,6 +146,47 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
       setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteStudy = async () => {
+    setDeleting(true)
+    setError(null)
+
+    try {
+      // First delete all subjects
+      const { error: subjectsError } = await supabase
+        .from("subjects")
+        .delete()
+        .eq("study_id", study.id)
+
+      if (subjectsError) throw subjectsError
+
+      // Delete the logo from storage if it exists
+      if (study.logo_url) {
+        const urlParts = study.logo_url.split("/")
+        const bucketIndex = urlParts.findIndex(part => part === "study-logos")
+        if (bucketIndex !== -1 && bucketIndex + 1 < urlParts.length) {
+          const logoPath = urlParts.slice(bucketIndex + 1).join("/")
+          await supabase.storage.from("study-logos").remove([logoPath])
+        }
+      }
+
+      // Then delete the study
+      const { error: studyError } = await supabase
+        .from("studies")
+        .delete()
+        .eq("id", study.id)
+
+      if (studyError) throw studyError
+
+      // Navigate back to dashboard
+      router.push("/")
+    } catch (err) {
+      console.error("Delete study error:", err)
+      setError(err instanceof Error ? err.message : "Nastala chyba při mazání studia")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -298,6 +353,41 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </Button>
               </div>
             </form>
+
+            {/* Danger Zone */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+                <h3 className="text-lg font-semibold text-red-900 mb-2">Nebezpečná zóna</h3>
+                <p className="text-sm text-red-700 mb-4">
+                  Smazání studia je nevratné. Budou odstraněny všechny předměty a veškerá data spojená s tímto studiem včetně nahraného loga.
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={deleting}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {deleting ? "Mazání..." : "Smazat studium"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Opravdu chcete smazat toto studium?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tato akce je nevratná. Studium "{study.name}" a všechny jeho předměty budou trvale odstraněny.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteStudy}
+                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                      >
+                        Smazat studium
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

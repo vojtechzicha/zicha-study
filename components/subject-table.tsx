@@ -7,8 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Check, X, Edit } from "lucide-react"
+import { Check, X, Edit, Trash2 } from "lucide-react"
 import { SubjectCompletionDialog } from "./subject-completion-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface Subject {
   id: string
@@ -81,6 +92,7 @@ const sortSubjects = (subjects: Subject[]) => {
 
 export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps) {
   const [editingDates, setEditingDates] = useState<{ [key: string]: boolean }>({})
+  const [deleting, setDeleting] = useState<{ [key: string]: boolean }>({})
   const [tempDates, setTempDates] = useState<{
     [key: string]: {
       final_date?: string
@@ -205,6 +217,25 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
     const newTempDates = { ...tempDates }
     delete newTempDates[subjectId]
     setTempDates(newTempDates)
+  }
+
+  const handleDeleteSubject = async (subjectId: string) => {
+    setDeleting({ ...deleting, [subjectId]: true })
+
+    try {
+      const { error } = await supabase
+        .from("subjects")
+        .delete()
+        .eq("id", subjectId)
+
+      if (!error) {
+        onUpdate()
+      }
+    } catch (err) {
+      console.error("Delete subject error:", err)
+    } finally {
+      setDeleting({ ...deleting, [subjectId]: false })
+    }
   }
 
   const getCompletionBadge = (type: string) => {
@@ -494,6 +525,36 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                     <Button size="sm" variant="ghost" onClick={() => handleCancel(subject.id)} className="h-8 w-8 p-0">
                       <X className="h-4 w-4 text-red-600" />
                     </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-8 w-8 p-0 hover:bg-red-50"
+                          disabled={deleting[subject.id]}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Smazat předmět?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Opravdu chcete smazat předmět "{subject.name}" ({subject.abbreviation})?<br/>
+                            Tato akce je nevratná.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteSubject(subject.id)}
+                            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                          >
+                            {deleting[subject.id] ? "Mazání..." : "Smazat"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 ) : (
                   <Button size="sm" variant="ghost" onClick={() => handleEdit(subject.id)} className="h-8 w-8 p-0">
