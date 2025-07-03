@@ -84,7 +84,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   }, [subjects])
 
   const departments = useMemo(() => {
-    const unique = [...new Set(subjects.map((s) => s.department).filter(Boolean))].sort()
+    const unique = [...new Set(subjects.map((s) => s.department).filter((dept): dept is string => Boolean(dept)))].sort()
     return unique
   }, [subjects])
 
@@ -218,7 +218,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
   // Statistics by department
   const departmentStats = useMemo(() => {
-    const stats: { [key: string]: any } = {}
+    const stats: { [key: string]: { total: number; completed: number; credits: number; hours: number; completionRate: number } } = {}
 
     departments.forEach((dept) => {
       const deptSubjects = filteredSubjects.filter((s) => s.department === dept)

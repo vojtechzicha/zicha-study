@@ -6,7 +6,7 @@ import { StudyForm } from "@/components/study-form"
 import { LoginForm } from "@/components/login-form"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import type { User } from "@supabase/supabase-js"
+import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 export default function NewStudyPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -27,7 +27,7 @@ export default function NewStudyPage() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })

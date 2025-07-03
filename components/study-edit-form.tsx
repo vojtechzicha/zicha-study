@@ -126,7 +126,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
           const oldPath = urlParts.slice(bucketIndex + 1).join("/")
           await supabase.storage.from("study-logos").remove([oldPath])
         }
-        logoUrl = null
+        logoUrl = undefined
       }
 
       const { error: updateError } = await supabase

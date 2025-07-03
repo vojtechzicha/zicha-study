@@ -6,7 +6,7 @@ import { StudyDetail } from "@/components/study-detail"
 import { LoginForm } from "@/components/login-form"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import type { User } from "@supabase/supabase-js"
+import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 interface Study {
   id: string
@@ -62,7 +62,7 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null)
     })
 
