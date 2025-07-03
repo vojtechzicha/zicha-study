@@ -6,8 +6,31 @@ interface PageProps {
   params: Promise<{ slug: string }>
 }
 
+// Reserved routes that should not be accessible as public study slugs
+const RESERVED_ROUTES = [
+  'auth',
+  'studies',
+  'api',
+  'admin',
+  'dashboard',
+  'settings',
+  'profile',
+  'help',
+  'about',
+  'contact',
+  'terms',
+  'privacy',
+  'public'
+]
+
 export default async function PublicStudyPage({ params }: PageProps) {
   const { slug } = await params
+  
+  // Check if the slug conflicts with reserved routes
+  if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
+    notFound()
+  }
+  
   const supabase = await createServerClient()
 
   // Fetch study data
@@ -38,6 +61,14 @@ export default async function PublicStudyPage({ params }: PageProps) {
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
+  
+  // Check if the slug conflicts with reserved routes
+  if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
+    return {
+      title: "Stránka nenalezena",
+    }
+  }
+  
   const supabase = await createServerClient()
 
   const { data: study } = await supabase

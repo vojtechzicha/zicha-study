@@ -37,7 +37,24 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   const [copied, setCopied] = useState(false)
   const supabase = createClient()
 
-  const publicUrl = `${window.location.origin}/public/${slug}`
+  // Reserved routes that should not be accessible as public study slugs
+  const RESERVED_ROUTES = [
+    'auth',
+    'studies',
+    'api',
+    'admin',
+    'dashboard',
+    'settings',
+    'profile',
+    'help',
+    'about',
+    'contact',
+    'terms',
+    'privacy',
+    'public'
+  ]
+
+  const publicUrl = `${window.location.origin}/${slug}`
 
   useEffect(() => {
     if (!slug) {
@@ -60,6 +77,12 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   const checkSlugAvailability = async () => {
     if (!slug || slug === study.public_slug) {
       setSlugAvailable(true)
+      return
+    }
+
+    // Check if slug is a reserved route
+    if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
+      setSlugAvailable(false)
       return
     }
 
@@ -169,7 +192,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                   <div className="space-y-2">
                     <Label htmlFor="slug">URL adresa *</Label>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">{window.location.origin}/public/</span>
+                      <span className="text-sm text-gray-500">{window.location.origin}/</span>
                       <Input
                         id="slug"
                         value={slug}
@@ -182,7 +205,11 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                       />
                     </div>
                     {slugAvailable === false && (
-                      <p className="text-sm text-red-600">Tato URL adresa již není dostupná</p>
+                      <p className="text-sm text-red-600">
+                        {RESERVED_ROUTES.includes(slug.toLowerCase()) 
+                          ? "Tato URL adresa je rezervována pro systémové funkce" 
+                          : "Tato URL adresa již není dostupná"}
+                      </p>
                     )}
                     {slugAvailable === true && slug && <p className="text-sm text-green-600">URL adresa je dostupná</p>}
                     <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
