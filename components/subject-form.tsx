@@ -170,6 +170,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                       <SelectItem value="Klasifikovaný zápočet (KZp)">Klasifikovaný zápočet (KZp)</SelectItem>
                       <SelectItem value="Zkouška (Zk)">Zkouška (Zk)</SelectItem>
                       <SelectItem value="Zápočet + Zkouška (Zp+Zk)">Zápočet&nbsp;+&nbsp;Zkouška (Zp+Zk)</SelectItem>
+                      <SelectItem value="Ostatní">Ostatní</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

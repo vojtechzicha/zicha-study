@@ -159,11 +159,51 @@ export const isFieldVisibleForState = (field: string, state: SubjectState): bool
 
 // Completion type utilities
 export const requiresCredit = (completionType: string): boolean => {
+  if (completionType === "Ostatní") return false
   return completionType.includes("Zápočet") || completionType.includes("Zp")
 }
 
 export const requiresExam = (completionType: string): boolean => {
+  if (completionType === "Ostatní") return false
   return completionType.includes("Zkouška") || completionType.includes("Zk")
+}
+
+// Get completion type badge configuration
+export const getCompletionBadgeConfig = (completionType: string) => {
+  const shortType = completionType.match(/\(([^)]+)\)$/)?.[1] || completionType
+  
+  switch (shortType) {
+    case "Zp":
+      return {
+        text: "Zp",
+        className: "bg-green-50 text-green-700 border-green-200"
+      }
+    case "KZp":
+      return {
+        text: "KZp", 
+        className: "bg-blue-50 text-blue-700 border-blue-200"
+      }
+    case "Zk":
+      return {
+        text: "Zk",
+        className: "bg-purple-50 text-purple-700 border-purple-200"
+      }
+    case "Zp+Zk":
+      return {
+        text: "Zp+Zk",
+        className: "bg-orange-50 text-orange-700 border-orange-200"
+      }
+    case "Ostatní":
+      return {
+        text: "-",
+        className: "bg-gray-50 text-gray-700 border-gray-200"
+      }
+    default:
+      return {
+        text: shortType,
+        className: ""
+      }
+  }
 }
 
 // Actions available based on subject state

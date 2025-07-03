@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { isFieldVisibleForState, getSubjectStatus } from "@/lib/status-utils"
+import { isFieldVisibleForState } from "@/lib/status-utils"
 
 interface Subject {
   id: string
@@ -49,6 +49,9 @@ export function SubjectCompletionModal({
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
+  // Determine current state based on subject properties
+  const currentState = subject.planned ? "planned" : subject.completed ? "completed" : "active"
+
   const isCredit = completionType === "credit"
   const title = isCredit ? "Zápočet splněn" : "Zkouška splněna"
   const fieldName = isCredit ? "credit_completed" : "exam_completed"
@@ -58,7 +61,6 @@ export function SubjectCompletionModal({
     setLoading(true)
     setError(null)
 
-    const currentState = getSubjectStatus(subject)
     const updates: any = {
       [fieldName]: true,
     }
@@ -111,7 +113,7 @@ export function SubjectCompletionModal({
           </div>
 
           {/* Points */}
-          {isFieldVisibleForState("points", getSubjectStatus(subject)) && (
+          {isFieldVisibleForState("points", currentState) && (
             <div className="space-y-2">
               <Label htmlFor="points">Počet bodů</Label>
               <Input
@@ -127,7 +129,7 @@ export function SubjectCompletionModal({
           )}
 
           {/* Grade */}
-          {isFieldVisibleForState("grade", getSubjectStatus(subject)) && (
+          {isFieldVisibleForState("grade", currentState) && (
             <div className="space-y-2">
               <Label htmlFor="grade">Známka</Label>
               <Input

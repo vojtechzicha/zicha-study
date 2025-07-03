@@ -15,7 +15,8 @@ import {
   getSubjectStatus,
   getSubjectStateColor,
   getSubjectStateText,
-  isFieldVisibleForState
+  isFieldVisibleForState,
+  getCompletionBadgeConfig
 } from "@/lib/status-utils"
 
 interface Study {
@@ -177,39 +178,12 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
   }
 
   const getCompletionBadge = (type: string) => {
-    const shortType = type.match(/\(([^)]+)\)$/)?.[1] || type
-    switch (shortType) {
-      case "Zp+Zk":
-        return (
-          <Badge variant="outline" className="text-xs">
-            Zp+Zk
-          </Badge>
-        )
-      case "Zp":
-        return (
-          <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-            Zp
-          </Badge>
-        )
-      case "KZp":
-        return (
-          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
-            KZp
-          </Badge>
-        )
-      case "Zk":
-        return (
-          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-            Zk
-          </Badge>
-        )
-      default:
-        return (
-          <Badge variant="outline" className="text-xs">
-            {shortType}
-          </Badge>
-        )
-    }
+    const config = getCompletionBadgeConfig(type)
+    return (
+      <Badge variant="outline" className={`text-xs ${config.className}`}>
+        {config.text}
+      </Badge>
+    )
   }
 
   const getSubjectTypeBadge = (type: string) => {

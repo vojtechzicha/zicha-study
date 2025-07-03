@@ -207,6 +207,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                       <SelectItem value="Klasifikovaný zápočet (KZp)">Klasifikovaný zápočet (KZp)</SelectItem>
                       <SelectItem value="Zkouška (Zk)">Zkouška (Zk)</SelectItem>
                       <SelectItem value="Zápočet + Zkouška (Zp+Zk)">Zápočet&nbsp;+&nbsp;Zkouška (Zp+Zk)</SelectItem>
+                      <SelectItem value="Ostatní">Ostatní</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

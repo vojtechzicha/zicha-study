@@ -28,7 +28,8 @@ import {
   getAvailableActions,
   isFieldVisibleForState,
   requiresCredit,
-  requiresExam
+  requiresExam,
+  getCompletionBadgeConfig
 } from "@/lib/status-utils"
 
 interface Subject {
@@ -190,19 +191,12 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
   }
 
   const getCompletionBadge = (type: string) => {
-    const shortType = type.match(/\(([^)]+)\)$/)?.[1] || type
-    switch (shortType) {
-      case "Zp":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Zp</Badge>
-      case "KZp":
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">KZp</Badge>
-      case "Zk":
-        return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Zk</Badge>
-      case "Zp+Zk":
-        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Zp+Zk</Badge>
-      default:
-        return <Badge variant="outline">{shortType}</Badge>
-    }
+    const config = getCompletionBadgeConfig(type)
+    return (
+      <Badge variant="outline" className={config.className}>
+        {config.text}
+      </Badge>
+    )
   }
 
   const handleEditClick = (subject: Subject) => {
