@@ -36,6 +36,48 @@ interface SubjectTableProps {
   onUpdate: () => void
 }
 
+const sortSubjects = (subjects: Subject[]) => {
+  const typeOrder = {
+    Povinný: 1,
+    "Povinně volitelný": 2,
+    Volitelný: 3,
+    Ostatní: 4,
+  }
+
+  // Custom semester sorting function
+  const getSemesterOrder = (semester: string) => {
+    // Extract year and semester type
+    const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
+    if (match) {
+      const year = Number.parseInt(match[1])
+      const semesterType = match[2].toUpperCase()
+      // ZS (winter) comes before LS (summer) in the same year
+      return year * 10 + (semesterType === "ZS" ? 1 : 2)
+    }
+    // Fallback for non-standard semester names
+    return 999
+  }
+
+  return [...subjects].sort((a, b) => {
+    // First sort by semester with proper ZS/LS ordering
+    const aSemesterOrder = getSemesterOrder(a.semester)
+    const bSemesterOrder = getSemesterOrder(b.semester)
+    if (aSemesterOrder !== bSemesterOrder) {
+      return aSemesterOrder - bSemesterOrder
+    }
+
+    // Then sort by subject type
+    const aTypeOrder = typeOrder[a.subject_type as keyof typeof typeOrder] || 5
+    const bTypeOrder = typeOrder[b.subject_type as keyof typeof typeOrder] || 5
+    if (aTypeOrder !== bTypeOrder) {
+      return aTypeOrder - bTypeOrder
+    }
+
+    // Finally sort alphabetically by name
+    return a.name.localeCompare(b.name, "cs")
+  })
+}
+
 export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps) {
   const [editingDates, setEditingDates] = useState<{ [key: string]: boolean }>({})
   const [tempDates, setTempDates] = useState<{
@@ -198,6 +240,8 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
     )
   }
 
+  const sortedSubjects = sortSubjects(subjects)
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -221,7 +265,7 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
           </TableRow>
         </TableHeader>
         <TableBody>
-          {subjects.map((subject) => (
+          {sortedSubjects.map((subject) => (
             <TableRow key={subject.id} className="hover:bg-gray-50">
               <TableCell className="font-medium text-sm">{subject.semester}</TableCell>
               <TableCell className="font-mono text-sm">{subject.abbreviation}</TableCell>
