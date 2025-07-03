@@ -178,29 +178,27 @@ export function Dashboard({ user }: DashboardProps) {
                         <CardDescription className="text-gray-600 text-sm mt-1">
                           {study.type} • {study.form}
                         </CardDescription>
+                        <div className="flex gap-1 mt-2">
+                          <Badge className={getStatusColor(study.status)}>{getStatusText(study.status)}</Badge>
+                          {study.is_public && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              Veřejné
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex gap-1">
-                        <Badge className={getStatusColor(study.status)}>{getStatusText(study.status)}</Badge>
-                        {study.is_public && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                            Veřejné
-                          </Badge>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/studies/${study.id}/edit`)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/studies/${study.id}/edit`)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent onClick={() => router.push(`/studies/${study.id}`)}>

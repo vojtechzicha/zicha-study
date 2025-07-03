@@ -18,6 +18,7 @@ import {
   isFieldVisibleForState,
   getCompletionBadgeConfig
 } from "@/lib/status-utils"
+import { calculateAverage, getUniqueSemesters } from "@/lib/grade-utils"
 
 interface Study {
   id: string
@@ -124,11 +125,9 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
     const totalHours = subjects.reduce((sum, s) => sum + (s.hours || 0), 0)
     const completedHours = subjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
 
-    // Calculate weighted average
-    const subjectsWithPoints = subjects.filter((s) => s.points && s.completed)
-    const weightedSum = subjectsWithPoints.reduce((sum, s) => sum + s.points! * s.credits, 0)
-    const totalWeights = subjectsWithPoints.reduce((sum, s) => sum + s.credits, 0)
-    const weightedAverage = totalWeights > 0 ? weightedSum / totalWeights : 0
+    // Calculate weighted average using new utility
+    const completedSubjects = subjects.filter(s => s.completed)
+    const average = calculateAverage(completedSubjects)
 
     const subjectsWithCredits = subjects.filter((s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp"))
     const subjectsWithExams = subjects.filter((s) => s.completion_type.includes("Zk"))
@@ -149,7 +148,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
       completedCredits,
       totalHours,
       completedHours,
-      weightedAverage,
+      average,
       completionRate: total > 0 ? (completed / total) * 100 : 0,
       creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
       examCompletionRate: subjectsWithExams.length > 0 ? (examsCompleted / subjectsWithExams.length) * 100 : 0,
@@ -158,16 +157,22 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
     }
   }, [subjects])
 
-  // Group subjects by semester
+  // Group subjects by semester with averages
   const subjectsBySemester = useMemo(() => {
-    const grouped: { [key: string]: Subject[] } = {}
+    const grouped: { [key: string]: { subjects: Subject[], average: any } } = {}
     const sortedSubjects = sortSubjects(subjects)
 
     sortedSubjects.forEach((subject) => {
       if (!grouped[subject.semester]) {
-        grouped[subject.semester] = []
+        grouped[subject.semester] = { subjects: [], average: { type: 'none', value: null, label: '' } }
       }
-      grouped[subject.semester].push(subject)
+      grouped[subject.semester].subjects.push(subject)
+    })
+
+    // Calculate average for each semester
+    Object.keys(grouped).forEach(semester => {
+      const completedSemesterSubjects = grouped[semester].subjects.filter(s => s.completed)
+      grouped[semester].average = calculateAverage(completedSemesterSubjects)
     })
 
     return grouped
@@ -282,16 +287,39 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Vážený průměr</CardTitle>
-              <Trophy className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.weightedAverage.toFixed(1)}</div>
-              <p className="text-xs text-gray-600 mt-1">bodů (vážený kredity)</p>
-            </CardContent>
-          </Card>
+          {stats.average.type !== 'none' && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">{stats.average.label}</CardTitle>
+                <Trophy className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                {stats.average.type === 'both' ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-gray-900">
+                        {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
+                      </div>
+                      <p className="text-xs text-gray-600">body</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-gray-900">
+                        {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
+                      </div>
+                      <p className="text-xs text-gray-600">známky</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {stats.average.value ? stats.average.value.toFixed(2) : '-'}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">vážené kredity</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -363,16 +391,32 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
 
         {/* Subjects by Semester */}
         <div className="space-y-6">
-          {Object.entries(subjectsBySemester).map(([semester, semesterSubjects]) => (
+          {Object.entries(subjectsBySemester).map(([semester, semesterData]) => (
             <Card key={semester} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">{semester}</CardTitle>
+                  <div>
+                    <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">{semester}</CardTitle>
+                    {semesterData.average.type !== 'none' && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {semesterData.average.type === 'both' ? (
+                          <div className="flex space-x-4">
+                            <span>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : '-'}</span>
+                            <span>Známky: {semesterData.average.gradeValue ? semesterData.average.gradeValue.toFixed(2) : '-'}</span>
+                          </div>
+                        ) : (
+                          <div>
+                            {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : '-'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <span>
-                      {semesterSubjects.filter((s) => s.completed).length}/{semesterSubjects.length} dokončeno
+                      {semesterData.subjects.filter((s) => s.completed).length}/{semesterData.subjects.length} dokončeno
                     </span>
-                    <span>{semesterSubjects.reduce((sum, s) => sum + s.credits, 0)} kreditů</span>
+                    <span>{semesterData.subjects.reduce((sum, s) => sum + s.credits, 0)} kreditů</span>
                   </div>
                 </div>
               </CardHeader>
@@ -393,9 +437,9 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {semesterSubjects.map((subject) => (
+                      {semesterData.subjects.map((subject) => (
                         <TableRow key={subject.id} className="hover:bg-gray-50">
-                          <TableCell className="font-mono text-sm">{subject.abbreviation}</TableCell>
+                          <TableCell className="font-mono text-sm">{subject.abbreviation || '-'}</TableCell>
                           <TableCell className="text-sm">{subject.name}</TableCell>
                           <TableCell>{getSubjectTypeBadge(subject.subject_type)}</TableCell>
                           <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>

@@ -11,6 +11,7 @@ import { SubjectTable } from "./subject-table"
 import { StudyLogo } from "./study-logo"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
+import { calculateAverage } from "@/lib/grade-utils"
 import type { User } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
 
@@ -100,19 +101,15 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   }
 
   // Calculate statistics
+  const completedSubjects = subjects.filter((s) => s.completed)
+  const average = calculateAverage(completedSubjects)
+  
   const stats = {
     total: subjects.length,
-    completed: subjects.filter((s) => s.completed).length,
+    completed: completedSubjects.length,
     totalCredits: subjects.reduce((sum, s) => sum + s.credits, 0),
-    completedCredits: subjects.filter((s) => s.completed).reduce((sum, s) => sum + s.credits, 0),
-    // Calculate weighted average
-    weightedAverage: (() => {
-      const subjectsWithPoints = subjects.filter((s) => s.points && s.completed)
-      if (subjectsWithPoints.length === 0) return 0
-      const weightedSum = subjectsWithPoints.reduce((sum, s) => sum + s.points! * s.credits, 0)
-      const totalWeights = subjectsWithPoints.reduce((sum, s) => sum + s.credits, 0)
-      return totalWeights > 0 ? weightedSum / totalWeights : 0
-    })(),
+    completedCredits: completedSubjects.reduce((sum, s) => sum + s.credits, 0),
+    average
   }
 
 
@@ -190,16 +187,39 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Vážený průměr bodů</CardTitle>
-              <TrendingUp className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.weightedAverage.toFixed(2)}</div>
-              <p className="text-xs text-gray-600 mt-1">průměr vážený kredity</p>
-            </CardContent>
-          </Card>
+          {stats.average.type !== 'none' && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">{stats.average.label}</CardTitle>
+                <TrendingUp className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                {stats.average.type === 'both' ? (
+                  <div className="space-y-2">
+                    <div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
+                      </div>
+                      <p className="text-xs text-gray-600">body (vážené kredity)</p>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
+                      </div>
+                      <p className="text-xs text-gray-600">známky (vážené kredity)</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {stats.average.value ? stats.average.value.toFixed(2) : '-'}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">průměr vážený kredity</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Subjects Section */}

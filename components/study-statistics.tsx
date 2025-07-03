@@ -10,6 +10,7 @@ import { ArrowLeft, BookOpen, Clock, Trophy, Target } from "lucide-react"
 import { StudyLogo } from "./study-logo"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
+import { calculateAverage, filterSubjectsBySemester, getUniqueSemesters } from "@/lib/grade-utils"
 
 interface Subject {
   id: string
@@ -136,13 +137,9 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     const totalHours = filteredSubjects.reduce((sum, s) => sum + (s.hours || 0), 0)
     const completedHours = filteredSubjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
 
-    // Calculate weighted average
-    const subjectsWithPoints = filteredSubjects.filter(
-      (s) => s.points !== null && s.points !== undefined && s.completed,
-    )
-    const weightedSum = subjectsWithPoints.reduce((sum, s) => sum + s.points! * s.credits, 0)
-    const totalWeights = subjectsWithPoints.reduce((sum, s) => sum + s.credits, 0)
-    const weightedAverage = totalWeights > 0 ? weightedSum / totalWeights : 0
+    // Calculate weighted average using new utility
+    const completedFilteredSubjects = filteredSubjects.filter(s => s.completed)
+    const average = calculateAverage(completedFilteredSubjects)
 
     return {
       total,
@@ -155,7 +152,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       completedCredits,
       totalHours,
       completedHours,
-      weightedAverage,
+      average,
       completionRate: total > 0 ? (completed / total) * 100 : 0,
       creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
       examCompletionRate: subjectsWithExams.length > 0 ? (examsCompleted / subjectsWithExams.length) * 100 : 0,
@@ -176,12 +173,16 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       const completedCredits = semesterSubjects.filter((s) => s.completed).reduce((sum, s) => sum + s.credits, 0)
 
       if (total > 0) {
+        const completedSemesterSubjects = semesterSubjects.filter(s => s.completed)
+        const semesterAverage = calculateAverage(completedSemesterSubjects)
+        
         stats[semester] = {
           total,
           completed,
           credits,
           completedCredits,
           completionRate: (completed / total) * 100,
+          average: semesterAverage,
         }
       }
     })
@@ -410,16 +411,39 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Vážený průměr</CardTitle>
-              <Trophy className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.weightedAverage.toFixed(1)}</div>
-              <p className="text-xs text-gray-600 mt-1">bodů (vážený kredity)</p>
-            </CardContent>
-          </Card>
+          {stats.average.type !== 'none' && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">{stats.average.label}</CardTitle>
+                <Trophy className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                {stats.average.type === 'both' ? (
+                  <div className="space-y-2">
+                    <div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
+                      </div>
+                      <p className="text-xs text-gray-600">body (vážené kredity)</p>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
+                      </div>
+                      <p className="text-xs text-gray-600">známky (vážené kredity)</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {stats.average.value ? stats.average.value.toFixed(2) : '-'}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">vážené kredity</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Progress Overview */}
@@ -546,6 +570,20 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                         </span>
                       </div>
                     </div>
+                    {semesterData.average.type !== 'none' && (
+                      <div className="text-xs text-gray-500 mt-2">
+                        {semesterData.average.type === 'both' ? (
+                          <div className="space-y-1">
+                            <div>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : '-'}</div>
+                            <div>Známky: {semesterData.average.gradeValue ? semesterData.average.gradeValue.toFixed(2) : '-'}</div>
+                          </div>
+                        ) : (
+                          <div>
+                            {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : '-'}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <Progress value={semesterData.completionRate} className="h-2 mt-2" />
                   </div>
                 ))}
