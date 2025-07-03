@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Check, X, Edit } from "lucide-react"
+import { SubjectCompletionDialog } from "./subject-completion-dialog"
 
 interface Subject {
   id: string
@@ -90,13 +91,69 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
       hours?: string
     }
   }>({})
+  
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
+  const [completionType, setCompletionType] = useState<"credit" | "exam">("credit")
   const supabase = createClient()
 
+  // Helper function to determine which completion types to show for a subject
+  const getCompletionTypes = (completionType: string) => {
+    const types = completionType.toLowerCase()
+    return {
+      hasCredit: types.includes("zp") || types.includes("kzp") || types.includes("zápočet"),
+      hasExam: types.includes("zk") || types.includes("zkouška")
+    }
+  }
+
   const handleCheckboxChange = async (subjectId: string, field: string, value: boolean) => {
+    if (value) {
+      // If checking the checkbox, open the completion dialog
+      const subject = subjects.find(s => s.id === subjectId)
+      if (subject) {
+        setSelectedSubject(subject)
+        setCompletionType(field === "credit_completed" ? "credit" : "exam")
+        setDialogOpen(true)
+      }
+    } else {
+      // If unchecking, just update directly
+      const { error } = await supabase
+        .from("subjects")
+        .update({ [field]: value })
+        .eq("id", subjectId)
+
+      if (!error) {
+        onUpdate()
+      }
+    }
+  }
+
+  const handleCompletionSave = async (data: {
+    points?: number
+    grade?: string
+    finalDate?: string
+  }) => {
+    if (!selectedSubject) return
+
+    const updateData: any = {
+      [completionType === "credit" ? "credit_completed" : "exam_completed"]: true
+    }
+
+    if (data.points !== undefined) {
+      updateData.points = data.points
+    }
+    if (data.grade) {
+      updateData.grade = data.grade
+    }
+    if (data.finalDate) {
+      updateData.final_date = data.finalDate
+    }
+
     const { error } = await supabase
       .from("subjects")
-      .update({ [field]: value })
-      .eq("id", subjectId)
+      .update(updateData)
+      .eq("id", selectedSubject.id)
 
     if (!error) {
       onUpdate()
@@ -252,8 +309,8 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
             <TableHead className="min-w-[200px]">Předmět</TableHead>
             <TableHead className="w-[60px]">Typ</TableHead>
             <TableHead className="w-[80px]">Ukončení</TableHead>
-            <TableHead className="w-[60px]">Zp</TableHead>
-            <TableHead className="w-[60px]">Zk</TableHead>
+            <TableHead className="w-[60px]">Zápočet</TableHead>
+            <TableHead className="w-[60px]">Zkouška</TableHead>
             <TableHead className="w-[80px]">Kredity</TableHead>
             <TableHead className="w-[80px]">Hodiny</TableHead>
             <TableHead className="w-[80px]">Body</TableHead>
@@ -272,20 +329,34 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
               <TableCell className="text-sm">{subject.name}</TableCell>
               <TableCell>{getSubjectTypeBadge(subject.subject_type)}</TableCell>
               <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>
-              <TableCell>
-                <Checkbox
-                  checked={subject.credit_completed}
-                  onCheckedChange={(checked) =>
-                    handleCheckboxChange(subject.id, "credit_completed", checked as boolean)
-                  }
-                />
-              </TableCell>
-              <TableCell>
-                <Checkbox
-                  checked={subject.exam_completed}
-                  onCheckedChange={(checked) => handleCheckboxChange(subject.id, "exam_completed", checked as boolean)}
-                />
-              </TableCell>
+              {(() => {
+                const completionTypes = getCompletionTypes(subject.completion_type)
+                return (
+                  <>
+                    {/* Zápočet column */}
+                    <TableCell>
+                      {completionTypes.hasCredit && (
+                        <Checkbox
+                          checked={subject.credit_completed}
+                          onCheckedChange={(checked) =>
+                            handleCheckboxChange(subject.id, "credit_completed", checked as boolean)
+                          }
+                        />
+                      )}
+                    </TableCell>
+                    
+                    {/* Zkouška column */}
+                    <TableCell>
+                      {completionTypes.hasExam && (
+                        <Checkbox
+                          checked={subject.exam_completed}
+                          onCheckedChange={(checked) => handleCheckboxChange(subject.id, "exam_completed", checked as boolean)}
+                        />
+                      )}
+                    </TableCell>
+                  </>
+                )
+              })()}
               <TableCell className="text-center font-medium">{subject.credits}</TableCell>
               <TableCell className="text-center">
                 {editingDates[subject.id] ? (
@@ -434,6 +505,14 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
           ))}
         </TableBody>
       </Table>
+      
+      <SubjectCompletionDialog
+        subject={selectedSubject}
+        completionType={completionType}
+        isOpen={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={handleCompletionSave}
+      />
     </div>
   )
 }

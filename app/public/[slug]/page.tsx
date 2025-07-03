@@ -14,7 +14,7 @@ export default async function PublicStudyPage({ params }: PageProps) {
   const { data: study, error: studyError } = await supabase
     .from("studies")
     .select("*")
-    .eq("slug", slug)
+    .eq("public_slug", slug)
     .eq("is_public", true)
     .single()
 
@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: PageProps) {
   const { data: study } = await supabase
     .from("studies")
     .select("name, public_description, type, form")
-    .eq("slug", slug)
+    .eq("public_slug", slug)
     .eq("is_public", true)
     .single()
 

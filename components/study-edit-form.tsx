@@ -79,12 +79,17 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
 
       // Upload new logo if provided
       if (logoFile) {
+        console.log("Uploading logo file:", logoFile.name, "size:", logoFile.size)
         const fileExt = logoFile.name.split(".").pop()
-        const fileName = `${study.id}-${Date.now()}.${fileExt}`
+        const { data: { user } } = await supabase.auth.getUser()
+        const fileName = `${user?.id}/${study.id}-${Date.now()}.${fileExt}`
+        console.log("Generated filename:", fileName)
+        
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("study-logos")
           .upload(fileName, logoFile)
 
+        console.log("Upload result:", { uploadData, uploadError })
         if (uploadError) throw uploadError
 
         const { data: urlData } = supabase.storage.from("study-logos").getPublicUrl(uploadData.path)
@@ -92,15 +97,19 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
 
         // Delete old logo if it exists
         if (study.logo_url) {
-          const oldPath = study.logo_url.split("/").pop()
-          if (oldPath) {
+          const urlParts = study.logo_url.split("/")
+          const bucketIndex = urlParts.findIndex(part => part === "study-logos")
+          if (bucketIndex !== -1 && bucketIndex + 1 < urlParts.length) {
+            const oldPath = urlParts.slice(bucketIndex + 1).join("/")
             await supabase.storage.from("study-logos").remove([oldPath])
           }
         }
       } else if (logoPreview === null && study.logo_url) {
         // Remove logo if user cleared it
-        const oldPath = study.logo_url.split("/").pop()
-        if (oldPath) {
+        const urlParts = study.logo_url.split("/")
+        const bucketIndex = urlParts.findIndex(part => part === "study-logos")
+        if (bucketIndex !== -1 && bucketIndex + 1 < urlParts.length) {
+          const oldPath = urlParts.slice(bucketIndex + 1).join("/")
           await supabase.storage.from("study-logos").remove([oldPath])
         }
         logoUrl = null
@@ -119,6 +128,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
 
       onSuccess()
     } catch (err) {
+      console.error("Upload error:", err)
       setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
     } finally {
       setLoading(false)
@@ -151,9 +161,9 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
               {/* Logo Upload */}
               <div className="space-y-2">
                 <Label>Logo fakulty</Label>
-                <div className="flex items-center gap-4">
+                <div className="flex items-start gap-4">
                   {logoPreview ? (
-                    <div className="relative">
+                    <div className="relative flex-shrink-0">
                       <img
                         src={logoPreview || "/placeholder.svg"}
                         alt="Logo preview"
@@ -170,33 +180,35 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       </Button>
                     </div>
                   ) : (
-                    <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
+                    <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded flex items-center justify-center flex-shrink-0">
                       <Upload className="h-6 w-6 text-gray-400" />
                     </div>
                   )}
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <Input
                       type="file"
                       accept="image/*"
                       onChange={handleLogoChange}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer"
                     />
                     <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF do 5MB</p>
                   </div>
                 </div>
               </div>
 
+              {/* Study Name - Full Width */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Název studijního programu *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="např. Informatika"
+                  required
+                />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Název studijního programu *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="např. Informatika"
-                    required
-                  />
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="type">Typ studia *</Label>
@@ -227,24 +239,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="status">Stav studia *</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vyberte stav studia" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Aktivní</SelectItem>
-                      <SelectItem value="completed">Dokončeno</SelectItem>
-                      <SelectItem value="paused">Pozastaveno</SelectItem>
-                      <SelectItem value="abandoned">Zanechaný</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="start_year">Rok začátku *</Label>
                   <Input
                     id="start_year"
@@ -270,6 +264,24 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                     }
                     placeholder="Volitelné"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status">Stav studia *</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => setFormData({ ...formData, status: value as any })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte stav studia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Aktivní</SelectItem>
+                      <SelectItem value="completed">Dokončeno</SelectItem>
+                      <SelectItem value="paused">Pozastaveno</SelectItem>
+                      <SelectItem value="abandoned">Zanechaný</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

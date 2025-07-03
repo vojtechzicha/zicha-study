@@ -256,13 +256,13 @@ export function Dashboard({ user }: DashboardProps) {
               >
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div className="flex items-start gap-3 flex-1" onClick={() => setSelectedStudy(study)}>
+                    <div className="flex items-start gap-3 flex-1 min-w-0" onClick={() => setSelectedStudy(study)}>
                       <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="lg" />
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                        <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight break-words">
                           {study.name}
                         </CardTitle>
-                        <CardDescription className="text-gray-600">
+                        <CardDescription className="text-gray-600 text-sm mt-1">
                           {study.type} • {study.form}
                         </CardDescription>
                       </div>

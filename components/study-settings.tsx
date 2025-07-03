@@ -88,14 +88,24 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log("handleSubmit called")
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    console.log("Form data:", { isPublic, slug, description, slugAvailable })
 
     try {
       if (isPublic && (!slug || slugAvailable === false)) {
         throw new Error("Zadejte platný a dostupný slug")
       }
+
+      console.log("About to update database with:", {
+        is_public: isPublic,
+        public_slug: isPublic ? slug : null,
+        public_description: isPublic ? description : null,
+        study_id: study.id
+      })
 
       const { error: updateError } = await supabase
         .from("studies")
@@ -106,10 +116,14 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
         })
         .eq("id", study.id)
 
+      console.log("Database update result:", { updateError })
+
       if (updateError) throw updateError
 
+      console.log("Calling onSuccess")
       onSuccess()
     } catch (err) {
+      console.error("Public sharing save error:", err)
       setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
     } finally {
       setLoading(false)
@@ -221,7 +235,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 >
                   {loading ? "Ukládání..." : "Uložit nastavení"}
                 </Button>
-                <Button type="button" variant="outline" onClick={onClose}>
+                <Button type="button" variant="outline" onClick={() => { console.log("Cancel clicked"); onClose(); }}>
                   Zrušit
                 </Button>
               </div>

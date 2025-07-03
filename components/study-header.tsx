@@ -1,0 +1,93 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Edit, Settings, BarChart3, Plus } from "lucide-react"
+import { StudyLogo } from "./study-logo"
+
+interface Study {
+  id: string
+  name: string
+  type: string
+  form: string
+  status: string
+  logo_url?: string | null
+  is_public?: boolean
+}
+
+interface StudyHeaderProps {
+  study?: Study
+  title?: string
+  subtitle?: string
+  logoUrl?: string | null
+  onBack: () => void
+  actions?: React.ReactNode
+}
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case "active":
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktivní</Badge>
+    case "completed":
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Dokončené</Badge>
+    case "paused":
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pozastavené</Badge>
+    case "abandoned":
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Zanechaný</Badge>
+    default:
+      return <Badge variant="outline">{status}</Badge>
+  }
+}
+
+export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }: StudyHeaderProps) {
+  const displayTitle = title || study?.name || ""
+  const displaySubtitle = subtitle || (study ? `${study.type} • ${study.form}` : "")
+  const displayLogoUrl = logoUrl || study?.logo_url
+
+  return (
+    <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center min-h-16 py-3">
+          <div className="flex items-center space-x-4 flex-1 min-w-0">
+            <Button variant="ghost" onClick={onBack} className="text-gray-600 hover:text-gray-900 flex-shrink-0">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Zpět
+            </Button>
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
+              <StudyLogo logoUrl={displayLogoUrl} studyName={displayTitle} size="lg" className="flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-bold text-gray-900 leading-tight break-words">{displayTitle}</h1>
+                <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+                  {study ? (
+                    <>
+                      <span>{study.type}</span>
+                      <span>•</span>
+                      <span>{study.form}</span>
+                      <span>•</span>
+                      {getStatusBadge(study.status)}
+                      {study.is_public && (
+                        <>
+                          <span>•</span>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            Veřejné
+                          </Badge>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    subtitle && <span>{subtitle}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          {actions && (
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              {actions}
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  )
+}

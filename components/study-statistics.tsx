@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, BookOpen, Clock, Trophy, Target } from "lucide-react"
 import { StudyLogo } from "./study-logo"
+import { StudyHeader } from "./study-header"
+import { useLogoTheme } from "@/hooks/use-logo-theme"
 
 interface Subject {
   id: string
@@ -41,6 +43,9 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   const [semesterFilter, setSemesterFilter] = useState<string>("all")
   const [departmentFilter, setDepartmentFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+  
+  // Extract and apply theme colors from logo
+  const { extractedColor, isLoading: colorLoading } = useLogoTheme(studyLogoUrl)
 
   // Extract years and semesters for filtering
   const { years, semesters } = useMemo(() => {
@@ -275,27 +280,19 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onBack} className="text-gray-600 hover:text-gray-900">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Zpět
-              </Button>
-              <div className="flex items-center space-x-3">
-                <StudyLogo logoUrl={studyLogoUrl} studyName={studyName} size="lg" />
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">Statistiky</h1>
-                  <p className="text-sm text-gray-600">{studyName}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div 
+      className="min-h-screen" 
+      style={{ 
+        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
+        minHeight: "100vh"
+      } as React.CSSProperties}
+    >
+      <StudyHeader 
+        title="Statistiky"
+        subtitle={studyName}
+        logoUrl={studyLogoUrl}
+        onBack={onBack}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

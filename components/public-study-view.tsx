@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StudyLogo } from "./study-logo"
+import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { BookOpen, Target, Clock, Trophy } from "lucide-react"
 
 interface Study {
@@ -83,6 +84,9 @@ const sortSubjects = (subjects: Subject[]) => {
 }
 
 export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
+  // Extract and apply theme colors from logo
+  const { extractedColor, isLoading: colorLoading } = useLogoTheme(study.logo_url)
+
   // Calculate statistics
   const stats = useMemo(() => {
     const total = subjects.length
@@ -224,7 +228,13 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div 
+      className="min-h-screen" 
+      style={{ 
+        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
+        minHeight: "100vh"
+      } as React.CSSProperties}
+    >
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

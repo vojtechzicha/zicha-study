@@ -11,6 +11,8 @@ import { SubjectTable } from "./subject-table"
 import { StudyStatistics } from "./study-statistics"
 import { StudyEditForm } from "./study-edit-form"
 import { StudyLogo } from "./study-logo"
+import { StudyHeader } from "./study-header"
+import { useLogoTheme } from "@/hooks/use-logo-theme"
 import type { User } from "@supabase/supabase-js"
 import { StudySettings } from "./study-settings"
 
@@ -62,6 +64,9 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [currentStudy, setCurrentStudy] = useState<Study>(study)
   const supabase = createClient()
+  
+  // Extract and apply theme colors from logo
+  const { extractedColor, isLoading: colorLoading } = useLogoTheme(currentStudy.logo_url)
 
   useEffect(() => {
     fetchSubjects()
@@ -96,6 +101,7 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
 
   const handleStudyUpdated = () => {
     setShowEditForm(false)
+    setShowSettings(false)
     fetchStudyData()
   }
 
@@ -115,27 +121,13 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
     })(),
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktivní</Badge>
-      case "completed":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Dokončené</Badge>
-      case "paused":
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pozastavené</Badge>
-      case "abandoned":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Zanechaný</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
-  }
 
   if (showStatistics) {
-    return <StudyStatistics subjects={subjects} studyName={currentStudy.name} onBack={() => setShowStatistics(false)} />
+    return <StudyStatistics subjects={subjects} studyName={currentStudy.name} studyLogoUrl={currentStudy.logo_url} onBack={() => setShowStatistics(false)} />
   }
 
   if (showSettings) {
-    return <StudySettings study={currentStudy} onBack={() => setShowSettings(false)} onSuccess={handleStudyUpdated} />
+    return <StudySettings study={currentStudy} onClose={() => setShowSettings(false)} onSuccess={handleStudyUpdated} />
   }
 
   if (showEditForm) {
@@ -143,51 +135,37 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onBack} className="text-gray-600 hover:text-gray-900">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Zpět
-              </Button>
-              <div className="flex items-center space-x-3">
-                <StudyLogo logoUrl={currentStudy.logo_url} studyName={currentStudy.name} size="lg" />
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">{currentStudy.name}</h1>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <span>{currentStudy.type}</span>
-                    <span>•</span>
-                    <span>{currentStudy.form}</span>
-                    <span>•</span>
-                    {getStatusBadge(currentStudy.status)}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={() => setShowEditForm(true)} className="text-gray-700">
-                <Edit className="mr-2 h-4 w-4" />
-                Upravit
-              </Button>
-              <Button variant="outline" onClick={() => setShowSettings(true)} className="text-gray-700">
-                <Settings className="mr-2 h-4 w-4" />
-                Sdílení
-              </Button>
-              <Button variant="outline" onClick={() => setShowStatistics(true)} className="text-gray-700">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Statistiky
-              </Button>
-              <Button onClick={() => setShowSubjectForm(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="mr-2 h-4 w-4" />
-                Přidat předmět
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div 
+      className="min-h-screen" 
+      style={{ 
+        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
+        minHeight: "100vh"
+      } as React.CSSProperties}
+    >
+      <StudyHeader 
+        study={currentStudy}
+        onBack={onBack}
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setShowEditForm(true)} className="text-gray-700">
+              <Edit className="mr-2 h-4 w-4" />
+              Upravit
+            </Button>
+            <Button variant="outline" onClick={() => setShowSettings(true)} className="text-gray-700">
+              <Settings className="mr-2 h-4 w-4" />
+              Sdílení
+            </Button>
+            <Button variant="outline" onClick={() => setShowStatistics(true)} className="text-gray-700">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Statistiky
+            </Button>
+            <Button onClick={() => setShowSubjectForm(true)} className="text-white" style={{ backgroundColor: "var(--primary-600)", "--tw-bg-opacity": "1" } as React.CSSProperties} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--primary-700)" }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--primary-600)" }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Přidat předmět
+            </Button>
+          </>
+        }
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
