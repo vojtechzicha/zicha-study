@@ -16,7 +16,8 @@ import {
   getSubjectStateColor,
   getSubjectStateText,
   isFieldVisibleForState,
-  getCompletionBadgeConfig
+  getCompletionBadgeConfig,
+  isSubjectFailed
 } from "@/lib/status-utils"
 import { calculateAverage, getUniqueSemesters } from "@/lib/grade-utils"
 
@@ -458,7 +459,14 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                             {(() => {
                               const subjectState = getSubjectStatus(subject)
                               return isFieldVisibleForState("grade", subjectState) && subject.grade ? (
-                                <Badge variant="outline" className="font-medium">
+                                <Badge 
+                                  variant="outline" 
+                                  className={`font-medium ${
+                                    isSubjectFailed(subject) 
+                                      ? "bg-orange-50 text-orange-700 border-orange-200" 
+                                      : ""
+                                  }`}
+                                >
                                   {subject.grade}
                                 </Badge>
                               ) : (
@@ -480,8 +488,8 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                             {(() => {
                               const subjectState = getSubjectStatus(subject)
                               return (
-                                <Badge className={getSubjectStateColor(subjectState)}>
-                                  {getSubjectStateText(subjectState)}
+                                <Badge className={getSubjectStateColor(subjectState, subject, true)}>
+                                  {getSubjectStateText(subjectState, subject)}
                                 </Badge>
                               )
                             })()}

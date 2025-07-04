@@ -28,6 +28,7 @@ import {
   getAvailableActions,
   isFieldVisibleForState,
   requiresCredit,
+  isSubjectFailed,
   requiresExam,
   getCompletionBadgeConfig
 } from "@/lib/status-utils"
@@ -265,7 +266,10 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
               const availableActions = getAvailableActions(subjectState, subject.completion_type)
 
               return (
-                <TableRow key={subject.id}>
+                <TableRow 
+                  key={subject.id}
+                  className={isSubjectFailed(subject) ? "bg-red-50" : ""}
+                >
                   {/* Semester */}
                   <TableCell className="font-medium whitespace-nowrap">{subject.semester}</TableCell>
 
@@ -300,7 +304,13 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
 
                   {/* Grade */}
                   <TableCell>
-                    {isFieldVisibleForState("grade", subjectState) ? (subject.grade || "-") : "-"}
+                    {isFieldVisibleForState("grade", subjectState) ? (
+                      subject.grade ? (
+                        <span className={isSubjectFailed(subject) ? "font-semibold text-red-700" : ""}>
+                          {subject.grade}
+                        </span>
+                      ) : "-"
+                    ) : "-"}
                   </TableCell>
 
                   {/* Final Date */}

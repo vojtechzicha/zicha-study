@@ -93,6 +93,11 @@ export const getStatusPriority = (status: StudyStatus): number => {
 // Subject state types
 export type SubjectState = "planned" | "active" | "completed"
 
+// Check if a subject is failed (grade starts with F)
+export const isSubjectFailed = (subject: Subject): boolean => {
+  return subject.completed && subject.grade?.toUpperCase().startsWith('F') === true
+}
+
 // Subject status utilities
 export const getSubjectStatus = (subject: Subject): SubjectState => {
   if (subject.planned) return "planned"
@@ -114,7 +119,12 @@ export const getSubjectStatusPriority = (subject: Subject): number => {
   }
 }
 
-export const getSubjectStateText = (state: SubjectState): string => {
+export const getSubjectStateText = (state: SubjectState, subject?: Subject): string => {
+  // Check if subject is failed (completed with grade starting with F)
+  if (state === "completed" && subject && isSubjectFailed(subject)) {
+    return "Neúspěšný"
+  }
+  
   switch (state) {
     case "planned":
       return "Plánovaný"
@@ -127,7 +137,16 @@ export const getSubjectStateText = (state: SubjectState): string => {
   }
 }
 
-export const getSubjectStateColor = (state: SubjectState): string => {
+export const getSubjectStateColor = (state: SubjectState, subject?: Subject, isPublic: boolean = false): string => {
+  // Check if subject is failed (completed with grade starting with F)
+  if (state === "completed" && subject && isSubjectFailed(subject)) {
+    // More subtle styling for public views
+    if (isPublic) {
+      return "bg-orange-50 text-orange-700 border-orange-200"
+    }
+    return "bg-red-100 text-red-800 border-red-200"
+  }
+  
   switch (state) {
     case "planned":
       return "bg-purple-100 text-purple-800 border-purple-200"
