@@ -10,6 +10,7 @@ import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit } fro
 import { StudyLogo } from "@/components/study-logo"
 import { useRouter } from "next/navigation"
 import { Study, getStatusColor, getStatusText, sortStudiesByStatus } from "@/lib/status-utils"
+import { getStudyFormLabel } from "@/lib/constants"
 
 interface DashboardProps {
   user: User
@@ -176,7 +177,7 @@ export function Dashboard({ user }: DashboardProps) {
                           {study.name}
                         </CardTitle>
                         <CardDescription className="text-gray-600 text-sm mt-1">
-                          {study.type} • {study.form}
+                          {study.type} • {getStudyFormLabel(study.form)}
                         </CardDescription>
                         <div className="flex gap-1 mt-2">
                           <Badge className={getStatusColor(study.status)}>{getStatusText(study.status)}</Badge>

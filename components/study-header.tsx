@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Edit, Settings, BarChart3, Plus } from "lucide-react"
 import { StudyLogo } from "./study-logo"
 import { getStatusColor, getStatusText, StudyStatus } from "@/lib/status-utils"
+import { getStudyFormLabel } from "@/lib/constants"
 
 interface Study {
   id: string
@@ -31,7 +32,7 @@ function getStatusBadge(status: StudyStatus) {
 
 export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }: StudyHeaderProps) {
   const displayTitle = title || study?.name || ""
-  const displaySubtitle = subtitle || (study ? `${study.type} • ${study.form}` : "")
+  const displaySubtitle = subtitle || (study ? `${study.type} • ${getStudyFormLabel(study.form)}` : "")
   const displayLogoUrl = logoUrl || study?.logo_url
 
   return (

@@ -20,7 +20,7 @@ import {
   isSubjectFailed
 } from "@/lib/status-utils"
 import { calculateAverage, getUniqueSemesters } from "@/lib/grade-utils"
-import { SUBJECT_TYPES } from "@/lib/constants"
+import { getSubjectTypeConfig, getStudyFormLabel } from "@/lib/constants"
 
 interface Study {
   id: string
@@ -63,12 +63,7 @@ interface PublicStudyViewProps {
 }
 
 const sortSubjects = (subjects: Subject[]) => {
-  const typeOrder = {
-    [SUBJECT_TYPES.MANDATORY]: 1,
-    [SUBJECT_TYPES.MANDATORY_ELECTIVE]: 2,
-    [SUBJECT_TYPES.ELECTIVE]: 3,
-    [SUBJECT_TYPES.OTHER]: 4,
-  }
+  const getTypeOrder = (type: string) => getSubjectTypeConfig(type).order
 
   // Get subject status priority (Active > Completed > Planned)
   const getStatusPriority = (subject: Subject) => {
@@ -101,8 +96,8 @@ const sortSubjects = (subjects: Subject[]) => {
       return aSemesterOrder - bSemesterOrder
     }
 
-    const aTypeOrder = typeOrder[a.subject_type as keyof typeof typeOrder] || 5
-    const bTypeOrder = typeOrder[b.subject_type as keyof typeof typeOrder] || 5
+    const aTypeOrder = getTypeOrder(a.subject_type)
+    const bTypeOrder = getTypeOrder(b.subject_type)
     if (aTypeOrder !== bTypeOrder) {
       return aTypeOrder - bTypeOrder
     }
@@ -194,38 +189,12 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
   }
 
   const getSubjectTypeBadge = (type: string) => {
-    switch (type) {
-      case SUBJECT_TYPES.MANDATORY:
-        return (
-          <Badge variant="outline" className="text-xs bg-red-50 text-red-700">
-            P
-          </Badge>
-        )
-      case SUBJECT_TYPES.MANDATORY_ELECTIVE:
-        return (
-          <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
-            PV
-          </Badge>
-        )
-      case SUBJECT_TYPES.ELECTIVE:
-        return (
-          <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-            V
-          </Badge>
-        )
-      case SUBJECT_TYPES.OTHER:
-        return (
-          <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700">
-            -
-          </Badge>
-        )
-      default:
-        return (
-          <Badge variant="outline" className="text-xs">
-            {type}
-          </Badge>
-        )
-    }
+    const config = getSubjectTypeConfig(type)
+    return (
+      <Badge variant="outline" className={`text-xs ${config.color}`}>
+        {config.shortCode}
+      </Badge>
+    )
   }
 
   return (
@@ -239,16 +208,70 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center space-x-4">
-            <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="xl" />
-            <div>
+          <div className="flex items-start space-x-6">
+            <div className="flex-shrink-0">
+              <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="xl" className="!w-32 !h-32 !text-2xl" />
+            </div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900">{study.name}</h1>
               <div className="flex items-center space-x-3 mt-2">
                 <span className="text-gray-600">{study.type}</span>
                 <span className="text-gray-400">•</span>
-                <span className="text-gray-600">{study.form}</span>
+                <span className="text-gray-600">{getStudyFormLabel(study.form)}</span>
                 <span className="text-gray-400">•</span>
                 {getStatusBadge(study.status)}
+              </div>
+              
+              {/* Study Timeline */}
+              <div className="mt-4 bg-white/60 backdrop-blur-sm rounded-lg p-4 border border-white/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Doba studia</span>
+                  <span className="text-sm text-gray-600">
+                    {study.start_year} - {study.end_year || 'probíhá'}
+                  </span>
+                </div>
+                <div className="relative">
+                  {/* Timeline bar */}
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-300"
+                      style={{
+                        width: study.end_year 
+                          ? `${Math.min(100, Math.max(5, ((new Date().getFullYear() - study.start_year) / (study.end_year - study.start_year)) * 100))}%`
+                          : '66%' // Default progress for ongoing studies
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Year markers */}
+                  <div className="flex justify-between mt-2 text-xs text-gray-500">
+                    <span>{study.start_year}</span>
+                    {study.end_year && (
+                      <span>{study.end_year}</span>
+                    )}
+                  </div>
+                  
+                  {/* Current year indicator */}
+                  {study.end_year && new Date().getFullYear() >= study.start_year && new Date().getFullYear() <= study.end_year && (() => {
+                    const currentYear = new Date().getFullYear()
+                    const progress = (currentYear - study.start_year) / (study.end_year - study.start_year)
+                    const leftPosition = Math.max(8, Math.min(92, progress * 100)) // Keep between 8% and 92% to avoid text cutoff
+                    
+                    return (
+                      <div 
+                        className="absolute top-0 transform -translate-x-1/2"
+                        style={{
+                          left: `${leftPosition}%`
+                        }}
+                      >
+                        <div className="w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-sm -mt-0.5"></div>
+                        <div className="text-xs text-blue-600 font-medium mt-1 whitespace-nowrap">
+                          {currentYear}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
               </div>
               {study.public_description && <p className="text-gray-600 mt-2 max-w-2xl">{study.public_description}</p>}
               {study.last_updated && (

@@ -1,5 +1,8 @@
 // Study status types and utilities
-export type StudyStatus = "active" | "completed" | "paused" | "abandoned" | "planned"
+import { STUDY_STATUS, StudyStatus, getStudyStatusLabel } from './constants'
+
+// Re-export the type for backward compatibility
+export type { StudyStatus }
 
 export interface Study {
   id: string
@@ -40,53 +43,44 @@ export interface Subject {
 // Status styling utilities
 export const getStatusColor = (status: StudyStatus): string => {
   switch (status) {
-    case "active":
+    case STUDY_STATUS.ACTIVE:
       return "bg-green-100 text-green-800 border-green-200"
-    case "completed":
+    case STUDY_STATUS.COMPLETED:
       return "bg-blue-100 text-blue-800 border-blue-200"
-    case "paused":
+    case STUDY_STATUS.PAUSED:
       return "bg-yellow-100 text-yellow-800 border-yellow-200"
-    case "abandoned":
+    case STUDY_STATUS.ABANDONED:
       return "bg-red-100 text-red-800 border-red-200"
-    case "planned":
+    case STUDY_STATUS.PLANNED:
       return "bg-purple-100 text-purple-800 border-purple-200"
+    case STUDY_STATUS.INTENDED:
+      return "bg-indigo-100 text-indigo-800 border-indigo-200"
     default:
       return "bg-gray-100 text-gray-800 border-gray-200"
   }
 }
 
 export const getStatusText = (status: StudyStatus): string => {
-  switch (status) {
-    case "active":
-      return "Aktivní"
-    case "completed":
-      return "Dokončené"
-    case "paused":
-      return "Pozastavené"
-    case "abandoned":
-      return "Zanechané"
-    case "planned":
-      return "Plánované"
-    default:
-      return status
-  }
+  return getStudyStatusLabel(status)
 }
 
 // Status priority for sorting (lower number = higher priority)
 export const getStatusPriority = (status: StudyStatus): number => {
   switch (status) {
-    case "active":
+    case STUDY_STATUS.ACTIVE:
       return 1
-    case "planned":
+    case STUDY_STATUS.PLANNED:
       return 2
-    case "completed":
+    case STUDY_STATUS.INTENDED:
       return 3
-    case "paused":
+    case STUDY_STATUS.COMPLETED:
       return 4
-    case "abandoned":
+    case STUDY_STATUS.PAUSED:
       return 5
-    default:
+    case STUDY_STATUS.ABANDONED:
       return 6
+    default:
+      return 7
   }
 }
 
@@ -254,8 +248,8 @@ export const sortStudiesByStatus = (studies: Study[]): Study[] => {
       return priorityA - priorityB
     }
     
-    // If same priority, sort by created_at descending
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    // If same priority, sort alphabetically by name
+    return a.name.localeCompare(b.name)
   })
 }
 
