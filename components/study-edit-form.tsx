@@ -1,10 +1,8 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { STUDY_TYPES, STUDY_FORMS, getStudyFormLabel } from "@/lib/constants"
+import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, STUDY_STATUS, type StudyStatus } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -32,7 +30,7 @@ interface Study {
   form: string
   start_year: number
   end_year?: number
-  status: "active" | "completed" | "paused" | "abandoned" | "planned"
+  status: StudyStatus
   logo_url?: string
   created_at: string
 }
@@ -273,10 +271,9 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       <SelectValue placeholder="Vyberte typ studia" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={STUDY_TYPES.BACHELOR}>{STUDY_TYPES.BACHELOR}</SelectItem>
-                      <SelectItem value={STUDY_TYPES.MASTER}>{STUDY_TYPES.MASTER}</SelectItem>
-                      <SelectItem value={STUDY_TYPES.DOCTORAL}>{STUDY_TYPES.DOCTORAL}</SelectItem>
-                      <SelectItem value={STUDY_TYPES.OTHER}>{STUDY_TYPES.OTHER}</SelectItem>
+                      {getStudyTypeOptions().map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -288,9 +285,9 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       <SelectValue placeholder="Vyberte formu studia" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={STUDY_FORMS.FULL_TIME}>{getStudyFormLabel(STUDY_FORMS.FULL_TIME)}</SelectItem>
-                      <SelectItem value={STUDY_FORMS.PART_TIME}>{getStudyFormLabel(STUDY_FORMS.PART_TIME)}</SelectItem>
-                      <SelectItem value={STUDY_FORMS.DISTANCE}>{getStudyFormLabel(STUDY_FORMS.DISTANCE)}</SelectItem>
+                      {getStudyFormOptions().map((form) => (
+                        <SelectItem key={form} value={form}>{getStudyFormLabel(form)}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -327,17 +324,15 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                   <Label htmlFor="status">Stav studia *</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value as any })}
+                    onValueChange={(value) => setFormData({ ...formData, status: value as StudyStatus })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Vyberte stav studia" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Aktivní</SelectItem>
-                      <SelectItem value="planned">Plánované</SelectItem>
-                      <SelectItem value="completed">Dokončené</SelectItem>
-                      <SelectItem value="paused">Pozastavené</SelectItem>
-                      <SelectItem value="abandoned">Zanechané</SelectItem>
+                      {getStudyStatusOptions().map((status) => (
+                        <SelectItem key={status} value={status}>{getStudyStatusLabel(status)}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

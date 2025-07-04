@@ -32,7 +32,7 @@ import {
   requiresExam,
   getCompletionBadgeConfig
 } from "@/lib/status-utils"
-import { SUBJECT_TYPES } from "@/lib/constants"
+import { getSubjectTypeConfig } from "@/lib/constants"
 
 interface Subject {
   id: string
@@ -63,12 +63,7 @@ interface SubjectTableProps {
 }
 
 const sortSubjects = (subjects: Subject[]) => {
-  const typeOrder = {
-    [SUBJECT_TYPES.MANDATORY]: 1,
-    [SUBJECT_TYPES.MANDATORY_ELECTIVE]: 2,
-    [SUBJECT_TYPES.ELECTIVE]: 3,
-    [SUBJECT_TYPES.OTHER]: 4,
-  }
+  const getTypeOrder = (type: string) => getSubjectTypeConfig(type).order
 
   // Get subject status priority (Active > Completed > Planned)
   const getStatusPriority = (subject: Subject) => {
@@ -107,8 +102,8 @@ const sortSubjects = (subjects: Subject[]) => {
     }
 
     // Then sort by subject type
-    const aTypeOrder = typeOrder[a.subject_type as keyof typeof typeOrder] || 5
-    const bTypeOrder = typeOrder[b.subject_type as keyof typeof typeOrder] || 5
+    const aTypeOrder = getTypeOrder(a.subject_type)
+    const bTypeOrder = getTypeOrder(b.subject_type)
     if (aTypeOrder !== bTypeOrder) {
       return aTypeOrder - bTypeOrder
     }
@@ -181,18 +176,7 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
   }
 
   const getSubjectTypeShort = (type: string) => {
-    switch (type) {
-      case SUBJECT_TYPES.MANDATORY:
-        return "P"
-      case SUBJECT_TYPES.MANDATORY_ELECTIVE:
-        return "PV"
-      case SUBJECT_TYPES.ELECTIVE:
-        return "V"
-      case SUBJECT_TYPES.OTHER:
-        return "-"
-      default:
-        return type
-    }
+    return getSubjectTypeConfig(type).shortCode
   }
 
   const getSemesterShort = (semester: string) => {
