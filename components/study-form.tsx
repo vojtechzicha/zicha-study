@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { STUDY_TYPES, STUDY_FORMS, getStudyFormLabel } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -95,10 +96,10 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
                     <SelectValue placeholder="Vyberte typ studia" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Bakalářské">Bakalářské</SelectItem>
-                    <SelectItem value="Magisterské">Magisterské</SelectItem>
-                    <SelectItem value="Doktorské">Doktorské</SelectItem>
-                    <SelectItem value="Jiné">Jiné</SelectItem>
+                    <SelectItem value={STUDY_TYPES.BACHELOR}>{STUDY_TYPES.BACHELOR}</SelectItem>
+                    <SelectItem value={STUDY_TYPES.MASTER}>{STUDY_TYPES.MASTER}</SelectItem>
+                    <SelectItem value={STUDY_TYPES.DOCTORAL}>{STUDY_TYPES.DOCTORAL}</SelectItem>
+                    <SelectItem value={STUDY_TYPES.OTHER}>{STUDY_TYPES.OTHER}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -110,9 +111,9 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
                     <SelectValue placeholder="Vyberte formu studia" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="prezenční">Prezenční</SelectItem>
-                    <SelectItem value="kombinovaný">Kombinovaný</SelectItem>
-                    <SelectItem value="distanční">Distanční</SelectItem>
+                    <SelectItem value={STUDY_FORMS.FULL_TIME}>{getStudyFormLabel(STUDY_FORMS.FULL_TIME)}</SelectItem>
+                    <SelectItem value={STUDY_FORMS.PART_TIME}>{getStudyFormLabel(STUDY_FORMS.PART_TIME)}</SelectItem>
+                    <SelectItem value={STUDY_FORMS.DISTANCE}>{getStudyFormLabel(STUDY_FORMS.DISTANCE)}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

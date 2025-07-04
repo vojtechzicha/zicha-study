@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { SUBJECT_TYPES } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -198,10 +199,10 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                       <SelectValue placeholder="Vyberte typ předmětu" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Povinný">Povinný</SelectItem>
-                      <SelectItem value="Povinně volitelný">Povinně volitelný</SelectItem>
-                      <SelectItem value="Volitelný">Volitelný</SelectItem>
-                      <SelectItem value="Ostatní">Ostatní</SelectItem>
+                      <SelectItem value={SUBJECT_TYPES.MANDATORY}>{SUBJECT_TYPES.MANDATORY}</SelectItem>
+                      <SelectItem value={SUBJECT_TYPES.MANDATORY_ELECTIVE}>{SUBJECT_TYPES.MANDATORY_ELECTIVE}</SelectItem>
+                      <SelectItem value={SUBJECT_TYPES.ELECTIVE}>{SUBJECT_TYPES.ELECTIVE}</SelectItem>
+                      <SelectItem value={SUBJECT_TYPES.OTHER}>{SUBJECT_TYPES.OTHER}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -32,6 +32,7 @@ import {
   requiresExam,
   getCompletionBadgeConfig
 } from "@/lib/status-utils"
+import { SUBJECT_TYPES } from "@/lib/constants"
 
 interface Subject {
   id: string
@@ -63,10 +64,10 @@ interface SubjectTableProps {
 
 const sortSubjects = (subjects: Subject[]) => {
   const typeOrder = {
-    Povinný: 1,
-    "Povinně volitelný": 2,
-    Volitelný: 3,
-    Ostatní: 4,
+    [SUBJECT_TYPES.MANDATORY]: 1,
+    [SUBJECT_TYPES.MANDATORY_ELECTIVE]: 2,
+    [SUBJECT_TYPES.ELECTIVE]: 3,
+    [SUBJECT_TYPES.OTHER]: 4,
   }
 
   // Get subject status priority (Active > Completed > Planned)
@@ -181,13 +182,13 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
 
   const getSubjectTypeShort = (type: string) => {
     switch (type) {
-      case "Povinný":
+      case SUBJECT_TYPES.MANDATORY:
         return "P"
-      case "Povinně volitelný":
+      case SUBJECT_TYPES.MANDATORY_ELECTIVE:
         return "PV"
-      case "Volitelný":
+      case SUBJECT_TYPES.ELECTIVE:
         return "V"
-      case "Ostatní":
+      case SUBJECT_TYPES.OTHER:
         return "-"
       default:
         return type

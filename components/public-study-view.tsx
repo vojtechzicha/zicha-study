@@ -20,6 +20,7 @@ import {
   isSubjectFailed
 } from "@/lib/status-utils"
 import { calculateAverage, getUniqueSemesters } from "@/lib/grade-utils"
+import { SUBJECT_TYPES } from "@/lib/constants"
 
 interface Study {
   id: string
@@ -63,10 +64,10 @@ interface PublicStudyViewProps {
 
 const sortSubjects = (subjects: Subject[]) => {
   const typeOrder = {
-    Povinný: 1,
-    "Povinně volitelný": 2,
-    Volitelný: 3,
-    Ostatní: 4,
+    [SUBJECT_TYPES.MANDATORY]: 1,
+    [SUBJECT_TYPES.MANDATORY_ELECTIVE]: 2,
+    [SUBJECT_TYPES.ELECTIVE]: 3,
+    [SUBJECT_TYPES.OTHER]: 4,
   }
 
   // Get subject status priority (Active > Completed > Planned)
@@ -194,25 +195,25 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
 
   const getSubjectTypeBadge = (type: string) => {
     switch (type) {
-      case "Povinný":
+      case SUBJECT_TYPES.MANDATORY:
         return (
           <Badge variant="outline" className="text-xs bg-red-50 text-red-700">
             P
           </Badge>
         )
-      case "Povinně volitelný":
+      case SUBJECT_TYPES.MANDATORY_ELECTIVE:
         return (
           <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
             PV
           </Badge>
         )
-      case "Volitelný":
+      case SUBJECT_TYPES.ELECTIVE:
         return (
           <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
             V
           </Badge>
         )
-      case "Ostatní":
+      case SUBJECT_TYPES.OTHER:
         return (
           <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700">
             -

@@ -72,6 +72,7 @@ Two main tables with RLS policies:
 3. **Forms**: Use react-hook-form with zod validation (see existing forms for patterns)
 4. **UI Components**: Always check components/ui/ for existing components before creating new ones
 5. **Public Sharing**: Studies can be shared via public_slug at /[slug] routes
+6. **Constants**: ALWAYS use centralized constants from `lib/constants.ts` - never hardcode enum values across multiple files. This includes study types, forms, subject types, completion types, etc. All enum-like values must be defined once and imported everywhere.
 
 ## Development Notes
 

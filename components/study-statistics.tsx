@@ -12,6 +12,7 @@ import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { calculateAverage, filterSubjectsBySemester, getUniqueSemesters } from "@/lib/grade-utils"
 import { isSubjectFailed } from "@/lib/status-utils"
+import { SUBJECT_TYPES, getSubjectTypeOptions } from "@/lib/constants"
 
 interface Subject {
   id: string
@@ -90,7 +91,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     return unique
   }, [subjects])
 
-  const subjectTypes = ["Povinný", "Povinně volitelný", "Volitelný", "Ostatní"]
+  const subjectTypes = getSubjectTypeOptions()
 
   // Filter subjects based on selected filters
   const filteredSubjects = useMemo(() => {
@@ -275,13 +276,13 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "Povinný":
+      case SUBJECT_TYPES.MANDATORY:
         return "bg-red-50 text-red-700 border-red-200"
-      case "Povinně volitelný":
+      case SUBJECT_TYPES.MANDATORY_ELECTIVE:
         return "bg-yellow-50 text-yellow-700 border-yellow-200"
-      case "Volitelný":
+      case SUBJECT_TYPES.ELECTIVE:
         return "bg-green-50 text-green-700 border-green-200"
-      case "Ostatní":
+      case SUBJECT_TYPES.OTHER:
         return "bg-gray-50 text-gray-700 border-gray-200"
       default:
         return "bg-gray-50 text-gray-700 border-gray-200"
