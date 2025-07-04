@@ -12,6 +12,7 @@ import { StudyLogo } from "./study-logo"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { calculateAverage } from "@/lib/grade-utils"
+import { isSubjectFailed } from "@/lib/status-utils"
 import type { User } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
 
@@ -101,12 +102,12 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   }
 
   // Calculate statistics
-  const completedSubjects = subjects.filter((s) => s.completed)
+  const completedSubjects = subjects.filter((s) => s.completed && !isSubjectFailed(s))
   const average = calculateAverage(completedSubjects)
   
   const stats = {
     total: subjects.length,
-    completed: completedSubjects.length,
+    completed: subjects.filter((s) => s.completed).length,
     totalCredits: subjects.reduce((sum, s) => sum + s.credits, 0),
     completedCredits: completedSubjects.reduce((sum, s) => sum + s.credits, 0),
     average

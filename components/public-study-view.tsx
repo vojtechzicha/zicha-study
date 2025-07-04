@@ -122,12 +122,12 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
     const examsCompleted = subjects.filter((s) => s.exam_completed).length
 
     const totalCredits = subjects.reduce((sum, s) => sum + s.credits, 0)
-    const completedCredits = subjects.filter((s) => s.completed).reduce((sum, s) => sum + s.credits, 0)
+    const completedCredits = subjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
     const totalHours = subjects.reduce((sum, s) => sum + (s.hours || 0), 0)
     const completedHours = subjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
 
     // Calculate weighted average using new utility
-    const completedSubjects = subjects.filter(s => s.completed)
+    const completedSubjects = subjects.filter(s => s.completed && !isSubjectFailed(s))
     const average = calculateAverage(completedSubjects)
 
     const subjectsWithCredits = subjects.filter((s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp"))
@@ -172,7 +172,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
 
     // Calculate average for each semester
     Object.keys(grouped).forEach(semester => {
-      const completedSemesterSubjects = grouped[semester].subjects.filter(s => s.completed)
+      const completedSemesterSubjects = grouped[semester].subjects.filter(s => s.completed && !isSubjectFailed(s))
       grouped[semester].average = calculateAverage(completedSemesterSubjects)
     })
 

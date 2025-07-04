@@ -11,6 +11,7 @@ import { StudyLogo } from "./study-logo"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { calculateAverage, filterSubjectsBySemester, getUniqueSemesters } from "@/lib/grade-utils"
+import { isSubjectFailed } from "@/lib/status-utils"
 
 interface Subject {
   id: string
@@ -132,13 +133,13 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     const remainingExams = filteredSubjects.filter((s) => !s.exam_completed && s.completion_type.includes("Zk")).length
 
     const totalCredits = filteredSubjects.reduce((sum, s) => sum + s.credits, 0)
-    const completedCredits = filteredSubjects.filter((s) => s.completed).reduce((sum, s) => sum + s.credits, 0)
+    const completedCredits = filteredSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
 
     const totalHours = filteredSubjects.reduce((sum, s) => sum + (s.hours || 0), 0)
     const completedHours = filteredSubjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
 
     // Calculate weighted average using new utility
-    const completedFilteredSubjects = filteredSubjects.filter(s => s.completed)
+    const completedFilteredSubjects = filteredSubjects.filter(s => s.completed && !isSubjectFailed(s))
     const average = calculateAverage(completedFilteredSubjects)
 
     return {
@@ -170,10 +171,10 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       const total = semesterSubjects.length
       const completed = semesterSubjects.filter((s) => s.completed).length
       const credits = semesterSubjects.reduce((sum, s) => sum + s.credits, 0)
-      const completedCredits = semesterSubjects.filter((s) => s.completed).reduce((sum, s) => sum + s.credits, 0)
+      const completedCredits = semesterSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
 
       if (total > 0) {
-        const completedSemesterSubjects = semesterSubjects.filter(s => s.completed)
+        const completedSemesterSubjects = semesterSubjects.filter(s => s.completed && !isSubjectFailed(s))
         const semesterAverage = calculateAverage(completedSemesterSubjects)
         
         stats[semester] = {
@@ -208,7 +209,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       const total = yearSubjects.length
       const completed = yearSubjects.filter((s) => s.completed).length
       const credits = yearSubjects.reduce((sum, s) => sum + s.credits, 0)
-      const completedCredits = yearSubjects.filter((s) => s.completed).reduce((sum, s) => sum + s.credits, 0)
+      const completedCredits = yearSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
 
       if (total > 0) {
         stats[year] = {
