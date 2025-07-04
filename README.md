@@ -1,30 +1,92 @@
-# University study tracker
+# University Study Tracker
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+A comprehensive web application for tracking university studies, subjects, and academic progress.
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/zicha-dev/v0-university-study-tracker)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/D6JEBQHiRcF)
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+This is a Next.js application that allows students to track their university studies, manage subjects, monitor academic progress, and share their study plans publicly. The application uses Supabase for authentication and data storage.
+
+**Features:**
+- Create and manage multiple university studies
+- Track subjects with grades, credits, and completion status
+- View detailed statistics and analytics
+- Share study plans publicly via unique URLs
+- Responsive design with dark/light mode support
+
+## Tech Stack
+
+- **Frontend:** Next.js 15, React 19, TypeScript
+- **Backend:** Supabase (PostgreSQL with Row Level Security)
+- **Styling:** Tailwind CSS with shadcn/ui components
+- **Authentication:** Supabase Auth
+- **Deployment:** Vercel
+
+> **Note:** This project was initially scaffolded with v0.dev but is now actively developed and maintained using Claude Code.
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+ and pnpm
+- Supabase account and project
+- Git for version control
+
+### Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd university-study-tracker
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pnpm install
+   ```
+
+3. **Environment setup:**
+   Create a `.env.local` file with your Supabase credentials:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Start development server:**
+   ```bash
+   pnpm dev
+   ```
+
+   The application will be available at `http://localhost:3000`.
+
+### Commands
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run linting
+pnpm lint
+
+# Run linting with auto-fix
+pnpm lint:fix
+```
+
+### Code Quality
+
+The project uses ESLint with Next.js and TypeScript support for code quality. The linter is configured with moderate rules to catch common issues without being overly strict.
 
 ## Deployment
 
-Your project is live at:
+The application is deployed on Vercel. Any changes pushed to the main branch will automatically trigger a new deployment.
 
-**[https://vercel.com/zicha-dev/v0-university-study-tracker](https://vercel.com/zicha-dev/v0-university-study-tracker)**
+## Contributing
 
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/D6JEBQHiRcF](https://v0.dev/chat/projects/D6JEBQHiRcF)**
-
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+This project is actively developed using Claude Code. All code generation and modifications are handled through AI assistance, ensuring consistent code quality and patterns throughout the application.

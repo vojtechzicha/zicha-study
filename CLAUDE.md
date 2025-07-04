@@ -19,6 +19,9 @@ pnpm start
 
 # Run linting
 pnpm lint
+
+# Run linting with auto-fix
+pnpm lint:fix
 ```
 
 ## Architecture Overview
@@ -72,7 +75,9 @@ Two main tables with RLS policies:
 
 ## Development Notes
 
-- The project is configured to ignore ESLint and TypeScript errors during builds
+- The project uses ESLint for code quality with Next.js and TypeScript support
+- ESLint is configured with moderate rules to catch common issues without being overly strict
+- Build process ignores ESLint and TypeScript errors (configured in next.config.js)
 - Environment variables are stored in .env (Supabase URL and keys required)
 - No test suite is configured
 - The project auto-syncs with v0.dev deployments
