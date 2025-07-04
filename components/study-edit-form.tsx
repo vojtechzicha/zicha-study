@@ -275,6 +275,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       <SelectItem value="Bakalářské">Bakalářské</SelectItem>
                       <SelectItem value="Magisterské">Magisterské</SelectItem>
                       <SelectItem value="Doktorské">Doktorské</SelectItem>
+                      <SelectItem value="Jiné">Jiné</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -286,9 +287,9 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       <SelectValue placeholder="Vyberte formu studia" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Prezenční">Prezenční</SelectItem>
-                      <SelectItem value="Kombinované">Kombinované</SelectItem>
-                      <SelectItem value="Distanční">Distanční</SelectItem>
+                      <SelectItem value="prezenční">Prezenční</SelectItem>
+                      <SelectItem value="kombinovaný">Kombinovaný</SelectItem>
+                      <SelectItem value="distanční">Distanční</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
