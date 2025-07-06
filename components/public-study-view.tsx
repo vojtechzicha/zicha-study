@@ -24,7 +24,10 @@ import {
   getSubjectStateText,
   isFieldVisibleForState,
   getCompletionBadgeConfig,
-  isSubjectFailed
+  isSubjectFailed,
+  getGradeBadgeColors,
+  getCzechPointsWord,
+  getCreditsAndHoursDisplay
 } from "@/lib/status-utils"
 import { calculateAverage, getUniqueSemesters } from "@/lib/grade-utils"
 import { getSubjectTypeConfig, getStudyFormLabel } from "@/lib/constants"
@@ -120,6 +123,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
   
   // Update favicon with study logo
   useFavicon(study.logo_url)
+
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -484,8 +488,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                         <TableHead className="w-[60px]">Typ</TableHead>
                         <TableHead className="w-[80px]">Ukončení</TableHead>
                         <TableHead className="w-[80px]">Kredity</TableHead>
-                        <TableHead className="w-[80px]">Body</TableHead>
-                        <TableHead className="w-[100px]">Známka</TableHead>
+                        <TableHead className="w-[120px]">Hodnocení</TableHead>
                         <TableHead className="w-[120px]">Datum ukončení</TableHead>
                         <TableHead className="w-[60px]">Stav</TableHead>
                       </TableRow>
@@ -506,34 +509,68 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                           </TableCell>
                           <TableCell>{getSubjectTypeBadge(subject.subject_type)}</TableCell>
                           <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>
-                          <TableCell className="text-center font-medium">{subject.credits}</TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center font-medium whitespace-nowrap">
                             {(() => {
-                              const subjectState = getSubjectStatus(subject)
-                              return isFieldVisibleForState("points", subjectState) && subject.points ? (
-                                <span className="font-medium">{subject.points}</span>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )
+                              const display = getCreditsAndHoursDisplay(subject.credits, subject.hours)
+                              
+                              if (display.type === 'none') return "-"
+                              
+                              if (display.type === 'both') {
+                                return (
+                                  <span>
+                                    <span className="font-medium">{display.credits}</span>
+                                    <span className="text-gray-500 text-sm ml-1">({display.hours} {display.hoursText})</span>
+                                  </span>
+                                )
+                              }
+                              
+                              if (display.type === 'credits') {
+                                return <span className="font-medium">{display.credits}</span>
+                              }
+                              
+                              if (display.type === 'hours') {
+                                return <span className="text-gray-500">{display.hours} {display.hoursText}</span>
+                              }
                             })()}
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center whitespace-nowrap">
                             {(() => {
                               const subjectState = getSubjectStatus(subject)
-                              return isFieldVisibleForState("grade", subjectState) && subject.grade ? (
-                                <Badge 
-                                  variant="outline" 
-                                  className={`font-medium ${
-                                    isSubjectFailed(subject) 
-                                      ? "bg-orange-50 text-orange-700 border-orange-200" 
-                                      : ""
-                                  }`}
-                                >
-                                  {subject.grade}
-                                </Badge>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )
+                              const hasGrade = isFieldVisibleForState("grade", subjectState) && subject.grade
+                              const hasPoints = isFieldVisibleForState("points", subjectState) && subject.points
+                              
+                              if (!hasGrade && !hasPoints) {
+                                return <span className="text-gray-400">-</span>
+                              }
+                              
+                              if (hasGrade && hasPoints) {
+                                return (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
+                                      {subject.grade}
+                                    </span>
+                                    <span className="text-sm text-gray-600">
+                                      ({subject.points} {getCzechPointsWord(subject.points)})
+                                    </span>
+                                  </div>
+                                )
+                              }
+                              
+                              if (hasGrade) {
+                                return (
+                                  <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
+                                    {subject.grade}
+                                  </span>
+                                )
+                              }
+                              
+                              if (hasPoints) {
+                                return (
+                                  <span className="text-sm text-gray-600">
+                                    {subject.points} {getCzechPointsWord(subject.points)}
+                                  </span>
+                                )
+                              }
                             })()}
                           </TableCell>
                           <TableCell className="text-center whitespace-nowrap">

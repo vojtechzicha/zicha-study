@@ -35,7 +35,10 @@ import {
   requiresCredit,
   isSubjectFailed,
   requiresExam,
-  getCompletionBadgeConfig
+  getCompletionBadgeConfig,
+  getGradeBadgeColors,
+  getCzechPointsWord,
+  getCreditsAndHoursDisplayMobile
 } from "@/lib/status-utils"
 import { getSubjectTypeConfig } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
@@ -197,6 +200,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
     )
   }
 
+
   const getCompletionBadge = (type: string) => {
     const config = getCompletionBadgeConfig(type)
     return (
@@ -275,13 +279,30 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
                 <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                   <span>{subject.semester}</span>
                   <span>•</span>
-                  <span>{subject.credits} kreditů</span>
-                  {subject.hours && (
-                    <>
-                      <span>•</span>
-                      <span>{subject.hours} hodin</span>
-                    </>
-                  )}
+                  <span>
+                    {(() => {
+                      const display = getCreditsAndHoursDisplayMobile(subject.credits, subject.hours)
+                      
+                      if (display.type === 'none') return "-"
+                      
+                      if (display.type === 'both') {
+                        return (
+                          <>
+                            <span className="font-medium text-gray-700">{display.credits} {display.creditsText}</span>
+                            <span className="text-gray-400 ml-1">({display.hours} {display.hoursText})</span>
+                          </>
+                        )
+                      }
+                      
+                      if (display.type === 'credits') {
+                        return <span className="font-medium text-gray-700">{display.credits} {display.creditsText}</span>
+                      }
+                      
+                      if (display.type === 'hours') {
+                        return <span className="text-gray-400">{display.hours} {display.hoursText}</span>
+                      }
+                    })()}
+                  </span>
                 </div>
               </div>
               
@@ -357,28 +378,31 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
               
               {isFieldVisibleForState("grade", subjectState) && subject.grade && (
                 <div>
-                  <span className="text-gray-500">Známka:</span>
-                  <div className="mt-1">
-                    <Badge 
-                      variant="outline" 
-                      className={`${
-                        isSubjectFailed(subject) 
-                          ? "bg-orange-50 text-orange-700 border-orange-200" 
-                          : ""
-                      }`}
-                    >
+                  <span className="text-gray-500">Hodnocení:</span>
+                  <div className="mt-1 flex items-center gap-2 whitespace-nowrap">
+                    <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
                       {subject.grade}
-                    </Badge>
+                    </span>
+                    {isFieldVisibleForState("points", subjectState) && subject.points && (
+                      <span className="text-sm text-gray-600">
+                        ({subject.points} {getCzechPointsWord(subject.points)})
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
               
-              {isFieldVisibleForState("points", subjectState) && subject.points && (
+              {!isFieldVisibleForState("grade", subjectState) && isFieldVisibleForState("points", subjectState) && subject.points && (
                 <div>
                   <span className="text-gray-500">Body:</span>
-                  <div className="mt-1 font-medium">{subject.points}</div>
+                  <div className="mt-1">
+                    <span className="text-sm text-gray-600">
+                      {subject.points} {getCzechPointsWord(subject.points)}
+                    </span>
+                  </div>
                 </div>
               )}
+              
               
               {isFieldVisibleForState("final_date", subjectState) && subject.final_date && (
                 <div>
@@ -405,7 +429,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
                         disabled={actionLoading[`${subject.id}_credit_completed`] || subject.credit_completed}
                       />
                     ) : (
-                      subject.credit_completed ? <CheckCircle className="h-4 w-4 text-green-600" /> : <div className="w-4 h-4" />
+                      subject.credit_completed ? (isSubjectFailed(subject) ? <span className="text-sm">-</span> : <CheckCircle className="h-4 w-4 text-green-600" />) : <div className="w-4 h-4" />
                     )}
                     <span className="text-sm text-gray-600">Zápočet</span>
                   </div>
@@ -425,7 +449,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
                         disabled={actionLoading[`${subject.id}_exam_completed`] || subject.exam_completed}
                       />
                     ) : (
-                      subject.exam_completed ? <CheckCircle className="h-4 w-4 text-green-600" /> : <div className="w-4 h-4" />
+                      subject.exam_completed ? (isSubjectFailed(subject) ? <span className="text-sm">-</span> : <CheckCircle className="h-4 w-4 text-green-600" />) : <div className="w-4 h-4" />
                     )}
                     <span className="text-sm text-gray-600">Zkouška</span>
                   </div>

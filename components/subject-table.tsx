@@ -37,7 +37,10 @@ import {
   requiresCredit,
   isSubjectFailed,
   requiresExam,
-  getCompletionBadgeConfig
+  getCompletionBadgeConfig,
+  getGradeBadgeColors,
+  getCzechPointsWord,
+  getCreditsAndHoursDisplay
 } from "@/lib/status-utils"
 import { getSubjectTypeConfig } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
@@ -294,9 +297,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
               <TableHead>Typ</TableHead>
               <TableHead>Ukončení</TableHead>
               <TableHead>Kredity</TableHead>
-              <TableHead>Hodiny</TableHead>
-              <TableHead>Body</TableHead>
-              <TableHead>Známka</TableHead>
+              <TableHead>Hodnocení</TableHead>
               <TableHead>Datum ukončení</TableHead>
               <TableHead>Zápočet</TableHead>
               <TableHead>Zkouška</TableHead>
@@ -306,13 +307,13 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={hasDetailInfo ? 13 : 12} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={hasDetailInfo ? 11 : 10} className="text-center py-8 text-gray-500">
                 Načítání předmětů...
               </TableCell>
             </TableRow>
           ) : (hideFilters ? subjects : sortedSubjects).length === 0 ? (
             <TableRow>
-              <TableCell colSpan={hasDetailInfo ? 13 : 12} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={hasDetailInfo ? 11 : 10} className="text-center py-8 text-gray-500">
                 Žádné předměty nenalezeny.
               </TableCell>
             </TableRow>
@@ -385,26 +386,64 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
                   {/* Completion Type */}
                   <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>
 
-                  {/* Credits */}
-                  <TableCell>{subject.credits}</TableCell>
-
-                  {/* Hours */}
-                  <TableCell>{subject.hours || "-"}</TableCell>
-
-                  {/* Points */}
-                  <TableCell>
-                    {isFieldVisibleForState("points", subjectState) ? (subject.points || "-") : "-"}
+                  {/* Credits and Hours Combined */}
+                  <TableCell className="whitespace-nowrap">
+                    {(() => {
+                      const display = getCreditsAndHoursDisplay(subject.credits, subject.hours)
+                      
+                      if (display.type === 'none') return "-"
+                      
+                      if (display.type === 'both') {
+                        return (
+                          <span>
+                            <span className="font-medium">{display.credits}</span>
+                            <span className="text-gray-500 text-sm ml-1">({display.hours} {display.hoursText})</span>
+                          </span>
+                        )
+                      }
+                      
+                      if (display.type === 'credits') {
+                        return <span className="font-medium">{display.credits}</span>
+                      }
+                      
+                      if (display.type === 'hours') {
+                        return <span className="text-gray-500">{display.hours} {display.hoursText}</span>
+                      }
+                    })()}
                   </TableCell>
 
-                  {/* Grade */}
-                  <TableCell>
-                    {isFieldVisibleForState("grade", subjectState) ? (
-                      subject.grade ? (
-                        <span className={isSubjectFailed(subject) ? "font-semibold text-red-700" : ""}>
-                          {subject.grade}
-                        </span>
-                      ) : "-"
-                    ) : "-"}
+                  {/* Grade and Points Combined */}
+                  <TableCell className="whitespace-nowrap">
+                    {(() => {
+                      const hasGrade = isFieldVisibleForState("grade", subjectState) && subject.grade
+                      const hasPoints = isFieldVisibleForState("points", subjectState) && subject.points
+                      
+                      if (!hasGrade && !hasPoints) return "-"
+                      
+                      
+                      if (hasGrade && hasPoints) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
+                              {subject.grade}
+                            </span>
+                            <span className="text-sm text-gray-600">({subject.points} {getCzechPointsWord(subject.points)})</span>
+                          </div>
+                        )
+                      }
+                      
+                      if (hasGrade) {
+                        return (
+                          <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
+                            {subject.grade}
+                          </span>
+                        )
+                      }
+                      
+                      if (hasPoints) {
+                        return <span className="text-sm text-gray-600">{subject.points} {getCzechPointsWord(subject.points)}</span>
+                      }
+                    })()}
                   </TableCell>
 
                   {/* Final Date */}

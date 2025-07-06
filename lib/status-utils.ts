@@ -92,6 +92,128 @@ export const isSubjectFailed = (subject: Subject): boolean => {
   return subject.completed && subject.grade?.toUpperCase().startsWith('F') === true
 }
 
+// Get grade badge colors based on grade value and failed state
+export const getGradeBadgeColors = (grade: string, subject: Subject): string => {
+  // Failed state has precedence - darker red for failed
+  if (isSubjectFailed(subject)) {
+    return 'bg-red-600 text-white border border-red-700'
+  }
+  
+  const gradeUpper = grade.toUpperCase()
+  
+  // Deep green for 1/A
+  if (gradeUpper === '1' || gradeUpper === 'A') {
+    return 'bg-green-600 text-white border border-green-700'
+  }
+  
+  // Light green for 1-/B
+  if (gradeUpper === '1-' || gradeUpper === 'B') {
+    return 'bg-green-100 text-green-700 border border-green-200'
+  }
+  
+  // Yellow for 2, 2-/C
+  if (gradeUpper === '2' || gradeUpper === '2-' || gradeUpper === 'C') {
+    return 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+  }
+  
+  // Orange for poor grades (D, E, 3-9) - different from failed
+  if (/^[3-9]/.test(gradeUpper) || gradeUpper === 'D' || gradeUpper === 'E') {
+    return 'bg-orange-100 text-orange-700 border border-orange-200'
+  }
+  
+  // Blue for any other
+  return 'bg-blue-100 text-blue-700 border border-blue-200'
+}
+
+// Get Czech plural form for points
+export const getCzechPointsWord = (points: number): string => {
+  return points === 1 ? 'bod' : points >= 2 && points <= 4 ? 'body' : 'bodů'
+}
+
+// Get Czech plural form for hours
+export const getCzechHoursWord = (hours: number): string => {
+  return hours === 1 ? 'hodina' : hours >= 2 && hours <= 4 ? 'hodiny' : 'hodin'
+}
+
+// Get Czech plural form for credits
+export const getCzechCreditsWord = (credits: number): string => {
+  return credits === 1 ? 'kredit' : credits >= 2 && credits <= 4 ? 'kredity' : 'kreditů'
+}
+
+// Get credits and hours display data
+export const getCreditsAndHoursDisplay = (credits: number, hours?: number) => {
+  const hasCredits = credits !== undefined && credits !== null
+  const hasHours = hours !== undefined && hours !== null && hours > 0
+  
+  if (!hasCredits && !hasHours) {
+    return { type: 'none' as const }
+  }
+  
+  if (hasCredits && hasHours) {
+    return {
+      type: 'both' as const,
+      credits,
+      hours,
+      hoursText: getCzechHoursWord(hours)
+    }
+  }
+  
+  if (hasCredits) {
+    return {
+      type: 'credits' as const,
+      credits
+    }
+  }
+  
+  if (hasHours) {
+    return {
+      type: 'hours' as const,
+      hours,
+      hoursText: getCzechHoursWord(hours)
+    }
+  }
+  
+  return { type: 'none' as const }
+}
+
+// Get credits and hours display for mobile (with labels)
+export const getCreditsAndHoursDisplayMobile = (credits: number, hours?: number) => {
+  const hasCredits = credits !== undefined && credits !== null
+  const hasHours = hours !== undefined && hours !== null && hours > 0
+  
+  if (!hasCredits && !hasHours) {
+    return { type: 'none' as const }
+  }
+  
+  if (hasCredits && hasHours) {
+    return {
+      type: 'both' as const,
+      credits,
+      hours,
+      creditsText: getCzechCreditsWord(credits),
+      hoursText: getCzechHoursWord(hours)
+    }
+  }
+  
+  if (hasCredits) {
+    return {
+      type: 'credits' as const,
+      credits,
+      creditsText: getCzechCreditsWord(credits)
+    }
+  }
+  
+  if (hasHours) {
+    return {
+      type: 'hours' as const,
+      hours,
+      hoursText: getCzechHoursWord(hours)
+    }
+  }
+  
+  return { type: 'none' as const }
+}
+
 // Subject status utilities
 export const getSubjectStatus = (subject: Subject): SubjectState => {
   if (subject.planned) return "planned"
