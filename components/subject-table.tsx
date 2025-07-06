@@ -289,7 +289,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
           <TableHeader>
             <TableRow>
               <TableHead className="sticky left-0 z-10 bg-white border-r w-[120px]">Semestr</TableHead>
-              <TableHead className="sticky left-[120px] z-10 bg-white border-r min-w-[250px]">Předmět</TableHead>
+              <TableHead className="sticky left-[120px] z-20 bg-white border-r min-w-[250px]">Předmět</TableHead>
               {hasDetailInfo && <TableHead className="w-[200px]">Detail</TableHead>}
               <TableHead>Typ</TableHead>
               <TableHead>Ukončení</TableHead>
@@ -324,14 +324,14 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
               return (
                 <TableRow 
                   key={subject.id}
-                  className={isSubjectFailed(subject) ? "bg-red-50" : ""}
+                  className={isSubjectFailed(subject) ? "group bg-red-50 hover:bg-red-100" : "group"}
                 >
                   {/* Semester */}
-                  <TableCell className="font-medium whitespace-nowrap sticky left-0 z-10 bg-white border-r">{subject.semester}</TableCell>
+                  <TableCell className={`font-medium whitespace-nowrap sticky left-0 z-10 border-r ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>{subject.semester}</TableCell>
 
                   {/* Subject */}
-                  <TableCell className="sticky left-[120px] z-10 bg-white border-r min-w-[250px]">
-                    <div>
+                  <TableCell className={`sticky left-[120px] z-20 border-r min-w-[250px] shadow-sm ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                    <div className="relative w-full h-full -m-4 p-4" style={{backgroundColor: 'inherit'}}>
                       <div className="font-medium">{subject.abbreviation || subject.name}</div>
                       {subject.abbreviation && (
                         <div className="text-sm text-gray-600">{subject.name}</div>
@@ -341,7 +341,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
 
                   {/* Detail - Department and Lecturer */}
                   {hasDetailInfo && (
-                    <TableCell className="text-xs text-gray-600 max-w-[200px]">
+                    <TableCell className={`text-xs text-gray-600 max-w-[200px] overflow-hidden pl-6 ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
                       {(subject.department || subject.lecturer) ? (
                         <TooltipProvider>
                           <div className="space-y-0.5">
@@ -471,7 +471,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell className="sticky right-0 z-10 bg-white border-l">
+                  <TableCell className={`sticky right-0 z-10 border-l ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
                     <div className="flex gap-1">
                       {/* Make Active */}
                       {availableActions.includes("makeActive") && (
