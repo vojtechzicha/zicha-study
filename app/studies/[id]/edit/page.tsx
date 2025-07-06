@@ -7,6 +7,7 @@ import { LoginForm } from "@/components/login-form"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js"
+import { useFavicon } from "@/hooks/use-favicon"
 
 interface Study {
   id: string
@@ -28,6 +29,9 @@ export default function StudyEditPage({ params }: { params: Promise<{ id: string
   const [notFound, setNotFound] = useState(false)
   const supabase = createClient()
   const router = useRouter()
+  
+  // Update favicon with study logo
+  useFavicon(study?.logo_url)
 
   useEffect(() => {
     const initialize = async () => {

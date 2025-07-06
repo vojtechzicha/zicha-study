@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StudyLogo } from "./study-logo"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
+import { useFavicon } from "@/hooks/use-favicon"
 import { BookOpen, Target, Clock, Trophy } from "lucide-react"
 import { 
   getStatusColor, 
@@ -109,6 +110,9 @@ const sortSubjects = (subjects: Subject[]) => {
 export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
   // Extract and apply theme colors from logo
   const { extractedColor, isLoading: colorLoading } = useLogoTheme(study.logo_url)
+  
+  // Update favicon with study logo
+  useFavicon(study.logo_url)
 
   // Calculate statistics
   const stats = useMemo(() => {

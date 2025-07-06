@@ -6,6 +6,7 @@ import { StudySettings } from "@/components/study-settings"
 import { LoginForm } from "@/components/login-form"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useFavicon } from "@/hooks/use-favicon"
 import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 interface Study {
@@ -30,6 +31,7 @@ export default function StudySettingsPage({ params }: { params: Promise<{ id: st
   const [notFound, setNotFound] = useState(false)
   const supabase = createClient()
   const router = useRouter()
+  useFavicon(study?.logo_url)
 
   useEffect(() => {
     const initialize = async () => {

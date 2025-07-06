@@ -12,6 +12,7 @@ import { SubjectTable } from "./subject-table"
 import { StudyLogo } from "./study-logo"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
+import { useFavicon } from "@/hooks/use-favicon"
 import { calculateAverage } from "@/lib/grade-utils"
 import { isSubjectFailed } from "@/lib/status-utils"
 import type { User } from "@supabase/supabase-js"
@@ -68,6 +69,9 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   
   // Extract and apply theme colors from logo
   const { extractedColor, isLoading: colorLoading } = useLogoTheme(currentStudy.logo_url)
+  
+  // Update favicon with study logo
+  useFavicon(currentStudy.logo_url)
 
   useEffect(() => {
     fetchSubjects()
