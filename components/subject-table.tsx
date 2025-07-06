@@ -38,7 +38,7 @@ import {
   isSubjectFailed,
   requiresExam,
   getCompletionBadgeConfig,
-  getGradeBadgeColors,
+  getGradeBadgeConfig,
   getCzechPointsWord,
   getCreditsAndHoursDisplay
 } from "@/lib/status-utils"
@@ -422,9 +422,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
                       
                       
                       if (hasGrade && hasPoints) {
+                        const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
                         return (
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
+                            <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                               {subject.grade}
                             </span>
                             <span className="text-sm text-gray-600">({subject.points} {getCzechPointsWord(subject.points)})</span>
@@ -433,8 +434,9 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
                       }
                       
                       if (hasGrade) {
+                        const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
                         return (
-                          <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
+                          <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                             {subject.grade}
                           </span>
                         )

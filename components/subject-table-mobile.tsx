@@ -36,7 +36,7 @@ import {
   isSubjectFailed,
   requiresExam,
   getCompletionBadgeConfig,
-  getGradeBadgeColors,
+  getGradeBadgeConfig,
   getCzechPointsWord,
   getCreditsAndHoursDisplayMobile
 } from "@/lib/status-utils"
@@ -380,9 +380,14 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
                 <div>
                   <span className="text-gray-500">Hodnocení:</span>
                   <div className="mt-1 flex items-center gap-2 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
-                      {subject.grade}
-                    </span>
+                    {(() => {
+                      const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
+                      return (
+                        <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
+                          {subject.grade}
+                        </span>
+                      )
+                    })()}
                     {isFieldVisibleForState("points", subjectState) && subject.points && (
                       <span className="text-sm text-gray-600">
                         ({subject.points} {getCzechPointsWord(subject.points)})

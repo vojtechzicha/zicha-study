@@ -25,9 +25,10 @@ import {
   isFieldVisibleForState,
   getCompletionBadgeConfig,
   isSubjectFailed,
-  getGradeBadgeColors,
+  getGradeBadgeConfig,
   getCzechPointsWord,
-  getCreditsAndHoursDisplay
+  getCreditsAndHoursDisplay,
+  getSubjectStateBadgeConfig
 } from "@/lib/status-utils"
 import { calculateAverage, getUniqueSemesters } from "@/lib/grade-utils"
 import { getSubjectTypeConfig, getStudyFormLabel } from "@/lib/constants"
@@ -200,7 +201,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant="outline" className={`text-xs ${config.className}`} style={config.style}>
+            <Badge className={`text-xs ${config.className}`} style={config.style}>
               {config.text}
             </Badge>
           </TooltipTrigger>
@@ -218,7 +219,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant="outline" className={`text-xs ${config.color}`}>
+            <Badge variant="outline" className="text-xs">
               {config.shortCode}
             </Badge>
           </TooltipTrigger>
@@ -544,9 +545,10 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                               }
                               
                               if (hasGrade && hasPoints) {
+                                const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
                                 return (
                                   <div className="flex items-center justify-center gap-2">
-                                    <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
+                                    <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                                       {subject.grade}
                                     </span>
                                     <span className="text-sm text-gray-600">
@@ -557,8 +559,9 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                               }
                               
                               if (hasGrade) {
+                                const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
                                 return (
-                                  <span className={`px-2 py-1 rounded text-sm font-medium ${getGradeBadgeColors(subject.grade, subject)}`}>
+                                  <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                                     {subject.grade}
                                   </span>
                                 )
@@ -586,9 +589,10 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                           <TableCell>
                             {(() => {
                               const subjectState = getSubjectStatus(subject)
+                              const config = getSubjectStateBadgeConfig(subjectState, subject, true)
                               return (
-                                <Badge className={getSubjectStateColor(subjectState, subject, true)}>
-                                  {getSubjectStateText(subjectState, subject)}
+                                <Badge className={`text-xs ${config.className}`} style={config.style}>
+                                  {config.text}
                                 </Badge>
                               )
                             })()}
