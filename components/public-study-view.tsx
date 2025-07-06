@@ -465,7 +465,16 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                       {semesterData.subjects.map((subject) => (
                         <TableRow key={subject.id} className="hover:bg-gray-50">
                           <TableCell className="font-mono text-sm">{subject.abbreviation || '-'}</TableCell>
-                          <TableCell className="text-sm">{subject.name}</TableCell>
+                          <TableCell className="text-sm">
+                            <div>
+                              <div>{subject.name}</div>
+                              {(subject.department || subject.lecturer) && (
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  {[subject.department, subject.lecturer].filter(Boolean).join(' • ')}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>{getSubjectTypeBadge(subject.subject_type)}</TableCell>
                           <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>
                           <TableCell className="text-center font-medium">{subject.credits}</TableCell>

@@ -14,6 +14,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowLeft, Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SubjectState, isFieldVisibleForState, getSubjectStateText, requiresCredit, requiresExam } from "@/lib/status-utils"
+import { DepartmentAutocomplete } from "@/components/department-autocomplete"
+import { useDepartments } from "@/hooks/use-departments"
 
 interface Study {
   id: string
@@ -49,6 +51,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
+  const { departments } = useDepartments(study.id)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -276,11 +279,11 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="department">Katedra</Label>
-                <Input
-                  id="department"
+                <DepartmentAutocomplete
                   value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="název katedry"
+                  onChange={(value) => setFormData({ ...formData, department: value })}
+                  departments={departments}
+                  placeholder="Vyberte nebo zadejte katedru..."
                 />
               </div>
 

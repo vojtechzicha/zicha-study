@@ -10,6 +10,12 @@ import { Edit, Play, CheckCircle } from "lucide-react"
 import { SubjectEditForm } from "./subject-edit-form"
 import { SubjectCompletionModal } from "./subject-completion-modal"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -123,6 +129,9 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
   const supabase = createClient()
 
   const sortedSubjects = sortSubjects(subjects)
+  
+  // Check if any subject has department or lecturer info
+  const hasDetailInfo = subjects.some(s => s.department || s.lecturer)
 
   const handleStateChange = async (subjectId: string, newState: SubjectState) => {
     setActionLoading({ ...actionLoading, [subjectId]: true })
@@ -220,6 +229,7 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
           <TableRow>
             <TableHead>Semestr</TableHead>
             <TableHead>Předmět</TableHead>
+            {hasDetailInfo && <TableHead className="w-[200px]">Detail</TableHead>}
             <TableHead>Typ</TableHead>
             <TableHead>Ukončení</TableHead>
             <TableHead>Kredity</TableHead>
@@ -235,13 +245,13 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={12} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={hasDetailInfo ? 13 : 12} className="text-center py-8 text-gray-500">
                 Načítání předmětů...
               </TableCell>
             </TableRow>
           ) : sortedSubjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={12} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={hasDetailInfo ? 13 : 12} className="text-center py-8 text-gray-500">
                 Žádné předměty nenalezeny.
               </TableCell>
             </TableRow>
@@ -267,6 +277,44 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                       )}
                     </div>
                   </TableCell>
+
+                  {/* Detail - Department and Lecturer */}
+                  {hasDetailInfo && (
+                    <TableCell className="text-xs text-gray-600 max-w-[200px]">
+                      {(subject.department || subject.lecturer) ? (
+                        <TooltipProvider>
+                          <div className="space-y-0.5">
+                            {subject.department && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="truncate cursor-help">
+                                    {subject.department}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{subject.department}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            {subject.lecturer && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="truncate text-gray-500 cursor-help">
+                                    {subject.lecturer}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{subject.lecturer}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TooltipProvider>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                  )}
 
                   {/* Type */}
                   <TableCell>

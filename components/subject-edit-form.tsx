@@ -27,6 +27,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { SubjectState, isFieldVisibleForState, getSubjectStateText, getSubjectStatus, requiresCredit, requiresExam } from "@/lib/status-utils"
+import { DepartmentAutocomplete } from "@/components/department-autocomplete"
+import { useDepartments } from "@/hooks/use-departments"
 
 interface Subject {
   id: string
@@ -79,6 +81,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
+  const { departments } = useDepartments(subject.study_id)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -322,11 +325,11 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
 
               <div className="space-y-2">
                 <Label htmlFor="department">Katedra</Label>
-                <Input
-                  id="department"
+                <DepartmentAutocomplete
                   value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="název katedry"
+                  onChange={(value) => setFormData({ ...formData, department: value })}
+                  departments={departments}
+                  placeholder="Vyberte nebo zadejte katedru..."
                 />
               </div>
 
