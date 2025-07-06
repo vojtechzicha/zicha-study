@@ -4,7 +4,7 @@ import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { GraduationCap, Mail } from "lucide-react"
+import { GraduationCap } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export function LoginForm() {
@@ -12,16 +12,14 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
-  const handleGoogleLogin = async () => {
+  const handleMicrosoftLogin = async () => {
     setLoading(true)
     setError(null)
 
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider: "azure",
       options: {
-        queryParams: {
-          hd: "vojtechzicha.com",
-        },
+        scopes: "openid email profile offline_access Files.Read Files.Read.All",
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     })
@@ -42,7 +40,7 @@ export function LoginForm() {
           <div>
             <CardTitle className="text-2xl font-bold text-gray-900">Sledování studií</CardTitle>
             <CardDescription className="text-gray-600 mt-2">
-              Přihlaste se pomocí Google účtu z domény vojtechzicha.com
+              Přihlaste se pomocí Microsoft osobního účtu
             </CardDescription>
           </div>
         </CardHeader>
@@ -53,13 +51,15 @@ export function LoginForm() {
             </Alert>
           )}
           <Button
-            onClick={handleGoogleLogin}
+            onClick={handleMicrosoftLogin}
             disabled={loading}
             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
             size="lg"
           >
-            <Mail className="mr-2 h-5 w-5" />
-            {loading ? "Přihlašování..." : "Přihlásit se přes Google"}
+            <svg className="mr-2 h-5 w-5" viewBox="0 0 23 23" fill="currentColor">
+              <path d="M11 11H0V0h11v11zm0 12H0V12h11v11zm12-12H12V0h11v11zm0 12H12V12h11v11z" />
+            </svg>
+            {loading ? "Přihlašování..." : "Přihlásit se přes Microsoft"}
           </Button>
         </CardContent>
       </Card>
