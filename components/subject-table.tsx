@@ -434,7 +434,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
                           } : {}}
                         />
                       ) : (
-                        subject.credit_completed ? <CheckCircle className="h-4 w-4 text-green-600" /> : "-"
+                        subject.credit_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600" />) : "-"
                       )
                     ) : (
                       <span className="text-gray-400">N/A</span>
@@ -463,7 +463,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
                           } : {}}
                         />
                       ) : (
-                        subject.exam_completed ? <CheckCircle className="h-4 w-4 text-green-600" /> : "-"
+                        subject.exam_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600" />) : "-"
                       )
                     ) : (
                       <span className="text-gray-400">N/A</span>
