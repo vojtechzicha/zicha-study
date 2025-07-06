@@ -26,35 +26,44 @@ export default async function PublicMaterialPage({ params }: PageProps) {
     notFound()
   }
 
-  // Then get the material by public slug within this study
-  const { data: material, error: materialError } = await supabase
-    .from("materials")
-    .select("*")
-    .eq("study_id", study.id)
-    .eq("public_slug", materialSlug)
-    .eq("is_public", true)
-    .single()
+  // Try to find the material in both study materials and subject materials
+  const [studyMaterialResult, subjectMaterialResult] = await Promise.all([
+    supabase
+      .from("materials")
+      .select("*")
+      .eq("study_id", study.id)
+      .eq("public_slug", materialSlug)
+      .eq("is_public", true)
+      .single(),
+    supabase
+      .from("subject_materials")
+      .select("*, subjects(name, abbreviation)")
+      .eq("study_id", study.id)
+      .eq("public_slug", materialSlug)
+      .eq("is_public", true)
+      .single()
+  ])
 
-  if (materialError || !material) {
+  const material = studyMaterialResult.data || subjectMaterialResult.data
+  const isSubjectMaterial = !!subjectMaterialResult.data
+
+  if (!material) {
     notFound()
   }
 
-  // Generate the OneDrive share link
+  // Use the stored public share URL
   let shareUrl: string | null = null
   let shareError: string | null = null
 
   try {
-    // For public access, we need to create a different approach
-    // Since we don't have user authentication, we'll need to store
-    // the share URL in the database when the material is published
-    
-    // For now, we'll redirect to the OneDrive web URL
-    // In a production environment, you'd want to generate and store
-    // anonymous share links when materials are published
-    shareUrl = material.onedrive_web_url
+    if (material.public_share_url) {
+      shareUrl = material.public_share_url
+    } else {
+      shareError = "Veřejný odkaz pro tento materiál není dostupný"
+    }
   } catch (error) {
-    console.error("Error generating share link:", error)
-    shareError = "Nepodařilo se vytvořit odkaz pro zobrazení souboru"
+    console.error("Error accessing share link:", error)
+    shareError = "Nepodařilo se načíst odkaz pro zobrazení souboru"
   }
 
   const fileIcons: { [key: string]: JSX.Element } = {
@@ -99,7 +108,12 @@ export default async function PublicMaterialPage({ params }: PageProps) {
             <Globe className="h-6 w-6 text-blue-600" />
             <h1 className="text-2xl font-bold text-gray-900">Veřejný materiál</h1>
           </div>
-          <p className="text-gray-600">Materiál ze studia {study.name}</p>
+          <p className="text-gray-600">
+            {isSubjectMaterial 
+              ? `Materiál z předmětu ${(material as any).subjects?.abbreviation || (material as any).subjects?.name} (${study.name})`
+              : `Materiál ze studia ${study.name}`
+            }
+          </p>
         </div>
 
         {/* Material Card */}

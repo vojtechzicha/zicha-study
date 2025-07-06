@@ -33,6 +33,7 @@ import type { OneDriveFile, MaterialFormData } from "@/lib/types/materials"
 
 interface AddMaterialDialogProps {
   studyId: string
+  subjectId?: string
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
@@ -46,6 +47,7 @@ interface StudyMaterialSettings {
 
 export function AddMaterialDialog({
   studyId,
+  subjectId,
   isOpen,
   onClose,
   onSuccess,
@@ -199,7 +201,7 @@ export function AddMaterialDialog({
 
       const fileExtension = selectedFile.name.split(".").pop()
 
-      const { error: insertError } = await supabase.from("materials").insert({
+      const materialData = {
         study_id: studyId,
         user_id: user.id,
         name: formData.name.trim(),
@@ -214,7 +216,14 @@ export function AddMaterialDialog({
         description: formData.description?.trim() || null,
         category: formData.category || null,
         last_modified_onedrive: selectedFile.lastModifiedDateTime,
-      })
+      }
+
+      const tableName = subjectId ? "subject_materials" : "materials"
+      const insertData = subjectId 
+        ? { ...materialData, subject_id: subjectId }
+        : materialData
+
+      const { error: insertError } = await supabase.from(tableName).insert(insertData)
 
       if (insertError) throw insertError
 
@@ -284,12 +293,12 @@ export function AddMaterialDialog({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
-            {showFilePicker ? "Vyberte soubor z OneDrive" : "Přidat materiál"}
+            {showFilePicker ? "Vyberte soubor z OneDrive" : `Přidat materiál ${subjectId ? "k předmětu" : "ke studiu"}`}
           </DialogTitle>
           <DialogDescription>
             {showFilePicker 
               ? "Klikněte na soubor, který chcete přidat"
-              : "Vyberte soubor z vašeho OneDrive a přidejte ho ke studiu"
+              : `Vyberte soubor z vašeho OneDrive a přidejte ho ${subjectId ? "k předmětu" : "ke studiu"}`
             }
           </DialogDescription>
         </DialogHeader>

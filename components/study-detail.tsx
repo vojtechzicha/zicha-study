@@ -317,7 +317,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <SubjectTable subjects={filteredSubjects} loading={loading} onUpdate={fetchSubjects} hideFilters />
+            <SubjectTable subjects={filteredSubjects} loading={loading} onUpdate={fetchSubjects} hideFilters study={study} />
           </CardContent>
         </Card>
       </main>

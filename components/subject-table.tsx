@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Play, CheckCircle } from "lucide-react"
+import { Edit, Play, CheckCircle, FolderOpen } from "lucide-react"
 import { SubjectEditForm } from "./subject-edit-form"
 import { SubjectCompletionModal } from "./subject-completion-modal"
 import { SubjectTableMobile } from "./subject-table-mobile"
+import { SubjectMaterialsDialog } from "./subject-materials-dialog"
 import {
   Tooltip,
   TooltipContent,
@@ -67,11 +68,19 @@ interface Subject {
   created_at: string
 }
 
+interface Study {
+  id: string
+  name: string
+  is_public?: boolean
+  public_slug?: string
+}
+
 interface SubjectTableProps {
   subjects: Subject[]
   loading: boolean
   onUpdate: () => void
   hideFilters?: boolean
+  study?: Study
 }
 
 type FilterType = "all" | "active"
@@ -127,13 +136,15 @@ const sortSubjects = (subjects: Subject[]) => {
   })
 }
 
-export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false }: SubjectTableProps) {
+export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false, study }: SubjectTableProps) {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({})
   const [editFormOpen, setEditFormOpen] = useState(false)
   const [completionModalOpen, setCompletionModalOpen] = useState(false)
   const [completionModalSubject, setCompletionModalSubject] = useState<Subject | null>(null)
   const [completionModalType, setCompletionModalType] = useState<"credit" | "exam">("credit")
+  const [materialsDialogSubject, setMaterialsDialogSubject] = useState<Subject | null>(null)
+  const [materialsDialogOpen, setMaterialsDialogOpen] = useState(false)
   const [filter, setFilter] = useState<FilterType>("all")
   const supabase = createClient()
 
@@ -255,6 +266,11 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
     setEditingSubject(null)
     setEditFormOpen(false)
     onUpdate()
+  }
+
+  const handleMaterialsClick = (subject: Subject) => {
+    setMaterialsDialogSubject(subject)
+    setMaterialsDialogOpen(true)
   }
 
   return (
@@ -561,6 +577,16 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
                         </AlertDialog>
                       )}
 
+                      {/* Materials */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleMaterialsClick(subject)}
+                        title="Materiály předmětu"
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                      </Button>
+
                       {/* Edit */}
                       {availableActions.includes("edit") && (
                         <Button
@@ -609,6 +635,17 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
           }}
         />
       )}
+
+      {/* Subject Materials Dialog */}
+      <SubjectMaterialsDialog
+        subject={materialsDialogSubject}
+        study={study}
+        isOpen={materialsDialogOpen}
+        onClose={() => {
+          setMaterialsDialogOpen(false)
+          setMaterialsDialogSubject(null)
+        }}
+      />
     </div>
   )
 }

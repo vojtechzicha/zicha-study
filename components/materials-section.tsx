@@ -198,7 +198,10 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
               <MaterialsTable
                 materials={materials}
                 onDelete={handleDelete}
+                onUpdate={handleMaterialUpdate}
                 loading={false}
+                studySlug={study?.public_slug}
+                isStudyPublic={study?.is_public}
               />
             </div>
           )}

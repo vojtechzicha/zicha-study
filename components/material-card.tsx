@@ -78,15 +78,25 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
       return
     }
 
-    const { data, error } = await supabase
-      .from("materials")
-      .select("id")
-      .eq("study_id", material.study_id)
-      .eq("public_slug", slug)
-      .neq("id", material.id)
-      .single()
+    // Check both study materials and subject materials for slug uniqueness
+    const [studyMaterialsResult, subjectMaterialsResult] = await Promise.all([
+      supabase
+        .from("materials")
+        .select("id")
+        .eq("study_id", material.study_id)
+        .eq("public_slug", slug)
+        .neq("id", material.id)
+        .single(),
+      supabase
+        .from("subject_materials")
+        .select("id")
+        .eq("study_id", material.study_id)
+        .eq("public_slug", slug)
+        .single()
+    ])
 
-    setSlugAvailable(!data)
+    const isAvailable = !studyMaterialsResult.data && !subjectMaterialsResult.data
+    setSlugAvailable(isAvailable)
   }
 
   const handleSlugChange = (value: string) => {
@@ -126,11 +136,35 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
     setError(null)
 
     try {
+      let publicShareUrl = null
+      
+      if (isPublicNew) {
+        // Generate public share link
+        const response = await fetch('/api/onedrive/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            onedriveId: material.onedrive_id
+          })
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to create public share link")
+        }
+        
+        const { shareUrl } = await response.json()
+        publicShareUrl = shareUrl
+      }
+
       const { error: updateError } = await supabase
         .from("materials")
         .update({
           is_public: isPublicNew,
           public_slug: slug,
+          public_share_url: publicShareUrl,
         })
         .eq("id", material.id)
 

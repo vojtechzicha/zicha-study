@@ -19,7 +19,7 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "azure",
       options: {
-        scopes: "openid email profile offline_access Files.Read Files.Read.All",
+        scopes: "openid email profile offline_access Files.Read Files.Read.All Files.ReadWrite",
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     })

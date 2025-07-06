@@ -12,13 +12,24 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { FileText, ExternalLink, Download, Trash2, Search, Globe } from "lucide-react"
+import { FileText, ExternalLink, Download, Trash2, Search, Globe, MoreVertical, Copy, Check } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { createClient } from "@/lib/supabase/client"
 import type { Material } from "@/lib/types/materials"
 
 interface MaterialsTableProps {
   materials: Material[]
   onDelete?: (id: string) => void
+  onUpdate?: () => void
   loading?: boolean
+  studySlug?: string
+  isStudyPublic?: boolean
 }
 
 const fileIcons: { [key: string]: JSX.Element } = {
@@ -55,8 +66,79 @@ function formatDate(dateString: string | null): string {
   })
 }
 
-export function MaterialsTable({ materials, onDelete, loading }: MaterialsTableProps) {
+export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySlug, isStudyPublic }: MaterialsTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const [copied, setCopied] = useState<string | null>(null)
+  const supabase = createClient()
+
+  const handlePublicToggle = async (material: Material) => {
+    if (!material.is_public) {
+      // Generate initial slug from material name
+      const initialSlug = material.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-_]/g, "")
+        .replace(/\s+/g, "-")
+        .slice(0, 50)
+      
+      await updatePublicStatus(material.id, true, initialSlug)
+    } else {
+      await updatePublicStatus(material.id, false, null)
+    }
+  }
+
+  const updatePublicStatus = async (materialId: string, isPublic: boolean, slug: string | null) => {
+    try {
+      let publicShareUrl = null
+      
+      if (isPublic) {
+        // Find the material to get its OneDrive ID
+        const material = materials.find(m => m.id === materialId)
+        if (!material) throw new Error("Material not found")
+        
+        // Generate public share link
+        const response = await fetch('/api/onedrive/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            onedriveId: material.onedrive_id
+          })
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to create public share link")
+        }
+        
+        const { shareUrl } = await response.json()
+        publicShareUrl = shareUrl
+      }
+
+      const { error } = await supabase
+        .from("materials")
+        .update({
+          is_public: isPublic,
+          public_slug: slug,
+          public_share_url: publicShareUrl,
+        })
+        .eq("id", materialId)
+
+      if (error) throw error
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      console.error("Error updating public status:", err)
+    }
+  }
+
+  const copyPublicUrl = async (material: Material) => {
+    if (!studySlug || !material.public_slug) return
+    
+    const publicUrl = `${window.location.origin}/${studySlug}/${material.public_slug}`
+    await navigator.clipboard.writeText(publicUrl)
+    setCopied(material.id)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   const filteredMaterials = useMemo(() => {
     if (!searchQuery.trim()) return materials
@@ -159,6 +241,7 @@ export function MaterialsTable({ materials, onDelete, loading }: MaterialsTableP
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {/* Direct OneDrive Link */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -173,32 +256,58 @@ export function MaterialsTable({ materials, onDelete, loading }: MaterialsTableP
                           <ExternalLink className="h-4 w-4" />
                         </a>
                       </Button>
-                      {material.onedrive_download_url && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                        >
-                          <a
-                            href={material.onedrive_download_url}
-                            download
-                            title="Stáhnout"
-                          >
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                      {onDelete && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDelete(material.id)}
-                          className="text-red-600 hover:text-red-700"
-                          title="Odstranit"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+
+                      {/* Dropdown Menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {material.onedrive_download_url && (
+                            <DropdownMenuItem asChild>
+                              <a
+                                href={material.onedrive_download_url}
+                                download
+                                className="flex items-center"
+                              >
+                                <Download className="mr-2 h-4 w-4" />
+                                Stáhnout
+                              </a>
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {isStudyPublic && (
+                            <>
+                              {material.onedrive_download_url && <DropdownMenuSeparator />}
+                              <DropdownMenuItem onClick={() => handlePublicToggle(material)}>
+                                <Globe className="mr-2 h-4 w-4" />
+                                {material.is_public ? "Zrušit publikování" : "Publikovat"}
+                              </DropdownMenuItem>
+                              {material.is_public && studySlug && material.public_slug && (
+                                <DropdownMenuItem onClick={() => copyPublicUrl(material)}>
+                                  {copied === material.id ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                                  {copied === material.id ? "Zkopírováno!" : "Kopírovat veřejný odkaz"}
+                                </DropdownMenuItem>
+                              )}
+                            </>
+                          )}
+                          
+                          {onDelete && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => onDelete(material.id)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Odstranit
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>
