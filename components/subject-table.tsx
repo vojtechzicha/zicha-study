@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Edit, Play, CheckCircle } from "lucide-react"
 import { SubjectEditForm } from "./subject-edit-form"
 import { SubjectCompletionModal } from "./subject-completion-modal"
+import { SubjectTableMobile } from "./subject-table-mobile"
 import {
   Tooltip,
   TooltipContent,
@@ -66,7 +67,10 @@ interface SubjectTableProps {
   subjects: Subject[]
   loading: boolean
   onUpdate: () => void
+  hideFilters?: boolean
 }
+
+type FilterType = "all" | "active"
 
 const sortSubjects = (subjects: Subject[]) => {
   const getTypeOrder = (type: string) => getSubjectTypeConfig(type).order
@@ -119,16 +123,22 @@ const sortSubjects = (subjects: Subject[]) => {
   })
 }
 
-export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps) {
+export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false }: SubjectTableProps) {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({})
   const [editFormOpen, setEditFormOpen] = useState(false)
   const [completionModalOpen, setCompletionModalOpen] = useState(false)
   const [completionModalSubject, setCompletionModalSubject] = useState<Subject | null>(null)
   const [completionModalType, setCompletionModalType] = useState<"credit" | "exam">("credit")
+  const [filter, setFilter] = useState<FilterType>("all")
   const supabase = createClient()
 
-  const sortedSubjects = sortSubjects(subjects)
+  // Filter subjects based on selected filter
+  const filteredSubjects = filter === "active" 
+    ? subjects.filter(s => !s.completed && !s.planned)
+    : subjects
+    
+  const sortedSubjects = sortSubjects(filteredSubjects)
   
   // Check if any subject has department or lecturer info
   const hasDetailInfo = subjects.some(s => s.department || s.lecturer)
@@ -224,24 +234,53 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
 
   return (
     <div className="rounded-lg border bg-white">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Semestr</TableHead>
-            <TableHead>Předmět</TableHead>
-            {hasDetailInfo && <TableHead className="w-[200px]">Detail</TableHead>}
-            <TableHead>Typ</TableHead>
-            <TableHead>Ukončení</TableHead>
-            <TableHead>Kredity</TableHead>
-            <TableHead>Hodiny</TableHead>
-            <TableHead>Body</TableHead>
-            <TableHead>Známka</TableHead>
-            <TableHead>Datum ukončení</TableHead>
-            <TableHead>Zápočet</TableHead>
-            <TableHead>Zkouška</TableHead>
-            <TableHead>Akce</TableHead>
-          </TableRow>
-        </TableHeader>
+      {/* Filter Buttons - only show when not hidden */}
+      {!hideFilters && (
+        <div className="flex gap-2 p-4 border-b">
+          <Button 
+            variant={filter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter("all")}
+          >
+            Všechny ({subjects.length})
+          </Button>
+          <Button 
+            variant={filter === "active" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter("active")}
+          >
+            Aktivní ({subjects.filter(s => !s.completed && !s.planned).length})
+          </Button>
+        </div>
+      )}
+      
+      {/* Mobile Card View */}
+      <div className="lg:hidden">
+        <div className="p-4">
+          <SubjectTableMobile subjects={hideFilters ? subjects : filteredSubjects} loading={loading} onUpdate={onUpdate} />
+        </div>
+      </div>
+      
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="sticky left-0 z-10 bg-white border-r w-[120px]">Semestr</TableHead>
+              <TableHead className="sticky left-[120px] z-10 bg-white border-r min-w-[250px]">Předmět</TableHead>
+              {hasDetailInfo && <TableHead className="w-[200px]">Detail</TableHead>}
+              <TableHead>Typ</TableHead>
+              <TableHead>Ukončení</TableHead>
+              <TableHead>Kredity</TableHead>
+              <TableHead>Hodiny</TableHead>
+              <TableHead>Body</TableHead>
+              <TableHead>Známka</TableHead>
+              <TableHead>Datum ukončení</TableHead>
+              <TableHead>Zápočet</TableHead>
+              <TableHead>Zkouška</TableHead>
+              <TableHead className="sticky right-0 z-10 bg-white border-l w-[120px]">Akce</TableHead>
+            </TableRow>
+          </TableHeader>
         <TableBody>
           {loading ? (
             <TableRow>
@@ -249,14 +288,14 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                 Načítání předmětů...
               </TableCell>
             </TableRow>
-          ) : sortedSubjects.length === 0 ? (
+          ) : (hideFilters ? subjects : sortedSubjects).length === 0 ? (
             <TableRow>
               <TableCell colSpan={hasDetailInfo ? 13 : 12} className="text-center py-8 text-gray-500">
                 Žádné předměty nenalezeny.
               </TableCell>
             </TableRow>
           ) : (
-            sortedSubjects.map((subject) => {
+            (hideFilters ? sortSubjects(subjects) : sortedSubjects).map((subject) => {
               const subjectState = getSubjectStatus(subject)
               const availableActions = getAvailableActions(subjectState, subject.completion_type)
 
@@ -266,10 +305,10 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                   className={isSubjectFailed(subject) ? "bg-red-50" : ""}
                 >
                   {/* Semester */}
-                  <TableCell className="font-medium whitespace-nowrap">{subject.semester}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap sticky left-0 z-10 bg-white border-r">{subject.semester}</TableCell>
 
                   {/* Subject */}
-                  <TableCell>
+                  <TableCell className="sticky left-[120px] z-10 bg-white border-r min-w-[250px]">
                     <div>
                       <div className="font-medium">{subject.abbreviation || subject.name}</div>
                       {subject.abbreviation && (
@@ -410,7 +449,7 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell>
+                  <TableCell className="sticky right-0 z-10 bg-white border-l">
                     <div className="flex gap-1">
                       {/* Make Active */}
                       {availableActions.includes("makeActive") && (
@@ -476,8 +515,9 @@ export function SubjectTable({ subjects, loading, onUpdate }: SubjectTableProps)
               )
             })
           )}
-        </TableBody>
-      </Table>
+          </TableBody>
+        </Table>
+      </div>
       
       {/* Edit Modal */}
       {editingSubject && (

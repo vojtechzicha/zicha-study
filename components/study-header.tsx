@@ -38,7 +38,7 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center min-h-16 py-3">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center min-h-16 py-3 gap-3">
           <div className="flex items-center space-x-4 flex-1 min-w-0">
             <Button variant="ghost" onClick={onBack} className="text-gray-600 hover:text-gray-900 flex-shrink-0">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -47,18 +47,18 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <StudyLogo logoUrl={displayLogoUrl} studyName={displayTitle} size="lg" className="flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-bold text-gray-900 leading-tight break-words">{displayTitle}</h1>
-                <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight break-words hyphens-auto overflow-wrap-anywhere whitespace-normal">{displayTitle}</h1>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600 mt-1">
                   {study ? (
                     <>
                       <span>{study.type}</span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span>{study.form}</span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       {getStatusBadge(study.status)}
                       {study.is_public && (
                         <>
-                          <span>•</span>
+                          <span className="hidden sm:inline">•</span>
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                             Veřejné
                           </Badge>
@@ -73,7 +73,7 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
             </div>
           </div>
           {actions && (
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
               {actions}
             </div>
           )}

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings, Search } from "lucide-react"
+import { ArrowLeft, Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings, Search, Filter } from "lucide-react"
 import { SubjectForm } from "./subject-form"
 import { SubjectTable } from "./subject-table"
 import { StudyLogo } from "./study-logo"
@@ -62,6 +62,7 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const [showSubjectForm, setShowSubjectForm] = useState(false)
   const [currentStudy, setCurrentStudy] = useState<Study>(study)
   const [searchQuery, setSearchQuery] = useState("")
+  const [showActiveOnly, setShowActiveOnly] = useState(false)
   const supabase = createClient()
   const router = useRouter()
   
@@ -103,14 +104,22 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
     fetchStudyData()
   }
 
-  // Filter subjects based on search query
+  // Filter subjects based on search query and active filter
   const filteredSubjects = useMemo(() => {
+    let filtered = subjects
+    
+    // Apply active filter first
+    if (showActiveOnly) {
+      filtered = subjects.filter(s => !s.completed && !s.planned)
+    }
+    
+    // Then apply search filter
     if (!searchQuery.trim()) {
-      return subjects
+      return filtered
     }
 
     const query = searchQuery.toLowerCase().trim()
-    return subjects.filter(subject => {
+    return filtered.filter(subject => {
       const searchableFields = [
         subject.name?.toLowerCase() || '',
         subject.abbreviation?.toLowerCase() || '',
@@ -123,7 +132,7 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
       
       return searchableFields.some(field => field.includes(query))
     })
-  }, [subjects, searchQuery])
+  }, [subjects, searchQuery, showActiveOnly])
 
   // Calculate statistics
   const completedSubjects = subjects.filter((s) => s.completed && !isSubjectFailed(s))
@@ -152,21 +161,21 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
         onBack={onBack}
         actions={
           <>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/edit`)} className="text-gray-700">
-              <Edit className="mr-2 h-4 w-4" />
-              Upravit
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/edit`)} className="text-gray-700" size="sm">
+              <Edit className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Upravit</span>
             </Button>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/settings`)} className="text-gray-700">
-              <Settings className="mr-2 h-4 w-4" />
-              Sdílení
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/settings`)} className="text-gray-700" size="sm">
+              <Settings className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Sdílení</span>
             </Button>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/statistics`)} className="text-gray-700">
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Statistiky
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/statistics`)} className="text-gray-700" size="sm">
+              <BarChart3 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Statistiky</span>
             </Button>
-            <Button onClick={() => setShowSubjectForm(true)} className="text-white" style={{ backgroundColor: "var(--primary-600)", "--tw-bg-opacity": "1" } as React.CSSProperties} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--primary-700)" }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--primary-600)" }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Přidat předmět
+            <Button onClick={() => setShowSubjectForm(true)} className="text-white" style={{ backgroundColor: "var(--primary-600)", "--tw-bg-opacity": "1" } as React.CSSProperties} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--primary-700)" }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--primary-600)" }} size="sm">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Přidat předmět</span>
             </Button>
           </>
         }
@@ -254,27 +263,43 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
               <div className="flex-1">
                 <CardTitle className="text-xl font-bold text-gray-900">Předměty</CardTitle>
                 <p className="text-sm text-gray-600 mt-1">
-                  {searchQuery ? (
+                  {(searchQuery || showActiveOnly) ? (
                     `Zobrazeno ${filteredSubjects.length} z ${subjects.length} předmětů`
                   ) : (
                     "Přehled všech předmětů ve studiu"
                   )}
                 </p>
               </div>
-              {/* Search Input - Right side on desktop, below on mobile */}
-              <div className="w-full md:w-80 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Hledat v předmětech..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+              {/* Search Input with Filter - Right side on desktop, below on mobile */}
+              <div className="w-full md:w-80 relative flex gap-2 items-center">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Hledat v předmětech..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-10"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowActiveOnly(!showActiveOnly)}
+                  className={`h-10 w-10 p-0 flex-shrink-0 ${
+                    showActiveOnly 
+                      ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' 
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                  title={showActiveOnly ? "Zobrazit všechny předměty" : "Zobrazit pouze aktivní předměty"}
+                >
+                  <Filter className={`h-4 w-4 ${
+                    showActiveOnly ? 'text-white' : 'text-gray-600'
+                  }`} />
+                </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <SubjectTable subjects={filteredSubjects} loading={loading} onUpdate={fetchSubjects} />
+            <SubjectTable subjects={filteredSubjects} loading={loading} onUpdate={fetchSubjects} hideFilters />
           </CardContent>
         </Card>
       </main>
