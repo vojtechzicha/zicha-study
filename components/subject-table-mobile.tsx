@@ -38,6 +38,7 @@ import {
   getCompletionBadgeConfig
 } from "@/lib/status-utils"
 import { getSubjectTypeConfig } from "@/lib/constants"
+import { formatDateCzech } from "@/lib/utils"
 
 interface Subject {
   id: string
@@ -382,7 +383,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
               {isFieldVisibleForState("final_date", subjectState) && subject.final_date && (
                 <div>
                   <span className="text-gray-500">Datum ukončení:</span>
-                  <div className="mt-1">{subject.final_date}</div>
+                  <div className="mt-1 whitespace-nowrap">{formatDateCzech(subject.final_date)}</div>
                 </div>
               )}
             </div>

@@ -155,7 +155,11 @@ export function SubjectCompletionModal({
               id="markAsCompleted"
               checked={formData.markAsCompleted}
               onCheckedChange={(checked) => 
-                setFormData({ ...formData, markAsCompleted: checked as boolean })
+                setFormData({ 
+                  ...formData, 
+                  markAsCompleted: checked as boolean,
+                  final_date: checked ? (formData.final_date || new Date().toISOString().split('T')[0]) : formData.final_date
+                })
               }
               className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               style={formData.markAsCompleted ? {

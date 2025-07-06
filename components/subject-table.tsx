@@ -40,6 +40,7 @@ import {
   getCompletionBadgeConfig
 } from "@/lib/status-utils"
 import { getSubjectTypeConfig } from "@/lib/constants"
+import { formatDateCzech } from "@/lib/utils"
 
 interface Subject {
   id: string
@@ -407,8 +408,8 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
                   </TableCell>
 
                   {/* Final Date */}
-                  <TableCell>
-                    {isFieldVisibleForState("final_date", subjectState) ? (subject.final_date || "-") : "-"}
+                  <TableCell className="whitespace-nowrap">
+                    {isFieldVisibleForState("final_date", subjectState) ? (formatDateCzech(subject.final_date) || "-") : "-"}
                   </TableCell>
 
                   {/* Credit Completion */}

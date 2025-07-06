@@ -28,6 +28,7 @@ import {
 } from "@/lib/status-utils"
 import { calculateAverage, getUniqueSemesters } from "@/lib/grade-utils"
 import { getSubjectTypeConfig, getStudyFormLabel } from "@/lib/constants"
+import { formatDateCzech } from "@/lib/utils"
 
 interface Study {
   id: string
@@ -535,11 +536,11 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                               )
                             })()}
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center whitespace-nowrap">
                             {(() => {
                               const subjectState = getSubjectStatus(subject)
                               return isFieldVisibleForState("final_date", subjectState) && subject.final_date ? (
-                                <span className="text-sm">{subject.final_date}</span>
+                                <span className="text-sm">{formatDateCzech(subject.final_date)}</span>
                               ) : (
                                 <span className="text-gray-400">-</span>
                               )
