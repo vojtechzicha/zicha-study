@@ -3,18 +3,35 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Download, ExternalLink, MoreVertical, Trash2 } from "lucide-react"
+import { FileText, Download, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import type { Material } from "@/lib/types/materials"
 
 interface MaterialCardProps {
   material: Material
   onDelete?: (id: string) => void
+  onUpdate?: () => void
+  studySlug?: string
+  isStudyPublic?: boolean
 }
 
 const fileIcons: { [key: string]: JSX.Element } = {
@@ -41,9 +58,110 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`
 }
 
-export function MaterialCard({ material, onDelete }: MaterialCardProps) {
+export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyPublic }: MaterialCardProps) {
+  const [showPublicDialog, setShowPublicDialog] = useState(false)
+  const [isPublic, setIsPublic] = useState(material.is_public)
+  const [publicSlug, setPublicSlug] = useState(material.public_slug || "")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
+  const [copied, setCopied] = useState(false)
+  const supabase = createClient()
+
   const handleCardClick = () => {
     window.open(material.onedrive_web_url, '_blank', 'noopener,noreferrer')
+  }
+
+  const checkSlugAvailability = async (slug: string) => {
+    if (!slug || slug === material.public_slug) {
+      setSlugAvailable(true)
+      return
+    }
+
+    const { data, error } = await supabase
+      .from("materials")
+      .select("id")
+      .eq("study_id", material.study_id)
+      .eq("public_slug", slug)
+      .neq("id", material.id)
+      .single()
+
+    setSlugAvailable(!data)
+  }
+
+  const handleSlugChange = (value: string) => {
+    const cleanSlug = value
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]/g, "")
+      .slice(0, 50)
+    setPublicSlug(cleanSlug)
+    
+    if (cleanSlug && cleanSlug.length >= 3) {
+      checkSlugAvailability(cleanSlug)
+    } else {
+      setSlugAvailable(null)
+    }
+  }
+
+  const handlePublicToggle = async () => {
+    if (!isStudyPublic) return
+
+    if (!isPublic) {
+      // Generate initial slug from material name
+      const initialSlug = material.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-_]/g, "")
+        .replace(/\s+/g, "-")
+        .slice(0, 50)
+      setPublicSlug(initialSlug)
+      setShowPublicDialog(true)
+    } else {
+      // Unpublish directly
+      await updatePublicStatus(false, null)
+    }
+  }
+
+  const updatePublicStatus = async (isPublicNew: boolean, slug: string | null) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { error: updateError } = await supabase
+        .from("materials")
+        .update({
+          is_public: isPublicNew,
+          public_slug: slug,
+        })
+        .eq("id", material.id)
+
+      if (updateError) throw updateError
+
+      setIsPublic(isPublicNew)
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePublicSubmit = async () => {
+    if (!publicSlug || slugAvailable === false) {
+      setError("Zadejte platný a dostupný slug")
+      return
+    }
+
+    await updatePublicStatus(true, publicSlug)
+    setShowPublicDialog(false)
+  }
+
+  const copyPublicUrl = async () => {
+    if (!studySlug || !material.public_slug) return
+    
+    const publicUrl = `${window.location.origin}/${studySlug}/${material.public_slug}`
+    await navigator.clipboard.writeText(publicUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -67,6 +185,12 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
                   {material.category && (
                     <Badge variant="secondary" className="text-xs">
                       {material.category}
+                    </Badge>
+                  )}
+                  {isPublic && (
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                      <Globe className="h-3 w-3 mr-1" />
+                      Veřejné
                     </Badge>
                   )}
                   {material.file_size && (
@@ -109,14 +233,37 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
                       </a>
                     </DropdownMenuItem>
                   )}
+                  
+                  {isStudyPublic && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={handlePublicToggle}
+                        disabled={loading}
+                      >
+                        <Globe className="mr-2 h-4 w-4" />
+                        {isPublic ? "Zrušit publikování" : "Publikovat"}
+                      </DropdownMenuItem>
+                      {isPublic && studySlug && material.public_slug && (
+                        <DropdownMenuItem onClick={copyPublicUrl}>
+                          {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                          {copied ? "Zkopírováno!" : "Kopírovat veřejný odkaz"}
+                        </DropdownMenuItem>
+                      )}
+                    </>
+                  )}
+                  
                   {onDelete && (
-                    <DropdownMenuItem
-                      onClick={() => onDelete(material.id)}
-                      className="text-red-600 focus:text-red-600"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Odstranit
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onDelete(material.id)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Odstranit
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -127,6 +274,74 @@ export function MaterialCard({ material, onDelete }: MaterialCardProps) {
           </div>
         </div>
       </CardContent>
+
+      {/* Public Sharing Dialog */}
+      <Dialog open={showPublicDialog} onOpenChange={setShowPublicDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Publikovat materiál</DialogTitle>
+            <DialogDescription>
+              Nastavte veřejný odkaz pro tento materiál. Bude dostupný na adrese /{studySlug}/{publicSlug}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="public-slug">URL adresa *</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">{window.location.origin}/{studySlug}/</span>
+                <Input
+                  id="public-slug"
+                  value={publicSlug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  placeholder="material-name"
+                  className={
+                    slugAvailable === false ? "border-red-500" : slugAvailable === true ? "border-green-500" : ""
+                  }
+                  required
+                />
+              </div>
+              {slugAvailable === false && (
+                <p className="text-sm text-red-600">Tato URL adresa již není dostupná pro toto studium</p>
+              )}
+              {slugAvailable === true && publicSlug && (
+                <p className="text-sm text-green-600">URL adresa je dostupná</p>
+              )}
+              <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+            </div>
+
+            {publicSlug && slugAvailable && (
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <Label className="text-sm font-medium text-blue-900">Veřejná URL adresa:</Label>
+                <div className="flex items-center gap-2 mt-2">
+                  <code className="flex-1 p-2 bg-white rounded border text-sm">
+                    {window.location.origin}/{studySlug}/{publicSlug}
+                  </code>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowPublicDialog(false)} disabled={loading}>
+              Zrušit
+            </Button>
+            <Button
+              onClick={handlePublicSubmit}
+              disabled={loading || !publicSlug || slugAvailable === false}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+            >
+              {loading ? "Publikování..." : "Publikovat"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

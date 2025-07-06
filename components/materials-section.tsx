@@ -11,11 +11,19 @@ import { MaterialsTable } from "@/components/materials-table"
 import { AddMaterialDialog } from "@/components/add-material-dialog"
 import type { Material } from "@/lib/types/materials"
 
-interface MaterialsSectionProps {
-  studyId: string
+interface Study {
+  id: string
+  name: string
+  is_public?: boolean
+  public_slug?: string
 }
 
-export function MaterialsSection({ studyId }: MaterialsSectionProps) {
+interface MaterialsSectionProps {
+  studyId: string
+  study?: Study
+}
+
+export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
   const [showAll, setShowAll] = useState(false)
@@ -91,6 +99,10 @@ export function MaterialsSection({ studyId }: MaterialsSectionProps) {
     fetchMaterials()
   }
 
+  const handleMaterialUpdate = () => {
+    fetchMaterials()
+  }
+
   // Show only first 3 materials in preview mode
   const displayedMaterials = showAll ? materials : materials.slice(0, 3)
 
@@ -154,6 +166,9 @@ export function MaterialsSection({ studyId }: MaterialsSectionProps) {
                     key={material.id}
                     material={material}
                     onDelete={handleDelete}
+                    onUpdate={handleMaterialUpdate}
+                    studySlug={study?.public_slug}
+                    isStudyPublic={study?.is_public}
                   />
                 ))}
               </div>

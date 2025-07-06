@@ -19,6 +19,10 @@ export interface Material {
   category: string | null
   tags: string[] | null
   
+  // Public sharing
+  is_public: boolean
+  public_slug: string | null
+  
   // Timestamps
   created_at: string
   updated_at: string

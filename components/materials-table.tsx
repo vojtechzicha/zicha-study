@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { FileText, ExternalLink, Download, Trash2, Search } from "lucide-react"
+import { FileText, ExternalLink, Download, Trash2, Search, Globe } from "lucide-react"
 import type { Material } from "@/lib/types/materials"
 
 interface MaterialsTableProps {
@@ -106,6 +106,7 @@ export function MaterialsTable({ materials, onDelete, loading }: MaterialsTableP
             <TableRow>
               <TableHead>Název</TableHead>
               <TableHead>Kategorie</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Velikost</TableHead>
               <TableHead>Přidáno</TableHead>
               <TableHead className="text-right">Akce</TableHead>
@@ -114,7 +115,7 @@ export function MaterialsTable({ materials, onDelete, loading }: MaterialsTableP
           <TableBody>
             {filteredMaterials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                <TableCell colSpan={6} className="text-center text-gray-500 py-8">
                   {searchQuery ? "Žádné materiály neodpovídají vyhledávání" : "Zatím nejsou přidány žádné materiály"}
                 </TableCell>
               </TableRow>
@@ -136,6 +137,18 @@ export function MaterialsTable({ materials, onDelete, loading }: MaterialsTableP
                   <TableCell>
                     {material.category && (
                       <Badge variant="secondary">{material.category}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {material.is_public ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <Globe className="h-3 w-3 mr-1" />
+                        Veřejné
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                        Soukromé
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-gray-600">

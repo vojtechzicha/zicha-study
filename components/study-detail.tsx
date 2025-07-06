@@ -271,7 +271,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
 
         {/* Materials Section */}
         <div className="mb-8">
-          <MaterialsSection studyId={study.id} />
+          <MaterialsSection studyId={study.id} study={study} />
         </div>
 
         {/* Subjects Section */}

@@ -1,0 +1,165 @@
+import { createServerClient } from "@/lib/supabase/server"
+import { redirect, notFound } from "next/navigation"
+import { Loader2, FileText, ArrowLeft, Globe, AlertCircle } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import Link from "next/link"
+
+interface PageProps {
+  params: Promise<{ slug: string; materialSlug: string }>
+}
+
+export default async function PublicMaterialPage({ params }: PageProps) {
+  const { slug, materialSlug } = await params
+  const supabase = await createServerClient()
+
+  // First, get the study by public slug
+  const { data: study, error: studyError } = await supabase
+    .from("studies")
+    .select("id, name, is_public, public_slug")
+    .eq("public_slug", slug)
+    .eq("is_public", true)
+    .single()
+
+  if (studyError || !study) {
+    notFound()
+  }
+
+  // Then get the material by public slug within this study
+  const { data: material, error: materialError } = await supabase
+    .from("materials")
+    .select("*")
+    .eq("study_id", study.id)
+    .eq("public_slug", materialSlug)
+    .eq("is_public", true)
+    .single()
+
+  if (materialError || !material) {
+    notFound()
+  }
+
+  // Generate the OneDrive share link
+  let shareUrl: string | null = null
+  let shareError: string | null = null
+
+  try {
+    // For public access, we need to create a different approach
+    // Since we don't have user authentication, we'll need to store
+    // the share URL in the database when the material is published
+    
+    // For now, we'll redirect to the OneDrive web URL
+    // In a production environment, you'd want to generate and store
+    // anonymous share links when materials are published
+    shareUrl = material.onedrive_web_url
+  } catch (error) {
+    console.error("Error generating share link:", error)
+    shareError = "Nepodařilo se vytvořit odkaz pro zobrazení souboru"
+  }
+
+  const fileIcons: { [key: string]: JSX.Element } = {
+    pdf: <FileText className="h-12 w-12 text-red-600" />,
+    doc: <FileText className="h-12 w-12 text-blue-600" />,
+    docx: <FileText className="h-12 w-12 text-blue-600" />,
+    xls: <FileText className="h-12 w-12 text-green-600" />,
+    xlsx: <FileText className="h-12 w-12 text-green-600" />,
+    ppt: <FileText className="h-12 w-12 text-orange-600" />,
+    pptx: <FileText className="h-12 w-12 text-orange-600" />,
+    default: <FileText className="h-12 w-12 text-gray-600" />,
+  }
+
+  function getFileIcon(extension: string | null) {
+    if (!extension) return fileIcons.default
+    const ext = extension.toLowerCase().replace(".", "")
+    return fileIcons[ext] || fileIcons.default
+  }
+
+  function formatFileSize(bytes: number | null): string {
+    if (!bytes) return ""
+    const sizes = ["B", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`
+  }
+
+  // If we have a share URL, redirect to it
+  if (shareUrl && !shareError) {
+    redirect(shareUrl)
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-4xl mx-auto p-4">
+        {/* Header */}
+        <div className="mb-6">
+          <Link href={`/${slug}`} className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Zpět na {study.name}
+          </Link>
+          <div className="flex items-center gap-3 mb-2">
+            <Globe className="h-6 w-6 text-blue-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Veřejný materiál</h1>
+          </div>
+          <p className="text-gray-600">Materiál ze studia {study.name}</p>
+        </div>
+
+        {/* Material Card */}
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+          <CardContent className="p-8">
+            <div className="flex items-start gap-6">
+              <div className="flex-shrink-0 p-4 bg-gray-50 rounded-xl">
+                {getFileIcon(material.file_extension)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{material.name}</h2>
+                <p className="text-sm text-gray-600 mb-2">Soubor: {material.file_name}</p>
+                
+                <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                  {material.category && (
+                    <span className="bg-gray-100 px-2 py-1 rounded">
+                      {material.category}
+                    </span>
+                  )}
+                  {material.file_size && (
+                    <span>{formatFileSize(material.file_size)}</span>
+                  )}
+                </div>
+
+                {material.description && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">Popis</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">{material.description}</p>
+                  </div>
+                )}
+
+                {shareError ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{shareError}</AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+                      <p className="text-gray-600">Přesměrování na OneDrive...</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Fallback button if redirect doesn't work */}
+        {shareUrl && (
+          <div className="mt-6 text-center">
+            <Button asChild className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+              <a href={shareUrl} target="_blank" rel="noopener noreferrer">
+                Otevřít materiál v OneDrive
+              </a>
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
