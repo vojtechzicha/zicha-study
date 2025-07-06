@@ -83,11 +83,6 @@ export const SUBJECT_TYPE_CONFIG = {
     shortCode: 'V',
     order: 3,
   },
-  [SUBJECT_TYPES.PRACTICAL]: {
-    color: 'bg-blue-50 text-blue-700 border-blue-200',
-    shortCode: 'PR',
-    order: 4,
-  },
   [SUBJECT_TYPES.OTHER]: {
     color: 'bg-gray-50 text-gray-700 border-gray-200',
     shortCode: '-',
@@ -125,7 +120,7 @@ export const getStudyStatusLabel = (status: string): string => {
     [STUDY_STATUS.ACTIVE]: 'Aktivní',
     [STUDY_STATUS.COMPLETED]: 'Dokončené',
     [STUDY_STATUS.PAUSED]: 'Pozastavené',
-    [STUDY_STATUS.ABANDONED]: 'Ukončené',
+    [STUDY_STATUS.ABANDONED]: 'Zanechané',
     [STUDY_STATUS.PLANNED]: 'Plánované',
     [STUDY_STATUS.INTENDED]: 'Zamýšlené',
   }
