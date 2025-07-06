@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings } from "lucide-react"
+import { ArrowLeft, Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings, Search } from "lucide-react"
 import { SubjectForm } from "./subject-form"
 import { SubjectTable } from "./subject-table"
 import { StudyLogo } from "./study-logo"
@@ -60,6 +61,7 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const [loading, setLoading] = useState(true)
   const [showSubjectForm, setShowSubjectForm] = useState(false)
   const [currentStudy, setCurrentStudy] = useState<Study>(study)
+  const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
   const router = useRouter()
   
@@ -100,6 +102,28 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const handleStudyUpdated = () => {
     fetchStudyData()
   }
+
+  // Filter subjects based on search query
+  const filteredSubjects = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return subjects
+    }
+
+    const query = searchQuery.toLowerCase().trim()
+    return subjects.filter(subject => {
+      const searchableFields = [
+        subject.name?.toLowerCase() || '',
+        subject.abbreviation?.toLowerCase() || '',
+        subject.department?.toLowerCase() || '',
+        subject.lecturer?.toLowerCase() || '',
+        subject.completion_type?.toLowerCase() || '',
+        subject.subject_type?.toLowerCase() || '',
+        subject.semester?.toLowerCase() || ''
+      ]
+      
+      return searchableFields.some(field => field.includes(query))
+    })
+  }, [subjects, searchQuery])
 
   // Calculate statistics
   const completedSubjects = subjects.filter((s) => s.completed && !isSubjectFailed(s))
@@ -226,15 +250,31 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
         {/* Subjects Section */}
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+              <div className="flex-1">
                 <CardTitle className="text-xl font-bold text-gray-900">Předměty</CardTitle>
-                <p className="text-sm text-gray-600 mt-1">Přehled všech předmětů ve studiu</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {searchQuery ? (
+                    `Zobrazeno ${filteredSubjects.length} z ${subjects.length} předmětů`
+                  ) : (
+                    "Přehled všech předmětů ve studiu"
+                  )}
+                </p>
+              </div>
+              {/* Search Input - Right side on desktop, below on mobile */}
+              <div className="w-full md:w-80 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Hledat v předmětech..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <SubjectTable subjects={subjects} loading={loading} onUpdate={fetchSubjects} />
+            <SubjectTable subjects={filteredSubjects} loading={loading} onUpdate={fetchSubjects} />
           </CardContent>
         </Card>
       </main>
