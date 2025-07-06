@@ -5,6 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { StudyLogo } from "./study-logo"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
@@ -186,18 +192,36 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
   const getCompletionBadge = (type: string) => {
     const config = getCompletionBadgeConfig(type)
     return (
-      <Badge variant="outline" className={`text-xs ${config.className}`}>
-        {config.text}
-      </Badge>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className={`text-xs ${config.className}`} style={config.style}>
+              {config.text}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{config.fullText}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     )
   }
 
   const getSubjectTypeBadge = (type: string) => {
     const config = getSubjectTypeConfig(type)
     return (
-      <Badge variant="outline" className={`text-xs ${config.color}`}>
-        {config.shortCode}
-      </Badge>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className={`text-xs ${config.color}`}>
+              {config.shortCode}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{config.fullText}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     )
   }
 

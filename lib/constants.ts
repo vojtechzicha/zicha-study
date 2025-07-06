@@ -59,6 +59,22 @@ export const COMPLETION_TYPES = {
 
 export type CompletionType = (typeof COMPLETION_TYPES)[keyof typeof COMPLETION_TYPES]
 
+// Completion Type Mapping - maps full completion type strings to short codes
+export const COMPLETION_TYPE_MAPPING = {
+  // Form values (used when creating new subjects)
+  'Zápočet (Zp)': COMPLETION_TYPES.CREDIT,
+  'Klasifikovaný zápočet (KZp)': COMPLETION_TYPES.CREDIT_EXAM,
+  'Zkouška (Zk)': COMPLETION_TYPES.EXAM,
+  'Zápočet + Zkouška (Zp+Zk)': 'Zp+Zk',
+  'Ostatní': COMPLETION_TYPES.OTHER,
+  
+  // Database values (what's actually stored, including multi-line strings)
+  'Zápočet\n(Zp)': COMPLETION_TYPES.CREDIT,
+  'Klasifikovaný zápočet\n(KZp)': COMPLETION_TYPES.CREDIT_EXAM, 
+  'Zkouška\n(Zk)': COMPLETION_TYPES.EXAM,
+  'Zápočet +\nZkouška\n(Zp+Zk)': 'Zp+Zk',
+} as const
+
 // Helper functions to get arrays for form options
 export const getStudyTypeOptions = () => Object.values(STUDY_TYPES)
 export const getStudyFormOptions = () => Object.values(STUDY_FORMS)
@@ -66,27 +82,49 @@ export const getStudyStatusOptions = () => Object.values(STUDY_STATUS)
 export const getSubjectTypeOptions = () => Object.values(SUBJECT_TYPES)
 export const getCompletionTypeOptions = () => Object.values(COMPLETION_TYPES)
 
+// Helper function to get short code from full completion type string
+export const getCompletionTypeShortCode = (completionType: string): string => {
+  // First try exact match with the mapping
+  const exactMatch = COMPLETION_TYPE_MAPPING[completionType as keyof typeof COMPLETION_TYPE_MAPPING]
+  if (exactMatch) {
+    return exactMatch
+  }
+  
+  // Fallback: try to extract short code from parentheses (handles variations)
+  const regexMatch = completionType.match(/\(([^)]+)\)/)
+  if (regexMatch && regexMatch[1]) {
+    return regexMatch[1]
+  }
+  
+  // If no match found, return the original string
+  return completionType
+}
+
 // Subject type configuration for UI rendering
 export const SUBJECT_TYPE_CONFIG = {
   [SUBJECT_TYPES.MANDATORY]: {
     color: 'bg-red-50 text-red-700 border-red-200',
     shortCode: 'P',
     order: 1,
+    fullText: 'Povinný',
   },
   [SUBJECT_TYPES.MANDATORY_ELECTIVE]: {
     color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     shortCode: 'PV',
     order: 2,
+    fullText: 'Povinně volitelný',
   },
   [SUBJECT_TYPES.ELECTIVE]: {
     color: 'bg-green-50 text-green-700 border-green-200',
     shortCode: 'V',
     order: 3,
+    fullText: 'Volitelný',
   },
   [SUBJECT_TYPES.OTHER]: {
     color: 'bg-gray-50 text-gray-700 border-gray-200',
     shortCode: '-',
     order: 5,
+    fullText: 'Ostatní',
   },
 } as const
 
@@ -97,6 +135,7 @@ export const getSubjectTypeConfig = (type: string) => {
       color: 'bg-gray-50 text-gray-700 border-gray-200',
       shortCode: type.charAt(0).toUpperCase(),
       order: 999,
+      fullText: type,
     }
   )
 }

@@ -1,5 +1,5 @@
 // Study status types and utilities
-import { STUDY_STATUS, StudyStatus, getStudyStatusLabel } from './constants'
+import { STUDY_STATUS, StudyStatus, getStudyStatusLabel, getCompletionTypeShortCode } from './constants'
 
 // Re-export the type for backward compatibility
 export type { StudyStatus }
@@ -183,38 +183,51 @@ export const requiresExam = (completionType: string): boolean => {
 
 // Get completion type badge configuration
 export const getCompletionBadgeConfig = (completionType: string) => {
-  const shortType = completionType.match(/\(([^)]+)\)$/)?.[1] || completionType
+  // Convert database/form values to short codes using the centralized mapping
+  const shortType = getCompletionTypeShortCode(completionType)
   
   switch (shortType) {
     case "Zp":
       return {
         text: "Zp",
-        className: "bg-green-50 text-green-700 border-green-200"
+        className: "border-green-200",
+        style: { color: "rgb(21, 128, 61)", backgroundColor: "rgb(240, 253, 244)" },
+        fullText: "Zápočet"
       }
     case "KZp":
       return {
         text: "KZp", 
-        className: "bg-blue-50 text-blue-700 border-blue-200"
+        className: "border-blue-200",
+        style: { color: "rgb(29, 78, 216)", backgroundColor: "rgb(239, 246, 255)" },
+        fullText: "Klasifikovaný zápočet"
       }
     case "Zk":
       return {
         text: "Zk",
-        className: "bg-purple-50 text-purple-700 border-purple-200"
+        className: "border-orange-200",
+        style: { color: "rgb(194, 65, 12)", backgroundColor: "rgb(255, 247, 237)" },
+        fullText: "Zkouška"
       }
     case "Zp+Zk":
       return {
         text: "Zp+Zk",
-        className: "bg-orange-50 text-orange-700 border-orange-200"
+        className: "border-red-200",
+        style: { color: "rgb(185, 28, 28)", backgroundColor: "rgb(254, 242, 242)" },
+        fullText: "Zápočet + Zkouška"
       }
-    case "Ostatní":
+    case "-":
       return {
         text: "-",
-        className: "bg-gray-50 text-gray-700 border-gray-200"
+        className: "border-gray-200",
+        style: { color: "rgb(55, 65, 81)", backgroundColor: "rgb(249, 250, 251)" },
+        fullText: "Ostatní"
       }
     default:
       return {
         text: shortType,
-        className: ""
+        className: "border-gray-200",
+        style: { color: "rgb(55, 65, 81)", backgroundColor: "rgb(249, 250, 251)" },
+        fullText: shortType
       }
   }
 }

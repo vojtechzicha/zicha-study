@@ -9,6 +9,12 @@ import { Edit, Play, CheckCircle } from "lucide-react"
 import { SubjectEditForm } from "./subject-edit-form"
 import { SubjectCompletionModal } from "./subject-completion-modal"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -174,16 +180,37 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
     setCompletionModalOpen(true)
   }
 
-  const getSubjectTypeShort = (type: string) => {
-    return getSubjectTypeConfig(type).shortCode
+  const getSubjectTypeBadge = (type: string) => {
+    const config = getSubjectTypeConfig(type)
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline">{config.shortCode}</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{config.fullText}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
   }
 
   const getCompletionBadge = (type: string) => {
     const config = getCompletionBadgeConfig(type)
     return (
-      <Badge variant="outline" className={config.className}>
-        {config.text}
-      </Badge>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className={config.className} style={config.style}>
+              {config.text}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{config.fullText}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     )
   }
 
@@ -239,7 +266,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
                   <h3 className="font-medium text-gray-900 truncate">
                     {subject.abbreviation || subject.name}
                   </h3>
-                  <Badge variant="outline">{getSubjectTypeShort(subject.subject_type)}</Badge>
+                  {getSubjectTypeBadge(subject.subject_type)}
                 </div>
                 {subject.abbreviation && (
                   <p className="text-sm text-gray-600 mb-2">{subject.name}</p>

@@ -194,8 +194,20 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
     setCompletionModalOpen(true)
   }
 
-  const getSubjectTypeShort = (type: string) => {
-    return getSubjectTypeConfig(type).shortCode
+  const getSubjectTypeBadge = (type: string) => {
+    const config = getSubjectTypeConfig(type)
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline">{config.shortCode}</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{config.fullText}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
   }
 
   const getSemesterShort = (semester: string) => {
@@ -210,9 +222,18 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
   const getCompletionBadge = (type: string) => {
     const config = getCompletionBadgeConfig(type)
     return (
-      <Badge variant="outline" className={config.className}>
-        {config.text}
-      </Badge>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className={config.className} style={config.style}>
+              {config.text}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{config.fullText}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     )
   }
 
@@ -357,7 +378,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false 
 
                   {/* Type */}
                   <TableCell>
-                    <Badge variant="outline">{getSubjectTypeShort(subject.subject_type)}</Badge>
+                    {getSubjectTypeBadge(subject.subject_type)}
                   </TableCell>
 
                   {/* Completion Type */}
