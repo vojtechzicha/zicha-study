@@ -165,3 +165,20 @@ export const getStudyStatusLabel = (status: string): string => {
   }
   return labels[status as StudyStatus] || status
 }
+
+// Material Categories
+export const MATERIAL_CATEGORIES = {
+  LECTURE: 'Přednáška',
+  EXERCISE: 'Cvičení',
+  ASSIGNMENT: 'Úkol',
+  EXAM: 'Zkouška',
+  PROJECT: 'Projekt',
+  NOTES: 'Poznámky',
+  LITERATURE: 'Literatura',
+  OTHER: 'Ostatní',
+} as const
+
+export type MaterialCategory = (typeof MATERIAL_CATEGORIES)[keyof typeof MATERIAL_CATEGORIES]
+
+// Helper function to get material category options
+export const getMaterialCategoryOptions = () => Object.values(MATERIAL_CATEGORIES)

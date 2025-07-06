@@ -10,8 +10,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Copy, ExternalLink, Check } from "lucide-react"
+import { ArrowLeft, Copy, ExternalLink, Check, Folder, ChevronRight } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Study {
   id: string
@@ -19,6 +26,9 @@ interface Study {
   is_public?: boolean
   public_slug?: string
   public_description?: string
+  materials_root_folder_id?: string
+  materials_root_folder_name?: string
+  materials_root_folder_path?: string
 }
 
 interface StudySettingsProps {
@@ -35,6 +45,20 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  
+  // Materials folder settings
+  const [materialsRootFolder, setMaterialsRootFolder] = useState({
+    id: study.materials_root_folder_id || null,
+    name: study.materials_root_folder_name || "OneDrive",
+    path: study.materials_root_folder_path || "/drive/root:"
+  })
+  const [showFolderPicker, setShowFolderPicker] = useState(false)
+  const [availableFolders, setAvailableFolders] = useState<any[]>([])
+  const [folderPickerLoading, setFolderPickerLoading] = useState(false)
+  const [folderPickerError, setFolderPickerError] = useState<string | null>(null)
+  const [currentFolderPath, setCurrentFolderPath] = useState<string>("/drive/root:")
+  const [folderPathHistory, setFolderPathHistory] = useState<Array<{name: string, path: string}>>([{name: "OneDrive", path: "/drive/root:"}])
+  
   const supabase = createClient()
 
   // Reserved routes that should not be accessible as public study slugs
@@ -110,6 +134,80 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const loadFolders = async (path: string = "/drive/root:") => {
+    setFolderPickerLoading(true)
+    setFolderPickerError(null)
+    
+    try {
+      const url = `/api/onedrive/files?path=${encodeURIComponent(path)}`
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Nepodařilo se načíst složky z OneDrive")
+      }
+
+      const { files } = await response.json()
+      // Filter only folders, plus add root option
+      const folders = files.filter((item: any) => item.folder)
+      
+      // Add root folder option if we're at root level
+      if (path === "/drive/root:") {
+        folders.unshift({
+          id: null,
+          name: "OneDrive (kořenová složka)",
+          folder: { childCount: 0 },
+          isRoot: true
+        })
+      }
+      
+      setAvailableFolders(folders)
+      setCurrentFolderPath(path)
+    } catch (err) {
+      setFolderPickerError(err instanceof Error ? err.message : "Nastala chyba při načítání složek")
+    } finally {
+      setFolderPickerLoading(false)
+    }
+  }
+
+  const handleOpenFolderPicker = async () => {
+    setShowFolderPicker(true)
+    setCurrentFolderPath("/drive/root:")
+    setFolderPathHistory([{name: "OneDrive", path: "/drive/root:"}])
+    await loadFolders()
+  }
+
+  const handleFolderNavigation = async (folder: any) => {
+    const newPath = `/drive/items/${folder.id}`
+    const newPathHistory = [...folderPathHistory, { name: folder.name, path: newPath }]
+    setFolderPathHistory(newPathHistory)
+    await loadFolders(newPath)
+  }
+
+  const handleBreadcrumbNavigation = async (index: number) => {
+    const newPathHistory = folderPathHistory.slice(0, index + 1)
+    const targetPath = newPathHistory[newPathHistory.length - 1].path
+    setFolderPathHistory(newPathHistory)
+    await loadFolders(targetPath)
+  }
+
+  const handleFolderSelect = (folder: any) => {
+    if (folder.isRoot) {
+      setMaterialsRootFolder({
+        id: null,
+        name: "OneDrive",
+        path: "/drive/root:"
+      })
+    } else {
+      setMaterialsRootFolder({
+        id: folder.id,
+        name: folder.name,
+        path: `/drive/items/${folder.id}`
+      })
+    }
+    setShowFolderPicker(false)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     console.log("handleSubmit called")
     e.preventDefault()
@@ -136,6 +234,9 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
           is_public: isPublic,
           public_slug: isPublic ? slug : null,
           public_description: isPublic ? description : null,
+          materials_root_folder_id: materialsRootFolder.id,
+          materials_root_folder_name: materialsRootFolder.name,
+          materials_root_folder_path: materialsRootFolder.path,
         })
         .eq("id", study.id)
 
@@ -255,6 +356,35 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 </>
               )}
 
+              {/* Materials Section */}
+              <div className="space-y-4 pt-6 border-t">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Materiály</h3>
+                  <p className="text-sm text-gray-600">Nastavte výchozí složku pro ukládání materiálů ze studia</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Kořenová složka materiálů</Label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 p-3 bg-gray-50 rounded-lg flex items-center gap-2">
+                      <Folder className="h-5 w-5 text-blue-600" />
+                      <span className="text-sm font-medium">{materialsRootFolder.name}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleOpenFolderPicker}
+                      variant="outline"
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      Změnit složku
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Tato složka bude výchozí při přidávání nových materiálů ke studiu
+                  </p>
+                </div>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <Button
                   type="submit"
@@ -271,6 +401,100 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
           </CardContent>
         </Card>
       </div>
+
+      {/* Folder Picker Dialog */}
+      <Dialog open={showFolderPicker} onOpenChange={setShowFolderPicker}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Vyberte složku pro materiály</DialogTitle>
+            <DialogDescription>
+              Vyberte složku z vašeho OneDrive, která bude výchozí pro materiály tohoto studia
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {folderPickerError && (
+              <Alert variant="destructive">
+                <AlertDescription>{folderPickerError}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Breadcrumb Navigation */}
+            <div className="flex items-center gap-1 text-sm text-gray-600 overflow-x-auto">
+              {folderPathHistory.map((crumb, index) => (
+                <div key={index} className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleBreadcrumbNavigation(index)}
+                    className="hover:text-blue-600 whitespace-nowrap"
+                  >
+                    {crumb.name}
+                  </button>
+                  {index < folderPathHistory.length - 1 && (
+                    <ChevronRight className="h-3 w-3 text-gray-400" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="max-h-64 overflow-y-auto space-y-1">
+              {folderPickerLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+                  ))}
+                </div>
+              ) : availableFolders.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Žádné složky nebyly nalezeny</p>
+              ) : (
+                availableFolders.map((folder) => (
+                  <div
+                    key={folder.id || 'root'}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer rounded border"
+                  >
+                    <Folder className="h-6 w-6 text-blue-600" />
+                    <div 
+                      className="flex-1 min-w-0"
+                      onClick={() => handleFolderSelect(folder)}
+                    >
+                      <p className="font-medium truncate">{folder.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {folder.folder.childCount} položek
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFolderSelect(folder)}
+                      >
+                        Vybrat
+                      </Button>
+                      {!folder.isRoot && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFolderNavigation(folder)}
+                          title="Procházet složku"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowFolderPicker(false)}>
+              Zrušit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

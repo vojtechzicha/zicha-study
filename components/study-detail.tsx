@@ -5,12 +5,11 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings, Search, Filter } from "lucide-react"
+import { Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings, Search, Filter } from "lucide-react"
 import { SubjectForm } from "./subject-form"
 import { SubjectTable } from "./subject-table"
-import { StudyLogo } from "./study-logo"
 import { StudyHeader } from "./study-header"
+import { MaterialsSection } from "./materials-section"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
 import { calculateAverage } from "@/lib/grade-utils"
@@ -57,7 +56,7 @@ interface StudyDetailProps {
   user: User
 }
 
-export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
+export function StudyDetail({ study, onBack }: StudyDetailProps) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const [showSubjectForm, setShowSubjectForm] = useState(false)
@@ -68,14 +67,28 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const router = useRouter()
   
   // Extract and apply theme colors from logo
-  const { extractedColor, isLoading: colorLoading } = useLogoTheme(currentStudy.logo_url)
+  useLogoTheme(currentStudy.logo_url)
   
   // Update favicon with study logo
   useFavicon(currentStudy.logo_url)
 
   useEffect(() => {
-    fetchSubjects()
-  }, [study.id])
+    const loadSubjects = async () => {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("study_id", study.id)
+        .order("semester", { ascending: true })
+
+      if (!error && data) {
+        setSubjects(data)
+      }
+      setLoading(false)
+    }
+    
+    loadSubjects()
+  }, [study.id, supabase])
 
   const fetchSubjects = async () => {
     setLoading(true)
@@ -102,10 +115,6 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
   const handleSubjectAdded = () => {
     setShowSubjectForm(false)
     fetchSubjects()
-  }
-
-  const handleStudyUpdated = () => {
-    fetchStudyData()
   }
 
   // Filter subjects based on search query and active filter
@@ -258,6 +267,11 @@ export function StudyDetail({ study, onBack, user }: StudyDetailProps) {
               </CardContent>
             </Card>
           )}
+        </div>
+
+        {/* Materials Section */}
+        <div className="mb-8">
+          <MaterialsSection studyId={study.id} />
         </div>
 
         {/* Subjects Section */}
