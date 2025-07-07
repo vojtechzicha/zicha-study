@@ -261,15 +261,24 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
           if (activeLink) {
             activeLink.classList.add("active")
             
-            // Ensure the active link is visible in the sidebar
-            const sidebar = activeLink.closest(".study-note-sidebar")
-            if (sidebar) {
+            // Always scroll the active link to the center of ToC if possible
+            const tocContent = activeLink.closest(".toc-content")
+            if (tocContent) {
+              // Calculate the scroll position to center the active link
               const linkRect = activeLink.getBoundingClientRect()
-              const sidebarRect = sidebar.getBoundingClientRect()
+              const tocRect = tocContent.getBoundingClientRect()
+              const linkRelativeTop = linkRect.top - tocRect.top + tocContent.scrollTop
+              const linkHeight = linkRect.height
+              const tocHeight = tocRect.height
               
-              if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
-                activeLink.scrollIntoView({ block: "center", behavior: "smooth" })
-              }
+              // Calculate target scroll position to center the link
+              const targetScrollTop = linkRelativeTop - (tocHeight / 2) + (linkHeight / 2)
+              
+              // Smoothly scroll to the target position
+              tocContent.scrollTo({
+                top: targetScrollTop,
+                behavior: "smooth"
+              })
             }
           }
         }
