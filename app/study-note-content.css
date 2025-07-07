@@ -1,0 +1,333 @@
+/* Study Note Content Styles */
+.study-note-content {
+  font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Wrapper and Layout */
+.study-note-wrapper {
+  display: flex;
+  gap: 2rem;
+  min-height: 600px;
+}
+
+/* When there's no sidebar */
+.study-note-wrapper:has(.study-note-sidebar:empty),
+.study-note-wrapper:not(:has(.study-note-sidebar)) {
+  display: block;
+}
+
+.study-note-wrapper:has(.study-note-sidebar:empty) .study-note-main,
+.study-note-wrapper:not(:has(.study-note-sidebar)) .study-note-main {
+  padding: 2rem;
+}
+
+.study-note-sidebar {
+  flex: 0 0 300px;
+  position: sticky;
+  top: 2rem;
+  height: fit-content;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.study-note-main {
+  flex: 1;
+  min-width: 0;
+  padding: 2rem;
+}
+
+.study-note-article {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Reset pandoc's default styles */
+.study-note-content body {
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+}
+
+/* Typography */
+.study-note-content h1,
+.study-note-content h2,
+.study-note-content h3,
+.study-note-content h4,
+.study-note-content h5,
+.study-note-content h6 {
+  font-family: 'Roboto Slab', Georgia, serif;
+  color: #1a1a1a;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.study-note-content h1 {
+  font-size: 2.5rem;
+  border-bottom: 3px solid #007bff;
+  padding-bottom: 0.5rem;
+}
+
+.study-note-content h2 {
+  font-size: 2rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.3rem;
+}
+
+.study-note-content h3 {
+  font-size: 1.5rem;
+}
+
+.study-note-content h4 {
+  font-size: 1.25rem;
+}
+
+.study-note-content p {
+  margin-bottom: 1rem;
+  text-align: justify;
+}
+
+/* Table of Contents */
+.study-note-sidebar h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.study-note-content #TOC ul,
+.study-note-sidebar ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.study-note-content #TOC ul ul,
+.study-note-sidebar ul ul {
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+.study-note-content #TOC li,
+.study-note-sidebar li {
+  margin-bottom: 0.5rem;
+}
+
+.study-note-content #TOC a,
+.study-note-sidebar a {
+  text-decoration: none;
+  color: #495057;
+  transition: all 0.2s;
+  display: block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.study-note-content #TOC a:hover,
+.study-note-sidebar a:hover {
+  color: #007bff;
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.study-note-content #TOC a.active,
+.study-note-sidebar a.active {
+  color: #007bff;
+  font-weight: 600;
+  background-color: rgba(0, 123, 255, 0.15);
+}
+
+/* Lists */
+.study-note-content ul,
+.study-note-content ol {
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+}
+
+.study-note-content li {
+  margin-bottom: 0.5rem;
+}
+
+/* Links */
+.study-note-content a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.study-note-content a:hover {
+  text-decoration: underline;
+}
+
+/* Code blocks */
+.study-note-content pre {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.study-note-content code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+.study-note-content p code,
+.study-note-content li code {
+  background-color: #f5f5f5;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+/* Tables */
+.study-note-content table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+  overflow-x: auto;
+  display: block;
+}
+
+.study-note-content table th,
+.study-note-content table td {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+}
+
+.study-note-content table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: left;
+}
+
+.study-note-content table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+/* Blockquotes */
+.study-note-content blockquote {
+  border-left: 4px solid #007bff;
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 1rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Images */
+.study-note-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.study-note-content figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.study-note-content figcaption {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: 0.5rem;
+}
+
+/* Math (KaTeX) */
+.study-note-content .katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.study-note-content .katex {
+  font-size: 1.1em;
+}
+
+/* Horizontal rules */
+.study-note-content hr {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 2rem 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .study-note-wrapper {
+    flex-direction: column;
+  }
+  
+  .study-note-sidebar {
+    flex: none;
+    width: 100%;
+    position: static;
+    max-height: 300px;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .study-note-main {
+    padding: 1rem;
+  }
+  
+  .study-note-content h1 {
+    font-size: 2rem;
+  }
+  
+  .study-note-content h2 {
+    font-size: 1.5rem;
+  }
+  
+  .study-note-content h3 {
+    font-size: 1.25rem;
+  }
+  
+  .study-note-content table {
+    font-size: 0.875rem;
+  }
+  
+  .study-note-sidebar {
+    padding: 1rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .study-note-content {
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  
+  .study-note-content h1,
+  .study-note-content h2,
+  .study-note-content h3 {
+    page-break-after: avoid;
+  }
+  
+  .study-note-content pre,
+  .study-note-content blockquote,
+  .study-note-content table {
+    page-break-inside: avoid;
+  }
+  
+  .study-note-content #TOC {
+    display: none;
+  }
+}

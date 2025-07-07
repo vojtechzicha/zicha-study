@@ -73,6 +73,13 @@ Two main tables with RLS policies:
 4. **UI Components**: Always check components/ui/ for existing components before creating new ones
 5. **Public Sharing**: Studies can be shared via public_slug at /[slug] routes
 6. **Constants**: ALWAYS use centralized constants from `lib/constants.ts` - never hardcode enum values across multiple files. This includes study types, forms, subject types, completion types, etc. All enum-like values must be defined once and imported everywhere.
+7. **Sharing Dialogs Design**: All sharing/publish dialogs (materials, study notes) must follow the same design pattern:
+   - Consistent dialog layout with max-width of 500px
+   - URL slug input with real-time validation and status messages
+   - Visual URL preview in a colored box (blue for valid, red for invalid)
+   - Gradient-styled action buttons (blue-to-indigo gradient)
+   - Clear visual feedback for URL availability
+   - When disabling public access, clear the public_slug to null
 
 ## Development Notes
 
@@ -82,3 +89,24 @@ Two main tables with RLS policies:
 - Environment variables are stored in .env (Supabase URL and keys required)
 - No test suite is configured
 - The project auto-syncs with v0.dev deployments
+
+## Study Notes Feature
+
+Study notes allow users to upload DOCX files to OneDrive and display them as beautifully formatted HTML with:
+- On-demand DOCX to HTML conversion using Pandoc
+- Math expression rendering with KaTeX
+- Automatic table of contents generation
+- Image extraction and serving
+- Caching for performance
+
+### Prerequisites
+- **Pandoc** must be installed on the server:
+  - macOS: `brew install pandoc`
+  - Ubuntu/Debian: `sudo apt-get install pandoc`
+  - Windows: Download from https://pandoc.org/installing.html
+
+### Architecture
+- API route `/api/study-notes/[slug]/convert` handles DOCX conversion
+- API route `/api/study-notes/[slug]/media/[...path]` serves extracted images
+- Converted HTML is cached for 24 hours to improve performance
+- Client-side KaTeX rendering for math expressions

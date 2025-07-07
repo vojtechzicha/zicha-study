@@ -45,6 +45,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClient } from "@/lib/supabase/client"
 import { AddMaterialDialog } from "@/components/add-material-dialog"
 import type { SubjectMaterial } from "@/lib/types/materials"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { StudyNotesSection } from "@/components/study-notes-section"
+import { BookOpen } from "lucide-react"
 
 interface Subject {
   id: string
@@ -108,6 +111,7 @@ export function SubjectMaterialsDialog({
   onClose 
 }: SubjectMaterialsDialogProps) {
   const [materials, setMaterials] = useState<SubjectMaterial[]>([])
+  const [noteCount, setNoteCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -124,6 +128,7 @@ export function SubjectMaterialsDialog({
   useEffect(() => {
     if (isOpen && subject) {
       loadMaterials()
+      loadNoteCount()
     }
   }, [isOpen, subject])
 
@@ -146,6 +151,23 @@ export function SubjectMaterialsDialog({
       setError("Nepodařilo se načíst materiály předmětu")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadNoteCount = async () => {
+    if (!subject) return
+    
+    try {
+      const { count, error } = await supabase
+        .from("study_notes")
+        .select("*", { count: "exact", head: true })
+        .eq("subject_id", subject.id)
+
+      if (error) throw error
+      setNoteCount(count || 0)
+    } catch (err) {
+      console.error("Failed to load note count:", err)
+      setNoteCount(0)
     }
   }
 
@@ -333,43 +355,56 @@ export function SubjectMaterialsDialog({
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
-              Materiály předmětu {subject?.abbreviation || subject?.name}
+              {subject?.abbreviation || subject?.name} - Materiály a zápisy
             </DialogTitle>
             <DialogDescription>
-              Dokumenty a soubory související s tímto předmětem
+              Dokumenty, soubory a studijní zápisy související s tímto předmětem
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Tabs defaultValue="materials" className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="materials">
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Materiály ({materials.length})
+                </TabsTrigger>
+                <TabsTrigger value="notes">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Studijní zápisy ({noteCount})
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="materials" className="flex-1 flex flex-col space-y-4 overflow-hidden">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-            {/* Header with search and add button */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Hledat v materiálech..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button
-                onClick={() => setShowAddDialog(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Přidat materiál
-              </Button>
-            </div>
+                {/* Header with search and add button */}
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Hledat v materiálech..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => setShowAddDialog(true)}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Přidat materiál
+                  </Button>
+                </div>
 
-            {/* Materials table */}
-            <div className="flex-1 overflow-auto border rounded-md">
+                {/* Materials table */}
+                <div className="flex-1 overflow-auto border rounded-md">
               {loading ? (
                 <div className="space-y-4 p-4">
                   {[1, 2, 3].map((i) => (
@@ -511,7 +546,20 @@ export function SubjectMaterialsDialog({
                   </TableBody>
                 </Table>
               )}
-            </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="notes" className="flex-1 overflow-auto">
+                {subject && (
+                  <StudyNotesSection
+                    studyId={subject.study_id}
+                    subjectId={subject.id}
+                    studySlug={study?.public_slug}
+                    isStudyPublic={study?.is_public}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
 
           <div className="flex justify-end">

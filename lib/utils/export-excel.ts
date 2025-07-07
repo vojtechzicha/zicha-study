@@ -1,6 +1,16 @@
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/client'
 
+// Helper function to get study initials (matching StudyLogo component)
+function getStudyInitials(studyName: string): string {
+  return studyName
+    .split(" ")
+    .map((word) => word.charAt(0))
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+}
+
 export async function exportStudiesToExcel() {
   const supabase = createClient()
   
@@ -38,73 +48,126 @@ export async function exportStudiesToExcel() {
       continue
     }
     
-    // Sheet 1: Study metadata
+    // Sheet 1: Study metadata with branding
     const metadataSheetName = `${study.public_slug}_info`
+    
+    // Create metadata with enhanced structure
+    const studyInitials = getStudyInitials(study.name)
     const metadataData = [
-      ['Field', 'Value'],
-      ['Study ID', study.id],
-      ['Name', study.name],
-      ['Type', study.type],
-      ['Form', study.form],
-      ['Start Year', study.start_year],
-      ['End Year', study.end_year || 'Ongoing'],
+      ['🎓 SLEDOVÁNÍ STUDIÍ - EXPORT DAT'],
+      [''],
+      ['INFORMACE O STUDIU'],
+      ['====================================='],
+      [''],
+      ['📚 Studium', `${study.name} (${studyInitials})`],
+      ['🔗 Veřejný odkaz', `${window.location.origin}/${study.public_slug}`],
+      ['📅 Exportováno', new Date().toLocaleString('cs-CZ')],
+      [''],
+      ['ZÁKLADNÍ ÚDAJE'],
+      ['-------------------------------------'],
+      ['ID studia', study.id],
+      ['Název', study.name],
+      ['Logo/Značka', studyInitials],
+      ['Typ', study.type],
+      ['Forma', study.form],
+      ['Počáteční rok', study.start_year],
+      ['Konečný rok', study.end_year || 'Probíhá'],
       ['Status', study.status],
-      ['Public', study.is_public ? 'Yes' : 'No'],
-      ['Public Slug', study.public_slug],
-      ['Created At', new Date(study.created_at).toLocaleString()],
-      ['Public URL', `${window.location.origin}/${study.public_slug}`]
+      ['Veřejné', study.is_public ? 'Ano' : 'Ne'],
+      ['Veřejný slug', study.public_slug],
+      ['Vytvořeno', new Date(study.created_at).toLocaleString('cs-CZ')]
     ]
     
     const metadataWS = XLSX.utils.aoa_to_sheet(metadataData)
-    // Auto-size columns
-    metadataWS['!cols'] = [{ wch: 20 }, { wch: 50 }]
+    
+    // Set column widths for better readability
+    metadataWS['!cols'] = [{ wch: 25 }, { wch: 60 }]
+    
     XLSX.utils.book_append_sheet(workbook, metadataWS, metadataSheetName.substring(0, 31))
     
     // Sheet 2: Subjects table
     const subjectsSheetName = `${study.public_slug}_subjects`
+    
     if (subjects && subjects.length > 0) {
-      const subjectsData = subjects.map(subject => ({
-        'Semester': subject.semester,
-        'Abbreviation': subject.abbreviation || '',
-        'Name': subject.name,
-        'Type': subject.subject_type,
-        'Completion': subject.completion_type,
-        'Credits': subject.credits,
-        'Points': subject.points || '',
-        'Hours': subject.hours || '',
-        'Completed': subject.completed ? 'Yes' : 'No',
-        'Exam Completed': subject.exam_completed ? 'Yes' : 'No',
-        'Credit Completed': subject.credit_completed ? 'Yes' : 'No',
-        'Planned': subject.planned ? 'Yes' : 'No',
-        'Grade': subject.grade || '',
-        'Final Date': subject.final_date ? new Date(subject.final_date).toLocaleDateString() : '',
-        'Lecturer': subject.lecturer || '',
-        'Department': subject.department || '',
-        'Created At': new Date(subject.created_at).toLocaleString()
-      }))
+      // Create header section and subjects data
+      const subjectsData = [
+        ['🎓 SLEDOVÁNÍ STUDIÍ - EXPORT DAT'],
+        [''],
+        ['📚 PŘEDMĚTY STUDIA'],
+        ['====================================='],
+        [''],
+        ['📚 Studium', `${study.name} (${studyInitials})`],
+        ['📅 Exportováno', new Date().toLocaleString('cs-CZ')],
+        [''],
+        [''],
+        // Headers row
+        [
+          'Semestr', 'Zkratka', 'Název', 'Typ', 'Zakončení', 'Kredity', 'Body', 'Hodiny',
+          'Dokončeno', 'Zkouška', 'Zápočet', 'Plánováno', 'Známka', 'Datum', 'Vyučující', 'Katedra'
+        ],
+        // Data rows
+        ...subjects.map(subject => [
+          subject.semester,
+          subject.abbreviation || '',
+          subject.name,
+          subject.subject_type,
+          subject.completion_type,
+          subject.credits,
+          subject.points || '',
+          subject.hours || '',
+          subject.completed ? 'Ano' : 'Ne',
+          subject.exam_completed ? 'Ano' : 'Ne',
+          subject.credit_completed ? 'Ano' : 'Ne',
+          subject.planned ? 'Ano' : 'Ne',
+          subject.grade || '',
+          subject.final_date ? new Date(subject.final_date).toLocaleDateString('cs-CZ') : '',
+          subject.lecturer || '',
+          subject.department || ''
+        ])
+      ]
       
-      const subjectsWS = XLSX.utils.json_to_sheet(subjectsData)
-      // Auto-size columns
-      const maxWidth = 50
-      const cols = Object.keys(subjectsData[0]).map(key => {
-        const maxLength = Math.max(
-          key.length,
-          ...subjectsData.map(row => String(row[key as keyof typeof row]).length)
-        )
-        return { wch: Math.min(maxLength + 2, maxWidth) }
-      })
-      subjectsWS['!cols'] = cols
+      const subjectsWS = XLSX.utils.aoa_to_sheet(subjectsData)
+      
+      // Set column widths for better readability
+      const columnWidths = [
+        { wch: 8 },   // Semestr
+        { wch: 12 },  // Zkratka
+        { wch: 35 },  // Název
+        { wch: 15 },  // Typ
+        { wch: 12 },  // Zakončení
+        { wch: 8 },   // Kredity
+        { wch: 8 },   // Body
+        { wch: 8 },   // Hodiny
+        { wch: 10 },  // Dokončeno
+        { wch: 10 },  // Zkouška
+        { wch: 10 },  // Zápočet
+        { wch: 10 },  // Plánováno
+        { wch: 8 },   // Známka
+        { wch: 12 },  // Datum
+        { wch: 25 },  // Vyučující
+        { wch: 20 }   // Katedra
+      ]
+      subjectsWS['!cols'] = columnWidths
       
       XLSX.utils.book_append_sheet(workbook, subjectsWS, subjectsSheetName.substring(0, 31))
     } else {
-      // Create empty subjects sheet with headers
-      const emptySubjectsData = [['No subjects found for this study']]
+      // Create empty subjects sheet
+      const emptySubjectsData = [
+        ['🎓 SLEDOVÁNÍ STUDIÍ - EXPORT DAT'],
+        [''],
+        ['ℹ️ ŽÁDNÉ PŘEDMĚTY'],
+        ['====================================='],
+        [''],
+        ['Pro toto studium nebyly nalezeny žádné předměty.']
+      ]
+      
       const subjectsWS = XLSX.utils.aoa_to_sheet(emptySubjectsData)
+      subjectsWS['!cols'] = [{ wch: 50 }]
       XLSX.utils.book_append_sheet(workbook, subjectsWS, subjectsSheetName.substring(0, 31))
     }
   }
   
-  // Generate and download file
-  const fileName = `university_studies_export_${new Date().toISOString().split('T')[0]}.xlsx`
+  // Generate and download file with branded name
+  const fileName = `sledovani_studii_export_${new Date().toISOString().split('T')[0]}.xlsx`
   XLSX.writeFile(workbook, fileName)
 }

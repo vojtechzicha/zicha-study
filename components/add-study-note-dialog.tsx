@@ -12,13 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Tooltip,
@@ -28,13 +22,14 @@ import {
 } from "@/components/ui/tooltip"
 import { FileText, AlertCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { getMaterialCategoryOptions } from "@/lib/constants"
-import type { OneDriveFile, MaterialFormData } from "@/lib/types/materials"
+import type { OneDriveFile } from "@/lib/types/materials"
+import type { StudyNoteFormData } from "@/lib/types/study-notes"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
 
-interface AddMaterialDialogProps {
+interface AddStudyNoteDialogProps {
   studyId: string
-  subjectId?: string
+  subjectId: string
+  studySlug?: string
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
@@ -46,24 +41,34 @@ interface StudyMaterialSettings {
   materials_root_folder_path?: string
 }
 
-export function AddMaterialDialog({
+// Generate a unique slug for the study note
+const generateUniqueSlug = () => {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 8)
+  return `note-${timestamp}-${random}`
+}
+
+export function AddStudyNoteDialog({
   studyId,
   subjectId,
+  studySlug,
   isOpen,
   onClose,
   onSuccess,
-}: AddMaterialDialogProps) {
+}: AddStudyNoteDialogProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<OneDriveFile | null>(null)
   const [showFilePicker, setShowFilePicker] = useState(false)
   const [studyMaterialSettings, setStudyMaterialSettings] = useState<StudyMaterialSettings>({})
   const [settingsLoaded, setSettingsLoaded] = useState(false)
-  const [formData, setFormData] = useState<Partial<MaterialFormData>>({
+  const [formData, setFormData] = useState<Partial<StudyNoteFormData>>({
     name: "",
     description: "",
-    category: "",
   })
+  const [isPublic, setIsPublic] = useState(true)
+  const [publicSlug, setPublicSlug] = useState("")
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const supabase = createClient()
 
   // Load study material settings when dialog opens
@@ -71,7 +76,7 @@ export function AddMaterialDialog({
     if (isOpen && !settingsLoaded) {
       loadStudyMaterialSettings()
     }
-  }, [isOpen, settingsLoaded, supabase])
+  }, [isOpen, settingsLoaded])
 
   const loadStudyMaterialSettings = async () => {
     try {
@@ -83,14 +88,6 @@ export function AddMaterialDialog({
 
       if (!error && data) {
         setStudyMaterialSettings(data)
-        
-        // Update initial path if study has a custom materials folder
-        if (data.materials_root_folder_path) {
-          const initialPath = data.materials_root_folder_path
-          const initialName = data.materials_root_folder_name || "OneDrive"
-          setCurrentPath(initialPath)
-          setPathHistory([{name: initialName, path: initialPath}])
-        }
       }
       setSettingsLoaded(true)
     } catch (err) {
@@ -106,10 +103,60 @@ export function AddMaterialDialog({
     // Pre-fill the name with the file name without extension
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
     setFormData((prev) => ({ ...prev, name: prev.name || nameWithoutExt }))
+    
+    // Generate initial slug if not set
+    if (!publicSlug) {
+      const initialSlug = nameWithoutExt
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-_]/g, "")
+        .replace(/\s+/g, "-")
+        .slice(0, 50)
+      setPublicSlug(initialSlug)
+      if (initialSlug.length >= 3) {
+        checkSlugAvailability(initialSlug)
+      }
+    }
   }
 
   const handleOpenFilePicker = () => {
     setShowFilePicker(true)
+  }
+
+  const checkSlugAvailability = async (slug: string) => {
+    if (!slug || slug.length < 3) {
+      setSlugAvailable(null)
+      return
+    }
+
+    try {
+      // Check both study notes and subject materials for slug uniqueness within the study
+      const [notesResult, materialsResult, subjectMaterialsResult] = await Promise.all([
+        supabase
+          .from("study_notes")
+          .select("id")
+          .eq("study_id", studyId)
+          .eq("public_slug", slug)
+          .single(),
+        supabase
+          .from("materials")
+          .select("id")
+          .eq("study_id", studyId)
+          .eq("public_slug", slug)
+          .single(),
+        supabase
+          .from("subject_materials")
+          .select("id")
+          .eq("study_id", studyId)
+          .eq("public_slug", slug)
+          .single()
+      ])
+
+      const isAvailable = !notesResult.data && !materialsResult.data && !subjectMaterialsResult.data
+      setSlugAvailable(isAvailable)
+    } catch (err) {
+      console.error("Failed to check slug availability:", err)
+      setSlugAvailable(null)
+    }
   }
 
   const handleSubmit = async () => {
@@ -123,6 +170,11 @@ export function AddMaterialDialog({
       return
     }
 
+    if (isPublic && (!publicSlug?.trim() || slugAvailable === false)) {
+      setError("Zadejte platnou a dostupnou URL")
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -131,13 +183,19 @@ export function AddMaterialDialog({
       if (!user) throw new Error("Uživatel není přihlášen")
 
       const fileExtension = selectedFile.name.split(".").pop()
+      
+      // Check if file is DOCX
+      if (!fileExtension || !['docx', 'doc'].includes(fileExtension.toLowerCase())) {
+        throw new Error("Studijní zápisy musí být ve formátu DOCX")
+      }
 
-      const materialData = {
+      const noteData = {
+        subject_id: subjectId,
         study_id: studyId,
         user_id: user.id,
         name: formData.name.trim(),
         file_name: selectedFile.name,
-        file_extension: fileExtension ? `.${fileExtension}` : null,
+        file_extension: `.${fileExtension}`,
         file_size: selectedFile.size || null,
         mime_type: selectedFile.file?.mimeType || null,
         onedrive_id: selectedFile.id,
@@ -145,23 +203,21 @@ export function AddMaterialDialog({
         onedrive_download_url: selectedFile["@microsoft.graph.downloadUrl"] || null,
         parent_path: selectedFile.parentReference?.path || null,
         description: formData.description?.trim() || null,
-        category: formData.category || null,
         last_modified_onedrive: selectedFile.lastModifiedDateTime,
+        is_public: isPublic,
+        public_slug: publicSlug || generateUniqueSlug(),
       }
 
-      const tableName = subjectId ? "subject_materials" : "materials"
-      const insertData = subjectId 
-        ? { ...materialData, subject_id: subjectId }
-        : materialData
-
-      const { error: insertError } = await supabase.from(tableName).insert(insertData)
+      const { error: insertError } = await supabase
+        .from("study_notes")
+        .insert(noteData)
 
       if (insertError) throw insertError
 
       onSuccess()
       handleClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nepodařilo se přidat materiál")
+      setError(err instanceof Error ? err.message : "Nepodařilo se přidat studijní zápis")
     } finally {
       setLoading(false)
     }
@@ -175,28 +231,27 @@ export function AddMaterialDialog({
     setFormData({
       name: "",
       description: "",
-      category: "",
     })
+    setIsPublic(true)
+    setPublicSlug("")
+    setSlugAvailable(null)
     setError(null)
     onClose()
   }
 
-
-  const truncateFileName = (fileName: string, maxLength: number = 40): string => {
+  const truncateFileName = (fileName: string, maxLength: number = 35): string => {
     if (fileName.length <= maxLength) return fileName
     
     const dotIndex = fileName.lastIndexOf('.')
     if (dotIndex === -1) {
-      // No extension, just truncate
       return `${fileName.substring(0, maxLength - 3)  }...`
     }
     
     const extension = fileName.substring(dotIndex)
     const nameWithoutExt = fileName.substring(0, dotIndex)
-    const availableLength = maxLength - extension.length - 3 // 3 for "..."
+    const availableLength = maxLength - extension.length - 3
     
     if (availableLength <= 0) {
-      // Extension is too long, just show the beginning
       return `${fileName.substring(0, maxLength - 3)  }...`
     }
     
@@ -208,12 +263,12 @@ export function AddMaterialDialog({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
-            {showFilePicker ? "Vyberte soubor z OneDrive" : `Přidat materiál ${subjectId ? "k předmětu" : "ke studiu"}`}
+            {showFilePicker ? "Vyberte studijní zápis" : "Přidat studijní zápis"}
           </DialogTitle>
           <DialogDescription>
             {showFilePicker 
-              ? "Klikněte na soubor, který chcete přidat"
-              : `Vyberte soubor z vašeho OneDrive a přidejte ho ${subjectId ? "k předmětu" : "ke studiu"}`
+              ? "Vyberte DOCX soubor se studijními zápisy"
+              : "Přidejte studijní zápis k předmětu (pouze DOCX formát)"
             }
           </DialogDescription>
         </DialogHeader>
@@ -231,11 +286,12 @@ export function AddMaterialDialog({
               onFileSelected={handleFileSelected}
               initialPath={studyMaterialSettings.materials_root_folder_path || "/drive/root:"}
               initialPathName={studyMaterialSettings.materials_root_folder_name || "OneDrive"}
+              fileExtensions={[".docx", ".doc"]}
             />
           ) : !selectedFile ? (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <p className="text-sm text-gray-600 mb-4">
-                Vyberte soubor z vašeho OneDrive
+                Vyberte DOCX soubor z vašeho OneDrive
               </p>
               <Button
                 onClick={handleOpenFilePicker}
@@ -248,13 +304,13 @@ export function AddMaterialDialog({
           ) : (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3">
-                <FileText className="h-8 w-8 text-gray-600" />
+                <FileText className="h-8 w-8 text-blue-600" />
                 <div className="flex-1 min-w-0">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <p className="font-medium text-sm truncate cursor-help">
-                          {truncateFileName(selectedFile.name, 35)}
+                          {truncateFileName(selectedFile.name)}
                         </p>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -281,27 +337,8 @@ export function AddMaterialDialog({
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Např. Přednáška 1 - Úvod"
+                  placeholder="Např. Zápis z přednášky - kapitola 1"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Kategorie</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Vyberte kategorii" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getMaterialCategoryOptions().map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-2">
@@ -310,9 +347,49 @@ export function AddMaterialDialog({
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Volitelný popis materiálu..."
+                  placeholder="Volitelný popis studijního zápisu..."
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="public">Veřejně dostupné</Label>
+                    <p className="text-sm text-gray-500">
+                      Povolit přístup k zápisu pomocí veřejného odkazu
+                    </p>
+                  </div>
+                  <Switch
+                    id="public"
+                    checked={isPublic}
+                    onCheckedChange={setIsPublic}
+                  />
+                </div>
+
+                {isPublic && (
+                  <div className="space-y-2">
+                    <Label htmlFor="slug">Veřejná URL</Label>
+                    <Input
+                      id="slug"
+                      value={publicSlug}
+                      onChange={(e) => {
+                        setPublicSlug(e.target.value)
+                        checkSlugAvailability(e.target.value)
+                      }}
+                      placeholder="unikatni-nazev"
+                    />
+                    {publicSlug && slugAvailable === false && (
+                      <p className="text-sm text-red-600">Tato URL je již použita</p>
+                    )}
+                    {publicSlug && slugAvailable === true && (
+                      <p className="text-sm text-green-600">Tato URL je dostupná</p>
+                    )}
+                    <p className="text-sm text-gray-500">
+                      Zápis bude dostupný na: {typeof window !== 'undefined' ? window.location.origin : ''}/{studySlug || "study-slug"}/{publicSlug || "..."}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -330,10 +407,10 @@ export function AddMaterialDialog({
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={loading || !selectedFile || !formData.name?.trim()}
+                disabled={loading || !selectedFile || !formData.name?.trim() || (isPublic && (!publicSlug?.trim() || slugAvailable === false))}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
               >
-                {loading ? "Přidávání..." : "Přidat materiál"}
+                {loading ? "Přidávání..." : "Přidat zápis"}
               </Button>
             </>
           )}

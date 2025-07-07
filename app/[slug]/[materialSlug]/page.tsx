@@ -26,8 +26,8 @@ export default async function PublicMaterialPage({ params }: PageProps) {
     notFound()
   }
 
-  // Try to find the material in both study materials and subject materials
-  const [studyMaterialResult, subjectMaterialResult] = await Promise.all([
+  // Try to find the item in study materials, subject materials, and study notes
+  const [studyMaterialResult, subjectMaterialResult, studyNoteResult] = await Promise.all([
     supabase
       .from("materials")
       .select("*")
@@ -41,11 +41,34 @@ export default async function PublicMaterialPage({ params }: PageProps) {
       .eq("study_id", study.id)
       .eq("public_slug", materialSlug)
       .eq("is_public", true)
+      .single(),
+    supabase
+      .from("study_notes")
+      .select("*, subjects(name, abbreviation)")
+      .eq("study_id", study.id)
+      .eq("public_slug", materialSlug)
+      .eq("is_public", true)
       .single()
   ])
 
   const material = studyMaterialResult.data || subjectMaterialResult.data
+  const studyNote = studyNoteResult.data
   const isSubjectMaterial = !!subjectMaterialResult.data
+  const isStudyNote = !!studyNote
+
+  // If it's a study note, render the note display instead
+  if (isStudyNote) {
+    const { StudyNoteDisplay } = await import("@/components/study-note-display")
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <StudyNoteDisplay 
+          note={studyNote} 
+          subject={studyNote.subjects}
+          study={study}
+        />
+      </div>
+    )
+  }
 
   if (!material) {
     notFound()
@@ -176,4 +199,75 @@ export default async function PublicMaterialPage({ params }: PageProps) {
       </div>
     </div>
   )
+}
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug, materialSlug } = await params
+  const supabase = await createServerClient()
+  
+  // First, get the study by public slug
+  const { data: study } = await supabase
+    .from("studies")
+    .select("id, name")
+    .eq("public_slug", slug)
+    .eq("is_public", true)
+    .single()
+
+  if (!study) {
+    return { title: "Nenalezeno" }
+  }
+
+  // Check if it's a study note
+  const { data: note } = await supabase
+    .from("study_notes")
+    .select(`
+      name,
+      description,
+      subjects (
+        name,
+        abbreviation
+      )
+    `)
+    .eq("study_id", study.id)
+    .eq("public_slug", materialSlug)
+    .eq("is_public", true)
+    .single()
+
+  if (note) {
+    const subjectInfo = note.subjects as { name: string; abbreviation: string }
+    return {
+      title: `${note.name} - ${subjectInfo.abbreviation}`,
+      description: note.description || `Studijní poznámka k předmětu ${subjectInfo.name}`,
+    }
+  }
+
+  // Check if it's a material
+  const [studyMaterialResult, subjectMaterialResult] = await Promise.all([
+    supabase
+      .from("materials")
+      .select("name, description")
+      .eq("study_id", study.id)
+      .eq("public_slug", materialSlug)
+      .eq("is_public", true)
+      .single(),
+    supabase
+      .from("subject_materials")
+      .select("name, description, subjects(name, abbreviation)")
+      .eq("study_id", study.id)
+      .eq("public_slug", materialSlug)
+      .eq("is_public", true)
+      .single()
+  ])
+
+  const material = studyMaterialResult.data || subjectMaterialResult.data
+  
+  if (material) {
+    const subjectInfo = subjectMaterialResult.data?.subjects as { name: string; abbreviation: string } | undefined
+    return {
+      title: `${material.name} - ${study.name}`,
+      description: material.description || `Materiál ze studia ${study.name}${subjectInfo ? ` - ${subjectInfo.name}` : ''}`,
+    }
+  }
+
+  return { title: "Nenalezeno" }
 }
