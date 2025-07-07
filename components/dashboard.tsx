@@ -6,11 +6,13 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit } from "lucide-react"
+import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet } from "lucide-react"
 import { StudyLogo } from "@/components/study-logo"
 import { useRouter } from "next/navigation"
 import { Study, getStatusColor, getStatusText, sortStudiesByStatus } from "@/lib/status-utils"
 import { getStudyFormLabel } from "@/lib/constants"
+import { exportStudiesToExcel } from "@/lib/utils/export-excel"
+import { useToast } from "@/hooks/use-toast"
 
 interface DashboardProps {
   user: User
@@ -19,8 +21,10 @@ interface DashboardProps {
 export function Dashboard({ user }: DashboardProps) {
   const [studies, setStudies] = useState<Study[]>([])
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const supabase = createClient()
   const router = useRouter()
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchStudies()
@@ -39,6 +43,26 @@ export function Dashboard({ user }: DashboardProps) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await exportStudiesToExcel()
+      toast({
+        title: "Export úspěšný",
+        description: "Excel soubor byl úspěšně stažen.",
+      })
+    } catch (error) {
+      console.error("Export failed:", error)
+      toast({
+        title: "Export selhal",
+        description: error instanceof Error ? error.message : "Nepodařilo se exportovat data.",
+        variant: "destructive",
+      })
+    } finally {
+      setExporting(false)
+    }
   }
 
 
@@ -69,8 +93,18 @@ export function Dashboard({ user }: DashboardProps) {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleExport}
+                disabled={exporting || studies.length === 0}
+                title="Export studií do Excelu"
+              >
+                {exporting ? (
+                  <Settings className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4" />
+                )}
               </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" />
