@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
+import { OneDriveTokenManager } from "@/lib/utils/onedrive-token-manager"
 
 export async function GET(request: Request) {
   const supabase = await createServerClient()
@@ -10,12 +11,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Get the user's access token from Supabase
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.provider_token) {
-      return NextResponse.json({ error: "No access token available" }, { status: 401 })
-    }
-
     // Parse query parameters
     const url = new URL(request.url)
     const path = url.searchParams.get('path') || '/drive/root:'
@@ -33,23 +28,8 @@ export async function GET(request: Request) {
     }
     console.log('OneDrive API - Graph URL:', graphUrl)
     
-    // Call Microsoft Graph API to get OneDrive items
-    const graphResponse = await fetch(graphUrl, {
-      headers: {
-        "Authorization": `Bearer ${session.provider_token}`,
-        "Content-Type": "application/json"
-      }
-    })
-
-    if (!graphResponse.ok) {
-      const errorText = await graphResponse.text()
-      console.error('OneDrive API - Graph response error:', graphResponse.status, errorText)
-      
-      if (graphResponse.status === 401) {
-        return NextResponse.json({ error: "Access token expired. Please sign in again." }, { status: 401 })
-      }
-      throw new Error(`Microsoft Graph API error: ${graphResponse.status} - ${errorText}`)
-    }
+    // Use the centralized token manager to make the request
+    const graphResponse = await OneDriveTokenManager.makeAuthenticatedRequest(graphUrl)
 
     const data = await graphResponse.json()
     
@@ -105,6 +85,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ files: items })
   } catch (error) {
     console.error('OneDrive API - Catch error:', error)
+    
+    // Check if it's a token-related error
+    if (error instanceof Error && error.message.includes('token')) {
+      return NextResponse.json(
+        { error: error.message, needsReauth: true },
+        { status: 401 }
+      )
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to access OneDrive files" },
       { status: 500 }

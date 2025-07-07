@@ -108,6 +108,12 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
         
         if (!response.ok) {
           const errorData = await response.json()
+          
+          // Handle authentication errors that need re-authentication
+          if (errorData.needsReauth) {
+            throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
+          }
+          
           throw new Error(errorData.error || "Failed to create public share link")
         }
         

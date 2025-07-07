@@ -128,6 +128,27 @@ export function AddMaterialDialog({
 
       if (!response.ok) {
         const errorData = await response.json()
+        
+        // Handle authentication errors that need re-authentication
+        if (errorData.needsReauth) {
+          // Force re-authentication by signing in again
+          const { createClient } = await import("@/lib/supabase/client")
+          const supabase = createClient()
+          
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: "azure",
+            options: {
+              scopes: "openid email profile offline_access Files.Read Files.Read.All Files.ReadWrite",
+              redirectTo: `${window.location.origin}/auth/callback`,
+            },
+          })
+          
+          if (error) {
+            throw new Error("Nepodařilo se obnovit přístup k OneDrive. Zkuste to prosím znovu.")
+          }
+          return // Don't throw error, the redirect will handle the flow
+        }
+        
         throw new Error(errorData.error || "Nepodařilo se načíst soubory z OneDrive")
       }
 

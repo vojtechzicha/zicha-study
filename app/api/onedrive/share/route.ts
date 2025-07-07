@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
+import { OneDriveTokenManager } from "@/lib/utils/onedrive-token-manager"
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,25 +18,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "OneDrive ID is required" }, { status: 400 })
     }
 
-    // Get the access token from the user's session
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.provider_token) {
-      return NextResponse.json({ error: "No access token available" }, { status: 401 })
-    }
-
     // Try to create a public share link for the OneDrive file
     // Personal Microsoft accounts may not support anonymous sharing
-    let shareResponse = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${onedriveId}/createLink`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${session.provider_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: "view",
-        scope: "anonymous"
-      })
-    })
+    let shareResponse = await OneDriveTokenManager.makeAuthenticatedRequest(
+      `https://graph.microsoft.com/v1.0/me/drive/items/${onedriveId}/createLink`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          type: "view",
+          scope: "anonymous"
+        })
+      }
+    )
 
     if (!shareResponse.ok) {
       const errorData = await shareResponse.json()
@@ -45,11 +39,9 @@ export async function POST(request: NextRequest) {
       // Fall back to getting the file info and creating a shareable link manually
       if (errorData.error?.code === 'accessDenied') {
         // Get the file metadata to construct a public share URL
-        const fileResponse = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${onedriveId}`, {
-          headers: {
-            "Authorization": `Bearer ${session.provider_token}`,
-          },
-        })
+        const fileResponse = await OneDriveTokenManager.makeAuthenticatedRequest(
+          `https://graph.microsoft.com/v1.0/me/drive/items/${onedriveId}`
+        )
 
         if (fileResponse.ok) {
           const fileData = await fileResponse.json()
@@ -78,6 +70,15 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("OneDrive share error:", error)
+    
+    // Check if it's a token-related error
+    if (error instanceof Error && error.message.includes('token')) {
+      return NextResponse.json(
+        { error: error.message, needsReauth: true },
+        { status: 401 }
+      )
+    }
+    
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -144,6 +143,12 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
       if (!response.ok) {
         const errorData = await response.json()
+        
+        // Handle authentication errors that need re-authentication
+        if (errorData.needsReauth) {
+          throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
+        }
+        
         throw new Error(errorData.error || "Nepodařilo se načíst složky z OneDrive")
       }
 
