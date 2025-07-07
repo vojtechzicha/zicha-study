@@ -1,21 +1,23 @@
-$if(toc)$
-<nav class="study-note-toc" id="TOC">
-  <div class="toc-header">
-    <h2>Obsah</h2>
-    <button class="toc-toggle" aria-label="Toggle navigation">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M3 12h18M3 6h18M3 18h18"/>
-      </svg>
-    </button>
+<div class="study-note-layout">
+  $if(toc)$
+  <nav class="study-note-toc" id="TOC">
+    <div class="toc-header">
+      <h2>Obsah</h2>
+      <button class="toc-toggle" aria-label="Toggle navigation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="toc-content">
+      $toc$
+    </div>
+  </nav>
+  $endif$
+  
+  <div class="study-note-card">
+    <article class="study-note-article">
+      $body$
+    </article>
   </div>
-  <div class="toc-content">
-    $toc$
-  </div>
-</nav>
-$endif$
-
-<div class="study-note-card">
-  <article class="study-note-article">
-    $body$
-  </article>
 </div>
