@@ -50,13 +50,15 @@
   height: 60px; /* Match content header height */
 }
 
-.toc-header h2 {
-  font-size: 1.5rem;
+.study-note-toc .toc-header h2 {
+  font-size: 0.8rem !important;
   font-weight: 600;
   margin: 0;
   color: #1f2937;
   transition: opacity 0.3s ease;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .study-note-toc.collapsed .toc-header h2 {
