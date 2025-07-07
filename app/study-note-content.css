@@ -58,6 +58,22 @@
   font-family: inherit;
 }
 
+/* Ensure proper list styling in article content */
+.study-note-article ul,
+.study-note-article ol {
+  list-style-position: outside;
+  margin-left: 0;
+}
+
+.study-note-article ul {
+  list-style-type: disc;
+}
+
+.study-note-article li {
+  display: list-item;
+  color: #333;
+}
+
 /* Typography */
 .study-note-content h1,
 .study-note-content h2,
@@ -153,10 +169,53 @@
 .study-note-content ol {
   margin-bottom: 1rem;
   padding-left: 2rem;
+  list-style-position: outside;
+}
+
+.study-note-content ul {
+  list-style-type: disc;
+}
+
+.study-note-content ul ul {
+  list-style-type: circle;
+}
+
+.study-note-content ul ul ul {
+  list-style-type: square;
+}
+
+.study-note-content ol {
+  list-style-type: decimal;
 }
 
 .study-note-content li {
   margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.study-note-content li::marker {
+  color: #333 !important;
+  opacity: 1 !important;
+}
+
+/* Force list style for nested elements */
+.study-note-content ul > li {
+  list-style: disc outside !important;
+}
+
+.study-note-content ol > li {
+  list-style: decimal outside !important;
+}
+
+/* Ensure bullets are visible in all contexts */
+.study-note-content ul:not(#TOC ul) {
+  list-style: disc outside !important;
+  padding-left: 2.5rem !important;
+}
+
+.study-note-content ol:not(#TOC ol) {
+  list-style: decimal outside !important;
+  padding-left: 2.5rem !important;
 }
 
 /* Links */
