@@ -176,15 +176,31 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
       // Set up ToC navigation if present
       setupTocNavigation()
       
-      // Add mobile ToC toggle functionality
-      if (window.innerWidth <= 1024 && contentRef.current) {
-        const sidebar = contentRef.current.querySelector('.study-note-sidebar')
-        if (sidebar) {
-          sidebar.addEventListener('click', (e) => {
-            if (e.target === sidebar || (e.target as HTMLElement).tagName === 'H2') {
-              sidebar.classList.toggle('collapsed')
-            }
-          })
+      // Add ToC toggle functionality
+      if (contentRef.current) {
+        const toggleBtn = contentRef.current.querySelector('.toc-toggle')
+        const toc = contentRef.current.querySelector('.study-note-toc')
+        
+        if (toggleBtn && toc) {
+          const handleToggle = () => {
+            toc.classList.toggle('collapsed')
+            // Save state to localStorage
+            const isCollapsed = toc.classList.contains('collapsed')
+            localStorage.setItem('study-note-toc-collapsed', isCollapsed.toString())
+          }
+          
+          toggleBtn.addEventListener('click', handleToggle)
+          
+          // Restore saved state
+          const savedState = localStorage.getItem('study-note-toc-collapsed')
+          if (savedState === 'true') {
+            toc.classList.add('collapsed')
+          }
+          
+          // Cleanup
+          return () => {
+            toggleBtn.removeEventListener('click', handleToggle)
+          }
         }
       }
     }
@@ -295,15 +311,13 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
   }
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-0">
-        <div 
-          ref={contentRef}
-          className="study-note-content"
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
-      </CardContent>
-    </Card>
+    <div className="study-note-container">
+      <div 
+        ref={contentRef}
+        className="study-note-content"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    </div>
   )
 }
 

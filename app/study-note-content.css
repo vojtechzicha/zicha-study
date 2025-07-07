@@ -7,32 +7,82 @@
   overflow-x: hidden;
 }
 
-/* Wrapper and Layout */
-.study-note-wrapper {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  min-height: 600px;
+/* Container for the entire study note */
+.study-note-container {
   position: relative;
+  min-height: 600px;
 }
 
-/* When there's a sidebar */
-.study-note-wrapper:has(.study-note-sidebar:not(:empty)) {
-  grid-template-columns: 220px 1fr;
-  gap: 1.5rem;
-}
-
-.study-note-sidebar {
-  position: sticky;
-  top: 1rem;
-  height: fit-content;
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto;
+/* Fixed ToC Navigation */
+.study-note-toc {
+  position: fixed;
+  top: 80px; /* Adjust based on header height */
+  left: 1rem;
+  width: 220px;
+  max-height: calc(100vh - 100px);
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
-  padding: 1rem;
+  overflow: hidden;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.study-note-toc.collapsed {
+  width: 48px;
+}
+
+.toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.toc-header h2 {
   font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+  color: #6b7280;
+  transition: opacity 0.3s ease;
+}
+
+.study-note-toc.collapsed .toc-header h2 {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.toc-toggle {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: #6b7280;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.toc-toggle:hover {
+  color: #374151;
+}
+
+.toc-content {
+  padding: 0.75rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 160px);
+  font-size: 0.875rem;
+  transition: opacity 0.3s ease;
+}
+
+.study-note-toc.collapsed .toc-content {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
 }
 
 /* Remove any default padding/margin from TOC element */
@@ -41,33 +91,46 @@
   padding: 0;
 }
 
-/* Custom scrollbar for sidebar */
-.study-note-sidebar::-webkit-scrollbar {
+/* Custom scrollbar for ToC */
+.toc-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.study-note-sidebar::-webkit-scrollbar-track {
+.toc-content::-webkit-scrollbar-track {
   background: #f3f4f6;
   border-radius: 3px;
 }
 
-.study-note-sidebar::-webkit-scrollbar-thumb {
+.toc-content::-webkit-scrollbar-thumb {
   background: #d1d5db;
   border-radius: 3px;
 }
 
-.study-note-sidebar::-webkit-scrollbar-thumb:hover {
+.toc-content::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
 
-.study-note-main {
-  min-width: 0;
-  padding: 1.5rem;
+/* Main content card */
+.study-note-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-left: 250px; /* Space for fixed ToC */
+  padding: 2rem;
+  min-height: 600px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: margin-left 0.3s ease;
 }
 
 .study-note-article {
   max-width: 900px;
   margin: 0 auto;
+}
+
+/* When ToC is collapsed */
+.study-note-container:has(.study-note-toc.collapsed) .study-note-card {
+  margin-left: 64px;
+  transition: margin-left 0.3s ease;
 }
 
 /* Reset pandoc's default styles */
@@ -136,32 +199,23 @@
 }
 
 /* Table of Contents */
-.study-note-sidebar h2 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
-  margin-top: 0;
-  color: #6b7280;
-  padding: 0;
-  border: none;
-}
-
-/* Hide bullets in sidebar ToC */
-.study-note-sidebar ul {
+/* Hide bullets in ToC */
+.study-note-toc ul,
+#TOC ul {
   list-style: none !important;
   padding-left: 0;
   margin: 0;
 }
 
-.study-note-sidebar ul ul {
+.study-note-toc ul ul,
+#TOC ul ul {
   list-style: none !important;
   padding-left: 1rem;
   margin-top: 0.125rem;
 }
 
-.study-note-sidebar li {
+.study-note-toc li,
+#TOC li {
   list-style: none !important;
   margin-bottom: 0.125rem;
 }
@@ -182,8 +236,8 @@
   margin-bottom: 0.125rem;
 }
 
-.study-note-content #TOC a,
-.study-note-sidebar a {
+.study-note-toc a,
+#TOC a {
   text-decoration: none;
   color: #6b7280;
   transition: all 0.15s;
@@ -195,15 +249,15 @@
   border-left: 2px solid transparent;
 }
 
-.study-note-content #TOC a:hover,
-.study-note-sidebar a:hover {
+.study-note-toc a:hover,
+#TOC a:hover {
   color: #1f2937;
   background-color: #f3f4f6;
   border-left-color: #d1d5db;
 }
 
-.study-note-content #TOC a.active,
-.study-note-sidebar a.active {
+.study-note-toc a.active,
+#TOC a.active {
   color: #2563eb;
   font-weight: 500;
   background-color: #eff6ff;
@@ -211,12 +265,14 @@
 }
 
 /* Nested TOC items */
-.study-note-sidebar ul ul a {
+.study-note-toc ul ul a,
+#TOC ul ul a {
   font-size: 0.75rem;
   padding-left: 1.5rem;
 }
 
-.study-note-sidebar ul ul ul a {
+.study-note-toc ul ul ul a,
+#TOC ul ul ul a {
   padding-left: 2.5rem;
 }
 
@@ -292,9 +348,11 @@
   padding-left: 2.5rem !important;
 }
 
-/* Override any list styles in sidebar */
-.study-note-sidebar ul li::before,
-.study-note-sidebar ul li::marker {
+/* Override any list styles in ToC */
+.study-note-toc ul li::before,
+.study-note-toc ul li::marker,
+#TOC ul li::before,
+#TOC ul li::marker {
   display: none !important;
   content: none !important;
 }
@@ -440,41 +498,55 @@
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-  .study-note-wrapper:has(.study-note-sidebar:not(:empty)) {
-    grid-template-columns: 200px 1fr;
+  .study-note-toc {
+    width: 200px;
+  }
+  
+  .study-note-card {
+    margin-left: 220px;
   }
 }
 
 @media (max-width: 1024px) {
-  .study-note-wrapper {
-    grid-template-columns: 1fr !important;
-  }
-  
-  .study-note-sidebar {
+  /* Convert fixed ToC to collapsible top bar on tablets */
+  .study-note-toc {
     position: relative;
     top: 0;
-    max-height: 250px;
-    margin-bottom: 1.5rem;
-    background-color: #f9fafb;
+    left: 0;
+    width: 100%;
+    max-height: 60px;
+    margin-bottom: 1rem;
+    overflow: hidden;
   }
   
-  /* Make TOC collapsible on mobile */
-  .study-note-sidebar::before {
-    content: "Obsah";
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
+  .study-note-toc:not(.collapsed) {
+    max-height: 300px;
+  }
+  
+  .study-note-card {
+    margin-left: 0;
+  }
+  
+  .study-note-container:has(.study-note-toc.collapsed) .study-note-card {
+    margin-left: 0;
+  }
+  
+  .toc-header {
     cursor: pointer;
   }
   
-  .study-note-sidebar h2 {
-    display: none;
+  .toc-toggle {
+    display: block;
   }
 }
 
 @media (max-width: 768px) {
-  .study-note-main {
+  .study-note-card {
     padding: 1rem;
+    margin: 0;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
   }
   
   .study-note-content h1 {
@@ -493,23 +565,14 @@
     font-size: 0.875rem;
   }
   
-  .study-note-sidebar {
-    padding: 0.75rem;
-    font-size: 0.75rem;
+  .study-note-toc {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
   }
   
   /* Hide section numbers on mobile */
-  .study-note-sidebar > ul > li > a::before {
-    display: none;
-  }
-  
-  /* Collapsible ToC on mobile */
-  .study-note-sidebar.collapsed {
-    max-height: 3rem;
-    overflow: hidden;
-  }
-  
-  .study-note-sidebar.collapsed > ul {
+  #TOC > ul > li > a::before {
     display: none;
   }
 }
@@ -533,7 +596,14 @@
     page-break-inside: avoid;
   }
   
-  .study-note-content #TOC {
+  .study-note-toc,
+  #TOC {
     display: none;
+  }
+  
+  .study-note-card {
+    margin-left: 0;
+    border: none;
+    box-shadow: none;
   }
 }
