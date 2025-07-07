@@ -175,6 +175,18 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
 
       // Set up ToC navigation if present
       setupTocNavigation()
+      
+      // Add mobile ToC toggle functionality
+      if (window.innerWidth <= 1024 && contentRef.current) {
+        const sidebar = contentRef.current.querySelector('.study-note-sidebar')
+        if (sidebar) {
+          sidebar.addEventListener('click', (e) => {
+            if (e.target === sidebar || (e.target as HTMLElement).tagName === 'H2') {
+              sidebar.classList.toggle('collapsed')
+            }
+          })
+        }
+      }
     }
 
     loadKatexAndRender()
