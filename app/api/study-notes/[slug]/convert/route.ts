@@ -72,47 +72,40 @@ export async function GET(
     
     // Try to access OneDrive to check for updates
     try {
-      // Get download URL from OneDrive
-      const downloadUrl = note.onedrive_download_url
-      if (!downloadUrl) {
-        // Try to get from share link
-        const shareUrl = note.onedrive_web_url
-        const tokenManager = new OneDriveTokenManager()
-        const token = await tokenManager.getAccessToken()
-        
-        const shareResponse = await fetch(
-          `https://graph.microsoft.com/v1.0/shares/${encodeURIComponent(btoa(shareUrl))}/driveItem`,
+      const tokenResult = await OneDriveTokenManager.getValidToken()
+      
+      if (!tokenResult.token) {
+        console.error("No OneDrive token available:", tokenResult.error)
+        onedriveAccessible = false
+      } else {
+        // Get file metadata using direct API with the file's OneDrive ID
+        const metadataResponse = await fetch(
+          `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}`,
           {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${tokenResult.token}` }
           }
         )
         
-        if (shareResponse.ok) {
-          const shareData = await shareResponse.json()
-          onedriveLastModified = new Date(shareData.lastModifiedDateTime)
+        if (metadataResponse.ok) {
+          const fileData = await metadataResponse.json()
+          onedriveLastModified = new Date(fileData.lastModifiedDateTime)
+          console.log("OneDrive file last modified:", fileData.lastModifiedDateTime)
           
-          // Download the file
+          // Download the file content
           const downloadResponse = await fetch(
-            `https://graph.microsoft.com/v1.0/shares/${encodeURIComponent(btoa(shareUrl))}/driveItem/content`,
+            `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}/content`,
             {
-              headers: { Authorization: `Bearer ${token}` }
+              headers: { Authorization: `Bearer ${tokenResult.token}` }
             }
           )
           
           if (downloadResponse.ok) {
             fileBuffer = await downloadResponse.arrayBuffer()
+          } else {
+            console.error("Failed to download file content:", downloadResponse.status)
           }
-        }
-      } else {
-        // Direct download URL
-        const response = await fetch(downloadUrl)
-        if (response.ok) {
-          fileBuffer = await response.arrayBuffer()
-          // Try to get last modified from headers
-          const lastModified = response.headers.get("last-modified")
-          if (lastModified) {
-            onedriveLastModified = new Date(lastModified)
-          }
+        } else {
+          console.error("Failed to get file metadata:", metadataResponse.status)
         }
       }
     } catch (error) {
@@ -164,10 +157,10 @@ export async function GET(
       )
     }
     
-    // Generate new cache key
+    // Generate new cache key including generation time for cache busting
     const cacheKey = crypto
       .createHash("md5")
-      .update(`${note.id}-${onedriveLastModified?.toISOString() || Date.now()}`)
+      .update(`${note.id}-${onedriveLastModified?.toISOString() || 'unknown'}-${Date.now()}`)
       .digest("hex")
     
     // Convert the document
@@ -185,21 +178,25 @@ export async function GET(
         .update({
           html_content: result.html,
           title: result.title,
-          onedrive_last_modified: onedriveLastModified || new Date(),
+          onedrive_last_modified: onedriveLastModified || cachedData.onedrive_last_modified,
           generated_at: new Date(),
           cache_key: cacheKey,
           has_media: !!result.mediaPath
         })
         .eq("study_note_id", note.id)
     } else {
-      // Insert new cache
+      // Insert new cache - only insert if we have a valid last modified date
+      if (!onedriveLastModified) {
+        throw new Error("Unable to determine file modification date from OneDrive")
+      }
+      
       await supabase
         .from("study_notes_cache")
         .insert({
           study_note_id: note.id,
           html_content: result.html,
           title: result.title,
-          onedrive_last_modified: onedriveLastModified || new Date(),
+          onedrive_last_modified: onedriveLastModified,
           cache_key: cacheKey,
           has_media: !!result.mediaPath
         })
@@ -434,12 +431,16 @@ async function storeMediaInDatabase(
         '.webp': 'image/webp'
       }
       
+      // Convert to hex string for PostgreSQL BYTEA
+      // Supabase expects hex string with \x prefix for BYTEA columns
+      const hexString = `\\x${fileData.toString('hex')}`
+      
       await supabase
         .from("study_notes_media")
         .insert({
           cache_id: cacheRecord.id,
           file_path: `media/${file}`,
-          file_data: fileData,
+          file_data: hexString,
           mime_type: mimeTypes[ext] || 'application/octet-stream'
         })
     }

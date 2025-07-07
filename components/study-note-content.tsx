@@ -8,20 +8,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 interface StudyNoteContentProps {
   slug: string
   flush?: boolean
+  onCacheInfo?: (info: { onedriveLastModified?: string; generatedAt?: string }) => void
 }
 
-export function StudyNoteContent({ slug, flush }: StudyNoteContentProps) {
+export function StudyNoteContent({ slug, flush, onCacheInfo }: StudyNoteContentProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [content, setContent] = useState<string | null>(null)
   const [cacheKey, setCacheKey] = useState<string | null>(null)
   const [title, setTitle] = useState<string | null>(null)
-  const [cacheStatus, setCacheStatus] = useState<{
-    cached: boolean
-    onedriveLastModified?: string
-    generatedAt?: string
-    onedriveAccessible?: boolean
-  } | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const katexLoadedRef = useRef(false)
 
@@ -44,13 +39,13 @@ export function StudyNoteContent({ slug, flush }: StudyNoteContentProps) {
       const data = await response.json()
       setCacheKey(data.cacheKey)
       
-      // Set cache status
-      setCacheStatus({
-        cached: data.cached,
-        onedriveLastModified: data.onedriveLastModified,
-        generatedAt: data.generatedAt,
-        onedriveAccessible: data.onedriveAccessible
-      })
+      // Pass cache info to parent
+      if (onCacheInfo) {
+        onCacheInfo({
+          onedriveLastModified: data.onedriveLastModified,
+          generatedAt: data.generatedAt
+        })
+      }
       
       // Set the document title if available
       if (data.title) {
@@ -61,19 +56,17 @@ export function StudyNoteContent({ slug, flush }: StudyNoteContentProps) {
       // Process HTML to update image URLs
       let processedHtml = data.html
       if (data.mediaPath) {
-        // First, handle any absolute paths that Pandoc might have generated
-        const tempDirPattern = new RegExp(`src="[^"]*?(media/[^"]+)"`, 'g')
-        processedHtml = processedHtml.replace(tempDirPattern, (match, mediaPath) => {
-          return `src="/api/study-notes/${slug}/media/${mediaPath}?key=${data.cacheKey}"`
-        })
-        
-        // Also handle the case where it's just "media/"
+        // Replace all image src attributes that contain "media/"
         processedHtml = processedHtml.replace(
-          /src="media\//g,
-          `src="/api/study-notes/${slug}/media/media/`
+          /src="([^"]*media\/[^"]+)"/g,
+          (match, path) => {
+            // Remove any absolute path prefix and just get the media/filename part
+            const mediaPath = path.includes('media/') ? path.substring(path.indexOf('media/')) : path
+            return `src="/api/study-notes/${slug}/media/${mediaPath}?key=${data.cacheKey}"`
+          }
         )
         
-        console.log("Processed image URLs")
+        console.log("Processed image URLs with cache key:", data.cacheKey)
       }
 
       setContent(processedHtml)
@@ -337,28 +330,13 @@ export function StudyNoteContent({ slug, flush }: StudyNoteContentProps) {
   }
 
   return (
-    <>
-      {cacheStatus && (
-        <div className="study-note-cache-status">
-          {cacheStatus.onedriveLastModified && (
-            <span>Aktualizováno v OneDrive: {new Date(cacheStatus.onedriveLastModified).toLocaleString('cs-CZ')}</span>
-          )}
-          {cacheStatus.generatedAt && (
-            <span>Vygenerováno: {new Date(cacheStatus.generatedAt).toLocaleString('cs-CZ')}</span>
-          )}
-          {!cacheStatus.onedriveAccessible && (
-            <span className="warning">OneDrive není dostupný - zobrazeno z cache</span>
-          )}
-        </div>
-      )}
-      <div className="study-note-container">
-        <div 
-          ref={contentRef}
-          className="study-note-content"
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
-      </div>
-    </>
+    <div className="study-note-container">
+      <div 
+        ref={contentRef}
+        className="study-note-content"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    </div>
   )
 }
 

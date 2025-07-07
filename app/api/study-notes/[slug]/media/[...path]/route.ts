@@ -70,13 +70,33 @@ export async function GET(
       return NextResponse.json({ error: "Media file not found" }, { status: 404 })
     }
     
-    // Decode the base64 data from database
-    const fileBuffer = Buffer.from(mediaFile.file_data, 'base64')
+    // Supabase returns BYTEA as hex string with \x prefix
+    let fileBuffer: Buffer
+    if (typeof mediaFile.file_data === 'string') {
+      if (mediaFile.file_data.startsWith('\\x')) {
+        // PostgreSQL hex format
+        fileBuffer = Buffer.from(mediaFile.file_data.slice(2), 'hex')
+      } else {
+        // Fallback to base64
+        fileBuffer = Buffer.from(mediaFile.file_data, 'base64')
+      }
+    } else if (Buffer.isBuffer(mediaFile.file_data)) {
+      fileBuffer = mediaFile.file_data
+    } else {
+      console.error("Unexpected file_data type:", typeof mediaFile.file_data)
+      return NextResponse.json({ error: "Invalid media data format" }, { status: 500 })
+    }
+    
+    if (fileBuffer.length === 0) {
+      console.error("Empty buffer after decoding")
+      return NextResponse.json({ error: "Empty media file" }, { status: 500 })
+    }
     
     // Return the file with appropriate headers
     return new NextResponse(fileBuffer, {
+      status: 200,
       headers: {
-        "Content-Type": mediaFile.mime_type,
+        "Content-Type": mediaFile.mime_type || "application/octet-stream",
         "Cache-Control": "public, max-age=31536000", // Cache for 1 year
         "Content-Length": fileBuffer.length.toString(),
       },

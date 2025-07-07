@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -8,7 +9,9 @@ import {
   ExternalLink, 
   Calendar, 
   BookOpen,
-  Home
+  Home,
+  RefreshCw,
+  Clock
 } from "lucide-react"
 import Link from "next/link"
 import type { StudyNote } from "@/lib/types/study-notes"
@@ -49,7 +52,13 @@ interface StudyNoteDisplayProps {
   flush?: boolean
 }
 
+interface CacheInfo {
+  onedriveLastModified?: string
+  generatedAt?: string
+}
+
 export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDisplayProps) {
+  const [cacheInfo, setCacheInfo] = React.useState<CacheInfo | null>(null)
   const subjectData = subject || note.subjects
   const studyData = study || subjectData?.studies
 
@@ -140,14 +149,18 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar className="h-4 w-4" />
-                  <span>Přidáno: {formatDate(note.created_at)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <FileText className="h-4 w-4" />
-                  <span>Velikost: {formatFileSize(note.file_size)}</span>
-                </div>
+                {cacheInfo?.onedriveLastModified && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Naposledy upraveno: {formatDate(cacheInfo.onedriveLastModified)}</span>
+                  </div>
+                )}
+                {cacheInfo?.generatedAt && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock className="h-4 w-4" />
+                    <span>Naposledy generováno: {formatDate(cacheInfo.generatedAt)}</span>
+                  </div>
+                )}
                 {subjectData && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <BookOpen className="h-4 w-4" />
@@ -159,7 +172,11 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
           </Card>
 
           {/* Document Content Area */}
-          <StudyNoteContent slug={note.public_slug} flush={flush} />
+          <StudyNoteContent 
+            slug={note.public_slug} 
+            flush={flush} 
+            onCacheInfo={setCacheInfo}
+          />
         </div>
       </main>
     </div>
