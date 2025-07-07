@@ -8,6 +8,7 @@ import path from "path"
 import crypto from "crypto"
 import os from "os"
 import { checkPandocInstallation } from "@/lib/utils/check-pandoc"
+import { isPandocAvailable, getPandocUnavailableMessage } from "@/lib/utils/pandoc-vercel"
 
 const execAsync = promisify(exec)
 
@@ -36,7 +37,51 @@ export async function GET(
   const forceRegenerate = searchParams.get("flush") === "1"
   
   try {
-    // Check if Pandoc is installed
+    // Check if we're on Vercel
+    if (!isPandocAvailable()) {
+      // Return from cache if available
+      const supabase = await createServerClient()
+      
+      const { data: note } = await supabase
+        .from("study_notes")
+        .select("*")
+        .eq("public_slug", slug)
+        .eq("is_public", true)
+        .single()
+        
+      if (note) {
+        const { data: cachedData } = await supabase
+          .from("study_notes_cache")
+          .select("*")
+          .eq("study_note_id", note.id)
+          .single()
+          
+        if (cachedData) {
+          return NextResponse.json({
+            html: cachedData.html_content,
+            title: cachedData.title,
+            cacheKey: cachedData.cache_key,
+            mediaPath: cachedData.has_media ? `media-${cachedData.cache_key}` : null,
+            cached: true,
+            onedriveLastModified: cachedData.onedrive_last_modified,
+            generatedAt: cachedData.generated_at,
+            onedriveAccessible: false,
+            vercelDeployment: true
+          })
+        }
+      }
+      
+      // No cache available, return error message
+      return NextResponse.json({
+        html: getPandocUnavailableMessage(),
+        title: "Konverze není dostupná",
+        cached: false,
+        vercelDeployment: true,
+        error: "Pandoc not available on Vercel"
+      })
+    }
+    
+    // Check if Pandoc is installed (for non-Vercel environments)
     const pandocInstalled = await checkPandocInstallation()
     if (!pandocInstalled) {
       return NextResponse.json(
