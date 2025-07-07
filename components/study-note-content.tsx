@@ -38,16 +38,25 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
       // Process HTML to update image URLs
       let processedHtml = data.html
       if (data.mediaPath) {
-        // Replace relative media paths with API URLs
+        // First, handle any absolute paths that Pandoc might have generated
+        const tempDirPattern = new RegExp(`src="[^"]*?(media/[^"]+)"`, 'g')
+        processedHtml = processedHtml.replace(tempDirPattern, (match, mediaPath) => {
+          return `src="/api/study-notes/${slug}/media/${mediaPath}?key=${data.cacheKey}"`
+        })
+        
+        // Also handle the case where it's just "media/"
         processedHtml = processedHtml.replace(
           /src="media\//g,
-          `src="/api/study-notes/${slug}/media/`
+          `src="/api/study-notes/${slug}/media/media/`
         )
-        // Add cache key as query parameter
+        
+        // Ensure all media URLs have the cache key
         processedHtml = processedHtml.replace(
-          /src="\/api\/study-notes\/[^\/]+\/media\/([^"]+)"/g,
-          `src="/api/study-notes/${slug}/media/$1?key=${data.cacheKey}"`
+          /src="(\/api\/study-notes\/[^\/]+\/media\/[^"?]+)"/g,
+          `src="$1?key=${data.cacheKey}"`
         )
+        
+        console.log("Processed image URLs with cache key:", data.cacheKey)
       }
 
       setContent(processedHtml)

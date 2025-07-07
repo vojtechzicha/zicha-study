@@ -38,7 +38,15 @@ export async function GET(
     
     // Construct the media file path
     const mediaDir = path.join(CACHE_DIR, `media-${cacheKey}`)
-    const mediaPath = path.join(mediaDir, ...pathSegments)
+    
+    // Handle the case where "media" might be duplicated in the path
+    let cleanedSegments = [...pathSegments]
+    if (cleanedSegments[0] === 'media' && cleanedSegments.length > 1) {
+      // Remove the first "media" if it's duplicated
+      cleanedSegments = cleanedSegments.slice(1)
+    }
+    
+    const mediaPath = path.join(mediaDir, ...cleanedSegments)
     
     // Security: Ensure the resolved path is within the media directory
     const resolvedPath = path.resolve(mediaPath)

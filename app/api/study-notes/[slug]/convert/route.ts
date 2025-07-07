@@ -265,6 +265,9 @@ async function convertDocxToHtml(
       if (hasMedia) {
         const mediaFiles = await fs.readdir(mediaDir)
         hasMedia = mediaFiles.length > 0
+        if (hasMedia) {
+          console.log(`Media directory contains ${mediaFiles.length} files:`, mediaFiles.slice(0, 5))
+        }
       }
     } catch {
       // No media directory or it's empty

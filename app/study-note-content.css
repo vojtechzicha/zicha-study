@@ -297,6 +297,20 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Inline images */
+.study-note-content p img {
+  display: inline-block;
+  margin: 0 0.5rem;
+  vertical-align: middle;
+}
+
+/* Center aligned images */
+.study-note-content .figure,
+.study-note-content figure {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
 .study-note-content figure {
   margin: 1.5rem 0;
   text-align: center;
