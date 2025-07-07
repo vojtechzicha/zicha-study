@@ -35,6 +35,12 @@
   font-size: 0.875rem;
 }
 
+/* Remove any default padding/margin from TOC element */
+#TOC {
+  margin: 0;
+  padding: 0;
+}
+
 /* Custom scrollbar for sidebar */
 .study-note-sidebar::-webkit-scrollbar {
   width: 6px;
@@ -136,26 +142,43 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
+  margin-top: 0;
   color: #6b7280;
   padding: 0;
   border: none;
 }
 
-.study-note-content #TOC ul,
+/* Hide bullets in sidebar ToC */
 .study-note-sidebar ul {
+  list-style: none !important;
+  padding-left: 0;
+  margin: 0;
+}
+
+.study-note-sidebar ul ul {
+  list-style: none !important;
+  padding-left: 1rem;
+  margin-top: 0.125rem;
+}
+
+.study-note-sidebar li {
+  list-style: none !important;
+  margin-bottom: 0.125rem;
+}
+
+/* Keep bullets in content area */
+.study-note-content #TOC ul {
   list-style: none;
   padding-left: 0;
   margin: 0;
 }
 
-.study-note-content #TOC ul ul,
-.study-note-sidebar ul ul {
+.study-note-content #TOC ul ul {
   padding-left: 1rem;
   margin-top: 0.125rem;
 }
 
-.study-note-content #TOC li,
-.study-note-sidebar li {
+.study-note-content #TOC li {
   margin-bottom: 0.125rem;
 }
 
@@ -198,18 +221,19 @@
 }
 
 /* TOC numbering - optional */
-.study-note-sidebar > ul {
-  counter-reset: section;
+#TOC > ul {
+  counter-reset: toc-section;
 }
 
-.study-note-sidebar > ul > li {
-  counter-increment: section;
+#TOC > ul > li {
+  counter-increment: toc-section;
 }
 
-.study-note-sidebar > ul > li > a::before {
-  content: counter(section) ". ";
+#TOC > ul > li > a::before {
+  content: counter(toc-section) ". ";
   font-weight: 600;
   color: #9ca3af;
+  margin-right: 0.25rem;
 }
 
 /* Lists */
@@ -255,15 +279,24 @@
   list-style: decimal outside !important;
 }
 
-/* Ensure bullets are visible in all contexts */
-.study-note-content ul:not(#TOC ul) {
+/* Ensure bullets are visible in content but NOT in TOC */
+.study-note-article ul,
+.study-note-main ul:not(#TOC ul) {
   list-style: disc outside !important;
   padding-left: 2.5rem !important;
 }
 
-.study-note-content ol:not(#TOC ol) {
+.study-note-article ol,
+.study-note-main ol:not(#TOC ol) {
   list-style: decimal outside !important;
   padding-left: 2.5rem !important;
+}
+
+/* Override any list styles in sidebar */
+.study-note-sidebar ul li::before,
+.study-note-sidebar ul li::marker {
+  display: none !important;
+  content: none !important;
 }
 
 /* Links */
