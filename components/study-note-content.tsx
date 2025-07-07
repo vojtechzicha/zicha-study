@@ -14,6 +14,7 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
   const [error, setError] = useState<string | null>(null)
   const [content, setContent] = useState<string | null>(null)
   const [cacheKey, setCacheKey] = useState<string | null>(null)
+  const [title, setTitle] = useState<string | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const katexLoadedRef = useRef(false)
 
@@ -34,6 +35,12 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
 
       const data = await response.json()
       setCacheKey(data.cacheKey)
+      
+      // Set the document title if available
+      if (data.title) {
+        setTitle(data.title)
+        document.title = `${data.title} - Studijní zápis`
+      }
       
       // Process HTML to update image URLs
       let processedHtml = data.html

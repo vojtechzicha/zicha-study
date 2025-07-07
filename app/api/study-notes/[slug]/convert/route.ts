@@ -246,6 +246,13 @@ async function convertDocxToHtml(
     // Read the generated HTML
     let html = await fs.readFile(htmlPath, "utf-8")
     
+    // Extract title from the document
+    let title: string | null = null
+    const titleMatch = html.match(/<h1[^>]*class="study-note-title"[^>]*>([^<]+)<\/h1>/i)
+    if (titleMatch) {
+      title = titleMatch[1].trim()
+    }
+    
     // Extract body content if standalone was generated
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
     if (bodyMatch) {
@@ -295,7 +302,8 @@ async function convertDocxToHtml(
     return {
       html,
       mediaPath: hasMedia ? `media-${cacheKey}` : null,
-      cacheKey
+      cacheKey,
+      title
     }
   } catch (error) {
     // Clean up on error
