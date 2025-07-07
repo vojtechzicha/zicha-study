@@ -319,6 +319,23 @@
   font-size: 1.1em;
 }
 
+/* Pandoc math spans */
+.study-note-content span.math {
+  display: inline-block;
+}
+
+.study-note-content span.math.display {
+  display: block;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+/* Ensure math content is visible */
+.study-note-content .math,
+.study-note-content .katex-mathml {
+  color: #333;
+}
+
 /* Horizontal rules */
 .study-note-content hr {
   border: none;

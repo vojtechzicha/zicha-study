@@ -93,7 +93,10 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
         autoRenderScript.crossOrigin = "anonymous"
         
         await new Promise((resolve, reject) => {
-          autoRenderScript.onload = resolve
+          autoRenderScript.onload = () => {
+            console.log("Auto-render script loaded")
+            resolve(undefined)
+          }
           autoRenderScript.onerror = reject
           document.head.appendChild(autoRenderScript)
         })
@@ -101,16 +104,63 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
         katexLoadedRef.current = true
       }
 
+      // Wait a bit for scripts to initialize
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       // Render math
       if (window.renderMathInElement && contentRef.current) {
+        console.log("Rendering math with KaTeX...")
+        
+        // Also check for span.math elements that Pandoc might generate
+        const mathElements = contentRef.current.querySelectorAll('.math, .katex-math, span.math, script[type="math/tex"]')
+        console.log(`Found ${mathElements.length} math elements`)
+        
         window.renderMathInElement(contentRef.current, {
           delimiters: [
             { left: "$$", right: "$$", display: true },
             { left: "$", right: "$", display: false },
             { left: "\\(", right: "\\)", display: false },
-            { left: "\\[", right: "\\]", display: true }
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\begin{equation}", right: "\\end{equation}", display: true },
+            { left: "\\begin{align}", right: "\\end{align}", display: true },
+            { left: "\\begin{alignat}", right: "\\end{alignat}", display: true },
+            { left: "\\begin{gather}", right: "\\end{gather}", display: true },
+            { left: "\\begin{CD}", right: "\\end{CD}", display: true }
           ],
-          throwOnError: false
+          throwOnError: false,
+          errorColor: "#cc0000",
+          strict: false,
+          trust: true,
+          macros: {
+            "\\eqref": "\\href{#1}{}",
+            "\\ref": "\\href{#1}{}",
+            "\\label": "\\htmlId{#1}{}"
+          }
+        })
+        console.log("Math rendering complete")
+      } else {
+        console.warn("KaTeX not loaded or content not ready")
+      }
+
+      // Process Pandoc's math spans if auto-render didn't catch them
+      if (window.katex && contentRef.current) {
+        const mathSpans = contentRef.current.querySelectorAll('span.math')
+        mathSpans.forEach(span => {
+          const mathText = span.textContent || ''
+          if (mathText && !span.querySelector('.katex')) {
+            try {
+              const isDisplay = span.classList.contains('display')
+              const rendered = window.katex.renderToString(mathText, {
+                displayMode: isDisplay,
+                throwOnError: false
+              })
+              const tempDiv = document.createElement('div')
+              tempDiv.innerHTML = rendered
+              span.replaceWith(tempDiv.firstChild!)
+            } catch (e) {
+              console.error('KaTeX error:', e)
+            }
+          }
         })
       }
 
@@ -240,5 +290,9 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
 declare global {
   interface Window {
     renderMathInElement: (element: HTMLElement, options?: any) => void
+    katex: {
+      render: (tex: string, element: HTMLElement, options?: any) => void
+      renderToString: (tex: string, options?: any) => string
+    }
   }
 }

@@ -191,7 +191,9 @@ async function convertDocxToHtml(
       "--toc",
       "--toc-depth=3",
       `--extract-media=${mediaDir}`,
-      "--wrap=none"
+      "--wrap=none",
+      "--metadata=document-css:false",
+      "--no-highlight"
     ]
     
     if (templateArg) {
