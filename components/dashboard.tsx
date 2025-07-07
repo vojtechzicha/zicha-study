@@ -6,12 +6,13 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet } from "lucide-react"
+import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet, RefreshCw } from "lucide-react"
 import { StudyLogo } from "@/components/study-logo"
 import { useRouter } from "next/navigation"
 import { Study, getStatusColor, getStatusText, sortStudiesByStatus } from "@/lib/status-utils"
 import { getStudyFormLabel } from "@/lib/constants"
 import { exportStudiesToExcel } from "@/lib/utils/export-excel"
+import { regenerateAllStudyNotes } from "@/lib/utils/regenerate-study-notes"
 import { useToast } from "@/hooks/use-toast"
 
 interface DashboardProps {
@@ -22,6 +23,7 @@ export function Dashboard({ user }: DashboardProps) {
   const [studies, setStudies] = useState<Study[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
   const supabase = createClient()
   const router = useRouter()
   const { toast } = useToast()
@@ -65,6 +67,43 @@ export function Dashboard({ user }: DashboardProps) {
     }
   }
 
+  const handleRegenerateNotes = async () => {
+    setRegenerating(true)
+    try {
+      const result = await regenerateAllStudyNotes()
+      
+      if (result.success) {
+        toast({
+          title: "Regenerace dokončena",
+          description: result.message,
+        })
+      } else {
+        toast({
+          title: "Regenerace selhala",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+      
+      if (result.stats) {
+        console.log("Regeneration stats:", result.stats)
+      }
+      
+      if (result.errors) {
+        console.error("Regeneration errors:", result.errors)
+      }
+    } catch (error) {
+      console.error("Regeneration failed:", error)
+      toast({
+        title: "Regenerace selhala",
+        description: "Nepodařilo se regenerovat studijní zápisy.",
+        variant: "destructive",
+      })
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
 
   const getUserDisplayName = () => {
     if (user.user_metadata?.full_name) {
@@ -104,6 +143,19 @@ export function Dashboard({ user }: DashboardProps) {
                   <Settings className="h-4 w-4 animate-spin" />
                 ) : (
                   <FileSpreadsheet className="h-4 w-4" />
+                )}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleRegenerateNotes}
+                disabled={regenerating || studies.length === 0}
+                title="Regenerovat všechny studijní zápisy"
+              >
+                {regenerating ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
                 )}
               </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
