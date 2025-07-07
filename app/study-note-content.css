@@ -6,6 +6,31 @@
   max-width: 100%;
 }
 
+/* Cache status display */
+.study-note-cache-status {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.study-note-cache-status span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.study-note-cache-status .warning {
+  color: #d97706;
+  font-weight: 500;
+}
+
 /* Container for the entire study note */
 .study-note-container {
   position: relative;

@@ -46,9 +46,10 @@ interface StudyNoteDisplayProps {
     is_public: boolean
     public_slug: string | null
   }
+  flush?: boolean
 }
 
-export function StudyNoteDisplay({ note, subject, study }: StudyNoteDisplayProps) {
+export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDisplayProps) {
   const subjectData = subject || note.subjects
   const studyData = study || subjectData?.studies
 
@@ -158,7 +159,7 @@ export function StudyNoteDisplay({ note, subject, study }: StudyNoteDisplayProps
           </Card>
 
           {/* Document Content Area */}
-          <StudyNoteContent slug={note.public_slug} />
+          <StudyNoteContent slug={note.public_slug} flush={flush} />
         </div>
       </main>
     </div>

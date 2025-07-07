@@ -11,13 +11,20 @@ import { checkPandocInstallation } from "@/lib/utils/check-pandoc"
 
 const execAsync = promisify(exec)
 
-// Cache directory for converted files
-const CACHE_DIR = path.join(os.tmpdir(), "study-notes-cache")
-
 interface ConversionResult {
   html: string
   mediaPath: string | null
   cacheKey: string
+  title: string | null
+}
+
+interface CacheData {
+  html_content: string
+  title: string | null
+  onedrive_last_modified: string
+  generated_at: string
+  cache_key: string
+  has_media: boolean
 }
 
 export async function GET(
@@ -25,6 +32,8 @@ export async function GET(
   context: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await context.params
+  const { searchParams } = new URL(request.url)
+  const forceRegenerate = searchParams.get("flush") === "1"
   
   try {
     // Check if Pandoc is installed
@@ -50,82 +59,204 @@ export async function GET(
       return NextResponse.json({ error: "Study note not found" }, { status: 404 })
     }
     
-    // Generate cache key based on file ID and modification time
-    const cacheKey = crypto
-      .createHash("md5")
-      .update(`${note.onedrive_id}-${note.last_modified_onedrive || note.updated_at}`)
-      .digest("hex")
-    
-    const cacheFilePath = path.join(CACHE_DIR, `${cacheKey}.json`)
-    
     // Check if we have a cached version
+    const { data: cachedData } = await supabase
+      .from("study_notes_cache")
+      .select("*")
+      .eq("study_note_id", note.id)
+      .single()
+    
+    let onedriveLastModified: Date | null = null
+    let onedriveAccessible = true
+    let fileBuffer: ArrayBuffer | null = null
+    
+    // Try to access OneDrive to check for updates
     try {
-      await fs.access(cacheFilePath)
-      const cachedData = await fs.readFile(cacheFilePath, "utf-8")
-      const cached = JSON.parse(cachedData) as ConversionResult
-      
-      // Return cached version
-      return NextResponse.json({
-        html: cached.html,
-        mediaPath: cached.mediaPath,
-        cacheKey: cached.cacheKey,
-        cached: true
-      })
-    } catch {
-      // Cache miss, continue with conversion
+      // Get download URL from OneDrive
+      const downloadUrl = note.onedrive_download_url
+      if (!downloadUrl) {
+        // Try to get from share link
+        const shareUrl = note.onedrive_web_url
+        const tokenManager = new OneDriveTokenManager()
+        const token = await tokenManager.getAccessToken()
+        
+        const shareResponse = await fetch(
+          `https://graph.microsoft.com/v1.0/shares/${encodeURIComponent(btoa(shareUrl))}/driveItem`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        )
+        
+        if (shareResponse.ok) {
+          const shareData = await shareResponse.json()
+          onedriveLastModified = new Date(shareData.lastModifiedDateTime)
+          
+          // Download the file
+          const downloadResponse = await fetch(
+            `https://graph.microsoft.com/v1.0/shares/${encodeURIComponent(btoa(shareUrl))}/driveItem/content`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          )
+          
+          if (downloadResponse.ok) {
+            fileBuffer = await downloadResponse.arrayBuffer()
+          }
+        }
+      } else {
+        // Direct download URL
+        const response = await fetch(downloadUrl)
+        if (response.ok) {
+          fileBuffer = await response.arrayBuffer()
+          // Try to get last modified from headers
+          const lastModified = response.headers.get("last-modified")
+          if (lastModified) {
+            onedriveLastModified = new Date(lastModified)
+          }
+        }
+      }
+    } catch (error) {
+      console.error("OneDrive access error:", error)
+      onedriveAccessible = false
     }
     
-    // Download the DOCX file from OneDrive
-    const downloadUrl = note.onedrive_download_url
-    if (!downloadUrl) {
-      // If no download URL, try to get it using the file ID
-      const graphUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}/content`
-      const response = await OneDriveTokenManager.makeAuthenticatedRequest(graphUrl)
+    // Determine if we should use cache or regenerate
+    const shouldRegenerate = forceRegenerate || 
+      !cachedData || 
+      (onedriveAccessible && fileBuffer && onedriveLastModified && 
+        new Date(cachedData.onedrive_last_modified) < onedriveLastModified)
+    
+    if (!shouldRegenerate && cachedData) {
+      // Use cached version
+      console.log("Using cached version for:", slug)
       
-      if (!response.ok) {
-        throw new Error("Failed to download file from OneDrive")
+      return NextResponse.json({
+        html: cachedData.html_content,
+        title: cachedData.title,
+        cacheKey: cachedData.cache_key,
+        mediaPath: cachedData.has_media ? `media-${cachedData.cache_key}` : null,
+        cached: true,
+        onedriveLastModified: cachedData.onedrive_last_modified,
+        generatedAt: cachedData.generated_at,
+        onedriveAccessible
+      })
+    }
+    
+    // Need to regenerate
+    if (!fileBuffer) {
+      if (cachedData) {
+        // OneDrive not accessible but we have cache
+        return NextResponse.json({
+          html: cachedData.html_content,
+          title: cachedData.title,
+          cacheKey: cachedData.cache_key,
+          mediaPath: cachedData.has_media ? `media-${cachedData.cache_key}` : null,
+          cached: true,
+          onedriveLastModified: cachedData.onedrive_last_modified,
+          generatedAt: cachedData.generated_at,
+          onedriveAccessible: false
+        })
       }
       
-      const fileBuffer = await response.arrayBuffer()
-      const result = await convertDocxToHtml(
-        Buffer.from(fileBuffer),
-        note.file_name,
-        cacheKey
+      return NextResponse.json(
+        { error: "Unable to access file and no cache available" },
+        { status: 500 }
       )
-      
-      // Cache the result
-      await fs.mkdir(CACHE_DIR, { recursive: true })
-      await fs.writeFile(cacheFilePath, JSON.stringify(result))
-      
-      return NextResponse.json({
-        ...result,
-        cached: false
-      })
     }
     
-    // Download using the download URL
-    const response = await fetch(downloadUrl)
-    if (!response.ok) {
-      throw new Error("Failed to download file from OneDrive")
-    }
+    // Generate new cache key
+    const cacheKey = crypto
+      .createHash("md5")
+      .update(`${note.id}-${onedriveLastModified?.toISOString() || Date.now()}`)
+      .digest("hex")
     
-    const fileBuffer = await response.arrayBuffer()
+    // Convert the document
     const result = await convertDocxToHtml(
       Buffer.from(fileBuffer),
       note.file_name,
       cacheKey
     )
     
-    // Cache the result
-    await fs.mkdir(CACHE_DIR, { recursive: true })
-    await fs.writeFile(cacheFilePath, JSON.stringify(result))
+    // Store in database
+    if (cachedData) {
+      // Update existing cache
+      await supabase
+        .from("study_notes_cache")
+        .update({
+          html_content: result.html,
+          title: result.title,
+          onedrive_last_modified: onedriveLastModified || new Date(),
+          generated_at: new Date(),
+          cache_key: cacheKey,
+          has_media: !!result.mediaPath
+        })
+        .eq("study_note_id", note.id)
+    } else {
+      // Insert new cache
+      await supabase
+        .from("study_notes_cache")
+        .insert({
+          study_note_id: note.id,
+          html_content: result.html,
+          title: result.title,
+          onedrive_last_modified: onedriveLastModified || new Date(),
+          cache_key: cacheKey,
+          has_media: !!result.mediaPath
+        })
+    }
+    
+    // Store media files if any
+    if (result.mediaPath) {
+      await storeMediaInDatabase(note.id, result.mediaPath)
+    }
     
     return NextResponse.json({
       ...result,
-      cached: false
+      cached: false,
+      onedriveLastModified: onedriveLastModified?.toISOString(),
+      generatedAt: new Date().toISOString(),
+      onedriveAccessible
     })
   } catch (error) {
     console.error("Conversion error:", error)
+    
+    // Try to return cached version if available
+    try {
+      const supabase = await createServerClient()
+      
+      // Get the study note again to ensure we have the ID
+      const { data: noteForCache } = await supabase
+        .from("study_notes")
+        .select("id")
+        .eq("public_slug", slug)
+        .eq("is_public", true)
+        .single()
+      
+      if (noteForCache) {
+        const { data: cachedData } = await supabase
+          .from("study_notes_cache")
+          .select("*")
+          .eq("study_note_id", noteForCache.id)
+          .single()
+        
+        if (cachedData) {
+          return NextResponse.json({
+            html: cachedData.html_content,
+            title: cachedData.title,
+            cacheKey: cachedData.cache_key,
+            mediaPath: cachedData.has_media ? `media-${cachedData.cache_key}` : null,
+            cached: true,
+            onedriveLastModified: cachedData.onedrive_last_modified,
+            generatedAt: cachedData.generated_at,
+            onedriveAccessible: false,
+            error: "Fell back to cache due to error"
+          })
+        }
+      }
+    } catch (cacheError) {
+      console.error("Cache fallback error:", cacheError)
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Conversion failed" },
       { status: 500 }
@@ -138,73 +269,52 @@ async function convertDocxToHtml(
   fileName: string,
   cacheKey: string
 ): Promise<ConversionResult> {
-  const tempDir = path.join(os.tmpdir(), `docx-conversion-${cacheKey}`)
-  // Use a sanitized filename to avoid issues with special characters
-  const sanitizedFileName = "document.docx"
-  const docxPath = path.join(tempDir, sanitizedFileName)
-  const htmlPath = path.join(tempDir, "output.html")
-  const mediaDir = path.join(tempDir, "media")
-  const luaFilterPath = path.join(process.cwd(), "lib", "utils", "remove-toc.lua")
-  const templatePath = path.join(process.cwd(), "lib", "utils", "study-note-template.html")
+  // Create a temporary directory for this conversion
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "docx-convert-"))
   
   try {
-    // Create temp directory
-    await fs.mkdir(tempDir, { recursive: true })
-    
-    // Write DOCX file
+    // Write the DOCX file with sanitized name
+    const docxPath = path.join(tempDir, "document.docx")
     await fs.writeFile(docxPath, fileBuffer)
     
-    // Verify file was written
-    try {
-      const stats = await fs.stat(docxPath)
-      console.log(`DOCX file written: ${docxPath}, size: ${stats.size} bytes`)
-    } catch (err) {
-      throw new Error(`Failed to write DOCX file: ${err}`)
-    }
+    // Output paths
+    const htmlPath = path.join(tempDir, "output.html")
+    const mediaDir = path.join(tempDir, "media")
     
-    // Check if Lua filter exists
-    let luaFilterArg = ""
-    try {
-      await fs.access(luaFilterPath)
-      luaFilterArg = `--lua-filter="${luaFilterPath}"`
-    } catch {
-      console.warn("Lua filter not found, proceeding without it")
-    }
+    // Get template path
+    const templatePath = path.join(process.cwd(), "lib/utils/study-note-template.html")
+    const templateExists = await fs.access(templatePath).then(() => true).catch(() => false)
     
-    // Check if template exists
-    let templateArg = ""
-    try {
-      await fs.access(templatePath)
-      templateArg = `--template=${templatePath}`
-    } catch {
-      console.warn("Template not found, using default")
-    }
+    // Check for Lua filter
+    const luaFilterPath = path.join(process.cwd(), "lib/utils/remove-toc.lua")
+    const luaFilterExists = await fs.access(luaFilterPath).then(() => true).catch(() => false)
     
-    // Build Pandoc arguments array (safer than string concatenation)
+    // Build Pandoc command with proper escaping
     const pandocArgs = [
-      docxPath,
-      "-f", "docx",
-      "-t", "html5",
-      "-s",
-      "-o", htmlPath,
-      "--katex",
+      "document.docx",
+      "-o", "output.html",
+      "--standalone",
       "--toc",
       "--toc-depth=3",
-      `--extract-media=${mediaDir}`,
+      "--extract-media=.",
       "--wrap=none",
-      "--metadata=document-css:false",
-      "--no-highlight"
+      "--metadata", "title-prefix=",
+      "--metadata", "pagetitle=Study Note",
+      "--css=study-note-content.css"
     ]
     
-    if (templateArg) {
-      pandocArgs.push(templateArg)
+    // Copy template and lua filter to temp directory if they exist
+    if (templateExists) {
+      await fs.copyFile(templatePath, path.join(tempDir, "study-note-template.html"))
+      pandocArgs.push("--template=study-note-template.html")
     }
     
-    if (luaFilterArg) {
-      pandocArgs.push(`--lua-filter=${luaFilterPath}`)
+    if (luaFilterExists) {
+      await fs.copyFile(luaFilterPath, path.join(tempDir, "remove-toc.lua"))
+      pandocArgs.push("--lua-filter=remove-toc.lua")
     }
     
-    // Run Pandoc with error handling using spawn for better argument handling
+    // Run Pandoc
     try {
       const { spawn } = await import("child_process")
       
@@ -221,119 +331,122 @@ async function convertDocxToHtml(
         
         pandocProcess.on("error", (error: any) => {
           if (error.code === "ENOENT") {
-            reject(new Error("Pandoc is not installed. Please install Pandoc to use this feature."))
+            reject(new Error("Pandoc is not installed"))
           } else {
             reject(error)
           }
         })
         
         pandocProcess.on("close", (code) => {
-          if (code === 0) {
-            if (stderr) {
-              console.warn("Pandoc warnings:", stderr)
-            }
-            resolve()
-          } else {
+          if (code !== 0) {
             reject(new Error(`Pandoc exited with code ${code}: ${stderr}`))
+          } else {
+            resolve()
           }
         })
       })
     } catch (error: any) {
-      console.error("Pandoc error:", error.message)
       throw new Error(`Document conversion failed: ${error.message}`)
     }
     
     // Read the generated HTML
     let html = await fs.readFile(htmlPath, "utf-8")
     
-    // Extract title from the document
+    // Extract title
     let title: string | null = null
     const titleMatch = html.match(/<h1[^>]*class="study-note-title"[^>]*>([^<]+)<\/h1>/i)
     if (titleMatch) {
       title = titleMatch[1].trim()
     }
     
-    // Extract body content if standalone was generated
+    // Extract body content if standalone
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
     if (bodyMatch) {
       html = bodyMatch[1]
     }
     
-    // Remove any title blocks that Pandoc might have generated
+    // Remove title blocks
     html = html.replace(/<header[^>]*id="title-block-header"[^>]*>[\s\S]*?<\/header>/gi, '')
     
-    // Check if media directory was created
+    // Check if media directory exists
     let hasMedia = false
     try {
       const mediaStat = await fs.stat(mediaDir)
       hasMedia = mediaStat.isDirectory()
       
-      // Also check if it has any files
       if (hasMedia) {
         const mediaFiles = await fs.readdir(mediaDir)
         hasMedia = mediaFiles.length > 0
-        if (hasMedia) {
-          console.log(`Media directory contains ${mediaFiles.length} files:`, mediaFiles.slice(0, 5))
-        }
       }
     } catch {
-      // No media directory or it's empty
       hasMedia = false
     }
     
-    // Move media to permanent cache location if it exists
-    let mediaPath: string | null = null
-    if (hasMedia) {
-      mediaPath = path.join(CACHE_DIR, `media-${cacheKey}`)
-      
-      // Ensure cache directory exists
-      await fs.mkdir(CACHE_DIR, { recursive: true })
-      
-      // Remove old media path if it exists
-      await fs.rm(mediaPath, { recursive: true, force: true }).catch(() => {})
-      
-      // Move the media directory
-      await fs.rename(mediaDir, mediaPath)
-    }
-    
-    // Clean up temp files (except media which was moved)
-    await fs.rm(tempDir, { recursive: true, force: true })
-    
     return {
       html,
-      mediaPath: hasMedia ? `media-${cacheKey}` : null,
+      mediaPath: hasMedia ? mediaDir : null,
       cacheKey,
       title
     }
   } catch (error) {
-    // Clean up on error
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
     throw error
   }
 }
 
-// Cleanup old cache files (run periodically)
-export async function DELETE() {
+async function storeMediaInDatabase(
+  noteId: string,
+  mediaPath: string
+) {
   try {
-    await fs.mkdir(CACHE_DIR, { recursive: true })
-    const files = await fs.readdir(CACHE_DIR)
-    const now = Date.now()
-    const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+    const supabase = await createServerClient()
     
-    for (const file of files) {
-      const filePath = path.join(CACHE_DIR, file)
-      const stats = await fs.stat(filePath)
+    // Get cache record
+    const { data: cacheRecord } = await supabase
+      .from("study_notes_cache")
+      .select("id")
+      .eq("study_note_id", noteId)
+      .single()
+    
+    if (!cacheRecord) return
+    
+    // Delete old media files
+    await supabase
+      .from("study_notes_media")
+      .delete()
+      .eq("cache_id", cacheRecord.id)
+    
+    // Read all media files
+    const mediaFiles = await fs.readdir(mediaPath)
+    
+    for (const file of mediaFiles) {
+      const filePath = path.join(mediaPath, file)
+      const fileData = await fs.readFile(filePath)
       
-      if (now - stats.mtimeMs > maxAge) {
-        await fs.rm(filePath, { recursive: true, force: true })
+      // Determine MIME type
+      const ext = path.extname(file).toLowerCase()
+      const mimeTypes: Record<string, string> = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.webp': 'image/webp'
       }
+      
+      await supabase
+        .from("study_notes_media")
+        .insert({
+          cache_id: cacheRecord.id,
+          file_path: `media/${file}`,
+          file_data: fileData,
+          mime_type: mimeTypes[ext] || 'application/octet-stream'
+        })
     }
     
-    return NextResponse.json({ message: "Cache cleaned" })
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to clean cache" },
-      { status: 500 }
-    )
+    // Clean up temp media directory
+    await fs.rm(mediaPath, { recursive: true, force: true })
+  } catch (error) {
+    console.error("Error storing media in database:", error)
   }
 }

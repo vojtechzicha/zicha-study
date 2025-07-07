@@ -8,10 +8,12 @@ import Link from "next/link"
 
 interface PageProps {
   params: Promise<{ slug: string; materialSlug: string }>
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export default async function PublicMaterialPage({ params }: PageProps) {
+export default async function PublicMaterialPage({ params, searchParams }: PageProps) {
   const { slug, materialSlug } = await params
+  const search = await searchParams
   const supabase = await createServerClient()
 
   // First, get the study by public slug
@@ -65,6 +67,7 @@ export default async function PublicMaterialPage({ params }: PageProps) {
           note={studyNote} 
           subject={studyNote.subjects}
           study={study}
+          flush={search?.flush === '1'}
         />
       </div>
     )

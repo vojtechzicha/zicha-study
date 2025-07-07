@@ -7,27 +7,35 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface StudyNoteContentProps {
   slug: string
+  flush?: boolean
 }
 
-export function StudyNoteContent({ slug }: StudyNoteContentProps) {
+export function StudyNoteContent({ slug, flush }: StudyNoteContentProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [content, setContent] = useState<string | null>(null)
   const [cacheKey, setCacheKey] = useState<string | null>(null)
   const [title, setTitle] = useState<string | null>(null)
+  const [cacheStatus, setCacheStatus] = useState<{
+    cached: boolean
+    onedriveLastModified?: string
+    generatedAt?: string
+    onedriveAccessible?: boolean
+  } | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const katexLoadedRef = useRef(false)
 
   useEffect(() => {
     fetchContent()
-  }, [slug])
+  }, [slug, flush])
 
   const fetchContent = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/study-notes/${slug}/convert`)
+      const url = `/api/study-notes/${slug}/convert${flush ? '?flush=1' : ''}`
+      const response = await fetch(url)
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error || "Failed to load study note")
@@ -35,6 +43,14 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
 
       const data = await response.json()
       setCacheKey(data.cacheKey)
+      
+      // Set cache status
+      setCacheStatus({
+        cached: data.cached,
+        onedriveLastModified: data.onedriveLastModified,
+        generatedAt: data.generatedAt,
+        onedriveAccessible: data.onedriveAccessible
+      })
       
       // Set the document title if available
       if (data.title) {
@@ -57,13 +73,7 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
           `src="/api/study-notes/${slug}/media/media/`
         )
         
-        // Ensure all media URLs have the cache key
-        processedHtml = processedHtml.replace(
-          /src="(\/api\/study-notes\/[^\/]+\/media\/[^"?]+)"/g,
-          `src="$1?key=${data.cacheKey}"`
-        )
-        
-        console.log("Processed image URLs with cache key:", data.cacheKey)
+        console.log("Processed image URLs")
       }
 
       setContent(processedHtml)
@@ -327,13 +337,28 @@ export function StudyNoteContent({ slug }: StudyNoteContentProps) {
   }
 
   return (
-    <div className="study-note-container">
-      <div 
-        ref={contentRef}
-        className="study-note-content"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
-    </div>
+    <>
+      {cacheStatus && (
+        <div className="study-note-cache-status">
+          {cacheStatus.onedriveLastModified && (
+            <span>Aktualizováno v OneDrive: {new Date(cacheStatus.onedriveLastModified).toLocaleString('cs-CZ')}</span>
+          )}
+          {cacheStatus.generatedAt && (
+            <span>Vygenerováno: {new Date(cacheStatus.generatedAt).toLocaleString('cs-CZ')}</span>
+          )}
+          {!cacheStatus.onedriveAccessible && (
+            <span className="warning">OneDrive není dostupný - zobrazeno z cache</span>
+          )}
+        </div>
+      )}
+      <div className="study-note-container">
+        <div 
+          ref={contentRef}
+          className="study-note-content"
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
+      </div>
+    </>
   )
 }
 

@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import fs from "fs/promises"
-import path from "path"
-import os from "os"
-
-const CACHE_DIR = path.join(os.tmpdir(), "study-notes-cache")
+import { createServerClient } from "@/lib/supabase/server"
 
 const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -21,59 +17,66 @@ export async function GET(
   context: { params: Promise<{ slug: string; path: string[] }> }
 ) {
   const params = await context.params
-  const { path: pathSegments } = params
+  const { slug, path: pathSegments } = params
   
   if (!pathSegments || pathSegments.length === 0) {
     return NextResponse.json({ error: "Invalid media path" }, { status: 400 })
   }
   
   try {
-    // Extract cache key from the URL
-    const url = new URL(request.url)
-    const cacheKey = url.searchParams.get("key")
+    const supabase = await createServerClient()
     
-    if (!cacheKey) {
-      return NextResponse.json({ error: "Missing cache key" }, { status: 400 })
+    // Get the study note by public slug
+    const { data: note, error: noteError } = await supabase
+      .from("study_notes")
+      .select("id")
+      .eq("public_slug", slug)
+      .eq("is_public", true)
+      .single()
+    
+    if (noteError || !note) {
+      return NextResponse.json({ error: "Study note not found" }, { status: 404 })
     }
     
-    // Construct the media file path
-    const mediaDir = path.join(CACHE_DIR, `media-${cacheKey}`)
+    // Get the cache record
+    const { data: cache, error: cacheError } = await supabase
+      .from("study_notes_cache")
+      .select("id")
+      .eq("study_note_id", note.id)
+      .single()
     
-    // Handle the case where "media" might be duplicated in the path
+    if (cacheError || !cache) {
+      return NextResponse.json({ error: "No cached content found" }, { status: 404 })
+    }
+    
+    // Construct the file path
     let cleanedSegments = [...pathSegments]
     if (cleanedSegments[0] === 'media' && cleanedSegments.length > 1) {
-      // Remove the first "media" if it's duplicated
       cleanedSegments = cleanedSegments.slice(1)
     }
     
-    const mediaPath = path.join(mediaDir, ...cleanedSegments)
+    const filePath = `media/${cleanedSegments.join('/')}`
     
-    // Security: Ensure the resolved path is within the media directory
-    const resolvedPath = path.resolve(mediaPath)
-    const resolvedMediaDir = path.resolve(mediaDir)
+    // Get the media file from database
+    const { data: mediaFile, error: mediaError } = await supabase
+      .from("study_notes_media")
+      .select("file_data, mime_type")
+      .eq("cache_id", cache.id)
+      .eq("file_path", filePath)
+      .single()
     
-    if (!resolvedPath.startsWith(resolvedMediaDir)) {
-      return NextResponse.json({ error: "Invalid path" }, { status: 403 })
+    if (mediaError || !mediaFile) {
+      console.error("Media not found:", filePath, mediaError)
+      return NextResponse.json({ error: "Media file not found" }, { status: 404 })
     }
     
-    // Check if file exists
-    try {
-      await fs.access(mediaPath)
-    } catch {
-      return NextResponse.json({ error: "Media not found" }, { status: 404 })
-    }
-    
-    // Read the file
-    const fileBuffer = await fs.readFile(mediaPath)
-    
-    // Determine MIME type
-    const ext = path.extname(mediaPath).toLowerCase()
-    const mimeType = MIME_TYPES[ext] || "application/octet-stream"
+    // Decode the base64 data from database
+    const fileBuffer = Buffer.from(mediaFile.file_data, 'base64')
     
     // Return the file with appropriate headers
     return new NextResponse(fileBuffer, {
       headers: {
-        "Content-Type": mimeType,
+        "Content-Type": mediaFile.mime_type,
         "Cache-Control": "public, max-age=31536000", // Cache for 1 year
         "Content-Length": fileBuffer.length.toString(),
       },
