@@ -339,7 +339,6 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   const titleElement = $preliminary('p.mammoth-document-title').first()
   if (titleElement.length > 0) {
     documentTitle = titleElement.text().trim()
-    console.log('Extracted title from Title style:', documentTitle)
   } else {
     // Fallback: The first paragraph before "Obsah" is likely the title
     const firstPara = $preliminary('p').first()
@@ -348,7 +347,6 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
       // Check if it's not a TOC entry (doesn't start with a number and dot)
       if (firstParaText && !firstParaText.match(/^\d+\s*[\.\)]\s*/) && firstParaText !== 'Obsah') {
         documentTitle = firstParaText
-        console.log('Using first paragraph as title:', documentTitle)
       }
     }
   }
@@ -379,7 +377,13 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   
   // Check if Mammoth extracted any messages or metadata
   if (result.messages && result.messages.length > 0) {
-    console.log('Mammoth messages:', result.messages)
+    // Log warnings about math elements
+    const mathWarnings = result.messages.filter(m => 
+      m.message.includes('oMath') || m.message.includes('oMathPara')
+    )
+    if (mathWarnings.length > 0) {
+      console.log('Note: Mathematical equations in the document cannot be converted with Mammoth.js')
+    }
   }
 
   // Post-process HTML with Cheerio for TOC generation and title extraction
@@ -387,7 +391,6 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   // Use the title extracted from the Word document
   let title: string | null = documentTitle
-  console.log('Document title extracted:', documentTitle);
   
   // If we found a title, remove it from the body HTML
   if (title) {
@@ -395,7 +398,6 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
     const firstPara = $('p').first()
     if (firstPara.length > 0 && firstPara.text().trim() === title) {
       firstPara.remove()
-      console.log('Removed title paragraph from body')
     }
   }
 
@@ -473,9 +475,6 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   
   // Clean up any remaining unreplaced placeholders
   finalHtml = finalHtml.replace(/\$[a-zA-Z]+\$/g, '')
-
-  console.log('Final title being returned:', title);
-  console.log('Title in HTML template:', finalHtml.includes('class="study-note-title"') ? 'Found' : 'Not found');
 
   return {
     html: finalHtml,
