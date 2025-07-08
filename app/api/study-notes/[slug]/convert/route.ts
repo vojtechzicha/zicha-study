@@ -320,9 +320,44 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
     return element
   }
 
+  // Keep track of title text during conversion
+  let documentTitle: string | null = null
+  
+  // Enhanced transform function that also captures title
+  const enhancedTransformDocument = (element: mammoth.documents.Element): mammoth.documents.Element | null => {
+    // Capture title before transforming
+    if (element.type === 'paragraph' && 
+        'styleId' in element &&
+        element.styleId === 'Title' && 
+        element.children && 
+        !documentTitle) {
+      // Extract text from children
+      const extractText = (el: any): string => {
+        if (typeof el === 'string') return el;
+        if (el.children) {
+          return el.children.map(extractText).join('');
+        }
+        return '';
+      };
+      documentTitle = element.children.map(extractText).join('').trim();
+      // Remove title from body
+      return null;
+    }
+    
+    // Apply the original transform logic
+    return transformDocument(element);
+  }
+  
   const mammothOptions: mammoth.Options = {
     convertImage: mammoth.images.inline(imageConverter),
-    transformDocument: transformDocument,
+    transformDocument: enhancedTransformDocument,
+    styleMap: [
+      // Ignore TOC styles
+      "p[style-name='toc 1'] => !",
+      "p[style-name='toc 2'] => !",
+      "p[style-name='toc 3'] => !",
+      "p[style-name='TOC Heading'] => !",
+    ]
   }
 
   // Convert the DOCX buffer to HTML
@@ -337,75 +372,50 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   // Post-process HTML with Cheerio for TOC generation and title extraction
   const $ = load(bodyHtml)
 
-  // First, try to identify the document title
-  let title: string | null = null
-  let titleElement: any = null
+  // Use the title extracted from the Word document's Title style
+  let title: string | null = documentTitle
   
-  // Look for title in the first few elements of the document
-  // Common patterns: bold/strong text at start, or text before any headings
-  const allElements = $.root().children().first().children()
-  let foundFirstHeading = false
-  
-  // Scan the beginning of the document for potential title
-  allElements.each((index, el) => {
-    if (index > 10) return false // Only check first 10 elements
+  // If no title was found from the Title style, try other methods
+  if (!title) {
+    let titleElement: any = null
     
-    const $el = $(el)
+    // Look for title in the first few elements of the document
+    const allElements = $.root().children().first().children()
+    let foundFirstHeading = false
     
-    // Stop if we hit a heading (h1, h2, h3) - title should come before
-    if ($el.is('h1, h2, h3')) {
-      foundFirstHeading = true
-      return false
-    }
-    
-    // Look for paragraphs with bold/strong text that could be title
-    if ($el.is('p') && !title && !foundFirstHeading) {
-      const strongText = $el.find('strong, b').text().trim()
-      const fullText = $el.text().trim()
+    // Scan the beginning of the document for potential title
+    allElements.each((index, el) => {
+      if (index > 10) return false // Only check first 10 elements
       
-      // Check if entire paragraph is bold/strong
-      if (strongText && (strongText === fullText || strongText.length > fullText.length * 0.8)) {
-        // This is likely the title
-        if (fullText.length > 0 && fullText.length < 150) {
-          title = fullText
-          titleElement = $el
-          return false
-        }
-      }
+      const $el = $(el)
       
-      // Also check if it's a centered paragraph (common for titles)
-      const textAlign = $el.css('text-align') || $el.attr('align')
-      if (textAlign === 'center' && fullText.length > 0 && fullText.length < 150) {
-        title = fullText
-        titleElement = $el
+      // Stop if we hit a heading (h1, h2, h3) - title should come before
+      if ($el.is('h1, h2, h3')) {
+        foundFirstHeading = true
         return false
       }
-    }
-  })
-  
-  // Fallback: If no title found yet, check first h1 but be more selective
-  if (!title) {
-    const headings = $('h1, h2')
-    if (headings.length > 0) {
-      // If there are multiple h1s, the first is likely the title
-      const h1s = $('h1')
-      if (h1s.length > 1) {
-        title = h1s.first().text().trim()
-        titleElement = h1s.first()
-      } else if (h1s.length === 1) {
-        // Single h1 might be title if it's at the start
-        const h1Index = allElements.index(h1s[0])
-        if (h1Index >= 0 && h1Index < 5) {
-          title = h1s.first().text().trim()
-          titleElement = h1s.first()
+      
+      // Look for paragraphs with bold/strong text that could be title
+      if ($el.is('p') && !title && !foundFirstHeading) {
+        const strongText = $el.find('strong, b').text().trim()
+        const fullText = $el.text().trim()
+        
+        // Check if entire paragraph is bold/strong
+        if (strongText && (strongText === fullText || strongText.length > fullText.length * 0.8)) {
+          // This is likely the title
+          if (fullText.length > 0 && fullText.length < 150) {
+            title = fullText
+            titleElement = $el
+            return false
+          }
         }
       }
+    })
+    
+    // Remove any title element found in HTML
+    if (titleElement) {
+      titleElement.remove()
     }
-  }
-  
-  // Remove the title element from the document
-  if (titleElement) {
-    titleElement.remove()
   }
 
   const tocEntries: { level: number; text: string; id: string }[] = []
