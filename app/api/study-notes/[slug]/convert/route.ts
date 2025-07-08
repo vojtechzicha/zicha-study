@@ -7,6 +7,10 @@ import crypto from 'crypto'
 import os from 'os'
 import mammoth from 'mammoth'
 import { load } from 'cheerio'
+import JSZip from 'jszip'
+import { DOMParser } from 'xmldom'
+import omml2mathml from 'omml2mathml'
+import MathMLToLaTeX from 'mathml-to-latex'
 
 interface ConversionResult {
   html: string
@@ -260,6 +264,111 @@ async function storeMediaInDatabase(noteId: string, mediaPath: string) {
   }
 }
 
+interface MathEquation {
+  latex: string
+  isDisplay: boolean
+  context?: string
+}
+
+// Extract and convert OMML equations to LaTeX with context
+async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathEquation[]> {
+  const mathEquations: MathEquation[] = []
+  
+  try {
+    // Load the DOCX file as a ZIP
+    const zip = await JSZip.loadAsync(fileBuffer)
+    const documentXml = await zip.file('word/document.xml')?.async('string')
+    
+    if (!documentXml) {
+      console.log('No document.xml found in DOCX file')
+      return mathEquations
+    }
+    
+    // Parse the XML
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(documentXml, 'text/xml')
+    
+    // Find all paragraphs to understand document structure
+    const wordNamespace = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+    const mathNamespace = 'http://schemas.openxmlformats.org/officeDocument/2006/math'
+    
+    const paragraphs = doc.getElementsByTagNameNS(wordNamespace, 'p')
+    
+    // Process each paragraph to find math equations in context
+    for (let i = 0; i < paragraphs.length; i++) {
+      const para = paragraphs[i]
+      
+      // Check for display math (oMathPara)
+      const oMathParas = para.getElementsByTagNameNS(mathNamespace, 'oMathPara')
+      if (oMathParas.length > 0) {
+        for (let j = 0; j < oMathParas.length; j++) {
+          const oMathPara = oMathParas[j]
+          const oMath = oMathPara.getElementsByTagNameNS(mathNamespace, 'oMath')[0]
+          
+          if (oMath) {
+            try {
+              // Convert OMML to MathML
+              const mathmlResult = omml2mathml(oMath)
+              // Convert MathML to LaTeX
+              const latexString = MathMLToLaTeX.convert(mathmlResult)
+              
+              // Get surrounding text for context
+              const prevPara = i > 0 ? paragraphs[i - 1] : null
+              const contextText = prevPara ? prevPara.textContent?.trim() || '' : ''
+              
+              mathEquations.push({
+                latex: latexString,
+                isDisplay: true,
+                context: contextText
+              })
+              
+              console.log(`Extracted display equation: ${latexString.substring(0, 50)}...`)
+            } catch (err) {
+              console.error(`Error converting display equation:`, err)
+            }
+          }
+        }
+      }
+      
+      // Check for inline math (oMath not in oMathPara)
+      const directMath = para.getElementsByTagNameNS(mathNamespace, 'oMath')
+      for (let j = 0; j < directMath.length; j++) {
+        const oMath = directMath[j]
+        // Skip if this oMath is inside an oMathPara (already processed)
+        if (oMath.parentNode && oMath.parentNode.localName === 'oMathPara') {
+          continue
+        }
+        
+        try {
+          // Convert OMML to MathML
+          const mathmlResult = omml2mathml(oMath)
+          // Convert MathML to LaTeX
+          const latexString = MathMLToLaTeX.convert(mathmlResult)
+          
+          // Get paragraph text for context
+          const contextText = para.textContent?.trim() || ''
+          
+          mathEquations.push({
+            latex: latexString,
+            isDisplay: false,
+            context: contextText
+          })
+          
+          console.log(`Extracted inline equation: ${latexString.substring(0, 50)}...`)
+        } catch (err) {
+          console.error(`Error converting inline equation:`, err)
+        }
+      }
+    }
+    
+    console.log(`Total equations extracted: ${mathEquations.length}`)
+  } catch (error) {
+    console.error('Error extracting OMML equations:', error)
+  }
+  
+  return mathEquations
+}
+
 // Convert DOCX to HTML using Mammoth.js
 async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string): Promise<ConversionResult> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'docx-convert-'))
@@ -268,6 +377,10 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   let hasMedia = false
   const mediaFiles: { [key: string]: Buffer } = {}
+  
+  // Extract math equations first
+  const mathEquations = await extractAndConvertMathEquations(fileBuffer)
+  let mathCounter = 0
 
   const imageConverter = (image: mammoth.images.Image) => {
     return image.read().then(imageBuffer => {
@@ -382,12 +495,148 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
       m.message.includes('oMath') || m.message.includes('oMathPara')
     )
     if (mathWarnings.length > 0) {
-      console.log('Note: Mathematical equations in the document cannot be converted with Mammoth.js')
+      console.log(`Note: Found ${mathWarnings.length} math equations to process`)
     }
+  }
+  
+  // Since Mammoth doesn't preserve math equations, we need to inject them
+  // We'll add them as spans with class "math" for KaTeX to render
+  let processedHtml = result.value
+  
+  // If we have math equations, inject them into the HTML
+  if (mathEquations.length > 0) {
+    const $ = load(processedHtml)
+    
+    // Strategy: Match equations based on context and paragraph structure
+    const paragraphs = $('p')
+    let equationIndex = 0
+    const usedEquations = new Set<number>()
+    
+    // First pass: Try to match based on context
+    paragraphs.each((i, elem) => {
+      const $elem = $(elem)
+      const text = $elem.text().trim()
+      
+      // Look for equations that might belong to this paragraph
+      for (let j = 0; j < mathEquations.length; j++) {
+        if (usedEquations.has(j)) continue
+        
+        const equation = mathEquations[j]
+        
+        // For inline equations, check if the context matches
+        if (!equation.isDisplay && equation.context) {
+          // Check if this paragraph contains similar text to the equation's context
+          if (text.includes(equation.context.substring(0, 20)) || 
+              equation.context.includes(text.substring(0, 20))) {
+            // Found a likely match - inject the inline equation
+            const mathSpan = `<span class="math inline">\\(${equation.latex}\\)</span>`
+            
+            // Try to find where in the paragraph to insert it
+            // For now, append it to the end
+            $elem.append(' ' + mathSpan)
+            usedEquations.add(j)
+            break
+          }
+        }
+      }
+    })
+    
+    // Second pass: Place display equations in empty or sparse paragraphs
+    equationIndex = 0
+    paragraphs.each((i, elem) => {
+      const $elem = $(elem)
+      const text = $elem.text().trim()
+      
+      // Check if this paragraph might have contained a display equation
+      if (text === '' || text.match(/^[\s\.,;:]*$/) || text.length < 5) {
+        // Find next unused display equation
+        for (let j = 0; j < mathEquations.length; j++) {
+          if (usedEquations.has(j)) continue
+          
+          const equation = mathEquations[j]
+          if (equation.isDisplay) {
+            // Replace the content with the math equation
+            $elem.html(`<span class="math display">\\[${equation.latex}\\]</span>`)
+            usedEquations.add(j)
+            break
+          }
+        }
+      }
+    })
+    
+    // Third pass: Insert remaining display equations after paragraphs that mention "equation" or numbers
+    paragraphs.each((i, elem) => {
+      const $elem = $(elem)
+      const text = $elem.text().toLowerCase()
+      
+      // Check if this paragraph references an equation
+      if (text.includes('equation') || text.match(/\(\d+\)/) || text.includes('formula')) {
+        // Find next unused equation
+        for (let j = 0; j < mathEquations.length; j++) {
+          if (usedEquations.has(j)) continue
+          
+          const equation = mathEquations[j]
+          // Insert the equation after this paragraph
+          const mathHtml = equation.isDisplay 
+            ? `<p><span class="math display">\\[${equation.latex}\\]</span></p>`
+            : `<span class="math inline">\\(${equation.latex}\\)</span>`
+          
+          $elem.after(mathHtml)
+          usedEquations.add(j)
+          break
+        }
+      }
+    })
+    
+    // Handle remaining equations
+    const remainingEquations = mathEquations
+      .map((eq, idx) => ({ eq, idx }))
+      .filter(({ idx }) => !usedEquations.has(idx))
+      .map(({ eq }) => eq)
+    
+    if (remainingEquations.length > 0) {
+      console.log(`Warning: ${remainingEquations.length} equations could not be placed accurately`)
+      
+      // Group remaining equations by type
+      const remainingDisplay = remainingEquations.filter(eq => eq.isDisplay)
+      const remainingInline = remainingEquations.filter(eq => !eq.isDisplay)
+      
+      if (remainingDisplay.length > 0 || remainingInline.length > 0) {
+        let noteHtml = '<div class="math-equations-note" style="margin-top: 2em; padding: 1em; background: #f5f5f5; border-left: 3px solid #ccc;">'
+        noteHtml += '<p><em>Poznámka: Následující matematické výrazy byly extrahovány z dokumentu:</em></p>'
+        
+        if (remainingInline.length > 0) {
+          noteHtml += '<p>Inline výrazy: '
+          noteHtml += remainingInline
+            .map(eq => `<span class="math inline">\\(${eq.latex}\\)</span>`)
+            .join(', ')
+          noteHtml += '</p>'
+        }
+        
+        if (remainingDisplay.length > 0) {
+          noteHtml += remainingDisplay
+            .map(eq => `<p><span class="math display">\\[${eq.latex}\\]</span></p>`)
+            .join('\n')
+        }
+        
+        noteHtml += '</div>'
+        
+        // Append to the body of the document
+        const body = $('body')
+        if (body.length > 0) {
+          body.append(noteHtml)
+        } else {
+          // If no body tag, append to root
+          $.root().append(noteHtml)
+        }
+      }
+    }
+    
+    processedHtml = $.html()
   }
 
   // Post-process HTML with Cheerio for TOC generation and title extraction
-  const $ = load(bodyHtml)
+  const $ = load(processedHtml || bodyHtml)
 
   // Use the title extracted from the Word document
   let title: string | null = documentTitle

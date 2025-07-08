@@ -49,10 +49,13 @@
     "date-fns": "4.1.0",
     "embla-carousel-react": "latest",
     "input-otp": "latest",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.454.0",
     "mammoth": "^1.9.1",
+    "mathml-to-latex": "^1.5.0",
     "next": "15.2.4",
     "next-themes": "latest",
+    "omml2mathml": "^1.3.0",
     "react": "^19",
     "react-day-picker": "latest",
     "react-dom": "^19",
@@ -64,6 +67,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
     "xlsx": "^0.18.5",
+    "xmldom": "^0.6.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
