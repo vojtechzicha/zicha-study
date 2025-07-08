@@ -323,28 +323,25 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   // Keep track of title text during conversion
   let documentTitle: string | null = null
   
-  // Enhanced transform function that also captures title
+  // First convert with basic options to extract title
+  const extractTitleOptions: mammoth.Options = {
+    styleMap: [
+      // Map Title style to a special marker we can find
+      "p[style-name='Title'] => p.mammoth-document-title > :fresh",
+    ]
+  }
+  
+  // Do a preliminary conversion to extract the title
+  const preliminaryResult = await mammoth.convertToHtml({ buffer: fileBuffer }, extractTitleOptions)
+  const $preliminary = load(preliminaryResult.value)
+  const titleElement = $preliminary('p.mammoth-document-title').first()
+  if (titleElement.length > 0) {
+    documentTitle = titleElement.text().trim()
+    console.log('Extracted title from Title style:', documentTitle)
+  }
+  
+  // Enhanced transform function that also removes TOC entries
   const enhancedTransformDocument = (element: mammoth.documents.Element): mammoth.documents.Element | null => {
-    // Capture title before transforming
-    if (element.type === 'paragraph' && 
-        'styleId' in element &&
-        element.styleId === 'Title' && 
-        element.children && 
-        !documentTitle) {
-      // Extract text from children
-      const extractText = (el: any): string => {
-        if (typeof el === 'string') return el;
-        if (el.children) {
-          return el.children.map(extractText).join('');
-        }
-        return '';
-      };
-      documentTitle = element.children.map(extractText).join('').trim();
-      console.log('Extracted title from Title style:', documentTitle);
-      // Remove title from body
-      return null;
-    }
-    
     // Apply the original transform logic
     return transformDocument(element);
   }
@@ -353,6 +350,8 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
     convertImage: mammoth.images.inline(imageConverter),
     transformDocument: enhancedTransformDocument,
     styleMap: [
+      // Remove Title style paragraphs from body
+      "p[style-name='Title'] => !",
       // Ignore TOC styles
       "p[style-name='toc 1'] => !",
       "p[style-name='toc 2'] => !",
