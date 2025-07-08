@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
-import { OneDriveTokenManager } from "@/lib/utils/onedrive-token-manager"
+import { OneDriveTokenManagerV2 } from "@/lib/utils/onedrive-token-manager-v2"
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Try to create a public share link for the OneDrive file
     // Personal Microsoft accounts may not support anonymous sharing
-    let shareResponse = await OneDriveTokenManager.makeAuthenticatedRequest(
+    let shareResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest(
       `https://graph.microsoft.com/v1.0/me/drive/items/${onedriveId}/createLink`,
       {
         method: "POST",
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       // Fall back to getting the file info and creating a shareable link manually
       if (errorData.error?.code === 'accessDenied') {
         // Get the file metadata to construct a public share URL
-        const fileResponse = await OneDriveTokenManager.makeAuthenticatedRequest(
+        const fileResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest(
           `https://graph.microsoft.com/v1.0/me/drive/items/${onedriveId}`
         )
 

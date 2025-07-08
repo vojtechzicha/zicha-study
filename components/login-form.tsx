@@ -21,6 +21,10 @@ export function LoginForm() {
       options: {
         scopes: "openid email profile offline_access Files.Read Files.Read.All Files.ReadWrite",
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: 'consent',  // Force consent to ensure refresh token
+          access_type: 'offline'  // Request offline access
+        }
       },
     })
 

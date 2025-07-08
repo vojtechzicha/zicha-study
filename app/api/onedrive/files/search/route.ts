@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
-import { OneDriveTokenManager } from "@/lib/utils/onedrive-token-manager"
+import { OneDriveTokenManagerV2 } from "@/lib/utils/onedrive-token-manager-v2"
 
 export async function GET(request: Request) {
   const supabase = await createServerClient()
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     const graphUrl = `https://graph.microsoft.com/v1.0/me/drive/search(q='${encodeURIComponent(query)}')`
     
     // Use the centralized token manager to make the request
-    const graphResponse = await OneDriveTokenManager.makeAuthenticatedRequest(graphUrl)
+    const graphResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest(graphUrl)
 
     const data = await graphResponse.json()
     

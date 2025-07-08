@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { OneDriveTokenManager } from '@/lib/utils/onedrive-token-manager'
+import { OneDriveTokenManagerV2 } from '@/lib/utils/onedrive-token-manager-v2'
 import fs from 'fs/promises'
 import path from 'path'
 import crypto from 'crypto'
@@ -59,16 +59,16 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
     // Try to access OneDrive to check for updates
     try {
-      const tokenResult = await OneDriveTokenManager.getValidToken()
+      const tokenResult = await OneDriveTokenManagerV2.getValidToken()
 
       if (!tokenResult.token) {
         console.error('No OneDrive token available:', tokenResult.error)
         onedriveAccessible = false
       } else {
         // Get file metadata using direct API with the file's OneDrive ID
-        const metadataResponse = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}`, {
-          headers: { Authorization: `Bearer ${tokenResult.token}` },
-        })
+        const metadataResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest(
+          `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}`
+        )
 
         if (metadataResponse.ok) {
           const fileData = await metadataResponse.json()
@@ -76,9 +76,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
           console.log('OneDrive file last modified:', fileData.lastModifiedDateTime)
 
           // Download the file content
-          const downloadResponse = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}/content`, {
-            headers: { Authorization: `Bearer ${tokenResult.token}` },
-          })
+          const downloadResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest(
+            `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}/content`
+          )
 
           if (downloadResponse.ok) {
             fileBuffer = await downloadResponse.arrayBuffer()
