@@ -321,6 +321,23 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   // Post-process HTML with Cheerio for TOC generation and title extraction
   const $ = load(bodyHtml)
 
+  // Remove existing TOC from the document
+  // Look for common TOC patterns: sections with "obsah", "table of contents", etc.
+  $('h1, h2, h3').each((_, heading) => {
+    const headingText = $(heading).text().toLowerCase().trim()
+    if (headingText === 'obsah' || headingText === 'table of contents' || headingText === 'toc') {
+      // Find the next elements until we hit another heading
+      let currentElement = $(heading).next()
+      while (currentElement.length && !currentElement.is('h1, h2, h3')) {
+        const nextElement = currentElement.next()
+        currentElement.remove()
+        currentElement = nextElement
+      }
+      // Remove the TOC heading itself
+      $(heading).remove()
+    }
+  })
+
   const tocEntries: { level: number; text: string; id: string }[] = []
   let title: string | null = null
 
