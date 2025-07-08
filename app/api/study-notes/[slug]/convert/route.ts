@@ -340,6 +340,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
         return '';
       };
       documentTitle = element.children.map(extractText).join('').trim();
+      console.log('Extracted title from Title style:', documentTitle);
       // Remove title from body
       return null;
     }
@@ -374,9 +375,11 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   // Use the title extracted from the Word document's Title style
   let title: string | null = documentTitle
+  console.log('Document title from Word Title style:', documentTitle);
   
   // If no title was found from the Title style, try other methods
   if (!title) {
+    console.log('No title found from Title style, trying other methods...');
     let titleElement: any = null
     
     // Look for title in the first few elements of the document
@@ -492,6 +495,9 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   
   // Clean up any remaining unreplaced placeholders
   finalHtml = finalHtml.replace(/\$[a-zA-Z]+\$/g, '')
+
+  console.log('Final title being returned:', title);
+  console.log('Title in HTML template:', finalHtml.includes('class="study-note-title"') ? 'Found' : 'Not found');
 
   return {
     html: finalHtml,
