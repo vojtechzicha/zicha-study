@@ -311,9 +311,8 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
               // Convert OMML to MathML
               const mathmlElement = omml2mathml(oMath)
               
-              // Serialize the MathML element to string
-              const serializer = new XMLSerializer()
-              const mathmlString = serializer.serializeToString(mathmlElement)
+              // Get the MathML string - omml2mathml returns a DOM element, use outerHTML
+              const mathmlString = mathmlElement.outerHTML
               
               // Convert MathML to LaTeX
               const latexString = MathMLToLaTeX.convert(mathmlString)
@@ -350,9 +349,8 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
           // Convert OMML to MathML
           const mathmlElement = omml2mathml(oMath)
           
-          // Serialize the MathML element to string
-          const serializer = new XMLSerializer()
-          const mathmlString = serializer.serializeToString(mathmlElement)
+          // Get the MathML string - omml2mathml returns a DOM element, use outerHTML
+          const mathmlString = mathmlElement.outerHTML
           
           // Convert MathML to LaTeX
           const latexString = MathMLToLaTeX.convert(mathmlString)
