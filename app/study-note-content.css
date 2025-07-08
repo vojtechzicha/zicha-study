@@ -31,10 +31,11 @@
   height: fit-content;
   max-height: calc(100vh - 2rem);
   background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--primary-100, #e5e7eb);
   border-radius: 0.5rem;
   transition: all 0.3s ease;
   z-index: 10;
+  background: linear-gradient(to bottom, #ffffff, var(--primary-50, #ffffff));
 }
 
 .study-note-toc.collapsed {
@@ -46,7 +47,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--primary-100, #e5e7eb);
   background-color: #ffffff;
   height: 60px; /* Match content header height */
 }
@@ -125,7 +126,7 @@
 /* Main content card */
 .study-note-card {
   background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--primary-100, #e5e7eb);
   border-radius: 0.5rem;
   padding: 2rem;
   min-height: 600px;
@@ -190,7 +191,7 @@
   margin-top: 0;
   margin-bottom: 2.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--primary-200, #e5e7eb);
   letter-spacing: -0.025em;
 }
 
@@ -219,7 +220,7 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  background-color: #3b82f6;
+  background-color: var(--primary-500, #3b82f6);
   border-radius: 2px;
 }
 
@@ -311,16 +312,16 @@
 .study-note-toc a:hover,
 #TOC a:hover {
   color: #1f2937;
-  background-color: #f3f4f6;
-  border-left-color: #d1d5db;
+  background-color: var(--primary-50, #f3f4f6);
+  border-left-color: var(--primary-200, #d1d5db);
 }
 
 .study-note-toc a.active,
 #TOC a.active {
-  color: #2563eb;
+  color: var(--primary-600, #2563eb);
   font-weight: 500;
-  background-color: #eff6ff;
-  border-left-color: #2563eb;
+  background-color: var(--primary-50, #eff6ff);
+  border-left-color: var(--primary-600, #2563eb);
 }
 
 /* Nested TOC items */
@@ -418,7 +419,7 @@
 
 /* Links */
 .study-note-content a {
-  color: #007bff;
+  color: var(--primary-600, #007bff);
   text-decoration: none;
 }
 
@@ -476,7 +477,7 @@
 
 /* Blockquotes */
 .study-note-content blockquote {
-  border-left: 4px solid #007bff;
+  border-left: 4px solid var(--primary-500, #007bff);
   padding-left: 1rem;
   margin-left: 0;
   margin-right: 0;
