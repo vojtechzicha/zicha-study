@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import "@/app/study-note-content.css"
 
 interface StudyNoteContentProps {
   slug: string
