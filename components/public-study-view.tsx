@@ -14,6 +14,8 @@ import {
 import { StudyLogo } from "./study-logo"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
+import { PublicMaterialsSection } from "./public-materials-section"
+import { PublicStudyNotesSection } from "./public-study-notes-section"
 import { BookOpen, Target, Clock, Trophy } from "lucide-react"
 import { 
   getStatusColor, 
@@ -446,6 +448,16 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Materials Section */}
+        <div className="mb-8">
+          <PublicMaterialsSection studyId={study.id} study={study} />
+        </div>
+
+        {/* Study Notes Section */}
+        <div className="mb-8">
+          <PublicStudyNotesSection studyId={study.id} study={study} />
         </div>
 
         {/* Subjects by Semester */}

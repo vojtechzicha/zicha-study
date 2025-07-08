@@ -5,9 +5,10 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Play, CheckCircle } from "lucide-react"
+import { Edit, Play, CheckCircle, FolderOpen } from "lucide-react"
 import { SubjectEditForm } from "./subject-edit-form"
 import { SubjectCompletionModal } from "./subject-completion-modal"
+import { SubjectMaterialsDialog } from "./subject-materials-dialog"
 import {
   Tooltip,
   TooltipContent,
@@ -65,10 +66,18 @@ interface Subject {
   created_at: string
 }
 
+interface Study {
+  id: string
+  name: string
+  is_public?: boolean
+  public_slug?: string
+}
+
 interface SubjectTableMobileProps {
   subjects: Subject[]
   loading: boolean
   onUpdate: () => void
+  study?: Study
 }
 
 const sortSubjects = (subjects: Subject[]) => {
@@ -122,13 +131,14 @@ const sortSubjects = (subjects: Subject[]) => {
   })
 }
 
-export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTableMobileProps) {
+export function SubjectTableMobile({ subjects, loading, onUpdate, study }: SubjectTableMobileProps) {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({})
   const [editFormOpen, setEditFormOpen] = useState(false)
   const [completionModalOpen, setCompletionModalOpen] = useState(false)
   const [completionModalSubject, setCompletionModalSubject] = useState<Subject | null>(null)
   const [completionModalType, setCompletionModalType] = useState<"credit" | "exam">("credit")
+  const [materialsDialogSubject, setMaterialsDialogSubject] = useState<Subject | null>(null)
   const supabase = createClient()
 
   const sortedSubjects = sortSubjects(subjects)
@@ -308,6 +318,26 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
               
               {/* Actions */}
               <div className="flex gap-1 ml-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMaterialsDialogSubject(subject)
+                        }}
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Materiály a zápisy</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
                 {availableActions.includes("makeActive") && (
                   <Button
                     variant="ghost"
@@ -497,6 +527,16 @@ export function SubjectTableMobile({ subjects, loading, onUpdate }: SubjectTable
             setCompletionModalSubject(null)
             onUpdate()
           }}
+        />
+      )}
+
+      {/* Materials Dialog */}
+      {materialsDialogSubject && (
+        <SubjectMaterialsDialog
+          subject={materialsDialogSubject}
+          isOpen={!!materialsDialogSubject}
+          onClose={() => setMaterialsDialogSubject(null)}
+          study={study}
         />
       )}
     </div>

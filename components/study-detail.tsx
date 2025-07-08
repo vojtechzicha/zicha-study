@@ -10,6 +10,7 @@ import { SubjectForm } from "./subject-form"
 import { SubjectTable } from "./subject-table"
 import { StudyHeader } from "./study-header"
 import { MaterialsSection } from "./materials-section"
+import { StudyNotesOverviewSection } from "./study-notes-overview-section"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
 import { calculateAverage } from "@/lib/grade-utils"
@@ -272,6 +273,11 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
         {/* Materials Section */}
         <div className="mb-8">
           <MaterialsSection studyId={study.id} study={study} />
+        </div>
+
+        {/* Study Notes Section */}
+        <div className="mb-8">
+          <StudyNotesOverviewSection studyId={study.id} study={study} />
         </div>
 
         {/* Subjects Section */}

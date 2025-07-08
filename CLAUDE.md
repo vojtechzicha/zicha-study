@@ -105,3 +105,11 @@ Study notes allow users to upload DOCX files to OneDrive and display them as bea
 - Converted HTML and media are cached in database for optimal performance
 - Client-side KaTeX rendering for math expressions
 - Regeneration triggered by OneDrive file changes or ?flush=1 parameter
+
+### OneDrive Token Management
+The app uses Microsoft OAuth for OneDrive access. There are known limitations with Supabase's OAuth integration:
+- Supabase may not always expose the provider refresh token
+- Access tokens expire after 1 hour
+- Refresh token support requires setting environment variables (see `.env.example`)
+- The auth callback logs token availability for debugging
+- If refresh tokens aren't available, users need to re-authenticate periodically

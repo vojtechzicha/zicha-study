@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link, Unlink } from "lucide-react"
+import { BookOpen, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link, Unlink } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -165,10 +165,10 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
-              <FileText className="h-8 w-8 text-blue-600" />
+              <BookOpen className="h-8 w-8 text-indigo-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm mb-1 truncate">{note.name}</h3>
+              <h3 className="font-semibold text-base mb-1 truncate">{note.name}</h3>
               {note.description && (
                 <p className="text-xs text-gray-600 mb-2 line-clamp-2">{note.description}</p>
               )}
@@ -206,7 +206,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                         // Viewing from linked subject - show primary subject
                         return primarySubject ? (
                           <Badge variant="outline" className="text-xs py-0 px-2">
-                            Zdroj: {primarySubject.name}
+                            {primarySubject.name}
                           </Badge>
                         ) : null
                       }

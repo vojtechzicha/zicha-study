@@ -298,7 +298,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       {/* Mobile Card View */}
       <div className="lg:hidden">
         <div className="p-4">
-          <SubjectTableMobile subjects={hideFilters ? subjects : filteredSubjects} loading={loading} onUpdate={onUpdate} />
+          <SubjectTableMobile subjects={hideFilters ? subjects : filteredSubjects} loading={loading} onUpdate={onUpdate} study={study} />
         </div>
       </div>
       
