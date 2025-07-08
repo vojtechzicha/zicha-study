@@ -334,6 +334,24 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   // Do a preliminary conversion to extract the title
   const preliminaryResult = await mammoth.convertToHtml({ buffer: fileBuffer }, extractTitleOptions)
   const $preliminary = load(preliminaryResult.value)
+  
+  // Debug: Check what we got
+  console.log('Looking for p.mammoth-document-title elements...')
+  const titleElements = $preliminary('p.mammoth-document-title')
+  console.log('Found elements:', titleElements.length)
+  
+  // Also try looking for any paragraph in the first few elements
+  const firstParas = $preliminary('p').slice(0, 5)
+  console.log('First 5 paragraphs:')
+  firstParas.each((i, el) => {
+    const $el = $preliminary(el)
+    const text = $el.text().trim()
+    const classes = $el.attr('class') || 'no classes'
+    if (text) {
+      console.log(`  ${i}: "${text.substring(0, 50)}..." (classes: ${classes})`)
+    }
+  })
+  
   const titleElement = $preliminary('p.mammoth-document-title').first()
   if (titleElement.length > 0) {
     documentTitle = titleElement.text().trim()
