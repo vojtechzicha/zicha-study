@@ -286,25 +286,35 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
     })
   }
 
-  // Transform document to remove unwanted elements
-  const transformDocument = (element: mammoth.documents.Element) => {
+  // Transform document to remove unwanted elements (replicates Lua filter)
+  const transformDocument = (element: mammoth.documents.Element): mammoth.documents.Element | null => {
     // Add a guard clause for safety
     if (!element) {
       return element
     }
 
     // Remove HorizontalRule (--- in markdown)
-    if (element.type === 'horizontal_rule') {
+    if (element.type === 'horizontal-rule') {
       return null // Returning null removes the element
     }
 
-    // Remove paragraphs that only contain a single link
-    if (element.type === 'paragraph') {
-      const hasSingleChildLink = element.children && element.children.length === 1 && element.children[0].type === 'hyperlink'
-
-      if (hasSingleChildLink) {
-        return null
+    // Remove paragraphs that only contain a single link (TOC entries)
+    if (element.type === 'paragraph' && element.children) {
+      // Check if paragraph has exactly one child that is a hyperlink
+      if (element.children.length === 1) {
+        const child = element.children[0]
+        // Check for hyperlink type
+        if (child && 'type' in child && child.type === 'hyperlink') {
+          return null
+        }
       }
+    }
+
+    // Recursively process children
+    if (element.children) {
+      element.children = element.children
+        .map(child => transformDocument(child as mammoth.documents.Element))
+        .filter(child => child !== null) as mammoth.documents.Element[]
     }
 
     return element
@@ -320,23 +330,6 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   // Post-process HTML with Cheerio for TOC generation and title extraction
   const $ = load(bodyHtml)
-
-  // Remove existing TOC from the document
-  // Look for common TOC patterns: sections with "obsah", "table of contents", etc.
-  $('h1, h2, h3').each((_, heading) => {
-    const headingText = $(heading).text().toLowerCase().trim()
-    if (headingText === 'obsah' || headingText === 'table of contents' || headingText === 'toc') {
-      // Find the next elements until we hit another heading
-      let currentElement = $(heading).next()
-      while (currentElement.length && !currentElement.is('h1, h2, h3')) {
-        const nextElement = currentElement.next()
-        currentElement.remove()
-        currentElement = nextElement
-      }
-      // Remove the TOC heading itself
-      $(heading).remove()
-    }
-  })
 
   const tocEntries: { level: number; text: string; id: string }[] = []
   let title: string | null = null
