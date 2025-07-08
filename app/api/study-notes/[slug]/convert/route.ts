@@ -8,7 +8,7 @@ import os from 'os'
 import mammoth from 'mammoth'
 import { load } from 'cheerio'
 import JSZip from 'jszip'
-import { DOMParser } from 'xmldom'
+import { DOMParser, XMLSerializer } from 'xmldom'
 import omml2mathml from 'omml2mathml'
 import { MathMLToLaTeX } from 'mathml-to-latex'
 
@@ -309,10 +309,14 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
           if (oMath) {
             try {
               // Convert OMML to MathML
-              const mathmlResult = omml2mathml(oMath)
+              const mathmlElement = omml2mathml(oMath)
+              
+              // Serialize the MathML element to string
+              const serializer = new XMLSerializer()
+              const mathmlString = serializer.serializeToString(mathmlElement)
               
               // Convert MathML to LaTeX
-              const latexString = MathMLToLaTeX.convert(mathmlResult)
+              const latexString = MathMLToLaTeX.convert(mathmlString)
               
               // Get surrounding text for context
               const prevPara = i > 0 ? paragraphs[i - 1] : null
@@ -344,10 +348,14 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
         
         try {
           // Convert OMML to MathML
-          const mathmlResult = omml2mathml(oMath)
+          const mathmlElement = omml2mathml(oMath)
+          
+          // Serialize the MathML element to string
+          const serializer = new XMLSerializer()
+          const mathmlString = serializer.serializeToString(mathmlElement)
           
           // Convert MathML to LaTeX
-          const latexString = MathMLToLaTeX.convert(mathmlResult)
+          const latexString = MathMLToLaTeX.convert(mathmlString)
           
           // Get paragraph text for context
           const contextText = para.textContent?.trim() || ''
