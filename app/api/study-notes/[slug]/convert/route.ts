@@ -518,86 +518,66 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   if (mathEquations.length > 0) {
     const $ = load(processedHtml)
     
-    // Strategy: Match equations based on context and paragraph structure
+    console.log(`Processing ${mathEquations.length} extracted equations`)
+    
+    // Strategy: Sequential placement with smart detection
     const paragraphs = $('p')
     let equationIndex = 0
     const usedEquations = new Set<number>()
     
-    // First pass: Try to match based on context
+    // Process paragraphs sequentially
     paragraphs.each((i, elem) => {
       const $elem = $(elem)
-      const text = $elem.text().trim()
+      const text = $elem.text().trim().toLowerCase()
       
-      // Look for equations that might belong to this paragraph
-      for (let j = 0; j < mathEquations.length; j++) {
-        if (usedEquations.has(j)) continue
-        
-        const equation = mathEquations[j]
-        
-        // For inline equations, check if the context matches
-        if (!equation.isDisplay && equation.context) {
-          // Check if this paragraph contains similar text to the equation's context
-          if (text.includes(equation.context.substring(0, 20)) || 
-              equation.context.includes(text.substring(0, 20))) {
-            // Found a likely match - inject the inline equation
-            const mathSpan = `<span class="math inline">\\(${equation.latex}\\)</span>`
-            
-            // Try to find where in the paragraph to insert it
-            // For now, append it to the end
-            $elem.append(' ' + mathSpan)
-            usedEquations.add(j)
-            break
-          }
-        }
-      }
-    })
-    
-    // Second pass: Place display equations in empty or sparse paragraphs
-    equationIndex = 0
-    paragraphs.each((i, elem) => {
-      const $elem = $(elem)
-      const text = $elem.text().trim()
+      // Skip if we've used all equations
+      if (equationIndex >= mathEquations.length) return
       
-      // Check if this paragraph might have contained a display equation
-      if (text === '' || text.match(/^[\s\.,;:]*$/) || text.length < 5) {
-        // Find next unused display equation
-        for (let j = 0; j < mathEquations.length; j++) {
-          if (usedEquations.has(j)) continue
-          
-          const equation = mathEquations[j]
-          if (equation.isDisplay) {
-            // Replace the content with the math equation
+      // Check for empty paragraphs or equation indicators
+      const isEmpty = text === '' || text.match(/^[\s\.,;:]*$/)
+      const hasEquationKeyword = text.includes('rovnic') || text.includes('vzorec') || 
+                                  text.includes('equation') || text.includes('formula') ||
+                                  text.includes('kde:') || text.includes('where:')
+      const hasVariableDefinition = text.match(/^[a-z]\s*[–-]\s*/i) || text.match(/^[a-z]\s*=\s*/i)
+      
+      // If this paragraph likely contained or references an equation
+      if (isEmpty || hasEquationKeyword || hasVariableDefinition) {
+        const equation = mathEquations[equationIndex]
+        
+        if (equation.isDisplay) {
+          // Replace empty paragraph with display equation
+          if (isEmpty) {
             $elem.html(`<span class="math display">\\[${equation.latex}\\]</span>`)
-            usedEquations.add(j)
-            break
+          } else {
+            // Insert after paragraph that mentions equation
+            $elem.after(`<p><span class="math display">\\[${equation.latex}\\]</span></p>`)
           }
+        } else {
+          // Inline equation - append to current paragraph
+          if (isEmpty) {
+            $elem.html(`<span class="math inline">\\(${equation.latex}\\)</span>`)
+          } else {
+            $elem.append(` <span class="math inline">\\(${equation.latex}\\)</span>`)
+          }
+        }
+        
+        usedEquations.add(equationIndex)
+        equationIndex++
+        
+        // Check if next equations are also inline and belong to the same paragraph
+        while (equationIndex < mathEquations.length && 
+               !mathEquations[equationIndex].isDisplay && 
+               !isEmpty) {
+          const nextEq = mathEquations[equationIndex]
+          $elem.append(`, <span class="math inline">\\(${nextEq.latex}\\)</span>`)
+          usedEquations.add(equationIndex)
+          equationIndex++
         }
       }
     })
     
-    // Third pass: Insert remaining display equations after paragraphs that mention "equation" or numbers
-    paragraphs.each((i, elem) => {
-      const $elem = $(elem)
-      const text = $elem.text().toLowerCase()
-      
-      // Check if this paragraph references an equation
-      if (text.includes('equation') || text.match(/\(\d+\)/) || text.includes('formula')) {
-        // Find next unused equation
-        for (let j = 0; j < mathEquations.length; j++) {
-          if (usedEquations.has(j)) continue
-          
-          const equation = mathEquations[j]
-          // Insert the equation after this paragraph
-          const mathHtml = equation.isDisplay 
-            ? `<p><span class="math display">\\[${equation.latex}\\]</span></p>`
-            : `<span class="math inline">\\(${equation.latex}\\)</span>`
-          
-          $elem.after(mathHtml)
-          usedEquations.add(j)
-          break
-        }
-      }
-    })
+    // Log how many equations were placed
+    console.log(`Placed ${usedEquations.size} equations out of ${mathEquations.length}`)
     
     // Handle remaining equations
     const remainingEquations = mathEquations
@@ -613,32 +593,95 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
       const remainingInline = remainingEquations.filter(eq => !eq.isDisplay)
       
       if (remainingDisplay.length > 0 || remainingInline.length > 0) {
-        let noteHtml = '<div class="math-equations-note" style="margin-top: 2em; padding: 1em; background: #f5f5f5; border-left: 3px solid #ccc;">'
-        noteHtml += '<p><em>Poznámka: Následující matematické výrazy byly extrahovány z dokumentu:</em></p>'
+        // Instead of showing all equations, try a more targeted approach
+        // Look for sections that might contain these equations
+        const sections = $('h1, h2, h3, h4')
+        const economicsKeywords = ['náklad', 'výnos', 'zisk', 'cena', 'rovnováh', 'poptávk', 'nabídk', 
+                                   'elasticit', 'monopol', 'oligopol', 'produkt', 'mezní', 'průměr',
+                                   'celkov', 'variabilní', 'fixní', 'optimalizac']
         
-        if (remainingInline.length > 0) {
-          noteHtml += '<p>Inline výrazy: '
-          noteHtml += remainingInline
-            .map(eq => `<span class="math inline">\\(${eq.latex}\\)</span>`)
-            .join(', ')
-          noteHtml += '</p>'
-        }
+        sections.each((i, heading) => {
+          const $heading = $(heading)
+          const headingText = $heading.text().toLowerCase()
+          
+          // Check if this section might contain economics equations
+          if (economicsKeywords.some(keyword => headingText.includes(keyword))) {
+            // Find paragraphs after this heading
+            let $current = $heading.next()
+            let placed = 0
+            
+            while ($current.length > 0 && placed < 5 && remainingEquations.length > 0) {
+              const tagName = $current.prop('tagName')?.toLowerCase()
+              
+              // Stop at next heading
+              if (tagName && ['h1', 'h2', 'h3', 'h4'].includes(tagName)) break
+              
+              // If it's an empty paragraph or mentions equations
+              if (tagName === 'p') {
+                const text = $current.text().trim()
+                if (text === '' || text.length < 10 || text.includes('rovnic') || text.includes('vzorec')) {
+                  const eq = remainingEquations.shift()
+                  if (eq) {
+                    const mathHtml = eq.isDisplay 
+                      ? `<span class="math display">\\[${eq.latex}\\]</span>`
+                      : `<span class="math inline">\\(${eq.latex}\\)</span>`
+                    
+                    if (text === '') {
+                      $current.html(mathHtml)
+                    } else {
+                      $current.after(`<p>${mathHtml}</p>`)
+                    }
+                    placed++
+                  }
+                }
+              }
+              
+              $current = $current.next()
+            }
+          }
+        })
         
-        if (remainingDisplay.length > 0) {
-          noteHtml += remainingDisplay
-            .map(eq => `<p><span class="math display">\\[${eq.latex}\\]</span></p>`)
-            .join('\n')
-        }
-        
-        noteHtml += '</div>'
-        
-        // Append to the body of the document
-        const body = $('body')
-        if (body.length > 0) {
-          body.append(noteHtml)
-        } else {
-          // If no body tag, append to root
-          $.root().append(noteHtml)
+        // If still equations remain, group them at the end
+        if (remainingEquations.length > 0) {
+          console.log(`Warning: ${remainingEquations.length} equations could not be placed in context`)
+          
+          let noteHtml = '<div class="math-equations-appendix" style="margin-top: 3em; padding: 1.5em; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">'
+          noteHtml += '<h3 style="margin-top: 0;">Matematické vzorce v dokumentu</h3>'
+          noteHtml += '<p style="color: #6c757d; font-size: 0.9em;"><em>Následující vzorce byly extrahovány z dokumentu. Jejich přesné umístění se nepodařilo určit.</em></p>'
+          
+          // Group equations by similarity
+          const grouped = remainingEquations.reduce((acc, eq) => {
+            const key = eq.isDisplay ? 'display' : 'inline'
+            if (!acc[key]) acc[key] = []
+            acc[key].push(eq)
+            return acc
+          }, {} as Record<string, typeof remainingEquations>)
+          
+          if (grouped.inline && grouped.inline.length > 0) {
+            noteHtml += '<div style="margin: 1em 0;"><strong>Inline vzorce:</strong><br/>'
+            noteHtml += grouped.inline
+              .map(eq => `<span class="math inline">\\(${eq.latex}\\)</span>`)
+              .join(' • ')
+            noteHtml += '</div>'
+          }
+          
+          if (grouped.display && grouped.display.length > 0) {
+            noteHtml += '<div style="margin: 1em 0;"><strong>Zobrazené vzorce:</strong></div>'
+            noteHtml += grouped.display
+              .map(eq => `<p style="text-align: center;"><span class="math display">\\[${eq.latex}\\]</span></p>`)
+              .join('\n')
+          }
+          
+          noteHtml += '</div>'
+          
+          // Append to the body of the document
+          const body = $('body')
+          if (body.length > 0) {
+            body.append(noteHtml)
+          } else {
+            // If no body tag, append to root
+            $.root().append(noteHtml)
+          }
         }
       }
     }
