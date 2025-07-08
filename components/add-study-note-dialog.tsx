@@ -208,11 +208,25 @@ export function AddStudyNoteDialog({
         public_slug: publicSlug || generateUniqueSlug(),
       }
 
-      const { error: insertError } = await supabase
+      const { data: insertedNote, error: insertError } = await supabase
         .from("study_notes")
         .insert(noteData)
+        .select()
+        .single()
 
       if (insertError) throw insertError
+
+      // Create the primary subject link in the many-to-many table
+      const { error: linkError } = await supabase
+        .from("study_note_subjects")
+        .insert({
+          study_note_id: insertedNote.id,
+          subject_id: subjectId,
+          is_primary: true,
+          linked_by: user.id
+        })
+
+      if (linkError) throw linkError
 
       onSuccess()
       handleClose()

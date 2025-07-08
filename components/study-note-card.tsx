@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye } from "lucide-react"
+import { FileText, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link, Unlink } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,10 +25,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import type { StudyNote } from "@/lib/types/study-notes"
+import type { StudyNote, StudyNoteWithSubjects } from "@/lib/types/study-notes"
+import { StudyNoteLinkSubjectsDialog } from "@/components/study-note-link-subjects-dialog"
 
 interface StudyNoteCardProps {
-  note: StudyNote
+  note: StudyNoteWithSubjects
   onDelete?: (id: string) => void
   onUpdate?: () => void
   studySlug?: string
@@ -37,6 +38,7 @@ interface StudyNoteCardProps {
 
 export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic }: StudyNoteCardProps) {
   const [showPublicDialog, setShowPublicDialog] = useState(false)
+  const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [isPublic, setIsPublic] = useState(note.is_public)
   const [publicSlug, setPublicSlug] = useState(note.public_slug)
   const [loading, setLoading] = useState(false)
@@ -181,6 +183,19 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   </Badge>
                 )}
               </div>
+              {/* Show linked subjects if more than 1 */}
+              {note.subjects && note.subjects.length > 1 && (
+                <div className="flex items-center gap-1 mt-2">
+                  <Link className="h-3 w-3 text-gray-400" />
+                  <div className="flex flex-wrap gap-1">
+                    {note.subjects.filter(s => !s.is_primary).map(subject => (
+                      <Badge key={subject.id} variant="outline" className="text-xs py-0 px-2">
+                        {subject.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -206,6 +221,10 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowPublicDialog(true); }}>
                   <Globe className="h-4 w-4 mr-2" />
                   Nastavení sdílení
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowLinkDialog(true); }}>
+                  <Link className="h-4 w-4 mr-2" />
+                  Propojit s předměty
                 </DropdownMenuItem>
                 {note.is_public && (
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCopyLink(); }}>
@@ -356,6 +375,13 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
           </div>
         </DialogContent>
       </Dialog>
+
+      <StudyNoteLinkSubjectsDialog
+        note={note}
+        isOpen={showLinkDialog}
+        onClose={() => setShowLinkDialog(false)}
+        onUpdate={onUpdate || (() => {})}
+      />
     </>
   )
 }

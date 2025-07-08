@@ -42,3 +42,24 @@ export interface UpdateStudyNoteData {
   public_slug?: string
   is_public?: boolean
 }
+
+// Many-to-many relationship
+export interface StudyNoteSubjectLink {
+  id: string
+  study_note_id: string
+  subject_id: string
+  is_primary: boolean
+  linked_at: string
+  linked_by: string | null
+}
+
+// Extended study note with subject links
+export interface StudyNoteWithSubjects extends StudyNote {
+  study_note_subjects?: StudyNoteSubjectLink[]
+  subjects?: {
+    id: string
+    name: string
+    study_id: string
+    is_primary: boolean
+  }[]
+}

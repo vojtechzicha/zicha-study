@@ -6,7 +6,7 @@ import { Plus, BookOpen } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
-import type { StudyNote } from "@/lib/types/study-notes"
+import type { StudyNote, StudyNoteWithSubjects } from "@/lib/types/study-notes"
 
 interface StudyNotesSectionProps {
   studyId: string
@@ -16,7 +16,7 @@ interface StudyNotesSectionProps {
 }
 
 export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic }: StudyNotesSectionProps) {
-  const [notes, setNotes] = useState<StudyNote[]>([])
+  const [notes, setNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const supabase = createClient()
@@ -29,13 +29,17 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from("study_notes")
-        .select("*")
-        .eq("subject_id", subjectId)
-        .order("created_at", { ascending: false })
+        .rpc("get_subject_study_notes_with_details", { p_subject_id: subjectId })
 
       if (error) throw error
-      setNotes(data || [])
+      
+      // Transform the data to match our interface
+      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map(note => ({
+        ...note,
+        subjects: note.linked_subjects || []
+      }))
+      
+      setNotes(notesWithSubjects)
     } catch (err) {
       console.error("Failed to load study notes:", err)
     } finally {
