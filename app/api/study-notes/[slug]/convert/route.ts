@@ -465,23 +465,32 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   const templatePath = path.join(process.cwd(), 'lib/utils/study-note-template.html')
   let finalHtml = await fs.readFile(templatePath, 'utf-8')
 
+  // Handle TOC conditional
   if (tocHtml) {
+    // Replace the TOC placeholder and remove the conditional markers
     finalHtml = finalHtml.replace('$toc$', tocHtml)
-    // Make the `$if(toc)$` conditional work
-    finalHtml = finalHtml.replace(/\$if\(toc\)\$/g, '').replace(/\$endif\$/g, '')
+    // Remove $if(toc)$ and corresponding $endif$ when TOC exists
+    finalHtml = finalHtml.replace(/\$if\(toc\)\$([\s\S]*?)\$endif\$/g, '$1')
   } else {
+    // Remove the entire TOC section when no TOC
     finalHtml = finalHtml.replace(/\$if\(toc\)\$([\s\S]*?)\$endif\$/g, '')
   }
 
+  // Handle title conditional
   if (title) {
+    // Replace the title placeholder and remove the conditional markers
     finalHtml = finalHtml.replace('$title$', title)
-    finalHtml = finalHtml.replace(/\$if\(title\)\$/g, '').replace(/\$endif\$/g, '')
+    // Remove $if(title)$ and corresponding $endif$ when title exists
+    finalHtml = finalHtml.replace(/\$if\(title\)\$([\s\S]*?)\$endif\$/g, '$1')
   } else {
+    // Remove the entire title section when no title
     finalHtml = finalHtml.replace(/\$if\(title\)\$([\s\S]*?)\$endif\$/g, '')
   }
 
-  // Inject the main content and clean up any remaining placeholders
+  // Inject the main content
   finalHtml = finalHtml.replace('$body$', $.html())
+  
+  // Clean up any remaining unreplaced placeholders
   finalHtml = finalHtml.replace(/\$[a-zA-Z]+\$/g, '')
 
   return {
