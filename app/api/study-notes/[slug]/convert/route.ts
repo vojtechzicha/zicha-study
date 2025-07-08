@@ -326,13 +326,89 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   }
 
   // Convert the DOCX buffer to HTML
-  const { value: bodyHtml } = await mammoth.convertToHtml({ buffer: fileBuffer }, mammothOptions)
+  const result = await mammoth.convertToHtml({ buffer: fileBuffer }, mammothOptions)
+  const bodyHtml = result.value
+  
+  // Check if Mammoth extracted any messages or metadata
+  if (result.messages && result.messages.length > 0) {
+    console.log('Mammoth messages:', result.messages)
+  }
 
   // Post-process HTML with Cheerio for TOC generation and title extraction
   const $ = load(bodyHtml)
 
-  const tocEntries: { level: number; text: string; id: string }[] = []
+  // First, try to identify the document title
   let title: string | null = null
+  let titleElement: any = null
+  
+  // Look for title in the first few elements of the document
+  // Common patterns: bold/strong text at start, or text before any headings
+  const allElements = $.root().children().first().children()
+  let foundFirstHeading = false
+  
+  // Scan the beginning of the document for potential title
+  allElements.each((index, el) => {
+    if (index > 10) return false // Only check first 10 elements
+    
+    const $el = $(el)
+    
+    // Stop if we hit a heading (h1, h2, h3) - title should come before
+    if ($el.is('h1, h2, h3')) {
+      foundFirstHeading = true
+      return false
+    }
+    
+    // Look for paragraphs with bold/strong text that could be title
+    if ($el.is('p') && !title && !foundFirstHeading) {
+      const strongText = $el.find('strong, b').text().trim()
+      const fullText = $el.text().trim()
+      
+      // Check if entire paragraph is bold/strong
+      if (strongText && (strongText === fullText || strongText.length > fullText.length * 0.8)) {
+        // This is likely the title
+        if (fullText.length > 0 && fullText.length < 150) {
+          title = fullText
+          titleElement = $el
+          return false
+        }
+      }
+      
+      // Also check if it's a centered paragraph (common for titles)
+      const textAlign = $el.css('text-align') || $el.attr('align')
+      if (textAlign === 'center' && fullText.length > 0 && fullText.length < 150) {
+        title = fullText
+        titleElement = $el
+        return false
+      }
+    }
+  })
+  
+  // Fallback: If no title found yet, check first h1 but be more selective
+  if (!title) {
+    const headings = $('h1, h2')
+    if (headings.length > 0) {
+      // If there are multiple h1s, the first is likely the title
+      const h1s = $('h1')
+      if (h1s.length > 1) {
+        title = h1s.first().text().trim()
+        titleElement = h1s.first()
+      } else if (h1s.length === 1) {
+        // Single h1 might be title if it's at the start
+        const h1Index = allElements.index(h1s[0])
+        if (h1Index >= 0 && h1Index < 5) {
+          title = h1s.first().text().trim()
+          titleElement = h1s.first()
+        }
+      }
+    }
+  }
+  
+  // Remove the title element from the document
+  if (titleElement) {
+    titleElement.remove()
+  }
+
+  const tocEntries: { level: number; text: string; id: string }[] = []
 
   $('h1, h2, h3').each((_, el) => {
     const element = $(el)
@@ -348,12 +424,6 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
     element.attr('id', id)
 
     tocEntries.push({ level, text, id })
-
-    if (level === 1 && !title) {
-      title = text
-      // We'll remove this title from the body and use the template's title
-      element.remove()
-    }
   })
 
   const buildTocHtml = (entries: typeof tocEntries) => {
