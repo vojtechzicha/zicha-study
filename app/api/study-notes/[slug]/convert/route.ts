@@ -335,27 +335,22 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   const preliminaryResult = await mammoth.convertToHtml({ buffer: fileBuffer }, extractTitleOptions)
   const $preliminary = load(preliminaryResult.value)
   
-  // Debug: Check what we got
-  console.log('Looking for p.mammoth-document-title elements...')
-  const titleElements = $preliminary('p.mammoth-document-title')
-  console.log('Found elements:', titleElements.length)
-  
-  // Also try looking for any paragraph in the first few elements
-  const firstParas = $preliminary('p').slice(0, 5)
-  console.log('First 5 paragraphs:')
-  firstParas.each((i, el) => {
-    const $el = $preliminary(el)
-    const text = $el.text().trim()
-    const classes = $el.attr('class') || 'no classes'
-    if (text) {
-      console.log(`  ${i}: "${text.substring(0, 50)}..." (classes: ${classes})`)
-    }
-  })
-  
+  // Try to find title with the mapped class
   const titleElement = $preliminary('p.mammoth-document-title').first()
   if (titleElement.length > 0) {
     documentTitle = titleElement.text().trim()
     console.log('Extracted title from Title style:', documentTitle)
+  } else {
+    // Fallback: The first paragraph before "Obsah" is likely the title
+    const firstPara = $preliminary('p').first()
+    if (firstPara.length > 0) {
+      const firstParaText = firstPara.text().trim()
+      // Check if it's not a TOC entry (doesn't start with a number and dot)
+      if (firstParaText && !firstParaText.match(/^\d+\s*[\.\)]\s*/) && firstParaText !== 'Obsah') {
+        documentTitle = firstParaText
+        console.log('Using first paragraph as title:', documentTitle)
+      }
+    }
   }
   
   // Enhanced transform function that also removes TOC entries
@@ -390,51 +385,17 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   // Post-process HTML with Cheerio for TOC generation and title extraction
   const $ = load(bodyHtml)
 
-  // Use the title extracted from the Word document's Title style
+  // Use the title extracted from the Word document
   let title: string | null = documentTitle
-  console.log('Document title from Word Title style:', documentTitle);
+  console.log('Document title extracted:', documentTitle);
   
-  // If no title was found from the Title style, try other methods
-  if (!title) {
-    console.log('No title found from Title style, trying other methods...');
-    let titleElement: any = null
-    
-    // Look for title in the first few elements of the document
-    const allElements = $.root().children().first().children()
-    let foundFirstHeading = false
-    
-    // Scan the beginning of the document for potential title
-    allElements.each((index, el) => {
-      if (index > 10) return false // Only check first 10 elements
-      
-      const $el = $(el)
-      
-      // Stop if we hit a heading (h1, h2, h3) - title should come before
-      if ($el.is('h1, h2, h3')) {
-        foundFirstHeading = true
-        return false
-      }
-      
-      // Look for paragraphs with bold/strong text that could be title
-      if ($el.is('p') && !title && !foundFirstHeading) {
-        const strongText = $el.find('strong, b').text().trim()
-        const fullText = $el.text().trim()
-        
-        // Check if entire paragraph is bold/strong
-        if (strongText && (strongText === fullText || strongText.length > fullText.length * 0.8)) {
-          // This is likely the title
-          if (fullText.length > 0 && fullText.length < 150) {
-            title = fullText
-            titleElement = $el
-            return false
-          }
-        }
-      }
-    })
-    
-    // Remove any title element found in HTML
-    if (titleElement) {
-      titleElement.remove()
+  // If we found a title, remove it from the body HTML
+  if (title) {
+    // Remove the first paragraph if it matches our title
+    const firstPara = $('p').first()
+    if (firstPara.length > 0 && firstPara.text().trim() === title) {
+      firstPara.remove()
+      console.log('Removed title paragraph from body')
     }
   }
 
