@@ -22,6 +22,11 @@
   position: relative;
 }
 
+/* When there's no ToC, use single column layout */
+.study-note-layout:not(:has(.study-note-toc)) {
+  grid-template-columns: 1fr;
+}
+
 /* ToC Navigation */
 .study-note-toc {
   position: sticky;
