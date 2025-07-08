@@ -104,13 +104,25 @@ export class OneDriveTokenManager {
           ...options.headers
         }
         
-        return fetch(url, {
+        const retryResponse = await fetch(url, {
           ...options,
           headers: retryHeaders
         })
+        
+        // Check if retry was successful
+        if (!retryResponse.ok) {
+          console.error(`OneDrive API error after retry: ${retryResponse.status} ${retryResponse.statusText}`)
+        }
+        
+        return retryResponse
       }
       
       throw new Error('Access token expired and refresh failed')
+    }
+    
+    // Log non-OK responses for debugging
+    if (!response.ok) {
+      console.error(`OneDrive API error: ${response.status} ${response.statusText}`)
     }
     
     return response

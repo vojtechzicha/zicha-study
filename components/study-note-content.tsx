@@ -8,11 +8,12 @@ import "@/app/study-note-content.css"
 
 interface StudyNoteContentProps {
   slug: string
+  studyId: string
   flush?: boolean
   onCacheInfo?: (info: { onedriveLastModified?: string; generatedAt?: string }) => void
 }
 
-export function StudyNoteContent({ slug, flush, onCacheInfo }: StudyNoteContentProps) {
+export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNoteContentProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [content, setContent] = useState<string | null>(null)
@@ -23,14 +24,14 @@ export function StudyNoteContent({ slug, flush, onCacheInfo }: StudyNoteContentP
 
   useEffect(() => {
     fetchContent()
-  }, [slug, flush])
+  }, [slug, studyId, flush])
 
   const fetchContent = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const url = `/api/study-notes/${slug}/convert${flush ? '?flush=1' : ''}`
+      const url = `/api/study-notes/${slug}/convert?studyId=${studyId}${flush ? '&flush=1' : ''}`
       const response = await fetch(url)
       if (!response.ok) {
         const data = await response.json()
@@ -63,7 +64,7 @@ export function StudyNoteContent({ slug, flush, onCacheInfo }: StudyNoteContentP
           (match, path) => {
             // Remove any absolute path prefix and just get the media/filename part
             const mediaPath = path.includes('media/') ? path.substring(path.indexOf('media/')) : path
-            return `src="/api/study-notes/${slug}/media/${mediaPath}?key=${data.cacheKey}"`
+            return `src="/api/study-notes/${slug}/media/${mediaPath}?studyId=${studyId}&key=${data.cacheKey}"`
           }
         )
         

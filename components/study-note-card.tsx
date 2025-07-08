@@ -34,9 +34,10 @@ interface StudyNoteCardProps {
   onUpdate?: () => void
   studySlug?: string
   isStudyPublic?: boolean
+  currentSubjectId?: string
 }
 
-export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic }: StudyNoteCardProps) {
+export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic, currentSubjectId }: StudyNoteCardProps) {
   const [showPublicDialog, setShowPublicDialog] = useState(false)
   const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [isPublic, setIsPublic] = useState(note.is_public)
@@ -183,16 +184,33 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   </Badge>
                 )}
               </div>
-              {/* Show linked subjects if more than 1 */}
+              {/* Show subject info based on current context */}
               {note.subjects && note.subjects.length > 1 && (
                 <div className="flex items-center gap-1 mt-2">
                   <Link className="h-3 w-3 text-gray-400" />
                   <div className="flex flex-wrap gap-1">
-                    {note.subjects.filter(s => !s.is_primary).map(subject => (
-                      <Badge key={subject.id} variant="outline" className="text-xs py-0 px-2">
-                        {subject.name}
-                      </Badge>
-                    ))}
+                    {(() => {
+                      const primarySubject = note.subjects.find(s => s.is_primary)
+                      const isViewingPrimarySubject = primarySubject?.id === currentSubjectId
+                      
+                      if (isViewingPrimarySubject) {
+                        // Viewing from primary subject - show linked subjects
+                        return note.subjects
+                          .filter(s => !s.is_primary)
+                          .map(subject => (
+                            <Badge key={subject.id} variant="outline" className="text-xs py-0 px-2">
+                              {subject.name}
+                            </Badge>
+                          ))
+                      } else {
+                        // Viewing from linked subject - show primary subject
+                        return primarySubject ? (
+                          <Badge variant="outline" className="text-xs py-0 px-2">
+                            Zdroj: {primarySubject.name}
+                          </Badge>
+                        ) : null
+                      }
+                    })()}
                   </div>
                 </div>
               )}

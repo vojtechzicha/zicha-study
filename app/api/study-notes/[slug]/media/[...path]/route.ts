@@ -18,6 +18,8 @@ export async function GET(
 ) {
   const params = await context.params
   const { slug, path: pathSegments } = params
+  const { searchParams } = new URL(request.url)
+  const studyId = searchParams.get('studyId')
   
   if (!pathSegments || pathSegments.length === 0) {
     return NextResponse.json({ error: "Invalid media path" }, { status: 400 })
@@ -26,13 +28,18 @@ export async function GET(
   try {
     const supabase = await createServerClient()
     
-    // Get the study note by public slug
-    const { data: note, error: noteError } = await supabase
+    // Get the study note by public slug and study_id
+    let query = supabase
       .from("study_notes")
       .select("id")
       .eq("public_slug", slug)
       .eq("is_public", true)
-      .single()
+    
+    if (studyId) {
+      query = query.eq("study_id", studyId)
+    }
+    
+    const { data: note, error: noteError } = await query.single()
     
     if (noteError || !note) {
       return NextResponse.json({ error: "Study note not found" }, { status: 404 })

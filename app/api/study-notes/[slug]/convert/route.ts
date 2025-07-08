@@ -32,12 +32,19 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
   const { slug } = await context.params
   const { searchParams } = new URL(request.url)
   const forceRegenerate = searchParams.get('flush') === '1'
+  const studyId = searchParams.get('studyId')
 
   try {
     const supabase = await createServerClient()
 
-    // Get the study note by public slug
-    const { data: note, error } = await supabase.from('study_notes').select('*').eq('public_slug', slug).eq('is_public', true).single()
+    // Get the study note by public slug and study_id
+    let query = supabase.from('study_notes').select('*').eq('public_slug', slug).eq('is_public', true)
+    
+    if (studyId) {
+      query = query.eq('study_id', studyId)
+    }
+    
+    const { data: note, error } = await query.single()
 
     if (error || !note) {
       return NextResponse.json({ error: 'Study note not found' }, { status: 404 })

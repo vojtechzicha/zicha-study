@@ -46,7 +46,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
       .single(),
     supabase
       .from("study_notes")
-      .select("*, subjects(name, abbreviation)")
+      .select("*")
       .eq("study_id", study.id)
       .eq("public_slug", materialSlug)
       .eq("is_public", true)
@@ -60,12 +60,47 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
 
   // If it's a study note, render the note display instead
   if (isStudyNote) {
+    // Get all linked subjects for this study note
+    const { data: linkedSubjects } = await supabase
+      .from("study_note_subjects")
+      .select(`
+        subject_id,
+        is_primary,
+        subjects!inner (
+          id,
+          name,
+          abbreviation,
+          study_id
+        )
+      `)
+      .eq("study_note_id", studyNote.id)
+      .order("is_primary", { ascending: false })
+
+    // Find the primary subject for display
+    const primarySubjectLink = linkedSubjects?.find(link => link.is_primary)
+    const primarySubject = primarySubjectLink ? {
+      id: primarySubjectLink.subjects.id,
+      name: primarySubjectLink.subjects.name,
+      abbreviation: primarySubjectLink.subjects.abbreviation
+    } : null
+
+    // Get all subjects for display in the header
+    const allSubjects = linkedSubjects?.map(link => ({
+      id: link.subjects.id,
+      name: link.subjects.name,
+      abbreviation: link.subjects.abbreviation,
+      is_primary: link.is_primary
+    })) || []
+
     const { StudyNoteDisplay } = await import("@/components/study-note-display")
     return (
       <div className="min-h-screen bg-gray-50">
         <StudyNoteDisplay 
-          note={studyNote} 
-          subject={studyNote.subjects}
+          note={{
+            ...studyNote,
+            subjects: allSubjects
+          }} 
+          subject={primarySubject}
           study={study}
           flush={search?.flush === '1'}
         />
@@ -230,12 +265,9 @@ export async function generateMetadata({ params }: PageProps) {
   const { data: note } = await supabase
     .from("study_notes")
     .select(`
+      id,
       name,
-      description,
-      subjects (
-        name,
-        abbreviation
-      )
+      description
     `)
     .eq("study_id", study.id)
     .eq("public_slug", materialSlug)
@@ -243,10 +275,29 @@ export async function generateMetadata({ params }: PageProps) {
     .single()
 
   if (note) {
-    const subjectInfo = note.subjects as { name: string; abbreviation: string }
+    // Get all linked subjects
+    const { data: linkedSubjects } = await supabase
+      .from("study_note_subjects")
+      .select(`
+        is_primary,
+        subjects!inner (
+          name,
+          abbreviation
+        )
+      `)
+      .eq("study_note_id", note.id)
+      .order("is_primary", { ascending: false })
+
+    const subjects = linkedSubjects?.map(link => link.subjects) || []
+    const primarySubject = linkedSubjects?.find(link => link.is_primary)?.subjects
+    
+    const subjectNames = subjects.length > 0 
+      ? subjects.map(s => s.abbreviation || s.name).join(", ")
+      : "Neznámý předmět"
+    
     return {
-      title: `${note.name} - ${subjectInfo.abbreviation}`,
-      description: note.description || `Studijní poznámka k předmětu ${subjectInfo.name}`,
+      title: `${note.name} - ${primarySubject?.abbreviation || subjectNames}`,
+      description: note.description || `Studijní poznámka k předmětům: ${subjects.map(s => s.name).join(", ")}`,
     }
   }
 

@@ -33,6 +33,24 @@ export async function GET(request: Request) {
 
     const data = await graphResponse.json()
     
+    // Check if the response has the expected structure
+    if (!data || !data.value) {
+      console.error('OneDrive API - Unexpected response structure:', data)
+      
+      // Check if it's a permission error
+      if (data?.error?.code === 'itemNotFound') {
+        return NextResponse.json(
+          { error: "Folder not found or no access permission" },
+          { status: 404 }
+        )
+      }
+      
+      return NextResponse.json(
+        { error: data?.error?.message || "Invalid response from OneDrive" },
+        { status: 500 }
+      )
+    }
+    
     // Process all items (folders and files)
     const items = data.value.map((item: any) => {
       if (item.folder) {

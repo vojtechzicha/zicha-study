@@ -102,6 +102,7 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
               onUpdate={loadNotes}
               studySlug={studySlug}
               isStudyPublic={isStudyPublic}
+              currentSubjectId={subjectId}
             />
           ))}
         </div>

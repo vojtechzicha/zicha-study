@@ -55,11 +55,111 @@ export function StudyNoteLinkSubjectsDialog({
 
   const loadAvailableSubjects = async () => {
     try {
-      const { data, error } = await supabase
-        .rpc("get_available_subjects_for_note", { p_study_note_id: note.id })
+      // Get the primary subject to find its study_id
+      const primarySubject = note.subjects?.find(s => s.is_primary)
+      if (!primarySubject) {
+        setError("Hlavní předmět nebyl nalezen")
+        return
+      }
 
-      if (error) throw error
-      setAvailableSubjects(data || [])
+      // Get the study info for the primary subject
+      const { data: subjectData, error: subjectError } = await supabase
+        .from("subjects")
+        .select("study_id, studies(id, name)")
+        .eq("id", primarySubject.id)
+        .single()
+
+      if (subjectError) throw subjectError
+      if (!subjectData?.study_id) {
+        setError("Nepodařilo se najít studium pro hlavní předmět")
+        return
+      }
+
+      const studyId = subjectData.study_id
+      const studyName = subjectData.studies?.name || "Neznámé studium"
+
+      // Get all subjects from the same study
+      const { data: allSubjects, error: subjectsError } = await supabase
+        .from("subjects")
+        .select("id, name, study_id, semester, completed, planned, subject_type")
+        .eq("study_id", studyId)
+
+      if (subjectsError) throw subjectsError
+
+      // Get already linked subjects
+      const { data: linkedSubjects, error: linkedError } = await supabase
+        .from("study_note_subjects")
+        .select("subject_id")
+        .eq("study_note_id", note.id)
+
+      if (linkedError && linkedError.code !== 'PGRST116') throw linkedError
+
+      const linkedSubjectIds = new Set(linkedSubjects?.map(ls => ls.subject_id) || [])
+
+      // Helper functions for sorting (matching study detail page)
+      const getStatusPriority = (subject: any) => {
+        if (subject.planned) return 3  // Planned
+        if (subject.completed) return 2  // Completed
+        return 1  // Active
+      }
+
+      const getSemesterOrder = (semester: string) => {
+        const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
+        if (match) {
+          const year = Number.parseInt(match[1])
+          const semesterType = match[2].toUpperCase()
+          return year * 10 + (semesterType === "ZS" ? 1 : 2)
+        }
+        return 999
+      }
+
+      const getTypeOrder = (type: string) => {
+        const typeOrders: { [key: string]: number } = {
+          "mandatory": 1,
+          "mandatory_elective": 2,
+          "elective": 3,
+          "other": 4
+        }
+        return typeOrders[type] || 5
+      }
+
+      // Filter out already linked subjects and sort them
+      const available = (allSubjects || [])
+        .filter(subject => !linkedSubjectIds.has(subject.id))
+        .sort((a, b) => {
+          // First sort by status priority
+          const aStatusPriority = getStatusPriority(a)
+          const bStatusPriority = getStatusPriority(b)
+          if (aStatusPriority !== bStatusPriority) {
+            return aStatusPriority - bStatusPriority
+          }
+
+          // Then sort by semester
+          const aSemesterOrder = getSemesterOrder(a.semester)
+          const bSemesterOrder = getSemesterOrder(b.semester)
+          if (aSemesterOrder !== bSemesterOrder) {
+            return aSemesterOrder - bSemesterOrder
+          }
+
+          // Then sort by subject type
+          const aTypeOrder = getTypeOrder(a.subject_type)
+          const bTypeOrder = getTypeOrder(b.subject_type)
+          if (aTypeOrder !== bTypeOrder) {
+            return aTypeOrder - bTypeOrder
+          }
+
+          // Finally sort alphabetically by name
+          return a.name.localeCompare(b.name, "cs")
+        })
+        .map(subject => ({
+          id: subject.id,
+          name: subject.name,
+          study_id: subject.study_id,
+          study_name: studyName,
+          semester: subject.semester
+        }))
+
+      setAvailableSubjects(available)
     } catch (err) {
       console.error("Failed to load available subjects:", err)
       setError("Nepodařilo se načíst dostupné předměty")
@@ -76,15 +176,21 @@ export function StudyNoteLinkSubjectsDialog({
     setError(null)
 
     try {
-      // Link to each selected subject
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Uživatel není přihlášen")
+
+      // Link to each selected subject using direct insert
       for (const subjectId of selectedSubjects) {
         const { error } = await supabase
-          .rpc("link_study_note_to_subject", {
-            p_study_note_id: note.id,
-            p_subject_id: subjectId
+          .from("study_note_subjects")
+          .insert({
+            study_note_id: note.id,
+            subject_id: subjectId,
+            is_primary: false,
+            linked_by: user.id
           })
 
-        if (error) throw error
+        if (error && error.code !== '23505') throw error // Ignore duplicate key errors
       }
 
       onUpdate()
@@ -103,11 +209,24 @@ export function StudyNoteLinkSubjectsDialog({
     setError(null)
 
     try {
+      // Check if this is the primary subject
+      const { data: linkData } = await supabase
+        .from("study_note_subjects")
+        .select("is_primary")
+        .eq("study_note_id", note.id)
+        .eq("subject_id", subjectId)
+        .single()
+
+      if (linkData?.is_primary) {
+        throw new Error("Nelze odpojit hlavní předmět")
+      }
+
+      // Delete the link directly
       const { error } = await supabase
-        .rpc("unlink_study_note_from_subject", {
-          p_study_note_id: note.id,
-          p_subject_id: subjectId
-        })
+        .from("study_note_subjects")
+        .delete()
+        .eq("study_note_id", note.id)
+        .eq("subject_id", subjectId)
 
       if (error) throw error
       
@@ -129,17 +248,8 @@ export function StudyNoteLinkSubjectsDialog({
     setSelectedSubjects(newSelected)
   }
 
-  // Group subjects by study
-  const subjectsByStudy = availableSubjects.reduce((acc, subject) => {
-    if (!acc[subject.study_id]) {
-      acc[subject.study_id] = {
-        studyName: subject.study_name,
-        subjects: []
-      }
-    }
-    acc[subject.study_id].subjects.push(subject)
-    return acc
-  }, {} as Record<string, { studyName: string; subjects: AvailableSubject[] }>)
+  // Since all subjects are from the same study, we don't need to group them
+  const studyName = availableSubjects[0]?.study_name || ""
 
   const primarySubject = note.subjects?.find(s => s.is_primary)
   const linkedSubjects = note.subjects?.filter(s => !s.is_primary) || []
@@ -200,34 +310,33 @@ export function StudyNoteLinkSubjectsDialog({
           {/* Available subjects */}
           {availableSubjects.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Dostupné předměty pro propojení</Label>
+              <Label className="text-sm font-medium">
+                Dostupné předměty pro propojení
+                {studyName && <span className="text-gray-500 font-normal ml-2">({studyName})</span>}
+              </Label>
               <ScrollArea className="h-[300px] border rounded-lg p-4">
-                {Object.entries(subjectsByStudy).map(([studyId, { studyName, subjects }]) => (
-                  <div key={studyId} className="mb-4">
-                    <h4 className="font-medium text-sm mb-2 text-gray-700">{studyName}</h4>
-                    <div className="space-y-2 pl-4">
-                      {subjects.map(subject => (
-                        <div key={subject.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={subject.id}
-                            checked={selectedSubjects.has(subject.id)}
-                            onCheckedChange={() => toggleSubject(subject.id)}
-                            disabled={loading}
-                          />
-                          <Label
-                            htmlFor={subject.id}
-                            className="text-sm font-normal cursor-pointer flex-1"
-                          >
-                            {subject.name}
-                            <span className="text-gray-500 ml-2">
-                              ({subject.semester}. semestr)
-                            </span>
-                          </Label>
-                        </div>
-                      ))}
+                <div className="space-y-2">
+                  {availableSubjects.map(subject => (
+                    <div key={subject.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={subject.id}
+                        checked={selectedSubjects.has(subject.id)}
+                        onCheckedChange={() => toggleSubject(subject.id)}
+                        disabled={loading}
+                        className="data-[state=checked]:bg-blue-600 data-[state=checked]:text-white border-gray-300"
+                      />
+                      <Label
+                        htmlFor={subject.id}
+                        className="text-sm font-normal cursor-pointer flex-1"
+                      >
+                        {subject.name}
+                        <span className="text-gray-500 ml-2">
+                          ({subject.semester}. semestr)
+                        </span>
+                      </Label>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </ScrollArea>
             </div>
           )}

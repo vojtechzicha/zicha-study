@@ -190,7 +190,6 @@ export function AddStudyNoteDialog({
       }
 
       const noteData = {
-        subject_id: subjectId,
         study_id: studyId,
         user_id: user.id,
         name: formData.name.trim(),

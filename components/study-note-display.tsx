@@ -188,10 +188,15 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
                     <span>Naposledy generováno: {formatDate(cacheInfo.generatedAt)}</span>
                   </div>
                 )}
-                {subjectData && (
+                {note.subjects && note.subjects.length > 0 && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <BookOpen className="h-4 w-4" />
-                    <span>Předmět: {subjectData.name}</span>
+                    <span>
+                      {note.subjects.length === 1 
+                        ? `Předmět: ${note.subjects[0].name}`
+                        : `Předměty: ${note.subjects.map(s => s.abbreviation || s.name).join(", ")}`
+                      }
+                    </span>
                   </div>
                 )}
               </div>
@@ -201,6 +206,7 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
           {/* Document Content Area */}
           <StudyNoteContent 
             slug={note.public_slug} 
+            studyId={note.study_id}
             flush={flush} 
             onCacheInfo={setCacheInfo}
           />

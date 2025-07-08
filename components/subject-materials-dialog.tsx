@@ -158,8 +158,9 @@ export function SubjectMaterialsDialog({
     if (!subject) return
     
     try {
+      // Count all notes linked to this subject (both primary and linked)
       const { count, error } = await supabase
-        .from("study_notes")
+        .from("study_note_subjects")
         .select("*", { count: "exact", head: true })
         .eq("subject_id", subject.id)
 
