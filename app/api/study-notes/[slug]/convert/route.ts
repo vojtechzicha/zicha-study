@@ -10,7 +10,7 @@ import { load } from 'cheerio'
 import JSZip from 'jszip'
 import { DOMParser } from 'xmldom'
 import omml2mathml from 'omml2mathml'
-import MathMLToLaTeX from 'mathml-to-latex'
+import { MathMLToLaTeX } from 'mathml-to-latex'
 
 interface ConversionResult {
   html: string
@@ -273,6 +273,7 @@ interface MathEquation {
 // Extract and convert OMML equations to LaTeX with context
 async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathEquation[]> {
   const mathEquations: MathEquation[] = []
+  const MAX_EQUATIONS = 500 // Safety limit to prevent infinite loops
   
   try {
     // Load the DOCX file as a ZIP
@@ -295,7 +296,7 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
     const paragraphs = doc.getElementsByTagNameNS(wordNamespace, 'p')
     
     // Process each paragraph to find math equations in context
-    for (let i = 0; i < paragraphs.length; i++) {
+    for (let i = 0; i < paragraphs.length && mathEquations.length < MAX_EQUATIONS; i++) {
       const para = paragraphs[i]
       
       // Check for display math (oMathPara)
@@ -309,6 +310,7 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
             try {
               // Convert OMML to MathML
               const mathmlResult = omml2mathml(oMath)
+              
               // Convert MathML to LaTeX
               const latexString = MathMLToLaTeX.convert(mathmlResult)
               
@@ -322,9 +324,10 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
                 context: contextText
               })
               
-              console.log(`Extracted display equation: ${latexString.substring(0, 50)}...`)
+              console.log(`Extracted display equation ${j + 1} from paragraph ${i + 1}: ${latexString.substring(0, 50)}...`)
             } catch (err) {
-              console.error(`Error converting display equation:`, err)
+              console.error(`Error converting display equation ${j + 1} in paragraph ${i + 1}:`, err)
+              // Continue processing other equations
             }
           }
         }
@@ -332,7 +335,7 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
       
       // Check for inline math (oMath not in oMathPara)
       const directMath = para.getElementsByTagNameNS(mathNamespace, 'oMath')
-      for (let j = 0; j < directMath.length; j++) {
+      for (let j = 0; j < directMath.length && mathEquations.length < MAX_EQUATIONS; j++) {
         const oMath = directMath[j]
         // Skip if this oMath is inside an oMathPara (already processed)
         if (oMath.parentNode && oMath.parentNode.localName === 'oMathPara') {
@@ -342,6 +345,7 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
         try {
           // Convert OMML to MathML
           const mathmlResult = omml2mathml(oMath)
+          
           // Convert MathML to LaTeX
           const latexString = MathMLToLaTeX.convert(mathmlResult)
           
@@ -354,9 +358,10 @@ async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathE
             context: contextText
           })
           
-          console.log(`Extracted inline equation: ${latexString.substring(0, 50)}...`)
+          console.log(`Extracted inline equation ${j + 1} from paragraph ${i + 1}: ${latexString.substring(0, 50)}...`)
         } catch (err) {
-          console.error(`Error converting inline equation:`, err)
+          console.error(`Error converting inline equation ${j + 1} in paragraph ${i + 1}:`, err)
+          // Continue processing other equations
         }
       }
     }
