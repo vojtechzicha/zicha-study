@@ -19,7 +19,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
   // First, get the study by public slug
   const { data: study, error: studyError } = await supabase
     .from("studies")
-    .select("id, name, is_public, public_slug")
+    .select("id, name, is_public, public_slug, logo_url")
     .eq("public_slug", slug)
     .eq("is_public", true)
     .single()
@@ -122,7 +122,13 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div 
+      className="min-h-screen" 
+      style={{ 
+        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
+        minHeight: "100vh"
+      } as React.CSSProperties}
+    >
       <div className="max-w-4xl mx-auto p-4">
         {/* Header */}
         <div className="mb-6">
