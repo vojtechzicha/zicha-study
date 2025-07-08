@@ -356,25 +356,36 @@ export function SubjectMaterialsDialog({
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
-              {subject?.abbreviation || subject?.name} - Materiály a zápisy
+              {subject?.abbreviation || subject?.name} - Zápisy a materiály
             </DialogTitle>
             <DialogDescription>
-              Dokumenty, soubory a studijní zápisy související s tímto předmětem
+              Studijní zápisy, dokumenty a soubory související s tímto předmětem
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 flex flex-col overflow-hidden">
-            <Tabs defaultValue="materials" className="h-full flex flex-col">
+            <Tabs defaultValue="notes" className="h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="materials">
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Materiály ({materials.length})
-                </TabsTrigger>
                 <TabsTrigger value="notes">
                   <BookOpen className="h-4 w-4 mr-2" />
                   Studijní zápisy ({noteCount})
                 </TabsTrigger>
+                <TabsTrigger value="materials">
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Materiály ({materials.length})
+                </TabsTrigger>
               </TabsList>
+              
+              <TabsContent value="notes" className="flex-1 overflow-auto">
+                {subject && (
+                  <StudyNotesSection
+                    studyId={subject.study_id}
+                    subjectId={subject.id}
+                    studySlug={study?.public_slug}
+                    isStudyPublic={study?.is_public}
+                  />
+                )}
+              </TabsContent>
               
               <TabsContent value="materials" className="flex-1 flex flex-col space-y-4 overflow-hidden">
                 {error && (
@@ -548,17 +559,6 @@ export function SubjectMaterialsDialog({
                 </Table>
               )}
                 </div>
-              </TabsContent>
-              
-              <TabsContent value="notes" className="flex-1 overflow-auto">
-                {subject && (
-                  <StudyNotesSection
-                    studyId={subject.study_id}
-                    subjectId={subject.id}
-                    studySlug={study?.public_slug}
-                    isStudyPublic={study?.is_public}
-                  />
-                )}
               </TabsContent>
             </Tabs>
           </div>

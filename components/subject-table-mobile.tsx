@@ -333,7 +333,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study }: Subje
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Materiály a zápisy</p>
+                      <p>Zápisy a materiály</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
