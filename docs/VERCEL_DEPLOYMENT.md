@@ -2,40 +2,29 @@
 
 ## Study Notes DOCX Conversion
 
-The study notes feature requires Pandoc for converting DOCX files to HTML. However, Pandoc is not available on Vercel's deployment environment.
+The study notes feature uses Mammoth.js for converting DOCX files to HTML, which is fully compatible with Vercel's deployment environment.
 
 ### How it works:
 
-1. **Local Development**: Full functionality with Pandoc installed locally
-2. **Vercel Production**: 
-   - Serves previously cached conversions from the database
-   - Shows a user-friendly message if no cache exists
-   - Cannot generate new conversions or regenerate with `?flush=1`
+1. **Local Development**: Full functionality with on-demand conversion
+2. **Vercel Production**: Full functionality with on-demand conversion
+   - Converts DOCX files to HTML using Mammoth.js
+   - Caches conversions in the database for performance
+   - Supports regeneration with `?flush=1` parameter
 
-### Solutions:
+### Features:
 
-1. **Pre-generate locally**: Generate all study notes locally before deploying
-2. **Alternative hosting**: Use a VPS or Docker-based hosting that supports Pandoc
-3. **Serverless function**: Use a separate service for document conversion
-
-### Setting up alternative hosting:
-
-```dockerfile
-# Dockerfile example
-FROM node:18-alpine
-RUN apk add --no-cache pandoc
-WORKDIR /app
-COPY . .
-RUN npm install
-RUN npm run build
-CMD ["npm", "start"]
-```
+1. **Automatic conversion**: DOCX files are converted on-demand when accessed
+2. **Smart caching**: Checks OneDrive timestamps to determine if regeneration is needed
+3. **Media handling**: Extracts and stores images from DOCX files
+4. **TOC generation**: Automatically generates table of contents from headings
 
 ### Database caching:
 
 All converted documents are stored in the database with:
 - HTML content
-- Media files (images)
+- Media files (images) 
 - Metadata (title, timestamps)
+- Cache keys for versioning
 
-This allows Vercel deployments to serve previously converted documents even without Pandoc.
+This provides optimal performance while maintaining the ability to regenerate content when source files are updated.

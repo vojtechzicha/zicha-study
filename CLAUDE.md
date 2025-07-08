@@ -93,20 +93,15 @@ Two main tables with RLS policies:
 ## Study Notes Feature
 
 Study notes allow users to upload DOCX files to OneDrive and display them as beautifully formatted HTML with:
-- On-demand DOCX to HTML conversion using Pandoc
+- On-demand DOCX to HTML conversion using Mammoth.js (Vercel compatible)
 - Math expression rendering with KaTeX
 - Automatic table of contents generation
 - Image extraction and serving
-- Caching for performance
-
-### Prerequisites
-- **Pandoc** must be installed on the server:
-  - macOS: `brew install pandoc`
-  - Ubuntu/Debian: `sudo apt-get install pandoc`
-  - Windows: Download from https://pandoc.org/installing.html
+- Smart caching with OneDrive timestamp comparison
 
 ### Architecture
 - API route `/api/study-notes/[slug]/convert` handles DOCX conversion
 - API route `/api/study-notes/[slug]/media/[...path]` serves extracted images
-- Converted HTML is cached for 24 hours to improve performance
+- Converted HTML and media are cached in database for optimal performance
 - Client-side KaTeX rendering for math expressions
+- Regeneration triggered by OneDrive file changes or ?flush=1 parameter

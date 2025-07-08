@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { OneDriveTokenManager } from '@/lib/utils/onedrive-token-manager'
-import { exec } from 'child_process'
-import { promisify } from 'util'
 import fs from 'fs/promises'
 import path from 'path'
 import crypto from 'crypto'
 import os from 'os'
 import mammoth from 'mammoth'
 import { load } from 'cheerio'
-import { checkPandocInstallation } from '@/lib/utils/check-pandoc'
-import { isPandocAvailable, getPandocUnavailableMessage } from '@/lib/utils/pandoc-vercel'
-
-const execAsync = promisify(exec)
 
 interface ConversionResult {
   html: string
@@ -36,47 +30,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
   const forceRegenerate = searchParams.get('flush') === '1'
 
   try {
-    // Check if we're on Vercel
-    if (!isPandocAvailable()) {
-      // Return from cache if available
-      const supabase = await createServerClient()
-
-      const { data: note } = await supabase.from('study_notes').select('*').eq('public_slug', slug).eq('is_public', true).single()
-
-      if (note) {
-        const { data: cachedData } = await supabase.from('study_notes_cache').select('*').eq('study_note_id', note.id).single()
-
-        if (cachedData) {
-          return NextResponse.json({
-            html: cachedData.html_content,
-            title: cachedData.title,
-            cacheKey: cachedData.cache_key,
-            mediaPath: cachedData.has_media ? `media-${cachedData.cache_key}` : null,
-            cached: true,
-            onedriveLastModified: cachedData.onedrive_last_modified,
-            generatedAt: cachedData.generated_at,
-            onedriveAccessible: false,
-            vercelDeployment: true,
-          })
-        }
-      }
-
-      // No cache available, return error message
-      return NextResponse.json({
-        html: getPandocUnavailableMessage(),
-        title: 'Konverze není dostupná',
-        cached: false,
-        vercelDeployment: true,
-        error: 'Pandoc not available on Vercel',
-      })
-    }
-
-    // Check if Pandoc is installed (for non-Vercel environments)
-    const pandocInstalled = await checkPandocInstallation()
-    if (!pandocInstalled) {
-      return NextResponse.json({ error: 'Pandoc is not installed on the server. Please contact the administrator.' }, { status: 500 })
-    }
-
     const supabase = await createServerClient()
 
     // Get the study note by public slug
@@ -307,9 +260,7 @@ async function storeMediaInDatabase(noteId: string, mediaPath: string) {
   }
 }
 
-// Add these imports at the top of your file
-
-// This is the new conversion function using Mammoth.js
+// Convert DOCX to HTML using Mammoth.js
 async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string): Promise<ConversionResult> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'docx-convert-'))
   const mediaDir = path.join(tempDir, 'media')
@@ -328,15 +279,14 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
       mediaFiles[filename] = imageBuffer
       fs.writeFile(imagePath, imageBuffer)
 
-      // This src path will be relative within the extracted HTML.
-      // Your front-end will need to resolve this against the media endpoint.
+      // Return relative path for the media endpoint
       return {
         src: `media/${filename}`,
       }
     })
   }
 
-  // 2. Replicate the Lua filter using transformDocument
+  // Transform document to remove unwanted elements
   const transformDocument = (element: mammoth.documents.Element) => {
     // Add a guard clause for safety
     if (!element) {
@@ -360,18 +310,15 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
     return element
   }
 
-  // --- THIS IS THE FIX ---
-  // Pass the transformer directly, without the paragraph() wrapper.
   const mammothOptions: mammoth.Options = {
     convertImage: mammoth.images.inline(imageConverter),
-    transformDocument: transformDocument, // REMOVED mammoth.transforms.paragraph()
+    transformDocument: transformDocument,
   }
-  // -----------------------
 
-  // 3. Convert the DOCX buffer to HTML
+  // Convert the DOCX buffer to HTML
   const { value: bodyHtml } = await mammoth.convertToHtml({ buffer: fileBuffer }, mammothOptions)
 
-  // 4. Post-processing with Cheerio (TOC generation, Title extraction)
+  // Post-process HTML with Cheerio for TOC generation and title extraction
   const $ = load(bodyHtml)
 
   const tocEntries: { level: number; text: string; id: string }[] = []
@@ -424,7 +371,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   const tocHtml = buildTocHtml(tocEntries)
 
-  // 5. Apply the custom template
+  // Apply the custom template
   const templatePath = path.join(process.cwd(), 'lib/utils/study-note-template.html')
   let finalHtml = await fs.readFile(templatePath, 'utf-8')
 
