@@ -148,7 +148,7 @@ export function OneDriveFilePicker({
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase()
     if (ext === "pdf") return <FileText className="h-6 w-6 text-red-600" />
-    if (ext === "docx" || ext === "doc") return <FileText className="h-6 w-6 text-blue-600" />
+    if (ext === "docx" || ext === "doc") return <FileText className="h-6 w-6 text-primary" />
     if (ext === "xlsx" || ext === "xls") return <FileText className="h-6 w-6 text-green-600" />
     return <File className="h-6 w-6 text-gray-600" />
   }
@@ -216,7 +216,7 @@ export function OneDriveFilePicker({
             <div key={index} className="flex items-center gap-1">
               <button
                 onClick={() => handleBreadcrumbClick(index)}
-                className="hover:text-blue-600 whitespace-nowrap"
+                className="hover:text-primary-600 whitespace-nowrap"
               >
                 {crumb.name}
               </button>
@@ -233,7 +233,7 @@ export function OneDriveFilePicker({
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+              <div key={i} className="h-12 bg-primary-100 rounded animate-pulse" />
             ))}
           </div>
         ) : availableFiles.length === 0 ? (
@@ -244,12 +244,12 @@ export function OneDriveFilePicker({
           availableFiles.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer rounded border"
+              className="flex items-center gap-3 p-3 hover:bg-primary-50 cursor-pointer rounded border"
               onClick={() => handleItemClick(item)}
             >
               <div className="flex-shrink-0">
                 {item.folder ? (
-                  <Folder className="h-6 w-6 text-blue-600" />
+                  <Folder className="h-6 w-6 text-primary" />
                 ) : (
                   getFileIcon(item.name)
                 )}

@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -103,7 +101,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <Button variant="ghost" onClick={onClose} className="text-gray-600 hover:text-gray-900">
@@ -302,7 +300,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
               )}
 
               {/* Subject State Selector */}
-              <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
+              <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
                 <Label className="text-sm font-medium">Stav předmětu</Label>
                 <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
                   <div className="flex items-center space-x-2">
@@ -337,7 +335,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                     !formData.subject_type ||
                     (subjectState === "completed" && !formData.final_date)
                   }
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {loading ? "Ukládání..." : "Uložit předmět"}

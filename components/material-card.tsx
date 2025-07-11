@@ -36,8 +36,8 @@ interface MaterialCardProps {
 
 const fileIcons: { [key: string]: JSX.Element } = {
   pdf: <FileText className="h-8 w-8 text-red-600" />,
-  doc: <FileText className="h-8 w-8 text-blue-600" />,
-  docx: <FileText className="h-8 w-8 text-blue-600" />,
+  doc: <FileText className="h-8 w-8 text-primary" />,
+  docx: <FileText className="h-8 w-8 text-primary" />,
   xls: <FileText className="h-8 w-8 text-green-600" />,
   xlsx: <FileText className="h-8 w-8 text-green-600" />,
   ppt: <FileText className="h-8 w-8 text-orange-600" />,
@@ -209,7 +209,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div 
-            className="flex-shrink-0 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex-shrink-0 p-2 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
             onClick={handleCardClick}
           >
             {getFileIcon(material.file_extension)}
@@ -217,7 +217,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0" onClick={handleCardClick}>
-                <h3 className="font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                <h3 className="font-medium text-gray-900 truncate group-hover:text-primary-600 transition-colors">
                   {material.name}
                 </h3>
                 <p className="text-sm text-gray-600 truncate">{material.file_name}</p>
@@ -357,8 +357,8 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
             </div>
 
             {publicSlug && slugAvailable && (
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <Label className="text-sm font-medium text-blue-900">Veřejná URL adresa:</Label>
+              <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
+                <Label className="text-sm font-medium text-primary-900">Veřejná URL adresa:</Label>
                 <div className="flex items-center gap-2 mt-2">
                   <code className="flex-1 p-2 bg-white rounded border text-sm">
                     {window.location.origin}/{studySlug}/{publicSlug}
@@ -375,7 +375,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
             <Button
               onClick={handlePublicSubmit}
               disabled={loading || !publicSlug || slugAvailable === false}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               {loading ? "Publikování..." : "Publikovat"}
             </Button>

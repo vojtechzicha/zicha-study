@@ -357,12 +357,12 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                 {/* URL Preview - Always Visible When Slug Exists */}
                 {publicSlug && (
                   <div className={`p-4 rounded-lg border ${
-                    slugAvailable === true ? 'bg-blue-50 border-blue-200' : 
+                    slugAvailable === true ? 'bg-primary-50 border-primary-200' : 
                     slugAvailable === false ? 'bg-red-50 border-red-200' : 
-                    'bg-gray-50 border-gray-200'
+                    'bg-primary-50 border-primary-200'
                   }`}>
                     <Label className={`text-sm font-medium ${
-                      slugAvailable === true ? 'text-blue-900' : 
+                      slugAvailable === true ? 'text-primary-900' : 
                       slugAvailable === false ? 'text-red-900' : 
                       'text-gray-700'
                     }`}>
@@ -386,7 +386,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
             <Button
               onClick={handleUpdatePublicSettings}
               disabled={loading || (isPublic && (!publicSlug || publicSlug.length < 3 || slugAvailable === false))}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               {loading ? (isPublic ? "Publikování..." : "Ukládání...") : (isPublic ? "Publikovat" : "Uložit")}
             </Button>

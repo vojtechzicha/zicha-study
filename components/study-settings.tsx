@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -261,7 +260,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
       <div className="max-w-2xl mx-auto">
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
@@ -335,8 +334,8 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
                   {/* URL Preview */}
                   {slug && slugAvailable && (
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <Label className="text-sm font-medium text-blue-900">Veřejná URL adresa:</Label>
+                    <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
+                      <Label className="text-sm font-medium text-primary-900">Veřejná URL adresa:</Label>
                       <div className="flex items-center gap-2 mt-2">
                         <code className="flex-1 p-2 bg-white rounded border text-sm">{publicUrl}</code>
                         <Button type="button" variant="outline" size="sm" onClick={copyUrl}>
@@ -371,15 +370,15 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 <div className="space-y-2">
                   <Label>Kořenová složka materiálů</Label>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 p-3 bg-gray-50 rounded-lg flex items-center gap-2">
-                      <Folder className="h-5 w-5 text-blue-600" />
+                    <div className="flex-1 p-3 bg-primary-50 rounded-lg flex items-center gap-2">
+                      <Folder className="h-5 w-5 text-primary-600" />
                       <span className="text-sm font-medium">{materialsRootFolder.name}</span>
                     </div>
                     <Button
                       type="button"
                       onClick={handleOpenFolderPicker}
                       variant="outline"
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      className="text-primary-600 border-primary-200 hover:bg-primary-50"
                     >
                       Změnit složku
                     </Button>
@@ -394,7 +393,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 <Button
                   type="submit"
                   disabled={loading || (isPublic && slugAvailable === false)}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   {loading ? "Ukládání..." : "Uložit nastavení"}
                 </Button>
@@ -430,7 +429,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 <div key={index} className="flex items-center gap-1">
                   <button
                     onClick={() => handleBreadcrumbNavigation(index)}
-                    className="hover:text-blue-600 whitespace-nowrap"
+                    className="hover:text-primary-600 whitespace-nowrap"
                   >
                     {crumb.name}
                   </button>
@@ -445,7 +444,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
               {folderPickerLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+                    <div key={i} className="h-12 bg-primary-100 rounded animate-pulse" />
                   ))}
                 </div>
               ) : availableFolders.length === 0 ? (
@@ -454,9 +453,9 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 availableFolders.map((folder) => (
                   <div
                     key={folder.id || 'root'}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer rounded border"
+                    className="flex items-center gap-3 p-3 hover:bg-primary-50 cursor-pointer rounded border"
                   >
-                    <Folder className="h-6 w-6 text-blue-600" />
+                    <Folder className="h-6 w-6 text-primary-600" />
                     <div 
                       className="flex-1 min-w-0"
                       onClick={() => handleFolderSelect(folder)}

@@ -371,7 +371,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study }: Subje
                         <AlertDialogCancel>Zrušit</AlertDialogCancel>
                         <AlertDialogAction 
                           onClick={() => handleStateChange(subject.id, "completed")}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          className="bg-primary-600 hover:bg-primary-700 text-white"
                         >
                           Označit jako dokončený
                         </AlertDialogAction>

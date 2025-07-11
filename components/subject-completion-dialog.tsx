@@ -175,7 +175,7 @@ export function SubjectCompletionDialog({
           <Button variant="outline" onClick={onClose}>
             Zrušit
           </Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button onClick={handleSave} className="bg-primary-600 hover:bg-primary-700 text-white">
             Uložit
           </Button>
         </DialogFooter>

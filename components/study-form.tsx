@@ -54,7 +54,7 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <Button variant="ghost" onClick={onClose} className="text-gray-600 hover:text-gray-900">
@@ -166,7 +166,7 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
                 <Button
                   type="submit"
                   disabled={loading || !formData.name || !formData.type || !formData.form}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {loading ? "Ukládání..." : "Uložit studium"}

@@ -121,7 +121,7 @@ export const SUBJECT_TYPE_CONFIG = {
     fullText: 'Volitelný',
   },
   [SUBJECT_TYPES.OTHER]: {
-    color: 'bg-gray-50 text-gray-700 border-gray-200',
+    color: 'bg-primary-50 text-primary-700 border-primary-200',
     shortCode: '-',
     order: 5,
     fullText: 'Ostatní',
@@ -132,7 +132,7 @@ export const SUBJECT_TYPE_CONFIG = {
 export const getSubjectTypeConfig = (type: string) => {
   return (
     SUBJECT_TYPE_CONFIG[type as keyof typeof SUBJECT_TYPE_CONFIG] || {
-      color: 'bg-gray-50 text-gray-700 border-gray-200',
+      color: 'bg-primary-50 text-primary-700 border-primary-200',
       shortCode: type.charAt(0).toUpperCase(),
       order: 999,
       fullText: type,

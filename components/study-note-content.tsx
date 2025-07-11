@@ -306,7 +306,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
     return (
       <Card className="min-h-[600px] flex items-center justify-center">
         <CardContent className="flex flex-col items-center gap-4 text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-gray-600">Načítám studijní zápis...</p>
         </CardContent>
       </Card>

@@ -275,8 +275,8 @@ export function StudyNoteLinkSubjectsDialog({
           {/* Current subject (primary) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Hlavní předmět</Label>
-            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <Badge variant="default" className="bg-blue-600">
+            <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-lg border border-primary-200">
+              <Badge variant="default" className="bg-primary-600">
                 {primarySubject?.name || "Neznámý předmět"}
               </Badge>
               <span className="text-sm text-gray-600">(nelze změnit)</span>
@@ -290,7 +290,7 @@ export function StudyNoteLinkSubjectsDialog({
               <ScrollArea className="h-[200px] rounded-md border p-2">
                 <div className="space-y-2">
                   {linkedSubjects.map(subject => (
-                    <div key={subject.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border mr-3">
+                    <div key={subject.id} className="flex items-center justify-between p-3 bg-primary-50 rounded-lg border mr-3">
                       <Badge variant="outline">{subject.name}</Badge>
                       <Button
                         variant="ghost"
@@ -325,7 +325,7 @@ export function StudyNoteLinkSubjectsDialog({
                         checked={selectedSubjects.has(subject.id)}
                         onCheckedChange={() => toggleSubject(subject.id)}
                         disabled={loading}
-                        className="data-[state=checked]:bg-blue-600 data-[state=checked]:text-white border-gray-300"
+                        className="data-[state=checked]:bg-primary-600 data-[state=checked]:text-white border-gray-300"
                       />
                       <Label
                         htmlFor={subject.id}
@@ -360,7 +360,7 @@ export function StudyNoteLinkSubjectsDialog({
             <Button
               onClick={handleLink}
               disabled={loading || selectedSubjects.size === 0}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               <Link className="h-4 w-4 mr-2" />
               Propojit vybrané předměty

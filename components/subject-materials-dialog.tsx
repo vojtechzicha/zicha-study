@@ -32,7 +32,8 @@ import {
   AlertCircle,
   Copy,
   Check,
-  MoreVertical
+  MoreVertical,
+  BookOpen
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -47,7 +48,6 @@ import { AddMaterialDialog } from "@/components/add-material-dialog"
 import type { SubjectMaterial } from "@/lib/types/materials"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StudyNotesSection } from "@/components/study-notes-section"
-import { BookOpen } from "lucide-react"
 
 interface Subject {
   id: string
@@ -72,8 +72,8 @@ interface SubjectMaterialsDialogProps {
 
 const fileIcons: { [key: string]: JSX.Element } = {
   pdf: <FileText className="h-4 w-4 text-red-600" />,
-  doc: <FileText className="h-4 w-4 text-blue-600" />,
-  docx: <FileText className="h-4 w-4 text-blue-600" />,
+  doc: <FileText className="h-4 w-4 text-primary" />,
+  docx: <FileText className="h-4 w-4 text-primary" />,
   xls: <FileText className="h-4 w-4 text-green-600" />,
   xlsx: <FileText className="h-4 w-4 text-green-600" />,
   ppt: <FileText className="h-4 w-4 text-orange-600" />,
@@ -408,7 +408,7 @@ export function SubjectMaterialsDialog({
                   </div>
                   <Button
                     onClick={() => setShowAddDialog(true)}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                    className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Přidat materiál
@@ -420,7 +420,7 @@ export function SubjectMaterialsDialog({
               {loading ? (
                 <div className="space-y-4 p-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
+                    <div key={i} className="h-16 bg-primary-100 rounded animate-pulse" />
                   ))}
                 </div>
               ) : (
@@ -474,7 +474,7 @@ export function SubjectMaterialsDialog({
                                 Veřejné
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                              <Badge variant="outline" className="bg-primary-50 text-primary-600 border-primary-200">
                                 Soukromé
                               </Badge>
                             )}
@@ -634,12 +634,12 @@ export function SubjectMaterialsDialog({
             {/* URL Preview - Always Visible When Slug Exists */}
             {publicSlug && (
               <div className={`p-4 rounded-lg border ${
-                slugAvailable === true ? 'bg-blue-50 border-blue-200' : 
+                slugAvailable === true ? 'bg-primary-50 border-primary-200' : 
                 slugAvailable === false ? 'bg-red-50 border-red-200' : 
-                'bg-gray-50 border-gray-200'
+                'bg-primary-50 border-primary-200'
               }`}>
                 <Label className={`text-sm font-medium ${
-                  slugAvailable === true ? 'text-blue-900' : 
+                  slugAvailable === true ? 'text-primary-900' : 
                   slugAvailable === false ? 'text-red-900' : 
                   'text-gray-700'
                 }`}>
@@ -661,7 +661,7 @@ export function SubjectMaterialsDialog({
             <Button
               onClick={handlePublicSubmit}
               disabled={publicLoading || !publicSlug || slugAvailable === false}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               {publicLoading ? "Publikování..." : "Publikovat"}
             </Button>

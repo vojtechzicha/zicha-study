@@ -190,7 +190,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
       <div className="max-w-2xl mx-auto">
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
@@ -243,7 +243,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       type="file"
                       accept="image/*"
                       onChange={handleLogoChange}
-                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer"
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:cursor-pointer"
                     />
                     <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF do 5MB</p>
                   </div>
@@ -342,7 +342,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   {loading ? "Ukládání..." : "Uložit změny"}
                 </Button>
@@ -370,7 +370,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                     <AlertDialogHeader>
                       <AlertDialogTitle>Opravdu chcete smazat toto studium?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Tato akce je nevratná. Studium "{study.name}" a všechny jeho předměty budou trvale odstraněny.
+                        Tato akce je nevratná. Studium &quot;{study.name}&quot; a všechny jeho předměty budou trvale odstraněny.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

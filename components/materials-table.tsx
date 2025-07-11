@@ -34,8 +34,8 @@ interface MaterialsTableProps {
 
 const fileIcons: { [key: string]: JSX.Element } = {
   pdf: <FileText className="h-4 w-4 text-red-600" />,
-  doc: <FileText className="h-4 w-4 text-blue-600" />,
-  docx: <FileText className="h-4 w-4 text-blue-600" />,
+  doc: <FileText className="h-4 w-4 text-primary" />,
+  docx: <FileText className="h-4 w-4 text-primary" />,
   xls: <FileText className="h-4 w-4 text-green-600" />,
   xlsx: <FileText className="h-4 w-4 text-green-600" />,
   ppt: <FileText className="h-4 w-4 text-orange-600" />,
@@ -166,10 +166,10 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-10 bg-gray-100 rounded animate-pulse" />
+        <div className="h-10 bg-primary-100 rounded animate-pulse" />
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
+            <div key={i} className="h-16 bg-primary-100 rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -234,7 +234,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                         Veřejné
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                      <Badge variant="outline" className="bg-primary-50 text-primary-600 border-primary-200">
                         Soukromé
                       </Badge>
                     )}

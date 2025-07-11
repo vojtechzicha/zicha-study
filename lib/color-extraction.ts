@@ -257,32 +257,32 @@ export function generateColorTheme(color: ExtractedColor) {
   
   // For very saturated or dark colors, reduce saturation for lighter shades
   // This ensures backgrounds remain subtle
-  const lightSaturation = Math.min(s, 60) // Cap saturation for light shades
-  const baseSaturation = Math.min(s, 80)  // Slightly reduce base saturation
+  const baseSaturation = Math.min(s, 85)  // Slightly reduce base saturation for vivid colors
   
   // Ensure we have proper light values for backgrounds
-  const backgroundLightness50 = Math.max(92, 95)  // Very light background
-  const backgroundLightness100 = Math.max(88, 92) // Light background
+  const backgroundLightness50 = 96  // Very light background
+  const backgroundLightness100 = 94 // Light background
   
   return {
-    "--primary": `hsl(${h}, ${baseSaturation}%, ${l}%)`,
+    "--primary": `${h}, ${baseSaturation}%, ${l}%`,
     "--primary-rgb": color.rgb.join(", "),
     "--primary-h": h.toString(),
     "--primary-s": `${baseSaturation}%`,
     "--primary-l": `${l}%`,
     
-    // Light backgrounds with reduced saturation
-    "--primary-50": `hsl(${h}, ${Math.min(lightSaturation, 30)}%, ${backgroundLightness50}%)`,
-    "--primary-100": `hsl(${h}, ${Math.min(lightSaturation, 35)}%, ${backgroundLightness100}%)`,
-    "--primary-200": `hsl(${h}, ${Math.min(lightSaturation, 40)}%, ${Math.max(l + 25, 85)}%)`,
-    "--primary-300": `hsl(${h}, ${Math.min(baseSaturation, 50)}%, ${Math.max(l + 15, 80)}%)`,
-    "--primary-400": `hsl(${h}, ${Math.min(baseSaturation, 60)}%, ${Math.max(l + 10, 75)}%)`,
+    // Light backgrounds - preserve more saturation for color visibility
+    "--primary-50": `${h}, ${Math.min(s * 0.5, 50)}%, ${backgroundLightness50}%`,
+    "--primary-100": `${h}, ${Math.min(s * 0.6, 55)}%, ${backgroundLightness100}%`,
+    "--primary-200": `${h}, ${Math.min(s * 0.7, 60)}%, ${Math.max(l + 25, 85)}%`,
+    "--primary-300": `${h}, ${Math.min(s * 0.8, 65)}%, ${Math.max(l + 15, 80)}%`,
+    "--primary-400": `${h}, ${Math.min(s * 0.9, 70)}%, ${Math.max(l + 10, 75)}%`,
     
     // Original and darker shades preserve more saturation
-    "--primary-500": `hsl(${h}, ${baseSaturation}%, ${l}%)`,
-    "--primary-600": `hsl(${h}, ${Math.min(s, 85)}%, ${Math.max(l - 8, 25)}%)`,
-    "--primary-700": `hsl(${h}, ${Math.min(s, 90)}%, ${Math.max(l - 15, 20)}%)`,
-    "--primary-800": `hsl(${h}, ${Math.min(s, 95)}%, ${Math.max(l - 22, 15)}%)`,
-    "--primary-900": `hsl(${h}, ${s}%, ${Math.max(l - 30, 10)}%)`,
+    // For primary-600 and darker, ensure sufficient contrast for white text
+    "--primary-500": `${h}, ${baseSaturation}%, ${l}%`,
+    "--primary-600": `${h}, ${Math.min(s, 85)}%, ${Math.min(Math.max(l - 10, 25), 50)}%`,
+    "--primary-700": `${h}, ${Math.min(s, 90)}%, ${Math.min(Math.max(l - 15, 20), 40)}%`,
+    "--primary-800": `${h}, ${Math.min(s, 95)}%, ${Math.min(Math.max(l - 20, 15), 30)}%`,
+    "--primary-900": `${h}, ${s}%, ${Math.max(l - 30, 10)}%`,
   }
 }

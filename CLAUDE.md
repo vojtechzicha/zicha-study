@@ -33,6 +33,7 @@ This is a Next.js 15 app with Supabase backend for tracking university studies. 
 - **Shadcn/ui** component library (47 pre-built components in components/ui/)
 - **TypeScript** throughout with path aliases (@/ prefix)
 - **Tailwind CSS** for styling with CSS variables
+- **Dynamic Theming** that extracts colors from study logos
 
 ## Key Code Structure
 
@@ -113,3 +114,65 @@ The app uses Microsoft OAuth for OneDrive access. There are known limitations wi
 - Refresh token support requires setting environment variables (see `.env.example`)
 - The auth callback logs token availability for debugging
 - If refresh tokens aren't available, users need to re-authenticate periodically
+
+## Dynamic Theming System
+
+The application features a dynamic theming system that automatically extracts colors from study logos and applies them throughout the UI.
+
+### How It Works
+1. **Color Extraction**: Uses Canvas API to analyze logo images and extract dominant colors
+2. **Theme Generation**: Creates a full color palette (50-900 shades) from the extracted color
+3. **CSS Variables**: Sets custom properties on the document root (--primary-50 to --primary-900)
+4. **Automatic Application**: Tailwind classes automatically use these CSS variables
+
+### Standard Theming Rules
+**ALWAYS use theme colors for UI elements, never hardcode blue/indigo colors:**
+
+#### Buttons and Primary Actions
+- **Gradient Buttons**: `bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800`
+- **Solid Buttons**: `bg-primary-600 hover:bg-primary-700`
+- **Ghost Buttons**: `text-primary-600 hover:text-primary-700`
+
+#### Backgrounds
+- **Light Backgrounds**: `bg-primary-50` (very light) or `bg-primary-100` (light)
+- **Hover States**: `hover:bg-primary-100`
+- **Selected States**: `bg-primary-100`
+
+#### Text and Borders
+- **Primary Text**: `text-primary-600` or `text-primary-700`
+- **Borders**: `border-primary-200` or `border-primary-300`
+- **Focus Rings**: `focus:ring-primary-500`
+
+#### Badges and Status Indicators
+- **Primary Badge**: `bg-primary-600 text-white`
+- **Secondary Badge**: `bg-primary-100 text-primary-700`
+- **Outline Badge**: `border-primary-200 text-primary-600`
+
+### Implementation Example
+```tsx
+// ❌ OLD - Hardcoded colors
+<Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+
+// ✅ NEW - Dynamic theme colors
+<Button className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800">
+```
+
+### Files Involved
+- `/hooks/use-logo-theme.ts` - Hook that manages color extraction
+- `/lib/color-extraction.ts` - Color extraction and theme generation utilities
+- Components should use Tailwind's `primary-*` color classes
+
+### Important Implementation Details
+**CSS Variables Format**: The CSS variables store HSL values WITHOUT the `hsl()` wrapper:
+- ✅ CORRECT: `--primary-600: 217, 91%, 55%`
+- ❌ WRONG: `--primary-600: hsl(217, 91%, 55%)`
+
+This is because Tailwind wraps the values in `hsl()` when using them. The color generation ensures:
+- `primary-600` has maximum 50% lightness for sufficient contrast with white text
+- `primary-700` has maximum 40% lightness
+- `primary-800` has maximum 30% lightness
+
+When using CSS variables directly in inline styles, wrap them in `hsl()`:
+```tsx
+style={{ backgroundColor: "hsl(var(--primary-600))" }}
+```

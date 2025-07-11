@@ -75,8 +75,8 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -87,7 +87,7 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
 
   if (notFound || !study) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Studium nenalezeno</h1>
           <p className="text-gray-600">Požadované studium neexistuje nebo k němu nemáte přístup.</p>

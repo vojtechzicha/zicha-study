@@ -61,21 +61,21 @@ export function useLogoTheme(logoUrl?: string | null) {
       // Reset to default blue theme immediately
       const root = document.documentElement
       const defaultTheme = {
-        "--primary": "hsl(217, 91%, 60%)",
+        "--primary": "217, 91%, 60%",
         "--primary-rgb": "59, 130, 246",
         "--primary-h": "217",
         "--primary-s": "91%",
         "--primary-l": "60%",
-        "--primary-50": "hsl(217, 100%, 95%)",
-        "--primary-100": "hsl(217, 100%, 90%)",
-        "--primary-200": "hsl(217, 100%, 85%)",
-        "--primary-300": "hsl(217, 100%, 80%)",
-        "--primary-400": "hsl(217, 91%, 75%)",
-        "--primary-500": "hsl(217, 91%, 60%)",
-        "--primary-600": "hsl(217, 91%, 55%)",
-        "--primary-700": "hsl(217, 91%, 50%)",
-        "--primary-800": "hsl(217, 91%, 45%)",
-        "--primary-900": "hsl(217, 91%, 40%)",
+        "--primary-50": "217, 50%, 96%",
+        "--primary-100": "217, 55%, 94%",
+        "--primary-200": "217, 60%, 88%",
+        "--primary-300": "217, 65%, 82%",
+        "--primary-400": "217, 70%, 76%",
+        "--primary-500": "217, 91%, 60%",
+        "--primary-600": "217, 91%, 55%",
+        "--primary-700": "217, 91%, 50%",
+        "--primary-800": "217, 91%, 45%",
+        "--primary-900": "217, 91%, 40%",
       }
       
       Object.entries(defaultTheme).forEach(([property, value]) => {

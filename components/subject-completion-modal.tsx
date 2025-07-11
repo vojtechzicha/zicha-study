@@ -150,7 +150,7 @@ export function SubjectCompletionModal({
           )}
 
           {/* Mark as Completed Option */}
-          <div className="flex items-center space-x-2 p-3 border rounded-lg bg-blue-50">
+          <div className="flex items-center space-x-2 p-3 border rounded-lg bg-primary-50">
             <Checkbox
               id="markAsCompleted"
               checked={formData.markAsCompleted}
@@ -163,8 +163,8 @@ export function SubjectCompletionModal({
               }
               className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               style={formData.markAsCompleted ? {
-                backgroundColor: 'rgb(37, 99, 235)',
-                borderColor: 'rgb(37, 99, 235)',
+                backgroundColor: 'var(--primary-600)',
+                borderColor: 'var(--primary-600)',
                 color: 'white'
               } : {}}
             />
@@ -194,7 +194,7 @@ export function SubjectCompletionModal({
             <Button
               type="submit"
               disabled={loading || (formData.markAsCompleted && !formData.final_date)}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               <Save className="mr-2 h-4 w-4" />
               {loading ? "Ukládání..." : "Uložit"}

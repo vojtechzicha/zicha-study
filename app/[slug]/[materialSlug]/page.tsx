@@ -94,7 +94,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
 
     const { StudyNoteDisplay } = await import("@/components/study-note-display")
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-primary-50">
         <StudyNoteDisplay 
           note={{
             ...studyNote,
@@ -129,8 +129,8 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
 
   const fileIcons: { [key: string]: JSX.Element } = {
     pdf: <FileText className="h-12 w-12 text-red-600" />,
-    doc: <FileText className="h-12 w-12 text-blue-600" />,
-    docx: <FileText className="h-12 w-12 text-blue-600" />,
+    doc: <FileText className="h-12 w-12 text-primary" />,
+    docx: <FileText className="h-12 w-12 text-primary" />,
     xls: <FileText className="h-12 w-12 text-green-600" />,
     xlsx: <FileText className="h-12 w-12 text-green-600" />,
     ppt: <FileText className="h-12 w-12 text-orange-600" />,
@@ -167,12 +167,12 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
       <div className="max-w-4xl mx-auto p-4">
         {/* Header */}
         <div className="mb-6">
-          <Link href={`/${slug}`} className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+          <Link href={`/${slug}`} className="inline-flex items-center text-primary hover:text-primary/80 mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Zpět na {study.name}
           </Link>
           <div className="flex items-center gap-3 mb-2">
-            <Globe className="h-6 w-6 text-blue-600" />
+            <Globe className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold text-gray-900">Veřejný materiál</h1>
           </div>
           <p className="text-gray-600">
@@ -187,7 +187,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
           <CardContent className="p-8">
             <div className="flex items-start gap-6">
-              <div className="flex-shrink-0 p-4 bg-gray-50 rounded-xl">
+              <div className="flex-shrink-0 p-4 bg-primary-50 rounded-xl">
                 {getFileIcon(material.file_extension)}
               </div>
               <div className="flex-1 min-w-0">
@@ -196,7 +196,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
                 
                 <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                   {material.category && (
-                    <span className="bg-gray-100 px-2 py-1 rounded">
+                    <span className="bg-primary-100 px-2 py-1 rounded">
                       {material.category}
                     </span>
                   )}
@@ -220,7 +220,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
                 ) : (
                   <div className="flex items-center justify-center py-8">
                     <div className="text-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+                      <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
                       <p className="text-gray-600">Přesměrování na OneDrive...</p>
                     </div>
                   </div>
@@ -233,7 +233,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
         {/* Fallback button if redirect doesn't work */}
         {shareUrl && (
           <div className="mt-6 text-center">
-            <Button asChild className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+            <Button asChild className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white">
               <a href={shareUrl} target="_blank" rel="noopener noreferrer">
                 Otevřít materiál v OneDrive
               </a>

@@ -163,13 +163,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
 
 
   return (
-    <div 
-      className="min-h-screen" 
-      style={{ 
-        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
-        minHeight: "100vh"
-      } as React.CSSProperties}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
       <StudyHeader 
         study={currentStudy}
         onBack={onBack}
@@ -187,7 +181,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
               <BarChart3 className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Statistiky</span>
             </Button>
-            <Button onClick={() => setShowSubjectForm(true)} className="text-white" style={{ backgroundColor: "var(--primary-600)", "--tw-bg-opacity": "1" } as React.CSSProperties} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--primary-700)" }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--primary-600)" }} size="sm">
+            <Button onClick={() => setShowSubjectForm(true)} className="text-white" style={{ backgroundColor: "hsl(var(--primary-600))", "--tw-bg-opacity": "1" } as React.CSSProperties} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "hsl(var(--primary-700))" }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "hsl(var(--primary-600))" }} size="sm">
               <Plus className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Přidat předmět</span>
             </Button>
@@ -202,7 +196,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
-              <BookOpen className="h-4 w-4 text-blue-600" />
+              <BookOpen className="h-4 w-4 text-primary-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
@@ -310,8 +304,8 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
                   onClick={() => setShowActiveOnly(!showActiveOnly)}
                   className={`h-10 w-10 p-0 flex-shrink-0 ${
                     showActiveOnly 
-                      ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' 
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700' 
+                      : 'text-gray-600 hover:bg-primary-100 hover:text-gray-900'
                   }`}
                   title={showActiveOnly ? "Zobrazit všechny předměty" : "Zobrazit pouze aktivní předměty"}
                 >

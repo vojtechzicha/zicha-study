@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -348,7 +346,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
               )}
 
               {/* Subject State Selector */}
-              <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
+              <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
                 <Label className="text-sm font-medium">Stav předmětu</Label>
                 <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
                   <div className="flex items-center space-x-2">
@@ -371,7 +369,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
 
               {/* Credit and Exam Completion Toggles */}
               {subjectState === "active" && (
-                <div className="space-y-3 p-4 border rounded-lg bg-blue-50">
+                <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
                   <Label className="text-sm font-medium">Průběžné plnění</Label>
                   <div className="space-y-3">
                     {requiresCredit(formData.completion_type) && (
@@ -384,8 +382,8 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                           }
                           className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           style={formData.credit_completed ? {
-                            backgroundColor: 'rgb(37, 99, 235)',
-                            borderColor: 'rgb(37, 99, 235)',
+                            backgroundColor: 'var(--primary-600)',
+                            borderColor: 'var(--primary-600)',
                             color: 'white'
                           } : {}}
                         />
@@ -404,8 +402,8 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                           }
                           className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           style={formData.exam_completed ? {
-                            backgroundColor: 'rgb(37, 99, 235)',
-                            borderColor: 'rgb(37, 99, 235)',
+                            backgroundColor: 'var(--primary-600)',
+                            borderColor: 'var(--primary-600)',
                             color: 'white'
                           } : {}}
                         />
@@ -434,7 +432,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                     <AlertDialogHeader>
                       <AlertDialogTitle>Smazat předmět?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Opravdu chcete smazat předmět "{subject.name}"? Tato akce je nevratná.
+                        Opravdu chcete smazat předmět &quot;{subject.name}&quot;? Tato akce je nevratná.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -456,7 +454,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                     !formData.subject_type ||
                     (subjectState === "completed" && !formData.final_date)
                   }
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {loading ? "Ukládání..." : "Uložit změny"}

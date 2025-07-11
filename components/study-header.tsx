@@ -59,7 +59,7 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
                       {study.is_public && (
                         <>
                           <span className="hidden sm:inline">•</span>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge variant="outline" className="bg-primary-50 text-primary-700 border-primary-200">
                             Veřejné
                           </Badge>
                         </>

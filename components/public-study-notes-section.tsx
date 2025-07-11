@@ -126,7 +126,7 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="h-32 bg-gray-100 rounded-lg animate-pulse" />
+              <div key={i} className="h-32 bg-primary-100 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : !showAll ? (

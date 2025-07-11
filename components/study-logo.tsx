@@ -54,7 +54,7 @@ export function StudyLogo({ logoUrl, studyName, size = "md", className }: StudyL
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-lg border border-gray-200 bg-gradient-to-br from-blue-100 to-indigo-100 font-semibold text-blue-700",
+        "flex items-center justify-center rounded-lg border border-gray-200 bg-gradient-to-br from-primary-100 to-primary-200 font-semibold text-primary-700",
         sizeClasses[size],
         className,
       )}

@@ -119,7 +119,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
             </div>
             <Button
               onClick={() => setShowAddDialog(true)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               size="sm"
             >
               <Plus className="h-4 w-4 sm:mr-2" />
@@ -138,7 +138,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-gray-100 rounded-lg animate-pulse" />
+                <div key={i} className="h-24 bg-primary-100 rounded-lg animate-pulse" />
               ))}
             </div>
           ) : materials.length === 0 ? (
@@ -152,7 +152,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
               </p>
               <Button
                 onClick={() => setShowAddDialog(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Přidat první materiál

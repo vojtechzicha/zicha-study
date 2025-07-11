@@ -54,8 +54,8 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
   if (loading) {
     return (
       <div className="space-y-2">
-        <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
-        <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
+        <div className="h-32 bg-primary-100 rounded-lg animate-pulse" />
+        <div className="h-32 bg-primary-100 rounded-lg animate-pulse" />
       </div>
     )
   }
@@ -71,7 +71,7 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
         <Button
           onClick={() => setShowAddDialog(true)}
           size="sm"
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+          className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
         >
           <Plus className="h-4 w-4 mr-1" />
           Přidat zápis

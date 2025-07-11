@@ -147,7 +147,7 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
-                    <FileText className="h-8 w-8 text-blue-600" />
+                    <FileText className="h-8 w-8 text-primary" />
                     {note.name}
                   </CardTitle>
                   {note.description && (

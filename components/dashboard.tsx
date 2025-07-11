@@ -117,13 +117,13 @@ export function Dashboard({ user }: DashboardProps) {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -173,7 +173,7 @@ export function Dashboard({ user }: DashboardProps) {
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Celkem studií</CardTitle>
-              <BookOpen className="h-4 w-4 text-blue-600" />
+              <BookOpen className="h-4 w-4 text-primary-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{studies.length}</div>
@@ -210,7 +210,7 @@ export function Dashboard({ user }: DashboardProps) {
           <h2 className="text-2xl font-bold text-gray-900">Vaše studia</h2>
           <Button
             onClick={() => router.push("/studies/new")}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
           >
             <Plus className="mr-2 h-4 w-4" />
             Přidat studium
@@ -222,12 +222,12 @@ export function Dashboard({ user }: DashboardProps) {
             {[1, 2, 3].map((i) => (
               <Card key={i} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-pulse">
                 <CardHeader>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-primary-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-primary-200 rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-3 bg-primary-200 rounded w-full mb-2"></div>
+                  <div className="h-3 bg-primary-200 rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
@@ -240,7 +240,7 @@ export function Dashboard({ user }: DashboardProps) {
               <p className="text-gray-600 mb-6">Začněte přidáním vašeho prvního studia</p>
               <Button
                 onClick={() => router.push("/studies/new")}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Přidat studium
@@ -259,7 +259,7 @@ export function Dashboard({ user }: DashboardProps) {
                     <div className="flex items-start gap-3 flex-1 min-w-0" onClick={() => router.push(`/studies/${study.id}`)}>
                       <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="lg" />
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight break-words">
+                        <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors leading-tight break-words">
                           {study.name}
                         </CardTitle>
                         <CardDescription className="text-gray-600 text-sm mt-1">
@@ -268,7 +268,7 @@ export function Dashboard({ user }: DashboardProps) {
                         <div className="flex gap-1 mt-2">
                           <Badge className={getStatusColor(study.status)}>{getStatusText(study.status)}</Badge>
                           {study.is_public && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Badge variant="outline" className="bg-primary-50 text-primary-700 border-primary-200">
                               Veřejné
                             </Badge>
                           )}

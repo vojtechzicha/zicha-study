@@ -279,13 +279,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   }
 
   return (
-    <div 
-      className="min-h-screen" 
-      style={{ 
-        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
-        minHeight: "100vh"
-      } as React.CSSProperties}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
       <StudyHeader 
         title="Statistiky"
         subtitle={studyName}
@@ -366,7 +360,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
-              <BookOpen className="h-4 w-4 text-blue-600" />
+              <BookOpen className="h-4 w-4 text-primary-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
@@ -505,7 +499,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                   const yearData = yearStats[year]
                   if (!yearData) return null
                   return (
-                    <div key={year} className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                    <div key={year} className="border border-gray-200 rounded-lg p-4 bg-primary-50/50">
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="font-medium text-gray-900">{year}</h3>
                         <Badge variant="outline" className="bg-white">
@@ -542,7 +536,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             <CardContent>
               <div className="space-y-4">
                 {Object.entries(semesterStats).map(([semester, semesterData]) => (
-                  <div key={semester} className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                  <div key={semester} className="border border-gray-200 rounded-lg p-4 bg-primary-50/50">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium text-gray-900">{semester}</h3>
                       <Badge variant="outline" className="bg-white">
@@ -592,7 +586,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             <CardContent>
               <div className="space-y-4">
                 {Object.entries(departmentStats).map(([dept, deptData]) => (
-                  <div key={dept} className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                  <div key={dept} className="border border-gray-200 rounded-lg p-4 bg-primary-50/50">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium text-gray-900">{dept}</h3>
                       <Badge variant="outline" className="bg-white">

@@ -240,14 +240,14 @@ export function AddMaterialDialog({
               <Button
                 onClick={handleOpenFilePicker}
                 disabled={loading}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
                 {loading ? "Načítání..." : "Vybrat z OneDrive"}
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3">
+              <div className="bg-primary-50 rounded-lg p-4 flex items-center gap-3">
                 <FileText className="h-8 w-8 text-gray-600" />
                 <div className="flex-1 min-w-0">
                   <TooltipProvider>
@@ -269,7 +269,7 @@ export function AddMaterialDialog({
                 <Button
                   onClick={handleOpenFilePicker}
                   disabled={loading}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   {loading ? "Načítání..." : "Změnit"}
                 </Button>
@@ -331,7 +331,7 @@ export function AddMaterialDialog({
               <Button
                 onClick={handleSubmit}
                 disabled={loading || !selectedFile || !formData.name?.trim()}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
                 {loading ? "Přidávání..." : "Přidat materiál"}
               </Button>

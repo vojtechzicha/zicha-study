@@ -25,7 +25,7 @@ export default function StudyCard({ study, onSelect, onEdit }: StudyCardProps) {
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="lg" />
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight break-words">
+              <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors leading-tight break-words">
                 {study.name}
               </CardTitle>
               <CardDescription className="text-gray-600 text-sm mt-1">

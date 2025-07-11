@@ -268,9 +268,9 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                 </div>
                 <div className="relative">
                   {/* Timeline bar */}
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-2 bg-primary-200 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-300"
                       style={{
                         width: study.end_year 
                           ? `${Math.min(100, Math.max(5, ((new Date().getFullYear() - study.start_year) / (study.end_year - study.start_year)) * 100))}%`
@@ -300,8 +300,8 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                           left: `${leftPosition}%`
                         }}
                       >
-                        <div className="w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-sm -mt-0.5"></div>
-                        <div className="text-xs text-blue-600 font-medium mt-1 whitespace-nowrap">
+                        <div className="w-3 h-3 bg-primary-600 rounded-full border-2 border-white shadow-sm -mt-0.5"></div>
+                        <div className="text-xs text-primary-600 font-medium mt-1 whitespace-nowrap">
                           {currentYear}
                         </div>
                       </div>
@@ -327,7 +327,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
-              <BookOpen className="h-4 w-4 text-blue-600" />
+              <BookOpen className="h-4 w-4 text-primary-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
@@ -508,7 +508,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                     </TableHeader>
                     <TableBody>
                       {semesterData.subjects.map((subject) => (
-                        <TableRow key={subject.id} className="hover:bg-gray-50">
+                        <TableRow key={subject.id} className="hover:bg-primary-50">
                           <TableCell className="font-mono text-sm">{subject.abbreviation || '-'}</TableCell>
                           <TableCell className="text-sm">
                             <div>
