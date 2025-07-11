@@ -88,7 +88,7 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
 
         setStudyNotes(transformedNotes)
       } catch (err) {
-        setError("Nepodařilo se načíst studijní poznámky")
+        setError("Nepodařilo se načíst studijní zápisy")
         console.error(err)
       } finally {
         setLoading(false)
@@ -147,7 +147,7 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
                   onClick={() => setShowAll(true)}
                   className="text-gray-700"
                 >
-                  Zobrazit všechny poznámky ({studyNotes.length})
+                  Zobrazit všechny zápisy ({studyNotes.length})
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>

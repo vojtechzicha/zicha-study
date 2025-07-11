@@ -89,7 +89,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
 
         setStudyNotes(transformedNotes)
       } catch (err) {
-        setError("Nepodařilo se načíst studijní poznámky")
+        setError("Nepodařilo se načíst studijní zápisy")
         console.error(err)
       } finally {
         setLoading(false)
@@ -157,7 +157,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
 
       setStudyNotes(transformedNotes)
     } catch (err) {
-      setError("Nepodařilo se načíst studijní poznámky")
+      setError("Nepodařilo se načíst studijní zápisy")
       console.error(err)
     } finally {
       setLoading(false)

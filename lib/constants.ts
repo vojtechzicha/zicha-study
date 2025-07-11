@@ -173,7 +173,7 @@ export const MATERIAL_CATEGORIES = {
   ASSIGNMENT: 'Úkol',
   EXAM: 'Zkouška',
   PROJECT: 'Projekt',
-  NOTES: 'Poznámky',
+  NOTES: 'Zápisy',
   LITERATURE: 'Literatura',
   OTHER: 'Ostatní',
 } as const
