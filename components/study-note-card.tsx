@@ -191,7 +191,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   <div className="flex flex-wrap gap-1">
                     {(() => {
                       const primaryItem = note.subjects.find(s => s.is_primary)
-                      const isViewingPrimaryItem = primaryItem?.id === currentSubjectId || (isFinalExam && primaryItem?.id === currentSubjectId)
+                      const isViewingPrimaryItem = primaryItem?.id === currentSubjectId
                       
                       if (isViewingPrimaryItem) {
                         // Viewing from primary item - show linked items
