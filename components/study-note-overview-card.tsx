@@ -65,9 +65,26 @@ export function StudyNoteOverviewCard({ note, studySlug }: StudyNoteOverviewCard
               </span>
             </div>
 
+            {/* Linked subjects/exams */}
+            {note.subjects && note.subjects.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {note.subjects.slice(0, 2).map(subject => (
+                  <Badge key={subject.id} variant="outline" className="text-xs py-0 px-1.5">
+                    {subject.name}
+                    {subject.is_final_exam && <span className="ml-0.5 text-gray-500">(SZZ)</span>}
+                  </Badge>
+                ))}
+                {note.subjects.length > 2 && (
+                  <Badge variant="outline" className="text-xs py-0 px-1.5 text-gray-500">
+                    +{note.subjects.length - 2}
+                  </Badge>
+                )}
+              </div>
+            )}
+
             {/* Public status */}
             {note.is_public && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs mt-2">
                 <Globe className="h-3 w-3 mr-1" />
                 Veřejné
               </Badge>

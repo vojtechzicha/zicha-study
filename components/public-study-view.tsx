@@ -461,7 +461,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
         {/* Final Exams Section */}
         {study.final_exams_enabled && (
           <div className="mb-8">
-            <FinalExamsList studyId={study.id} isPublic={true} />
+            <FinalExamsList studyId={study.id} studySlug={study.public_slug} isPublic={true} />
           </div>
         )}
 

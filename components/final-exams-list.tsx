@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, BookOpen, Calendar, User, Users, Edit, Trash2, GraduationCap } from "lucide-react"
+import { Plus, BookOpen, Calendar, User, Users, Edit, Trash2, GraduationCap, ChevronDown, ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDateCzech } from "@/lib/utils"
 import { FinalExamDialog } from "./final-exam-dialog"
+import { FinalExamStudyNotesSection } from "./final-exam-study-notes-section"
 import type { FinalExam } from "@/lib/constants"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getGradeBadgeConfig, getSubjectStateBadgeConfig, SubjectState } from "@/lib/status-utils"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,15 +28,18 @@ import {
 interface FinalExamsListProps {
   studyId: string
   isPublic?: boolean
+  studySlug?: string
   onUpdate?: () => void
 }
 
-export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExamsListProps) {
+export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate }: FinalExamsListProps) {
   const [finalExams, setFinalExams] = useState<FinalExam[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingExam, setEditingExam] = useState<FinalExam | null>(null)
   const [deletingExamId, setDeletingExamId] = useState<string | null>(null)
+  const [expandedExamId, setExpandedExamId] = useState<string | null>(null)
+  const [examsWithNotes, setExamsWithNotes] = useState<Set<string>>(new Set())
   const supabase = createClient()
 
   useEffect(() => {
@@ -51,6 +56,20 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
 
       if (error) throw error
       setFinalExams(data || [])
+      
+      // Check which exams have study notes
+      if (data && data.length > 0) {
+        const examIds = data.map(exam => exam.id)
+        const { data: notesData } = await supabase
+          .from("study_note_final_exams")
+          .select("final_exam_id")
+          .in("final_exam_id", examIds)
+        
+        if (notesData) {
+          const examIdsWithNotes = new Set(notesData.map(n => n.final_exam_id))
+          setExamsWithNotes(examIdsWithNotes)
+        }
+      }
     } catch (error) {
       console.error("Error loading final exams:", error)
     } finally {
@@ -143,11 +162,9 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
               {/* Mobile Card View */}
               <div className="md:hidden p-4 space-y-3">
                 {finalExams.map((exam) => (
-                  <div
-                    key={exam.id}
-                    className="group relative rounded-lg border p-4 hover:bg-primary-50/50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
+                  <Collapsible key={exam.id} open={expandedExamId === exam.id} onOpenChange={(open) => setExpandedExamId(open ? exam.id : null)}>
+                    <div className="group relative rounded-lg border p-4 hover:bg-primary-50/50 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-3">
                           {exam.shortcut && (
@@ -233,8 +250,48 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                         )}
                       </div>
                     </div>
+                    
+                    {/* Expand button for study notes - only show in non-public view */}
+                    {!isPublic && (
+                      <>
+                        <div className="flex justify-between items-center pt-3 mt-3 border-t">
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-600 hover:text-gray-800 w-full justify-start"
+                            >
+                              {expandedExamId === exam.id ? (
+                                <>
+                                  <ChevronDown className="h-4 w-4 mr-1" />
+                                  Skrýt studijní zápisy
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronRight className="h-4 w-4 mr-1" />
+                                  Zobrazit studijní zápisy
+                                </>
+                              )}
+                            </Button>
+                          </CollapsibleTrigger>
+                        </div>
+                        
+                        <CollapsibleContent>
+                          <div className="pt-4 border-t mt-3">
+                            <FinalExamStudyNotesSection
+                              studyId={studyId}
+                              finalExamId={exam.id}
+                              studySlug={studySlug}
+                              isStudyPublic={isPublic}
+                              onUpdate={loadFinalExams}
+                            />
+                          </div>
+                        </CollapsibleContent>
+                      </>
+                    )}
                   </div>
-                ))}
+                </Collapsible>
+              ))}
               </div>
 
               {/* Desktop Table View */}
@@ -252,8 +309,9 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                   </TableHeader>
                   <TableBody>
                     {finalExams.map((exam) => (
-                      <TableRow key={exam.id} className="hover:bg-primary-50">
-                        <TableCell className="font-mono text-sm">
+                      <React.Fragment key={exam.id}>
+                        <TableRow className="hover:bg-primary-50">
+                          <TableCell className="font-mono text-sm">
                           {exam.shortcut ? (
                             <Badge variant="outline" className="font-mono">
                               {exam.shortcut}
@@ -304,6 +362,17 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                onClick={() => setExpandedExamId(expandedExamId === exam.id ? null : exam.id)}
+                              >
+                                {expandedExamId === exam.id ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => setEditingExam(exam)}
                               >
                                 <Edit className="h-4 w-4" />
@@ -340,6 +409,22 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                           </TableCell>
                         )}
                       </TableRow>
+                      {!isPublic && expandedExamId === exam.id && (
+                        <TableRow>
+                          <TableCell colSpan={isPublic ? 5 : 5} className="bg-gray-50 p-0">
+                            <div className="p-6">
+                              <FinalExamStudyNotesSection
+                                studyId={studyId}
+                                finalExamId={exam.id}
+                                studySlug={studySlug}
+                                isStudyPublic={isPublic}
+                                onUpdate={loadFinalExams}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
                     ))}
                   </TableBody>
                 </Table>

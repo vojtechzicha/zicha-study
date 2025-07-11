@@ -30,7 +30,8 @@ interface AvailableSubject {
   name: string
   study_id: string
   study_name: string
-  semester: number
+  semester: number | string
+  is_final_exam?: boolean
 }
 
 export function StudyNoteLinkSubjectsDialog({
@@ -43,40 +44,75 @@ export function StudyNoteLinkSubjectsDialog({
   const [selectedSubjects, setSelectedSubjects] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [linkedFinalExams, setLinkedFinalExams] = useState<AvailableSubject[]>([])
   const supabase = createClient()
 
   useEffect(() => {
     if (isOpen) {
-      loadAvailableSubjects()
+      loadData()
       setSelectedSubjects(new Set())
       setError(null)
     }
   }, [isOpen])
 
+  const loadData = async () => {
+    await loadLinkedFinalExams()
+    await loadAvailableSubjects()
+  }
+
   const loadAvailableSubjects = async () => {
     try {
-      // Get the primary subject to find its study_id
-      const primarySubject = note.subjects?.find(s => s.is_primary)
-      if (!primarySubject) {
-        setError("Hlavní předmět nebyl nalezen")
-        return
-      }
-
-      // Get the study info for the primary subject
-      const { data: subjectData, error: subjectError } = await supabase
-        .from("subjects")
-        .select("study_id, studies(id, name)")
-        .eq("id", primarySubject.id)
+      let studyId: string
+      let studyName: string
+      
+      // Check if the primary is a final exam or subject
+      const { data: finalExamLinks } = await supabase
+        .from("study_note_final_exams")
+        .select("final_exam_id, is_primary")
+        .eq("study_note_id", note.id)
+        .eq("is_primary", true)
         .single()
+      
+      if (finalExamLinks) {
+        // Primary is a final exam, get study_id from final_exams table
+        const { data: examData, error: examError } = await supabase
+          .from("final_exams")
+          .select("study_id, studies(id, name)")
+          .eq("id", finalExamLinks.final_exam_id)
+          .single()
+          
+        if (examError) throw examError
+        if (!examData?.study_id) {
+          setError("Nepodařilo se najít studium pro státní zkoušku")
+          return
+        }
+        
+        studyId = examData.study_id
+        studyName = examData.studies?.name || "Neznámé studium"
+      } else {
+        // Primary is a regular subject
+        const primarySubject = note.subjects?.find(s => s.is_primary)
+        if (!primarySubject) {
+          setError("Hlavní předmět nebyl nalezen")
+          return
+        }
 
-      if (subjectError) throw subjectError
-      if (!subjectData?.study_id) {
-        setError("Nepodařilo se najít studium pro hlavní předmět")
-        return
+        // Get the study info for the primary subject
+        const { data: subjectData, error: subjectError } = await supabase
+          .from("subjects")
+          .select("study_id, studies(id, name)")
+          .eq("id", primarySubject.id)
+          .single()
+
+        if (subjectError) throw subjectError
+        if (!subjectData?.study_id) {
+          setError("Nepodařilo se najít studium pro hlavní předmět")
+          return
+        }
+
+        studyId = subjectData.study_id
+        studyName = subjectData.studies?.name || "Neznámé studium"
       }
-
-      const studyId = subjectData.study_id
-      const studyName = subjectData.studies?.name || "Neznámé studium"
 
       // Get all subjects from the same study (excluding repeated subjects)
       const { data: allSubjects, error: subjectsError } = await supabase
@@ -86,6 +122,14 @@ export function StudyNoteLinkSubjectsDialog({
         .eq("is_repeat", false)
 
       if (subjectsError) throw subjectsError
+      
+      // Get all final exams from the same study
+      const { data: allFinalExams, error: finalExamsError } = await supabase
+        .from("final_exams")
+        .select("id, name, shortcut, study_id")
+        .eq("study_id", studyId)
+
+      if (finalExamsError) throw finalExamsError
 
       // Get already linked subjects
       const { data: linkedSubjects, error: linkedError } = await supabase
@@ -95,7 +139,16 @@ export function StudyNoteLinkSubjectsDialog({
 
       if (linkedError && linkedError.code !== 'PGRST116') throw linkedError
 
+      // Get already linked final exams
+      const { data: linkedFinalExams, error: linkedFinalError } = await supabase
+        .from("study_note_final_exams")
+        .select("final_exam_id")
+        .eq("study_note_id", note.id)
+
+      if (linkedFinalError && linkedFinalError.code !== 'PGRST116') throw linkedFinalError
+
       const linkedSubjectIds = new Set(linkedSubjects?.map(ls => ls.subject_id) || [])
+      const linkedFinalExamIds = new Set(linkedFinalExams?.map(lf => lf.final_exam_id) || [])
 
       // Helper functions for sorting (matching study detail page)
       const getStatusPriority = (subject: any) => {
@@ -125,7 +178,7 @@ export function StudyNoteLinkSubjectsDialog({
       }
 
       // Filter out already linked subjects and sort them
-      const available = (allSubjects || [])
+      const availableSubjects = (allSubjects || [])
         .filter(subject => !linkedSubjectIds.has(subject.id))
         .sort((a, b) => {
           // First sort by status priority
@@ -157,13 +210,74 @@ export function StudyNoteLinkSubjectsDialog({
           name: subject.name,
           study_id: subject.study_id,
           study_name: studyName,
-          semester: subject.semester
+          semester: subject.semester,
+          is_final_exam: false
         }))
+
+      // Filter out already linked final exams
+      const availableFinalExams = (allFinalExams || [])
+        .filter(exam => !linkedFinalExamIds.has(exam.id))
+        .sort((a, b) => a.name.localeCompare(b.name, "cs"))
+        .map(exam => ({
+          id: exam.id,
+          name: `${exam.shortcut ? `${exam.shortcut  } - ` : ""}${exam.name}`,
+          study_id: exam.study_id,
+          study_name: studyName,
+          semester: "Státní zkouška",
+          is_final_exam: true
+        }))
+
+      // Combine subjects and final exams
+      const available = [...availableSubjects, ...availableFinalExams]
 
       setAvailableSubjects(available)
     } catch (err) {
       console.error("Failed to load available subjects:", err)
       setError("Nepodařilo se načíst dostupné předměty")
+    }
+  }
+
+  const loadLinkedFinalExams = async () => {
+    try {
+      // Get the linked final exams for this note
+      const { data: links, error: linksError } = await supabase
+        .from("study_note_final_exams")
+        .select("final_exam_id, is_primary")
+        .eq("study_note_id", note.id)
+
+      if (linksError && linksError.code !== 'PGRST116') throw linksError
+
+      if (links && links.length > 0) {
+        // Get the final exam details
+        const finalExamIds = links.map(l => l.final_exam_id)
+        const { data: finalExams, error: examsError } = await supabase
+          .from("final_exams")
+          .select("id, name, shortcut")
+          .in("id", finalExamIds)
+
+        if (examsError) throw examsError
+
+        const examsMap = new Map(finalExams?.map(e => [e.id, e]) || [])
+        
+        const linkedExams = links.map(link => {
+          const exam = examsMap.get(link.final_exam_id)
+          return exam ? {
+            id: exam.id,
+            name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
+            study_id: "", // Not needed for display
+            study_name: "",
+            semester: "Státní zkouška",
+            is_final_exam: true,
+            is_primary: link.is_primary
+          } : null
+        }).filter(Boolean) as AvailableSubject[]
+
+        setLinkedFinalExams(linkedExams)
+      } else {
+        setLinkedFinalExams([])
+      }
+    } catch (err) {
+      console.error("Failed to load linked final exams:", err)
     }
   }
 
@@ -180,18 +294,36 @@ export function StudyNoteLinkSubjectsDialog({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Uživatel není přihlášen")
 
-      // Link to each selected subject using direct insert
-      for (const subjectId of selectedSubjects) {
-        const { error } = await supabase
-          .from("study_note_subjects")
-          .insert({
-            study_note_id: note.id,
-            subject_id: subjectId,
-            is_primary: false,
-            linked_by: user.id
-          })
+      // Link to each selected item (subject or final exam)
+      for (const itemId of selectedSubjects) {
+        // Find if this is a final exam or regular subject
+        const selectedItem = availableSubjects.find(s => s.id === itemId)
+        
+        if (selectedItem?.is_final_exam) {
+          // Link to final exam
+          const { error } = await supabase
+            .from("study_note_final_exams")
+            .insert({
+              study_note_id: note.id,
+              final_exam_id: itemId,
+              is_primary: false,
+              linked_by: user.id
+            })
 
-        if (error && error.code !== '23505') throw error // Ignore duplicate key errors
+          if (error && error.code !== '23505') throw error
+        } else {
+          // Link to regular subject
+          const { error } = await supabase
+            .from("study_note_subjects")
+            .insert({
+              study_note_id: note.id,
+              subject_id: itemId,
+              is_primary: false,
+              linked_by: user.id
+            })
+
+          if (error && error.code !== '23505') throw error
+        }
       }
 
       onUpdate()
@@ -203,33 +335,56 @@ export function StudyNoteLinkSubjectsDialog({
     }
   }
 
-  const handleUnlink = async (subjectId: string) => {
+  const handleUnlink = async (subjectId: string, isFinalExam: boolean = false) => {
     if (!confirm("Opravdu chcete odpojit tento zápis od vybraného předmětu?")) return
 
     setLoading(true)
     setError(null)
 
     try {
-      // Check if this is the primary subject
-      const { data: linkData } = await supabase
-        .from("study_note_subjects")
-        .select("is_primary")
-        .eq("study_note_id", note.id)
-        .eq("subject_id", subjectId)
-        .single()
+      if (isFinalExam) {
+        // Check if this is primary for final exam
+        const { data: linkData } = await supabase
+          .from("study_note_final_exams")
+          .select("is_primary")
+          .eq("study_note_id", note.id)
+          .eq("final_exam_id", subjectId)
+          .single()
 
-      if (linkData?.is_primary) {
-        throw new Error("Nelze odpojit hlavní předmět")
+        if (linkData?.is_primary) {
+          throw new Error("Nelze odpojit hlavní státní zkoušku")
+        }
+
+        // Delete the final exam link
+        const { error } = await supabase
+          .from("study_note_final_exams")
+          .delete()
+          .eq("study_note_id", note.id)
+          .eq("final_exam_id", subjectId)
+
+        if (error) throw error
+      } else {
+        // Check if this is the primary subject
+        const { data: linkData } = await supabase
+          .from("study_note_subjects")
+          .select("is_primary")
+          .eq("study_note_id", note.id)
+          .eq("subject_id", subjectId)
+          .single()
+
+        if (linkData?.is_primary) {
+          throw new Error("Nelze odpojit hlavní předmět")
+        }
+
+        // Delete the subject link
+        const { error } = await supabase
+          .from("study_note_subjects")
+          .delete()
+          .eq("study_note_id", note.id)
+          .eq("subject_id", subjectId)
+
+        if (error) throw error
       }
-
-      // Delete the link directly
-      const { error } = await supabase
-        .from("study_note_subjects")
-        .delete()
-        .eq("study_note_id", note.id)
-        .eq("subject_id", subjectId)
-
-      if (error) throw error
       
       onUpdate()
     } catch (err) {
@@ -252,8 +407,12 @@ export function StudyNoteLinkSubjectsDialog({
   // Since all subjects are from the same study, we don't need to group them
   const studyName = availableSubjects[0]?.study_name || ""
 
+  // Check if the primary item is a final exam or a regular subject
+  const primaryFinalExam = linkedFinalExams.find(fe => fe.is_primary)
   const primarySubject = note.subjects?.find(s => s.is_primary)
   const linkedSubjects = note.subjects?.filter(s => !s.is_primary) || []
+  const linkedNonPrimaryFinalExams = linkedFinalExams.filter(fe => !fe.is_primary)
+  const allLinkedItems = [...linkedSubjects, ...linkedNonPrimaryFinalExams]
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -273,30 +432,37 @@ export function StudyNoteLinkSubjectsDialog({
             </Alert>
           )}
 
-          {/* Current subject (primary) */}
+          {/* Current primary item (subject or final exam) */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Hlavní předmět</Label>
+            <Label className="text-sm font-medium">
+              {primaryFinalExam ? "Hlavní státní zkouška" : "Hlavní předmět"}
+            </Label>
             <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-lg border border-primary-200">
               <Badge variant="default" className="bg-primary-600">
-                {primarySubject?.name || "Neznámý předmět"}
+                {primaryFinalExam?.name || primarySubject?.name || "Neznámý předmět"}
               </Badge>
               <span className="text-sm text-gray-600">(nelze změnit)</span>
             </div>
           </div>
 
-          {/* Linked subjects */}
-          {linkedSubjects.length > 0 && (
+          {/* Linked subjects and final exams */}
+          {allLinkedItems.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Propojené předměty</Label>
               <ScrollArea className="h-[200px] rounded-md border p-2">
                 <div className="space-y-2">
-                  {linkedSubjects.map(subject => (
-                    <div key={subject.id} className="flex items-center justify-between p-3 bg-primary-50 rounded-lg border mr-3">
-                      <Badge variant="outline">{subject.name}</Badge>
+                  {allLinkedItems.map(item => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-primary-50 rounded-lg border mr-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{item.name}</Badge>
+                        {item.is_final_exam && (
+                          <span className="text-xs text-gray-500">(Státní zkouška)</span>
+                        )}
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleUnlink(subject.id)}
+                        onClick={() => handleUnlink(item.id, item.is_final_exam)}
                         disabled={loading}
                         className="text-red-600 hover:text-red-700"
                       >
@@ -334,7 +500,7 @@ export function StudyNoteLinkSubjectsDialog({
                       >
                         {subject.name}
                         <span className="text-gray-500 ml-2">
-                          ({subject.semester}. semestr)
+                          {subject.is_final_exam ? "(Státní zkouška)" : `(${subject.semester}. semestr)`}
                         </span>
                       </Label>
                     </div>
@@ -344,7 +510,7 @@ export function StudyNoteLinkSubjectsDialog({
             </div>
           )}
 
-          {availableSubjects.length === 0 && linkedSubjects.length === 0 && (
+          {availableSubjects.length === 0 && allLinkedItems.length === 0 && (
             <Alert>
               <AlertDescription>
                 Nejsou dostupné žádné další předměty pro propojení.

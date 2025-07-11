@@ -190,23 +190,25 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   <Link className="h-3 w-3 text-gray-400" />
                   <div className="flex flex-wrap gap-1">
                     {(() => {
-                      const primarySubject = note.subjects.find(s => s.is_primary)
-                      const isViewingPrimarySubject = primarySubject?.id === currentSubjectId
+                      const primaryItem = note.subjects.find(s => s.is_primary)
+                      const isViewingPrimaryItem = primaryItem?.id === currentSubjectId || (isFinalExam && primaryItem?.id === currentSubjectId)
                       
-                      if (isViewingPrimarySubject) {
-                        // Viewing from primary subject - show linked subjects
+                      if (isViewingPrimaryItem) {
+                        // Viewing from primary item - show linked items
                         return note.subjects
                           .filter(s => !s.is_primary)
-                          .map(subject => (
-                            <Badge key={subject.id} variant="outline" className="text-xs py-0 px-2">
-                              {subject.name}
+                          .map(item => (
+                            <Badge key={item.id} variant="outline" className="text-xs py-0 px-2">
+                              {item.name}
+                              {item.is_final_exam && <span className="ml-1 text-gray-500">(SZZ)</span>}
                             </Badge>
                           ))
                       } else {
-                        // Viewing from linked subject - show primary subject
-                        return primarySubject ? (
+                        // Viewing from linked item - show primary item
+                        return primaryItem ? (
                           <Badge variant="outline" className="text-xs py-0 px-2">
-                            {primarySubject.name}
+                            {primaryItem.name}
+                            {primaryItem.is_final_exam && <span className="ml-1 text-gray-500">(SZZ)</span>}
                           </Badge>
                         ) : null
                       }

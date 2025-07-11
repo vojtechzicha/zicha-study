@@ -36,7 +36,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
       setError(null)
       
       try {
-        // First get all study notes for this study with their subject links
+        // First get all study notes for this study with their subject and final exam links
         const { data: notesData, error: notesError } = await supabase
           .from("study_notes")
           .select(`
@@ -45,6 +45,11 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
               id,
               is_primary,
               subject_id
+            ),
+            study_note_final_exams (
+              id,
+              is_primary,
+              final_exam_id
             )
           `)
           .eq("study_id", studyId)
@@ -52,11 +57,15 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
 
         if (notesError) throw notesError
 
-        // Get all unique subject IDs
+        // Get all unique subject and final exam IDs
         const subjectIds = new Set<string>()
+        const finalExamIds = new Set<string>()
         notesData?.forEach(note => {
           note.study_note_subjects?.forEach((link: any) => {
             subjectIds.add(link.subject_id)
+          })
+          note.study_note_final_exams?.forEach((link: any) => {
+            finalExamIds.add(link.final_exam_id)
           })
         })
 
@@ -75,16 +84,42 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           })
         }
 
-        // Transform the data to include subject information
+        // Fetch final exam details
+        let finalExamsMap = new Map<string, any>()
+        if (finalExamIds.size > 0) {
+          const { data: finalExamsData, error: finalExamsError } = await supabase
+            .from("final_exams")
+            .select("id, name, shortcut, study_id")
+            .in("id", Array.from(finalExamIds))
+
+          if (finalExamsError) throw finalExamsError
+          
+          finalExamsData?.forEach(exam => {
+            finalExamsMap.set(exam.id, exam)
+          })
+        }
+
+        // Transform the data to include subject and final exam information
         const transformedNotes: StudyNoteWithSubjects[] = notesData?.map(note => ({
           ...note,
-          subjects: note.study_note_subjects?.map((link: any) => {
-            const subject = subjectsMap.get(link.subject_id)
-            return subject ? {
-              ...subject,
-              is_primary: link.is_primary
-            } : null
-          }).filter(Boolean) || []
+          subjects: [
+            ...(note.study_note_subjects?.map((link: any) => {
+              const subject = subjectsMap.get(link.subject_id)
+              return subject ? {
+                ...subject,
+                is_primary: link.is_primary
+              } : null
+            }).filter(Boolean) || []),
+            ...(note.study_note_final_exams?.map((link: any) => {
+              const exam = finalExamsMap.get(link.final_exam_id)
+              return exam ? {
+                ...exam,
+                name: `${exam.shortcut ? `${exam.shortcut  } - ` : ""}${exam.name}`,
+                is_primary: link.is_primary,
+                is_final_exam: true
+              } : null
+            }).filter(Boolean) || [])
+          ]
         })) || []
 
         setStudyNotes(transformedNotes)
@@ -104,7 +139,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
     setError(null)
     
     try {
-      // First get all study notes for this study with their subject links
+      // First get all study notes for this study with their subject and final exam links
       const { data: notesData, error: notesError } = await supabase
         .from("study_notes")
         .select(`
@@ -113,6 +148,11 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
             id,
             is_primary,
             subject_id
+          ),
+          study_note_final_exams (
+            id,
+            is_primary,
+            final_exam_id
           )
         `)
         .eq("study_id", studyId)
@@ -120,11 +160,15 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
 
       if (notesError) throw notesError
 
-      // Get all unique subject IDs
+      // Get all unique subject and final exam IDs
       const subjectIds = new Set<string>()
+      const finalExamIds = new Set<string>()
       notesData?.forEach(note => {
         note.study_note_subjects?.forEach((link: any) => {
           subjectIds.add(link.subject_id)
+        })
+        note.study_note_final_exams?.forEach((link: any) => {
+          finalExamIds.add(link.final_exam_id)
         })
       })
 
@@ -143,16 +187,42 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
         })
       }
 
-      // Transform the data to include subject information
+      // Fetch final exam details
+      let finalExamsMap = new Map<string, any>()
+      if (finalExamIds.size > 0) {
+        const { data: finalExamsData, error: finalExamsError } = await supabase
+          .from("final_exams")
+          .select("id, name, shortcut, study_id")
+          .in("id", Array.from(finalExamIds))
+
+        if (finalExamsError) throw finalExamsError
+        
+        finalExamsData?.forEach(exam => {
+          finalExamsMap.set(exam.id, exam)
+        })
+      }
+
+      // Transform the data to include subject and final exam information
       const transformedNotes: StudyNoteWithSubjects[] = notesData?.map(note => ({
         ...note,
-        subjects: note.study_note_subjects?.map((link: any) => {
-          const subject = subjectsMap.get(link.subject_id)
-          return subject ? {
-            ...subject,
-            is_primary: link.is_primary
-          } : null
-        }).filter(Boolean) || []
+        subjects: [
+          ...(note.study_note_subjects?.map((link: any) => {
+            const subject = subjectsMap.get(link.subject_id)
+            return subject ? {
+              ...subject,
+              is_primary: link.is_primary
+            } : null
+          }).filter(Boolean) || []),
+          ...(note.study_note_final_exams?.map((link: any) => {
+            const exam = finalExamsMap.get(link.final_exam_id)
+            return exam ? {
+              ...exam,
+              name: `${exam.shortcut ? `${exam.shortcut  } - ` : ""}${exam.name}`,
+              is_primary: link.is_primary,
+              is_final_exam: true
+            } : null
+          }).filter(Boolean) || [])
+        ]
       })) || []
 
       setStudyNotes(transformedNotes)

@@ -277,7 +277,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
         {/* Final Exams Section */}
         {currentStudy.final_exams_enabled && (
           <div className="mb-8">
-            <FinalExamsList studyId={study.id} onUpdate={fetchSubjects} />
+            <FinalExamsList studyId={study.id} studySlug={currentStudy.public_slug} onUpdate={fetchSubjects} />
           </div>
         )}
 

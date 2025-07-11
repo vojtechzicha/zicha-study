@@ -29,6 +29,7 @@ import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
 interface AddStudyNoteDialogProps {
   studyId: string
   subjectId: string
+  isFinalExam?: boolean
   studySlug?: string
   isOpen: boolean
   onClose: () => void
@@ -51,6 +52,7 @@ const generateUniqueSlug = () => {
 export function AddStudyNoteDialog({
   studyId,
   subjectId,
+  isFinalExam = false,
   studySlug,
   isOpen,
   onClose,
@@ -215,17 +217,30 @@ export function AddStudyNoteDialog({
 
       if (insertError) throw insertError
 
-      // Create the primary subject link in the many-to-many table
-      const { error: linkError } = await supabase
-        .from("study_note_subjects")
-        .insert({
-          study_note_id: insertedNote.id,
-          subject_id: subjectId,
-          is_primary: true,
-          linked_by: user.id
-        })
+      // Create the primary link in the appropriate many-to-many table
+      if (isFinalExam) {
+        const { error: linkError } = await supabase
+          .from("study_note_final_exams")
+          .insert({
+            study_note_id: insertedNote.id,
+            final_exam_id: subjectId,
+            is_primary: true,
+            linked_by: user.id
+          })
 
-      if (linkError) throw linkError
+        if (linkError) throw linkError
+      } else {
+        const { error: linkError } = await supabase
+          .from("study_note_subjects")
+          .insert({
+            study_note_id: insertedNote.id,
+            subject_id: subjectId,
+            is_primary: true,
+            linked_by: user.id
+          })
+
+        if (linkError) throw linkError
+      }
 
       onSuccess()
       handleClose()
@@ -281,7 +296,9 @@ export function AddStudyNoteDialog({
           <DialogDescription>
             {showFilePicker 
               ? "Vyberte DOCX soubor se studijními zápisy"
-              : "Přidejte studijní zápis k předmětu (pouze DOCX formát)"
+              : isFinalExam
+                ? "Přidejte studijní zápis ke státní zkoušce (pouze DOCX formát)"
+                : "Přidejte studijní zápis k předmětu (pouze DOCX formát)"
             }
           </DialogDescription>
         </DialogHeader>
