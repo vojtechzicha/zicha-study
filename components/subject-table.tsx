@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Play, CheckCircle, FolderOpen } from "lucide-react"
+import { Edit, Play, CheckCircle, FolderOpen, ChevronLeft, ChevronRight } from "lucide-react"
 import { SubjectEditForm } from "./subject-edit-form"
 import { SubjectCompletionModal } from "./subject-completion-modal"
 import { SubjectTableMobile } from "./subject-table-mobile"
@@ -146,6 +146,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   const [materialsDialogSubject, setMaterialsDialogSubject] = useState<Subject | null>(null)
   const [materialsDialogOpen, setMaterialsDialogOpen] = useState(false)
   const [filter, setFilter] = useState<FilterType>("all")
+  const [showLeftIndicator, setShowLeftIndicator] = useState(false)
+  const [showRightIndicator, setShowRightIndicator] = useState(false)
+  const [showScrollHint, setShowScrollHint] = useState(true)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   // Filter subjects based on selected filter
@@ -157,6 +161,40 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   
   // Check if any subject has department or lecturer info
   const hasDetailInfo = subjects.some(s => s.department || s.lecturer)
+
+  // Check scroll position and update indicators
+  const checkScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
+      setShowLeftIndicator(scrollLeft > 0)
+      setShowRightIndicator(scrollLeft < scrollWidth - clientWidth - 1)
+      
+      // Hide scroll hint after user has scrolled
+      if (scrollLeft > 0) {
+        setShowScrollHint(false)
+      }
+    }
+  }
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (container) {
+      checkScroll()
+      container.addEventListener('scroll', checkScroll)
+      window.addEventListener('resize', checkScroll)
+      
+      // Hide scroll hint after 5 seconds
+      const timer = setTimeout(() => {
+        setShowScrollHint(false)
+      }, 5000)
+      
+      return () => {
+        container.removeEventListener('scroll', checkScroll)
+        window.removeEventListener('resize', checkScroll)
+        clearTimeout(timer)
+      }
+    }
+  }, [subjects])
 
   const handleStateChange = async (subjectId: string, newState: SubjectState) => {
     setActionLoading({ ...actionLoading, [subjectId]: true })
@@ -274,7 +312,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   }
 
   return (
-    <div className="rounded-lg border bg-white">
+    <div>
       {/* Filter Buttons - only show when not hidden */}
       {!hideFilters && (
         <div className="flex gap-2 p-4 border-b">
@@ -303,12 +341,44 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       </div>
       
       {/* Desktop Table View */}
-      <div className="hidden lg:block overflow-x-auto">
-        <Table>
+      <div className="hidden lg:block relative">
+        {/* Scroll indicators - only show when scrolling is possible */}
+        {showLeftIndicator && (
+          <div className="absolute left-[370px] top-0 bottom-0 w-16 flex items-center pointer-events-none z-30">
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent" />
+            <ChevronLeft className="relative ml-2 h-5 w-5 text-gray-400" />
+          </div>
+        )}
+        {showRightIndicator && (
+          <div className="absolute right-[100px] top-0 bottom-0 w-16 flex items-center justify-end pointer-events-none z-30">
+            <div className="absolute inset-0 bg-gradient-to-l from-white via-white/90 to-transparent" />
+            <ChevronRight className="relative mr-2 h-5 w-5 text-gray-400" />
+          </div>
+        )}
+        
+        {/* Scroll hint that appears briefly */}
+        {showScrollHint && showRightIndicator && (
+          <div className="absolute right-[116px] top-1/2 -translate-y-1/2 animate-pulse pointer-events-none z-40">
+            <div className="bg-primary-600 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1 shadow-lg">
+              <span>Posunout pro více</span>
+              <ChevronRight className="h-4 w-4" />
+            </div>
+          </div>
+        )}
+        
+        <div 
+          className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400" 
+          ref={scrollContainerRef}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db #f3f4f6'
+          }}
+        >
+          <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 z-10 bg-white border-r w-[120px]">Semestr</TableHead>
-              <TableHead className="sticky left-[120px] z-20 bg-white border-r min-w-[250px]">Předmět</TableHead>
+              <TableHead className="sticky left-0 z-10 bg-white w-[120px]">Semestr</TableHead>
+              <TableHead className="sticky left-[120px] z-20 bg-white min-w-[250px]">Předmět</TableHead>
               {hasDetailInfo && <TableHead className="w-[200px]">Detail</TableHead>}
               <TableHead>Typ</TableHead>
               <TableHead>Ukončení</TableHead>
@@ -317,7 +387,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
               <TableHead>Datum ukončení</TableHead>
               <TableHead>Zápočet</TableHead>
               <TableHead>Zkouška</TableHead>
-              <TableHead className="sticky right-0 z-10 bg-white border-l w-[120px]">Akce</TableHead>
+              <TableHead className="sticky right-0 z-10 bg-white w-[100px] text-right">Akce</TableHead>
             </TableRow>
           </TableHeader>
         <TableBody>
@@ -344,11 +414,11 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                   className={isSubjectFailed(subject) ? "group bg-red-50 hover:bg-red-100" : "group"}
                 >
                   {/* Semester */}
-                  <TableCell className={`font-medium whitespace-nowrap sticky left-0 z-10 border-r ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>{subject.semester}</TableCell>
+                  <TableCell className={`font-medium whitespace-nowrap sticky left-0 z-10 ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>{subject.semester}</TableCell>
 
                   {/* Subject */}
-                  <TableCell className={`sticky left-[120px] z-20 border-r min-w-[250px] shadow-sm ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
-                    <div className="relative w-full h-full -m-4 p-4" style={{backgroundColor: 'inherit'}}>
+                  <TableCell className={`sticky left-[120px] z-20 min-w-[250px] ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                    <div>
                       <div className="font-medium">{subject.abbreviation || subject.name}</div>
                       {subject.abbreviation && (
                         <div className="text-sm text-gray-600">{subject.name}</div>
@@ -528,8 +598,8 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell className={`sticky right-0 z-10 border-l ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
-                    <div className="flex gap-1">
+                  <TableCell className={`sticky right-0 z-10 text-right ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                    <div className="flex gap-1 justify-end">
                       {/* Make Active */}
                       {availableActions.includes("makeActive") && (
                         <Button
@@ -606,6 +676,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           )}
           </TableBody>
         </Table>
+        </div>
       </div>
       
       {/* Edit Modal */}

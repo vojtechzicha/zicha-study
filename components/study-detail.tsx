@@ -183,10 +183,6 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
               <BarChart3 className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Statistiky</span>
             </Button>
-            <Button onClick={() => setShowSubjectForm(true)} className="text-white" style={{ backgroundColor: "hsl(var(--primary-600))", "--tw-bg-opacity": "1" } as React.CSSProperties} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "hsl(var(--primary-700))" }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "hsl(var(--primary-600))" }} size="sm">
-              <Plus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Přidat předmět</span>
-            </Button>
           </>
         }
       />
@@ -288,8 +284,11 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           <CardHeader>
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
               <div className="flex-1">
-                <CardTitle className="text-xl font-bold text-gray-900">Předměty</CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary-600" />
+                  <CardTitle className="text-xl font-bold text-gray-900">Předměty</CardTitle>
+                </div>
+                <p className="text-sm text-gray-600 mt-1 ml-7">
                   {(searchQuery || showActiveOnly) ? (
                     `Zobrazeno ${filteredSubjects.length} z ${subjects.length} předmětů`
                   ) : (
@@ -297,9 +296,9 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
                   )}
                 </p>
               </div>
-              {/* Search Input with Filter - Right side on desktop, below on mobile */}
-              <div className="w-full md:w-80 relative flex gap-2 items-center">
-                <div className="flex-1 relative">
+              {/* Search Input with Filter and Add button - Right side on desktop, below on mobile */}
+              <div className="w-full md:w-auto relative flex gap-2 items-center">
+                <div className="flex-1 md:flex-initial md:w-64 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     placeholder="Hledat v předmětech..."
@@ -322,10 +321,18 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
                     showActiveOnly ? 'text-white' : 'text-gray-600'
                   }`} />
                 </Button>
+                <Button 
+                  onClick={() => setShowSubjectForm(true)} 
+                  size="sm"
+                  className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Přidat předmět</span>
+                </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <SubjectTable subjects={filteredSubjects} loading={loading} onUpdate={fetchSubjects} hideFilters study={study} />
           </CardContent>
         </Card>
