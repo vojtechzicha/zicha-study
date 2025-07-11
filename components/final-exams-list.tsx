@@ -10,7 +10,7 @@ import { formatDateCzech } from "@/lib/utils"
 import { FinalExamDialog } from "./final-exam-dialog"
 import type { FinalExam } from "@/lib/constants"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { getGradeBadgeConfig } from "@/lib/status-utils"
+import { getGradeBadgeConfig, getSubjectStateBadgeConfig, SubjectState } from "@/lib/status-utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -97,11 +97,17 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
   const getExamAsSubject = (exam: FinalExam) => ({
     id: exam.id,
     grade: exam.grade,
-    completed: !!exam.grade,
+    completed: !!exam.grade && exam.grade !== "F" && exam.grade !== "N",
     exam_completed: !!exam.grade,
     credit_completed: false,
-    planned: false
+    planned: !exam.grade
   })
+  
+  const getExamStatus = (exam: FinalExam): SubjectState => {
+    if (!exam.grade) return "planned"
+    if (exam.grade === "F" || exam.grade === "N") return "failed"
+    return "completed"
+  }
 
   return (
     <>
@@ -240,6 +246,7 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                       <TableHead className="min-w-[250px]">Předmět</TableHead>
                       <TableHead className="w-[120px]">Hodnocení</TableHead>
                       <TableHead className="w-[120px]">Datum ukončení</TableHead>
+                      {isPublic && <TableHead className="w-[60px]">Stav</TableHead>}
                       {!isPublic && <TableHead className="w-[100px] text-right">Akce</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -278,6 +285,19 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                           )}
                         </TableCell>
                         <TableCell className="text-center">{exam.exam_date ? formatDateCzech(exam.exam_date) : <span className="text-gray-400">-</span>}</TableCell>
+                        {isPublic && (
+                          <TableCell className="text-center">
+                            {(() => {
+                              const status = getExamStatus(exam)
+                              const config = getSubjectStateBadgeConfig(status, getExamAsSubject(exam), true)
+                              return (
+                                <Badge className={`text-xs ${config.className}`} style={config.style}>
+                                  {config.text}
+                                </Badge>
+                              )
+                            })()}
+                          </TableCell>
+                        )}
                         {!isPublic && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
