@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Switch } from "@/components/ui/switch"
 import { useRouter } from "next/navigation"
 
 interface Study {
@@ -32,6 +33,7 @@ interface Study {
   end_year?: number
   status: StudyStatus
   logo_url?: string
+  final_exams_enabled?: boolean
   created_at: string
 }
 
@@ -49,6 +51,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     start_year: study.start_year,
     end_year: study.end_year || "",
     status: study.status,
+    final_exams_enabled: study.final_exams_enabled || false,
   })
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(study.logo_url || null)
@@ -335,6 +338,27 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Final Exams Toggle */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="final-exams" className="text-base font-medium">
+                      Státní závěrečné zkoušky
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Zobrazit sekci pro státní závěrečné zkoušky v tomto studiu
+                    </p>
+                  </div>
+                  <Switch
+                    id="final-exams"
+                    checked={formData.final_exams_enabled}
+                    onCheckedChange={(checked) => 
+                      setFormData({ ...formData, final_exams_enabled: checked })
+                    }
+                  />
                 </div>
               </div>
 

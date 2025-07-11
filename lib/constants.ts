@@ -182,3 +182,35 @@ export type MaterialCategory = (typeof MATERIAL_CATEGORIES)[keyof typeof MATERIA
 
 // Helper function to get material category options
 export const getMaterialCategoryOptions = () => Object.values(MATERIAL_CATEGORIES)
+
+// Final Exam (Státní závěrečná zkouška) related types
+export interface FinalExam {
+  id: string
+  study_id: string
+  shortcut?: string
+  name: string
+  grade?: string
+  exam_date?: string
+  examiner?: string
+  examination_committee_head?: string
+  created_at: string
+  updated_at: string
+}
+
+// Extended Study interface to include final_exams_enabled
+export interface StudyWithFinalExams {
+  id: string
+  user_id: string
+  name: string
+  type: string
+  form: string
+  start_year: number
+  end_year?: number
+  status: StudyStatus
+  logo_url?: string
+  is_public: boolean
+  public_slug?: string
+  final_exams_enabled: boolean
+  created_at: string
+  updated_at: string
+}

@@ -11,6 +11,7 @@ import { SubjectTable } from "./subject-table"
 import { StudyHeader } from "./study-header"
 import { MaterialsSection } from "./materials-section"
 import { StudyNotesOverviewSection } from "./study-notes-overview-section"
+import { FinalExamsList } from "./final-exams-list"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
 import { calculateAverage } from "@/lib/grade-utils"
@@ -27,6 +28,7 @@ interface Study {
   end_year?: number
   status: "active" | "completed" | "paused" | "abandoned"
   logo_url?: string
+  final_exams_enabled?: boolean
   created_at: string
 }
 
@@ -273,6 +275,13 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
         <div className="mb-8">
           <StudyNotesOverviewSection studyId={study.id} study={study} />
         </div>
+
+        {/* Final Exams Section */}
+        {currentStudy.final_exams_enabled && (
+          <div className="mb-8">
+            <FinalExamsList studyId={study.id} onUpdate={fetchSubjects} />
+          </div>
+        )}
 
         {/* Subjects Section */}
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">

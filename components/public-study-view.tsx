@@ -16,6 +16,7 @@ import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
 import { PublicMaterialsSection } from "./public-materials-section"
 import { PublicStudyNotesSection } from "./public-study-notes-section"
+import { FinalExamsList } from "./final-exams-list"
 import { BookOpen, Target, Clock, Trophy } from "lucide-react"
 import { 
   getStatusColor, 
@@ -45,6 +46,7 @@ interface Study {
   end_year?: number
   status: StudyStatus
   logo_url?: string
+  final_exams_enabled?: boolean
   public_description?: string
   last_updated?: string
 }
@@ -459,6 +461,13 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
         <div className="mb-8">
           <PublicStudyNotesSection studyId={study.id} study={study} />
         </div>
+
+        {/* Final Exams Section */}
+        {study.final_exams_enabled && (
+          <div className="mb-8">
+            <FinalExamsList studyId={study.id} isPublic={true} />
+          </div>
+        )}
 
         {/* Subjects by Semester */}
         <div className="space-y-6">
