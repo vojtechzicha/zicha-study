@@ -238,13 +238,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
   }
 
   return (
-    <div 
-      className="min-h-screen" 
-      style={{ 
-        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
-        minHeight: "100vh"
-      } as React.CSSProperties}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
