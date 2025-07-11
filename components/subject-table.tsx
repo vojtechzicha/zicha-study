@@ -66,6 +66,8 @@ interface Subject {
   planned?: boolean
   final_date?: string
   created_at: string
+  is_repeat?: boolean
+  repeats_subject_id?: string
 }
 
 interface Study {
@@ -419,7 +421,14 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                   {/* Subject */}
                   <TableCell className={`sticky left-[120px] z-20 min-w-[250px] ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
                     <div>
-                      <div className="font-medium">{subject.abbreviation || subject.name}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {subject.abbreviation || subject.name}
+                        {subject.is_repeat && (
+                          <Badge variant="secondary" className="text-xs">
+                            Opakovaný
+                          </Badge>
+                        )}
+                      </div>
                       {subject.abbreviation && (
                         <div className="text-sm text-gray-600">{subject.name}</div>
                       )}

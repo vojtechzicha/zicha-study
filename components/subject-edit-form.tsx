@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -48,6 +48,8 @@ interface Subject {
   planned?: boolean
   final_date?: string
   created_at: string
+  is_repeat?: boolean
+  repeats_subject_id?: string
 }
 
 interface SubjectEditFormProps {
@@ -74,12 +76,72 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
     final_date: subject.final_date || "",
     credit_completed: subject.credit_completed,
     exam_completed: subject.exam_completed,
+    is_repeat: subject.is_repeat || false,
+    repeats_subject_id: subject.repeats_subject_id || "",
   })
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [availableSubjects, setAvailableSubjects] = useState<any[]>([])
   const supabase = createClient()
   const { departments } = useDepartments(subject.study_id)
+
+  // Fetch subjects that can be repeated
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      const { data } = await supabase
+        .from('subjects')
+        .select('id, name, abbreviation, semester, subject_type, completed, planned')
+        .eq('study_id', subject.study_id)
+        .eq('is_repeat', false)
+        .neq('id', subject.id) // Exclude current subject
+
+      if (data) {
+        // Apply the same sorting as subject table
+        const sortedSubjects = data.sort((a, b) => {
+          // Get subject status priority (Active > Completed > Planned)
+          const getStatusPriority = (subject: any) => {
+            if (subject.planned) return 3  // Planned
+            if (subject.completed) return 2  // Completed
+            return 1  // Active
+          }
+
+          // Custom semester sorting function
+          const getSemesterOrder = (semester: string) => {
+            const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
+            if (match) {
+              const year = Number.parseInt(match[1])
+              const semesterType = match[2].toUpperCase()
+              return year * 10 + (semesterType === "ZS" ? 1 : 2)
+            }
+            return 999
+          }
+
+          // First sort by status priority
+          const aStatusPriority = getStatusPriority(a)
+          const bStatusPriority = getStatusPriority(b)
+          if (aStatusPriority !== bStatusPriority) {
+            return aStatusPriority - bStatusPriority
+          }
+
+          // Then sort by semester
+          const aSemesterOrder = getSemesterOrder(a.semester)
+          const bSemesterOrder = getSemesterOrder(b.semester)
+          if (aSemesterOrder !== bSemesterOrder) {
+            return aSemesterOrder - bSemesterOrder
+          }
+
+          // Finally sort alphabetically by name
+          return a.name.localeCompare(b.name, "cs")
+        })
+
+        setAvailableSubjects(sortedSubjects)
+      }
+    }
+    if (open) {
+      fetchSubjects()
+    }
+  }, [subject.study_id, subject.id, supabase, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -102,6 +164,8 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
       final_date: isFieldVisibleForState("final_date", subjectState) && formData.final_date ? formData.final_date : null,
       completed: subjectState === "completed",
       planned: subjectState === "planned",
+      is_repeat: formData.is_repeat,
+      repeats_subject_id: formData.is_repeat && formData.repeats_subject_id ? formData.repeats_subject_id : null,
     }
 
     // If marking as completed, automatically mark credit and exam as completed if required
@@ -416,6 +480,45 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                 </div>
               )}
 
+              {/* Repeat Subject Section */}
+              <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="is_repeat"
+                    checked={formData.is_repeat}
+                    onCheckedChange={(checked) => 
+                      setFormData({ ...formData, is_repeat: checked as boolean, repeats_subject_id: "" })
+                    }
+                  />
+                  <Label htmlFor="is_repeat" className="cursor-pointer text-sm font-medium">
+                    Opakovaný předmět
+                  </Label>
+                </div>
+                {formData.is_repeat && (
+                  <div className="mt-3 space-y-2">
+                    <Label htmlFor="repeats_subject_id">Opakuje předmět *</Label>
+                    <Select
+                      value={formData.repeats_subject_id}
+                      onValueChange={(value) => setFormData({ ...formData, repeats_subject_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vyberte předmět, který opakujete" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSubjects.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.semester} - {subject.abbreviation ? `${subject.abbreviation} - ` : ''}{subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-600">
+                      Opakovaný předmět bude sdílet materiály a studijní zápisy s původním předmětem.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
                   Zrušit
@@ -452,7 +555,8 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                     !formData.name ||
                     !formData.completion_type ||
                     !formData.subject_type ||
-                    (subjectState === "completed" && !formData.final_date)
+                    (subjectState === "completed" && !formData.final_date) ||
+                    (formData.is_repeat && !formData.repeats_subject_id)
                   }
                   className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >

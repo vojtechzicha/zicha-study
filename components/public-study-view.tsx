@@ -71,6 +71,8 @@ interface Subject {
   planned?: boolean
   final_date?: string
   created_at: string
+  is_repeat?: boolean
+  repeats_subject_id?: string
 }
 
 interface PublicStudyViewProps {
@@ -137,7 +139,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
     const creditsCompleted = subjects.filter((s) => s.credit_completed).length
     const examsCompleted = subjects.filter((s) => s.exam_completed).length
 
-    const totalCredits = subjects.reduce((sum, s) => sum + s.credits, 0)
+    const totalCredits = subjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
     const completedCredits = subjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
     const totalHours = subjects.reduce((sum, s) => sum + (s.hours || 0), 0)
     const completedHours = subjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
@@ -499,7 +501,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                     <span>
                       {semesterData.subjects.filter((s) => s.completed).length}/{semesterData.subjects.length} dokončeno
                     </span>
-                    <span>{semesterData.subjects.reduce((sum, s) => sum + s.credits, 0)} kreditů</span>
+                    <span>{semesterData.subjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)} kreditů</span>
                   </div>
                 </div>
               </CardHeader>
@@ -524,7 +526,14 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                           <TableCell className="font-mono text-sm">{subject.abbreviation || '-'}</TableCell>
                           <TableCell className="text-sm">
                             <div>
-                              <div>{subject.name}</div>
+                              <div className="flex items-center gap-2">
+                                {subject.name}
+                                {subject.is_repeat && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Opakovaný
+                                  </Badge>
+                                )}
+                              </div>
                               {(subject.department || subject.lecturer) && (
                                 <div className="text-xs text-gray-500 mt-0.5">
                                   {[subject.department, subject.lecturer].filter(Boolean).join(' • ')}

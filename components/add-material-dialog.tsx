@@ -83,14 +83,6 @@ export function AddMaterialDialog({
 
       if (!error && data) {
         setStudyMaterialSettings(data)
-        
-        // Update initial path if study has a custom materials folder
-        if (data.materials_root_folder_path) {
-          const initialPath = data.materials_root_folder_path
-          const initialName = data.materials_root_folder_name || "OneDrive"
-          setCurrentPath(initialPath)
-          setPathHistory([{name: initialName, path: initialPath}])
-        }
       }
       setSettingsLoaded(true)
     } catch (err) {

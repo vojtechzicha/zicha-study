@@ -64,6 +64,8 @@ interface Subject {
   planned?: boolean
   final_date?: string
   created_at: string
+  is_repeat?: boolean
+  repeats_subject_id?: string
 }
 
 interface Study {
@@ -282,6 +284,11 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study }: Subje
                     {subject.abbreviation || subject.name}
                   </h3>
                   {getSubjectTypeBadge(subject.subject_type)}
+                  {subject.is_repeat && (
+                    <Badge variant="secondary" className="text-xs">
+                      Opakovaný
+                    </Badge>
+                  )}
                 </div>
                 {subject.abbreviation && (
                   <p className="text-sm text-gray-600 mb-2">{subject.name}</p>

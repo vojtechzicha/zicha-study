@@ -33,6 +33,8 @@ interface Subject {
   credit_completed: boolean
   final_date?: string
   created_at: string
+  is_repeat?: boolean
+  repeats_subject_id?: string
 }
 
 interface StudyStatisticsProps {
@@ -133,7 +135,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     ).length
     const remainingExams = filteredSubjects.filter((s) => !s.exam_completed && s.completion_type.includes("Zk")).length
 
-    const totalCredits = filteredSubjects.reduce((sum, s) => sum + s.credits, 0)
+    const totalCredits = filteredSubjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
     const completedCredits = filteredSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
 
     const totalHours = filteredSubjects.reduce((sum, s) => sum + (s.hours || 0), 0)
@@ -171,7 +173,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       const semesterSubjects = filteredSubjects.filter((s) => s.semester === semester)
       const total = semesterSubjects.length
       const completed = semesterSubjects.filter((s) => s.completed).length
-      const credits = semesterSubjects.reduce((sum, s) => sum + s.credits, 0)
+      const credits = semesterSubjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
       const completedCredits = semesterSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
 
       if (total > 0) {
@@ -209,7 +211,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
       const total = yearSubjects.length
       const completed = yearSubjects.filter((s) => s.completed).length
-      const credits = yearSubjects.reduce((sum, s) => sum + s.credits, 0)
+      const credits = yearSubjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
       const completedCredits = yearSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
 
       if (total > 0) {

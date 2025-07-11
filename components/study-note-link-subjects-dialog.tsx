@@ -78,11 +78,12 @@ export function StudyNoteLinkSubjectsDialog({
       const studyId = subjectData.study_id
       const studyName = subjectData.studies?.name || "Neznámé studium"
 
-      // Get all subjects from the same study
+      // Get all subjects from the same study (excluding repeated subjects)
       const { data: allSubjects, error: subjectsError } = await supabase
         .from("subjects")
         .select("id, name, study_id, semester, completed, planned, subject_type")
         .eq("study_id", studyId)
+        .eq("is_repeat", false)
 
       if (subjectsError) throw subjectsError
 

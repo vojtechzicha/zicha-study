@@ -54,6 +54,8 @@ interface Subject {
   name: string
   abbreviation: string
   study_id: string
+  is_repeat?: boolean
+  repeats_subject_id?: string
 }
 
 interface Study {
@@ -139,10 +141,15 @@ export function SubjectMaterialsDialog({
     setError(null)
     
     try {
+      // If this is a repeated subject, fetch materials from the original subject
+      const subjectIdToFetch = subject.is_repeat && subject.repeats_subject_id 
+        ? subject.repeats_subject_id 
+        : subject.id
+
       const { data, error } = await supabase
         .from("subject_materials")
         .select("*")
-        .eq("subject_id", subject.id)
+        .eq("subject_id", subjectIdToFetch)
         .order("created_at", { ascending: false })
 
       if (error) throw error
@@ -158,11 +165,16 @@ export function SubjectMaterialsDialog({
     if (!subject) return
     
     try {
+      // If this is a repeated subject, count notes from the original subject
+      const subjectIdToCount = subject.is_repeat && subject.repeats_subject_id 
+        ? subject.repeats_subject_id 
+        : subject.id
+
       // Count all notes linked to this subject (both primary and linked)
       const { count, error } = await supabase
         .from("study_note_subjects")
         .select("*", { count: "exact", head: true })
-        .eq("subject_id", subject.id)
+        .eq("subject_id", subjectIdToCount)
 
       if (error) throw error
       setNoteCount(count || 0)
@@ -380,7 +392,7 @@ export function SubjectMaterialsDialog({
                 {subject && (
                   <StudyNotesSection
                     studyId={subject.study_id}
-                    subjectId={subject.id}
+                    subjectId={subject.is_repeat && subject.repeats_subject_id ? subject.repeats_subject_id : subject.id}
                     studySlug={study?.public_slug}
                     isStudyPublic={study?.is_public}
                   />
@@ -575,7 +587,7 @@ export function SubjectMaterialsDialog({
       {subject && (
         <AddMaterialDialog
           studyId={subject.study_id}
-          subjectId={subject.id}
+          subjectId={subject.is_repeat && subject.repeats_subject_id ? subject.repeats_subject_id : subject.id}
           isOpen={showAddDialog}
           onClose={() => setShowAddDialog(false)}
           onSuccess={handleAddSuccess}

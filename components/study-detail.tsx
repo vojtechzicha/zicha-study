@@ -51,6 +51,8 @@ interface Subject {
   credit_completed: boolean
   final_date?: string
   created_at: string
+  is_repeat?: boolean
+  repeats_subject_id?: string
 }
 
 interface StudyDetailProps {
@@ -157,7 +159,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
   const stats = {
     total: subjects.length,
     completed: subjects.filter((s) => s.completed).length,
-    totalCredits: subjects.reduce((sum, s) => sum + s.credits, 0),
+    totalCredits: subjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0),
     completedCredits: completedSubjects.reduce((sum, s) => sum + s.credits, 0),
     average
   }
