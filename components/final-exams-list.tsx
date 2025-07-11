@@ -10,6 +10,7 @@ import { formatDateCzech } from "@/lib/utils"
 import { FinalExamDialog } from "./final-exam-dialog"
 import type { FinalExam } from "@/lib/constants"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { getGradeBadgeConfig } from "@/lib/status-utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -93,17 +94,14 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
     )
   }
 
-  const getGradeBadgeVariant = (grade: string): "default" | "secondary" | "destructive" => {
-    if (grade === "A" || grade === "B") return "default"
-    if (grade === "F") return "destructive"
-    return "secondary"
-  }
-
-  const getGradeBadgeClass = (grade: string): string => {
-    if (grade === "A" || grade === "B") return "bg-green-100 text-green-700 border-green-200"
-    if (grade === "F") return "bg-red-100 text-red-700 border-red-200"
-    return ""
-  }
+  const getExamAsSubject = (exam: FinalExam) => ({
+    id: exam.id,
+    grade: exam.grade,
+    completed: !!exam.grade,
+    exam_completed: !!exam.grade,
+    credit_completed: false,
+    planned: false
+  })
 
   return (
     <>
@@ -179,14 +177,14 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                       </div>
 
                       <div className="flex flex-col items-end gap-2">
-                        {exam.grade && (
-                          <Badge
-                            variant={getGradeBadgeVariant(exam.grade)}
-                            className={getGradeBadgeClass(exam.grade)}
-                          >
-                            {exam.grade}
-                          </Badge>
-                        )}
+                        {exam.grade && (() => {
+                          const gradeConfig = getGradeBadgeConfig(exam.grade, getExamAsSubject(exam))
+                          return (
+                            <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
+                              {exam.grade}
+                            </span>
+                          )
+                        })()}
                         
                         {!isPublic && (
                           <div className="flex gap-1">
@@ -239,11 +237,9 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[100px]">Zkratka</TableHead>
-                      <TableHead className="min-w-[250px]">Název předmětu</TableHead>
-                      <TableHead className="w-[100px]">Hodnocení</TableHead>
-                      <TableHead className="w-[120px]">Datum zkoušky</TableHead>
-                      <TableHead>Zkoušející</TableHead>
-                      <TableHead>Předseda komise</TableHead>
+                      <TableHead className="min-w-[250px]">Předmět</TableHead>
+                      <TableHead className="w-[120px]">Hodnocení</TableHead>
+                      <TableHead className="w-[120px]">Datum ukončení</TableHead>
                       {!isPublic && <TableHead className="w-[100px] text-right">Akce</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -259,22 +255,29 @@ export function FinalExamsList({ studyId, isPublic = false, onUpdate }: FinalExa
                             <span className="text-gray-400">–</span>
                           )}
                         </TableCell>
-                        <TableCell className="font-medium">{exam.name}</TableCell>
-                        <TableCell>
-                          {exam.grade ? (
-                            <Badge
-                              variant={getGradeBadgeVariant(exam.grade)}
-                              className={getGradeBadgeClass(exam.grade)}
-                            >
-                              {exam.grade}
-                            </Badge>
-                          ) : (
+                        <TableCell className="text-sm">
+                          <div>
+                            <div>{exam.name}</div>
+                            {(exam.examiner || exam.examination_committee_head) && (
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {[exam.examiner, exam.examination_committee_head && `Předseda: ${exam.examination_committee_head}`].filter(Boolean).join(' • ')}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {exam.grade ? (() => {
+                            const gradeConfig = getGradeBadgeConfig(exam.grade, getExamAsSubject(exam))
+                            return (
+                              <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
+                                {exam.grade}
+                              </span>
+                            )
+                          })() : (
                             <span className="text-gray-400">–</span>
                           )}
                         </TableCell>
-                        <TableCell>{exam.exam_date ? formatDateCzech(exam.exam_date) : <span className="text-gray-400">–</span>}</TableCell>
-                        <TableCell className="text-sm">{exam.examiner || <span className="text-gray-400">–</span>}</TableCell>
-                        <TableCell className="text-sm">{exam.examination_committee_head || <span className="text-gray-400">–</span>}</TableCell>
+                        <TableCell className="text-center">{exam.exam_date ? formatDateCzech(exam.exam_date) : <span className="text-gray-400">-</span>}</TableCell>
                         {!isPublic && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">

@@ -476,7 +476,10 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">{semester}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-primary-600" />
+                      <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">{semester}</CardTitle>
+                    </div>
                     {semesterData.average.type !== 'none' && (
                       <div className="text-xs text-gray-500 mt-1">
                         {semesterData.average.type === 'both' ? (
@@ -500,7 +503,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
