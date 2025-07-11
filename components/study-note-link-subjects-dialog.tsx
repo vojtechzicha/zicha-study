@@ -287,23 +287,25 @@ export function StudyNoteLinkSubjectsDialog({
           {linkedSubjects.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Propojené předměty</Label>
-              <div className="space-y-2">
-                {linkedSubjects.map(subject => (
-                  <div key={subject.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                    <Badge variant="outline">{subject.name}</Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleUnlink(subject.id)}
-                      disabled={loading}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Unlink className="h-4 w-4 mr-1" />
-                      Odpojit
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              <ScrollArea className="h-[200px] rounded-md border p-2">
+                <div className="space-y-2">
+                  {linkedSubjects.map(subject => (
+                    <div key={subject.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border mr-3">
+                      <Badge variant="outline">{subject.name}</Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUnlink(subject.id)}
+                        disabled={loading}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Unlink className="h-4 w-4 mr-1" />
+                        Odpojit
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           )}
 
