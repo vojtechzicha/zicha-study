@@ -123,17 +123,37 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   // Calculate main statistics
   const stats = useMemo(() => {
     const total = filteredSubjects.length
-    const completed = filteredSubjects.filter((s) => s.completed).length
-    const creditsCompleted = filteredSubjects.filter((s) => s.credit_completed).length
-    const examsCompleted = filteredSubjects.filter((s) => s.exam_completed).length
+    const completed = filteredSubjects.filter((s) => s.completed && !s.planned).length
+    const creditsCompleted = filteredSubjects.filter((s) => s.credit_completed && !s.planned).length
+    
+    // First, get unique exam subjects (by abbreviation)
+    const uniqueExamSubjects = filteredSubjects
+      .filter((s) => s.completion_type.includes("Zk"))
+      .reduce((acc, subject) => {
+        // Only keep the first instance of each subject (by abbreviation)
+        if (!acc.some(s => s.abbreviation === subject.abbreviation)) {
+          acc.push(subject)
+        }
+        return acc
+      }, [] as Subject[])
+    
+    // Count unique subjects that have been successfully completed (any instance with passing grade)
+    const uniqueExamsCompleted = uniqueExamSubjects.filter(examSubject => {
+      // Find all instances of this subject
+      const allInstances = filteredSubjects.filter(s => s.abbreviation === examSubject.abbreviation && s.completion_type.includes("Zk"))
+      // Check if any instance has been successfully completed (not failed and not planned)
+      return allInstances.some(s => s.exam_completed && !s.planned && s.grade !== 'FN')
+    }).length
+    
+    const examsCompleted = uniqueExamsCompleted
 
     const subjectsWithCredits = filteredSubjects.filter((s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp"))
-    const subjectsWithExams = filteredSubjects.filter((s) => s.completion_type.includes("Zk"))
+    const subjectsWithExams = uniqueExamSubjects
 
     const remainingCredits = filteredSubjects.filter(
-      (s) => !s.credit_completed && (s.completion_type.includes("Zp") || s.completion_type.includes("KZp")),
+      (s) => (!s.credit_completed || s.planned) && (s.completion_type.includes("Zp") || s.completion_type.includes("KZp")),
     ).length
-    const remainingExams = filteredSubjects.filter((s) => !s.exam_completed && s.completion_type.includes("Zk")).length
+    const remainingExams = filteredSubjects.filter((s) => ((!s.exam_completed || s.planned) && s.completion_type.includes("Zk"))).length
 
     const totalCredits = filteredSubjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
     const completedCredits = filteredSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
