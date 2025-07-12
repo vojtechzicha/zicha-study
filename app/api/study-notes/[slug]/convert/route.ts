@@ -174,6 +174,16 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
       })
     }
 
+    // Also update the main study_notes table with the new OneDrive last modified date
+    if (onedriveLastModified) {
+      await supabase
+        .from('study_notes')
+        .update({
+          last_modified_onedrive: onedriveLastModified,
+        })
+        .eq('id', note.id)
+    }
+
     // Store media files if any
     if (result.mediaPath) {
       await storeMediaInDatabase(note.id, result.mediaPath)
