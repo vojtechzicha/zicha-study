@@ -14,6 +14,11 @@ export default function NewStudyPage() {
   const supabase = createClient()
   const router = useRouter()
 
+  // Set document title
+  useEffect(() => {
+    document.title = "Nové studium - Sledování studií"
+  }, [])
+
   useEffect(() => {
     const getUser = async () => {
       const {

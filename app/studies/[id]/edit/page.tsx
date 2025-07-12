@@ -33,6 +33,13 @@ export default function StudyEditPage({ params }: { params: Promise<{ id: string
   // Update favicon with study logo
   useFavicon(study?.logo_url)
 
+  // Update document title with study name
+  useEffect(() => {
+    if (study?.name) {
+      document.title = `Úprava studia - ${study.name}`
+    }
+  }, [study?.name])
+
   useEffect(() => {
     const initialize = async () => {
       const {
