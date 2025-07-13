@@ -144,7 +144,8 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           table: 'study_notes',
           filter: `study_id=eq.${studyId}`
         },
-        () => {
+        (payload) => {
+          console.log('Study note change detected:', payload)
           // Refresh when any study note changes
           loadStudyNotes()
         }
@@ -156,17 +157,63 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           schema: 'public',
           table: 'study_note_subjects'
         },
-        () => {
+        (payload) => {
+          console.log('Study note subjects change detected:', payload)
           // Refresh when study note subjects change
           loadStudyNotes()
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Subscription status:', status)
+      })
 
     return () => {
       supabase.removeChannel(channel)
     }
   }, [studyId, supabase])
+
+  // Refresh periodically when page is visible
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null
+
+    const startPolling = () => {
+      // Poll every 5 seconds when visible
+      intervalId = setInterval(() => {
+        if (!document.hidden) {
+          loadStudyNotes()
+        }
+      }, 5000)
+    }
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling()
+      } else {
+        // Refresh immediately when page becomes visible
+        loadStudyNotes()
+        startPolling()
+      }
+    }
+
+    // Start polling if page is visible
+    if (!document.hidden) {
+      startPolling()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      stopPolling()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
 
   const handleDelete = async (noteId: string) => {
