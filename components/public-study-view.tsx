@@ -15,7 +15,7 @@ import { StudyLogo } from "./study-logo"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
 import { PublicMaterialsSection } from "./public-materials-section"
-import { PublicStudyNotesSection } from "./public-study-notes-section"
+import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
 import { BookOpen, Target, Clock, Trophy } from "lucide-react"
 import { 
@@ -476,7 +476,14 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
 
         {/* Study Notes Section */}
         <div className="mb-8">
-          <PublicStudyNotesSection studyId={study.id} study={study} />
+          <StudyNotesDisplaySection 
+            studyId={study.id} 
+            study={study}
+            isPublicView={true}
+            showSubtitle={true}
+            showPublicBadge={false}
+            showSubjectNames={false}
+          />
         </div>
 
         {/* Final Exams Section */}

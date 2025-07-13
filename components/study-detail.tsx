@@ -10,7 +10,7 @@ import { SubjectForm } from "./subject-form"
 import { SubjectTable } from "./subject-table"
 import { StudyHeader } from "./study-header"
 import { MaterialsSection } from "./materials-section"
-import { StudyNotesOverviewSection } from "./study-notes-overview-section"
+import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
@@ -271,7 +271,14 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
 
         {/* Study Notes Section */}
         <div className="mb-8">
-          <StudyNotesOverviewSection studyId={study.id} study={study} />
+          <StudyNotesDisplaySection 
+            studyId={study.id} 
+            study={study}
+            isPublicView={false}
+            showSubtitle={false}
+            showPublicBadge={true}
+            showSubjectNames={false}
+          />
         </div>
 
         {/* Final Exams Section */}

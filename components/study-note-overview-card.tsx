@@ -15,9 +15,16 @@ import {
 interface StudyNoteOverviewCardProps {
   note: StudyNoteWithSubjects
   studySlug?: string
+  showPublicBadge?: boolean
+  showSubjectNames?: boolean
 }
 
-export function StudyNoteOverviewCard({ note, studySlug }: StudyNoteOverviewCardProps) {
+export function StudyNoteOverviewCard({ 
+  note, 
+  studySlug,
+  showPublicBadge = true,
+  showSubjectNames = true
+}: StudyNoteOverviewCardProps) {
   const router = useRouter()
 
   const handleCardClick = () => {
@@ -66,7 +73,7 @@ export function StudyNoteOverviewCard({ note, studySlug }: StudyNoteOverviewCard
             </div>
 
             {/* Linked subjects/exams */}
-            {note.subjects && note.subjects.length > 0 && (
+            {showSubjectNames && note.subjects && note.subjects.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {note.subjects.slice(0, 2).map(subject => (
                   <Badge key={subject.id} variant="outline" className="text-xs py-0 px-1.5">
@@ -83,7 +90,7 @@ export function StudyNoteOverviewCard({ note, studySlug }: StudyNoteOverviewCard
             )}
 
             {/* Public status */}
-            {note.is_public && (
+            {showPublicBadge && note.is_public && (
               <Badge variant="secondary" className="text-xs mt-2">
                 <Globe className="h-3 w-3 mr-1" />
                 Veřejné
