@@ -30,9 +30,11 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
   const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
 
-  const loadStudyNotes = async () => {
-      setLoading(true)
-      setError(null)
+  const loadStudyNotes = async (silent = false) => {
+      if (!silent) {
+        setLoading(true)
+        setError(null)
+      }
       
       try {
         // First get all study notes for this study with their subject and final exam links
@@ -123,10 +125,14 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
 
         setStudyNotes(transformedNotes)
       } catch (err) {
-        setError("Nepodařilo se načíst studijní zápisy")
+        if (!silent) {
+          setError("Nepodařilo se načíst studijní zápisy")
+        }
         console.error(err)
       } finally {
-        setLoading(false)
+        if (!silent) {
+          setLoading(false)
+        }
       }
   }
 
@@ -147,7 +153,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
         (payload) => {
           console.log('Study note change detected:', payload)
           // Refresh when any study note changes
-          loadStudyNotes()
+          loadStudyNotes(true) // silent refresh
         }
       )
       .on(
@@ -160,7 +166,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
         (payload) => {
           console.log('Study note subjects change detected:', payload)
           // Refresh when study note subjects change
-          loadStudyNotes()
+          loadStudyNotes(true) // silent refresh
         }
       )
       .subscribe((status) => {
@@ -180,7 +186,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
       // Poll every 5 seconds when visible
       intervalId = setInterval(() => {
         if (!document.hidden) {
-          loadStudyNotes()
+          loadStudyNotes(true) // silent refresh
         }
       }, 5000)
     }
@@ -197,7 +203,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
         stopPolling()
       } else {
         // Refresh immediately when page becomes visible
-        loadStudyNotes()
+        loadStudyNotes(true) // silent refresh
         startPolling()
       }
     }
@@ -221,7 +227,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
   }
 
   const handleNoteUpdate = () => {
-    loadStudyNotes()
+    loadStudyNotes(true) // silent refresh to avoid blinking
   }
 
   // Filter notes based on search query
