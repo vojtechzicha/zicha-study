@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/client"
 import type { OneDriveFile } from "@/lib/types/materials"
 import type { StudyNoteFormData } from "@/lib/types/study-notes"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
+import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 
 interface AddStudyNoteDialogProps {
   studyId: string
@@ -108,11 +109,7 @@ export function AddStudyNoteDialog({
     
     // Generate initial slug if not set
     if (!publicSlug) {
-      const initialSlug = nameWithoutExt
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-_]/g, "")
-        .replace(/\s+/g, "-")
-        .slice(0, 50)
+      const initialSlug = createSlug(nameWithoutExt)
       setPublicSlug(initialSlug)
       if (initialSlug.length >= 3) {
         checkSlugAvailability(initialSlug)
@@ -404,8 +401,11 @@ export function AddStudyNoteDialog({
                       id="slug"
                       value={publicSlug}
                       onChange={(e) => {
-                        setPublicSlug(e.target.value)
-                        checkSlugAvailability(e.target.value)
+                        const cleanSlug = cleanSlugInput(e.target.value)
+                        setPublicSlug(cleanSlug)
+                        if (cleanSlug && cleanSlug.length >= 3) {
+                          checkSlugAvailability(cleanSlug)
+                        }
                       }}
                       placeholder="unikatni-nazev"
                     />

@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Material } from "@/lib/types/materials"
+import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 
 interface MaterialCardProps {
   material: Material
@@ -100,10 +101,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
   }
 
   const handleSlugChange = (value: string) => {
-    const cleanSlug = value
-      .toLowerCase()
-      .replace(/[^a-z0-9-_]/g, "")
-      .slice(0, 50)
+    const cleanSlug = cleanSlugInput(value)
     setPublicSlug(cleanSlug)
     
     if (cleanSlug && cleanSlug.length >= 3) {
@@ -118,11 +116,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
 
     if (!isPublic) {
       // Generate initial slug from material name
-      const initialSlug = material.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-_]/g, "")
-        .replace(/\s+/g, "-")
-        .slice(0, 50)
+      const initialSlug = createSlug(material.name)
       setPublicSlug(initialSlug)
       setShowPublicDialog(true)
     } else {

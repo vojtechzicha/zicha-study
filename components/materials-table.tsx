@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import type { Material } from "@/lib/types/materials"
+import { createSlug } from "@/lib/utils/slug"
 
 interface MaterialsTableProps {
   materials: Material[]
@@ -74,11 +75,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
   const handlePublicToggle = async (material: Material) => {
     if (!material.is_public) {
       // Generate initial slug from material name
-      const initialSlug = material.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-_]/g, "")
-        .replace(/\s+/g, "-")
-        .slice(0, 50)
+      const initialSlug = createSlug(material.name)
       
       await updatePublicStatus(material.id, true, initialSlug)
     } else {

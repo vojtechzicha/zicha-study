@@ -46,6 +46,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClient } from "@/lib/supabase/client"
 import { AddMaterialDialog } from "@/components/add-material-dialog"
 import type { SubjectMaterial } from "@/lib/types/materials"
+import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StudyNotesSection } from "@/components/study-notes-section"
 
@@ -231,10 +232,7 @@ export function SubjectMaterialsDialog({
   }
 
   const handleSlugChange = (value: string) => {
-    const cleanSlug = value
-      .toLowerCase()
-      .replace(/[^a-z0-9-_]/g, "")
-      .slice(0, 50)
+    const cleanSlug = cleanSlugInput(value)
     setPublicSlug(cleanSlug)
     
     if (cleanSlug && cleanSlug.length >= 3 && publicDialogMaterial) {
@@ -247,11 +245,7 @@ export function SubjectMaterialsDialog({
   const handlePublicToggle = async (material: SubjectMaterial) => {
     if (!material.is_public) {
       // Generate initial slug from material name
-      const initialSlug = material.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-_]/g, "")
-        .replace(/\s+/g, "-")
-        .slice(0, 50)
+      const initialSlug = createSlug(material.name)
       
       setPublicDialogMaterial(material)
       setPublicSlug(initialSlug)

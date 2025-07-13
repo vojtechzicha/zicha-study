@@ -27,6 +27,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { StudyNote, StudyNoteWithSubjects } from "@/lib/types/study-notes"
 import { StudyNoteLinkSubjectsDialog } from "@/components/study-note-link-subjects-dialog"
+import { cleanSlugInput } from "@/lib/utils/slug"
 
 interface StudyNoteCardProps {
   note: StudyNoteWithSubjects
@@ -321,10 +322,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                       id="slug"
                       value={publicSlug}
                       onChange={(e) => {
-                        const cleanSlug = e.target.value
-                          .toLowerCase()
-                          .replace(/[^a-z0-9-_]/g, "")
-                          .slice(0, 50)
+                        const cleanSlug = cleanSlugInput(e.target.value)
                         setPublicSlug(cleanSlug)
                         if (cleanSlug && cleanSlug.length >= 3) {
                           checkSlugAvailability(cleanSlug)

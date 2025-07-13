@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -81,11 +82,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   useEffect(() => {
     if (!slug) {
       // Generate initial slug from study name
-      const initialSlug = study.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-_]/g, "")
-        .replace(/\s+/g, "-")
-        .slice(0, 50)
+      const initialSlug = createSlug(study.name)
       setSlug(initialSlug)
     }
   }, [study.name, slug])
@@ -119,10 +116,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   }
 
   const handleSlugChange = (value: string) => {
-    const cleanSlug = value
-      .toLowerCase()
-      .replace(/[^a-z0-9-_]/g, "")
-      .slice(0, 50)
+    const cleanSlug = cleanSlugInput(value)
     setSlug(cleanSlug)
   }
 
