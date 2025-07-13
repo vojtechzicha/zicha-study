@@ -30,8 +30,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
   const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
 
-  useEffect(() => {
-    const loadStudyNotes = async () => {
+  const loadStudyNotes = async () => {
       setLoading(true)
       setError(null)
       
@@ -129,117 +128,53 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
       } finally {
         setLoading(false)
       }
-    }
-    
+  }
+
+  useEffect(() => {
     loadStudyNotes()
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('study-notes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'study_notes',
+          filter: `study_id=eq.${studyId}`
+        },
+        () => {
+          // Refresh when any study note changes
+          loadStudyNotes()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'study_note_subjects'
+        },
+        () => {
+          // Refresh when study note subjects change
+          loadStudyNotes()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [studyId, supabase])
 
-  const fetchStudyNotes = async () => {
-    setLoading(true)
-    setError(null)
-    
-    try {
-      // First get all study notes for this study with their subject and final exam links
-      const { data: notesData, error: notesError } = await supabase
-        .from("study_notes")
-        .select(`
-          *,
-          study_note_subjects (
-            id,
-            is_primary,
-            subject_id
-          ),
-          study_note_final_exams (
-            id,
-            is_primary,
-            final_exam_id
-          )
-        `)
-        .eq("study_id", studyId)
-        .order("last_modified_onedrive", { ascending: false, nullsFirst: false })
-
-      if (notesError) throw notesError
-
-      // Get all unique subject and final exam IDs
-      const subjectIds = new Set<string>()
-      const finalExamIds = new Set<string>()
-      notesData?.forEach(note => {
-        note.study_note_subjects?.forEach((link: any) => {
-          subjectIds.add(link.subject_id)
-        })
-        note.study_note_final_exams?.forEach((link: any) => {
-          finalExamIds.add(link.final_exam_id)
-        })
-      })
-
-      // Fetch subject details
-      let subjectsMap = new Map<string, any>()
-      if (subjectIds.size > 0) {
-        const { data: subjectsData, error: subjectsError } = await supabase
-          .from("subjects")
-          .select("id, name, study_id")
-          .in("id", Array.from(subjectIds))
-
-        if (subjectsError) throw subjectsError
-        
-        subjectsData?.forEach(subject => {
-          subjectsMap.set(subject.id, subject)
-        })
-      }
-
-      // Fetch final exam details
-      let finalExamsMap = new Map<string, any>()
-      if (finalExamIds.size > 0) {
-        const { data: finalExamsData, error: finalExamsError } = await supabase
-          .from("final_exams")
-          .select("id, name, shortcut, study_id")
-          .in("id", Array.from(finalExamIds))
-
-        if (finalExamsError) throw finalExamsError
-        
-        finalExamsData?.forEach(exam => {
-          finalExamsMap.set(exam.id, exam)
-        })
-      }
-
-      // Transform the data to include subject and final exam information
-      const transformedNotes: StudyNoteWithSubjects[] = notesData?.map(note => ({
-        ...note,
-        subjects: [
-          ...(note.study_note_subjects?.map((link: any) => {
-            const subject = subjectsMap.get(link.subject_id)
-            return subject ? {
-              ...subject,
-              is_primary: link.is_primary
-            } : null
-          }).filter(Boolean) || []),
-          ...(note.study_note_final_exams?.map((link: any) => {
-            const exam = finalExamsMap.get(link.final_exam_id)
-            return exam ? {
-              ...exam,
-              name: `${exam.shortcut ? `${exam.shortcut  } - ` : ""}${exam.name}`,
-              is_primary: link.is_primary,
-              is_final_exam: true
-            } : null
-          }).filter(Boolean) || [])
-        ]
-      })) || []
-
-      setStudyNotes(transformedNotes)
-    } catch (err) {
-      setError("Nepodařilo se načíst studijní zápisy")
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleDelete = async (noteId: string) => {
     setStudyNotes(studyNotes.filter(n => n.id !== noteId))
   }
 
   const handleNoteUpdate = () => {
-    fetchStudyNotes()
+    loadStudyNotes()
   }
 
   // Filter notes based on search query
