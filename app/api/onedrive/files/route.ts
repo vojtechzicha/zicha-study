@@ -72,7 +72,7 @@ export async function GET(request: Request) {
         item.file.mimeType?.includes("spreadsheet") ||
         item.file.mimeType?.includes("presentation") ||
         item.file.mimeType?.includes("text") ||
-        item.name.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)$/i)
+        item.name.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|pod)$/i)
       )) {
         // It's a document file
         return {
