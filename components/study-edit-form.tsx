@@ -34,6 +34,10 @@ interface Study {
   status: StudyStatus
   logo_url?: string
   final_exams_enabled?: boolean
+  exam_scheduler_enabled?: boolean
+  transit_duration_hours?: number
+  transit_cost_one_way?: number
+  accommodation_cost_per_night?: number
   created_at: string
 }
 
@@ -52,6 +56,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     end_year: study.end_year || "",
     status: study.status,
     final_exams_enabled: study.final_exams_enabled || false,
+    exam_scheduler_enabled: study.exam_scheduler_enabled || false,
+    transit_duration_hours: study.transit_duration_hours || 4,
+    transit_cost_one_way: study.transit_cost_one_way || 200,
+    accommodation_cost_per_night: study.accommodation_cost_per_night || 2000,
   })
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(study.logo_url || null)
@@ -353,11 +361,85 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                   <Switch
                     id="final-exams"
                     checked={formData.final_exams_enabled}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       setFormData({ ...formData, final_exams_enabled: checked })
                     }
                   />
                 </div>
+              </div>
+
+              {/* Exam Scheduler Toggle */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="exam-scheduler" className="text-base font-medium">
+                      Plánovač zkoušek
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatický plánovač optimálních termínů zkoušek
+                    </p>
+                  </div>
+                  <Switch
+                    id="exam-scheduler"
+                    checked={formData.exam_scheduler_enabled}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, exam_scheduler_enabled: checked })
+                    }
+                  />
+                </div>
+
+                {/* Scheduler Configuration - only show when enabled */}
+                {formData.exam_scheduler_enabled && (
+                  <div className="p-4 border rounded-lg bg-primary-50/30 space-y-4">
+                    <p className="text-sm font-medium text-gray-700">Nastavení plánovače</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="transit_duration">Doba cesty (hodiny)</Label>
+                        <Input
+                          id="transit_duration"
+                          type="number"
+                          step="0.5"
+                          min="0.5"
+                          max="12"
+                          value={formData.transit_duration_hours}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            transit_duration_hours: parseFloat(e.target.value) || 4
+                          })}
+                        />
+                        <p className="text-xs text-gray-500">Jednosměrná cesta do školy</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="transit_cost">Cena cesty (Kč)</Label>
+                        <Input
+                          id="transit_cost"
+                          type="number"
+                          min="0"
+                          value={formData.transit_cost_one_way}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            transit_cost_one_way: parseInt(e.target.value) || 0
+                          })}
+                        />
+                        <p className="text-xs text-gray-500">Jednosměrná cesta</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="accommodation_cost">Ubytování/noc (Kč)</Label>
+                        <Input
+                          id="accommodation_cost"
+                          type="number"
+                          min="0"
+                          value={formData.accommodation_cost_per_night}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            accommodation_cost_per_night: parseInt(e.target.value) || 0
+                          })}
+                        />
+                        <p className="text-xs text-gray-500">Cena za noc u školy</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4">

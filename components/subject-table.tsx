@@ -75,6 +75,7 @@ interface Study {
   name: string
   is_public?: boolean
   public_slug?: string
+  exam_scheduler_enabled?: boolean
 }
 
 interface SubjectTableProps {
@@ -83,11 +84,12 @@ interface SubjectTableProps {
   onUpdate: () => void
   hideFilters?: boolean
   study?: Study
+  examSchedulerEnabled?: boolean
 }
 
 type FilterType = "all" | "active"
 
-export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false, study }: SubjectTableProps) {
+export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false, study, examSchedulerEnabled = false }: SubjectTableProps) {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({})
   const [editFormOpen, setEditFormOpen] = useState(false)
@@ -665,6 +667,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           open={editFormOpen}
           onClose={handleEditClose}
           onSuccess={handleEditSuccess}
+          examSchedulerEnabled={examSchedulerEnabled || study?.exam_scheduler_enabled}
         />
       )}
       

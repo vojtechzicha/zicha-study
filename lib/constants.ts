@@ -219,7 +219,7 @@ export interface FinalExam {
   updated_at: string
 }
 
-// Extended Study interface to include final_exams_enabled
+// Extended Study interface to include final_exams_enabled and exam_scheduler
 export interface StudyWithFinalExams {
   id: string
   user_id: string
@@ -233,6 +233,31 @@ export interface StudyWithFinalExams {
   is_public: boolean
   public_slug?: string
   final_exams_enabled: boolean
+  exam_scheduler_enabled: boolean
+  transit_duration_hours: number
+  transit_cost_one_way: number
+  accommodation_cost_per_night: number
   created_at: string
   updated_at: string
 }
+
+// Exam Scheduler Defaults
+export const EXAM_SCHEDULER_DEFAULTS = {
+  TRANSIT_DURATION_HOURS: 4,
+  TRANSIT_COST_ONE_WAY: 200,
+  ACCOMMODATION_COST_PER_NIGHT: 2000,
+  DEFAULT_EXAM_DURATION_MINUTES: 120,
+} as const
+
+// Exam duration options for UI
+export const EXAM_DURATION_OPTIONS = [
+  { value: 60, label: '1 hodina' },
+  { value: 90, label: '1,5 hodiny' },
+  { value: 120, label: '2 hodiny' },
+  { value: 150, label: '2,5 hodiny' },
+  { value: 180, label: '3 hodiny' },
+  { value: 240, label: '4 hodiny' },
+] as const
+
+// Helper to get exam duration options
+export const getExamDurationOptions = () => [...EXAM_DURATION_OPTIONS]

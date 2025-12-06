@@ -29,7 +29,7 @@ function getStatusBadge(status: StudyStatus) {
   return <Badge className={getStatusColor(status)}>{getStatusText(status)}</Badge>
 }
 
-export function StudyHeader({ study, title, logoUrl, onBack, actions }: StudyHeaderProps) {
+export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }: StudyHeaderProps) {
   const displayTitle = title || study?.name || ""
   const displayLogoUrl = logoUrl || study?.logo_url
 

@@ -16,6 +16,7 @@ import { StudyHeader } from "./study-header"
 import { MaterialsSection } from "./materials-section"
 import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
+import { ExamSchedulerSection } from "./exam-scheduler-section"
 import { StudyStatisticsCards } from "./study-statistics-cards"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
@@ -33,6 +34,10 @@ interface Study {
   is_public?: boolean
   public_slug?: string
   final_exams_enabled?: boolean
+  exam_scheduler_enabled?: boolean
+  transit_duration_hours?: number
+  transit_cost_one_way?: number
+  accommodation_cost_per_night?: number
   created_at: string
 }
 
@@ -72,6 +77,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
   const [currentStudy] = useState<Study>(study)
   const [searchQuery, setSearchQuery] = useState("")
   const [showActiveOnly, setShowActiveOnly] = useState(false)
+  const [examSchedulerRefreshTrigger, setExamSchedulerRefreshTrigger] = useState(0)
   const supabase = createClient()
   const router = useRouter()
   
@@ -111,6 +117,8 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
       setSubjects(data)
     }
     setLoading(false)
+    // Trigger exam scheduler to reload exam options
+    setExamSchedulerRefreshTrigger(prev => prev + 1)
   }
 
   const handleSubjectAdded = () => {
@@ -197,6 +205,24 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
         {currentStudy.final_exams_enabled && (
           <div className="mb-8">
             <FinalExamsList studyId={study.id} studySlug={currentStudy.public_slug} onUpdate={fetchSubjects} />
+          </div>
+        )}
+
+        {/* Exam Scheduler Section */}
+        {currentStudy.exam_scheduler_enabled && (
+          <div className="mb-8">
+            <ExamSchedulerSection
+              study={{
+                id: currentStudy.id,
+                name: currentStudy.name,
+                exam_scheduler_enabled: currentStudy.exam_scheduler_enabled,
+                transit_duration_hours: currentStudy.transit_duration_hours || 4,
+                transit_cost_one_way: currentStudy.transit_cost_one_way || 200,
+                accommodation_cost_per_night: currentStudy.accommodation_cost_per_night || 2000,
+              }}
+              subjects={subjects}
+              refreshTrigger={examSchedulerRefreshTrigger}
+            />
           </div>
         )}
 

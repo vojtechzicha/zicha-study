@@ -32,6 +32,24 @@ interface AvailableSubject {
   study_name: string
   semester: number | string
   is_final_exam?: boolean
+  is_primary?: boolean
+}
+
+interface DbSubject {
+  id: string
+  name: string
+  study_id: string
+  semester: string
+  completed: boolean
+  planned: boolean
+  subject_type: string
+}
+
+interface DbFinalExam {
+  id: string
+  name: string
+  shortcut: string
+  study_id: string
 }
 
 export function StudyNoteLinkSubjectsDialog({
@@ -134,11 +152,11 @@ export function StudyNoteLinkSubjectsDialog({
 
       if (linkedFinalError && linkedFinalError.code !== 'PGRST116') throw linkedFinalError
 
-      const linkedSubjectIds = new Set(linkedSubjects?.map(ls => ls.subject_id) || [])
-      const linkedFinalExamIds = new Set(linkedFinalExams?.map(lf => lf.final_exam_id) || [])
+      const linkedSubjectIds = new Set(linkedSubjects?.map((ls: { subject_id: string }) => ls.subject_id) || [])
+      const linkedFinalExamIds = new Set(linkedFinalExams?.map((lf: { final_exam_id: string }) => lf.final_exam_id) || [])
 
       // Helper functions for sorting (matching study detail page)
-      const getStatusPriority = (subject: any) => {
+      const getStatusPriority = (subject: DbSubject) => {
         if (subject.planned) return 3  // Planned
         if (subject.completed) return 2  // Completed
         return 1  // Active
@@ -165,9 +183,9 @@ export function StudyNoteLinkSubjectsDialog({
       }
 
       // Filter out already linked subjects and sort them
-      const availableSubjects = (allSubjects || [])
-        .filter(subject => !linkedSubjectIds.has(subject.id))
-        .sort((a, b) => {
+      const availableSubjects = ((allSubjects || []) as DbSubject[])
+        .filter((subject: DbSubject) => !linkedSubjectIds.has(subject.id))
+        .sort((a: DbSubject, b: DbSubject) => {
           // First sort by status priority
           const aStatusPriority = getStatusPriority(a)
           const bStatusPriority = getStatusPriority(b)
@@ -192,7 +210,7 @@ export function StudyNoteLinkSubjectsDialog({
           // Finally sort alphabetically by name
           return a.name.localeCompare(b.name, "cs")
         })
-        .map(subject => ({
+        .map((subject: DbSubject) => ({
           id: subject.id,
           name: subject.name,
           study_id: subject.study_id,
@@ -202,10 +220,10 @@ export function StudyNoteLinkSubjectsDialog({
         }))
 
       // Filter out already linked final exams
-      const availableFinalExams = (allFinalExams || [])
-        .filter(exam => !linkedFinalExamIds.has(exam.id))
-        .sort((a, b) => a.name.localeCompare(b.name, "cs"))
-        .map(exam => ({
+      const availableFinalExams = ((allFinalExams || []) as DbFinalExam[])
+        .filter((exam: DbFinalExam) => !linkedFinalExamIds.has(exam.id))
+        .sort((a: DbFinalExam, b: DbFinalExam) => a.name.localeCompare(b.name, "cs"))
+        .map((exam: DbFinalExam) => ({
           id: exam.id,
           name: `${exam.shortcut ? `${exam.shortcut  } - ` : ""}${exam.name}`,
           study_id: exam.study_id,
@@ -236,7 +254,7 @@ export function StudyNoteLinkSubjectsDialog({
 
       if (links && links.length > 0) {
         // Get the final exam details
-        const finalExamIds = links.map(l => l.final_exam_id)
+        const finalExamIds = links.map((l: { final_exam_id: string }) => l.final_exam_id)
         const { data: finalExams, error: examsError } = await supabase
           .from("final_exams")
           .select("id, name, shortcut")
@@ -244,9 +262,11 @@ export function StudyNoteLinkSubjectsDialog({
 
         if (examsError) throw examsError
 
-        const examsMap = new Map(finalExams?.map(e => [e.id, e]) || [])
-        
-        const linkedExams = links.map(link => {
+        type FinalExamRow = { id: string; name: string; shortcut: string | null }
+        type LinkRow = { final_exam_id: string; is_primary: boolean }
+        const examsMap = new Map<string, FinalExamRow>(finalExams?.map((e: FinalExamRow) => [e.id, e]) || [])
+
+        const linkedExams = links.map((link: LinkRow) => {
           const exam = examsMap.get(link.final_exam_id)
           return exam ? {
             id: exam.id,

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Save, Trash2 } from "lucide-react"
+import { Save, Trash2, CalendarDays } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertDialog,
@@ -27,6 +27,7 @@ import {
 import { SubjectState, isFieldVisibleForState, getSubjectStateText, getSubjectStatus, requiresCredit, requiresExam } from "@/lib/status-utils"
 import { DepartmentAutocomplete } from "@/components/department-autocomplete"
 import { useDepartments } from "@/hooks/use-departments"
+import { ExamOptionsEditor, type ExamOptionData } from "@/components/exam-options-editor"
 
 interface Subject {
   id: string
@@ -57,10 +58,13 @@ interface SubjectEditFormProps {
   open: boolean
   onClose: () => void
   onSuccess: () => void
+  examSchedulerEnabled?: boolean
 }
 
-export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEditFormProps) {
+export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedulerEnabled = false }: SubjectEditFormProps) {
   const [subjectState, setSubjectState] = useState<SubjectState>(getSubjectStatus(subject))
+  const [examOptions, setExamOptions] = useState<ExamOptionData[]>([])
+  const [examOptionsLoaded, setExamOptionsLoaded] = useState(false)
   const [formData, setFormData] = useState({
     semester: subject.semester,
     abbreviation: subject.abbreviation || "",
@@ -86,6 +90,36 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
   const supabase = createClient()
   const { toast } = useToast()
   const { departments } = useDepartments(subject.study_id)
+
+  // Fetch exam options when dialog opens
+  useEffect(() => {
+    const fetchExamOptions = async () => {
+      if (!examSchedulerEnabled || examOptionsLoaded) return
+
+      const { data } = await supabase
+        .from('exam_options')
+        .select('*')
+        .eq('subject_id', subject.id)
+        .order('date', { ascending: true })
+
+      if (data) {
+        type ExamOptionRow = { id: string; date: string; start_time: string; duration_minutes: number; is_online: boolean; note: string | null }
+        setExamOptions(data.map((opt: ExamOptionRow) => ({
+          id: opt.id,
+          date: opt.date,
+          start_time: opt.start_time?.substring(0, 5) || '09:00',
+          duration_minutes: opt.duration_minutes,
+          is_online: opt.is_online,
+          note: opt.note || '',
+        })))
+      }
+      setExamOptionsLoaded(true)
+    }
+
+    if (open && examSchedulerEnabled) {
+      fetchExamOptions()
+    }
+  }, [open, examSchedulerEnabled, subject.id, supabase, examOptionsLoaded])
 
   // Fetch subjects that can be repeated
   useEffect(() => {
@@ -215,13 +249,50 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
 
       setError(errorMessage)
       setLoading(false)
-    } else {
-      toast({
-        title: "Předmět uložen",
-        description: `Předmět "${formData.name}" byl úspěšně aktualizován.`,
-      })
-      onSuccess()
+      return
     }
+
+    // Save exam options if exam scheduler is enabled
+    if (examSchedulerEnabled) {
+      try {
+        // Delete existing exam options
+        await supabase
+          .from('exam_options')
+          .delete()
+          .eq('subject_id', subject.id)
+
+        // Insert new exam options (only those with a date)
+        const validOptions = examOptions.filter(opt => opt.date)
+        if (validOptions.length > 0) {
+          const optionsToInsert = validOptions.map(opt => ({
+            subject_id: subject.id,
+            date: opt.date,
+            start_time: opt.start_time,
+            duration_minutes: opt.duration_minutes,
+            is_online: opt.is_online,
+            note: opt.note || null,
+          }))
+
+          const { error: insertError } = await supabase
+            .from('exam_options')
+            .insert(optionsToInsert)
+
+          if (insertError) {
+            console.error('Error saving exam options:', insertError)
+            // Don't fail the whole save, just log the error
+          }
+        }
+      } catch (err) {
+        console.error('Error saving exam options:', err)
+      }
+    }
+
+    toast({
+      title: "Předmět uložen",
+      description: `Předmět "${formData.name}" byl úspěšně aktualizován.`,
+    })
+    setLoading(false)
+    onSuccess()
   }
 
   const handleDelete = async () => {
@@ -430,6 +501,24 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess }: SubjectEd
                   placeholder="Vyberte nebo zadejte katedru..."
                 />
               </div>
+
+              {/* Exam Options Section - only show when exam scheduler is enabled */}
+              {examSchedulerEnabled && (
+                <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-primary-600" />
+                    <Label className="text-sm font-medium">Termíny zkoušek</Label>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Přidejte možné termíny zkoušek pro automatický plánovač.
+                  </p>
+                  <ExamOptionsEditor
+                    options={examOptions}
+                    onChange={setExamOptions}
+                    disabled={loading}
+                  />
+                </div>
+              )}
 
               {/* Final Date for Completed Subjects */}
               {isFieldVisibleForState("final_date", subjectState) && (
