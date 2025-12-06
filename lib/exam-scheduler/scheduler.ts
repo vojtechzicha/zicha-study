@@ -4,12 +4,13 @@ import {
   ExamWithSubject,
   ScheduleResult,
   ScheduleItem,
+  ScheduleItemType,
   SchedulerConfig,
   DEFAULT_CONFIG,
 } from "./types";
 import { canAddExam } from "./conflict-detector";
-import { calculateCost, buildScheduleDays, computeEndTime } from "./cost-calculator";
-import { formatDate, compareDate } from "./utils";
+import { calculateCost, buildScheduleDays, computeEndTime, buildTripSegments } from "./cost-calculator";
+import { formatDate, compareDate, getNextDay } from "./utils";
 
 interface SubjectExams {
   subject: Subject;
@@ -153,6 +154,7 @@ function findOptimalSchedule(
 
 /**
  * Build schedule items from selected exams for display
+ * Uses trip segments: each segment represents a contiguous stay in the city
  */
 function buildScheduleItems(
   exams: ExamWithSubject[],
@@ -163,52 +165,117 @@ function buildScheduleItems(
   }
 
   const days = buildScheduleDays(exams, config);
+  const offlineDays = days.filter((d) => d.hasOfflineExam);
   const items: ScheduleItem[] = [];
 
-  for (const day of days) {
-    // Sort exams by start time
-    const sortedExams = [...day.exams].sort((a, b) =>
-      a.startTime.localeCompare(b.startTime)
-    );
+  // If no offline exams, just add online exam items
+  if (offlineDays.length === 0) {
+    for (const day of days) {
+      const sortedExams = [...day.exams].sort((a, b) =>
+        a.startTime.localeCompare(b.startTime)
+      );
+      for (const exam of sortedExams) {
+        items.push({
+          type: "exam",
+          date: day.date,
+          startTime: exam.startTime,
+          endTime: exam.endTime,
+          exam,
+          description: `${formatDate(day.date)} - ${exam.startTime} - ${exam.endTime} - [${exam.subject.shortcut}] ${exam.subject.name}${exam.isOnline ? " (online)" : ""}`,
+          cost: 0,
+        });
+      }
+    }
+    return items;
+  }
 
-    // Travel to school (if needed)
-    if (day.needsTravelTo) {
-      const earliestExam = sortedExams.find((e) => !e.isOnline);
-      if (earliestExam) {
-        // Calculate travel start time
+  // Build trip segments (decides when to go home vs stay based on cost)
+  const segments = buildTripSegments(offlineDays, config);
+
+  // For each segment, add travel and accommodation items
+  for (const segment of segments) {
+    const firstDay = segment.days[0];
+    const lastDay = segment.days[segment.days.length - 1];
+
+    // Add travel_to on arrival day
+    if (firstDay.needsAccommodationBefore) {
+      // Arrive day before, travel in the afternoon
+      items.push({
+        type: "travel_to",
+        date: segment.arrivalDate,
+        startTime: "14:00",
+        description: `${formatDate(segment.arrivalDate)} - 14:00 - Cesta do školy`,
+        cost: config.travelCostOneWay,
+      });
+    } else {
+      // Arrive same day, calculate travel start based on first exam
+      const firstOfflineExam = [...firstDay.exams]
+        .filter((e) => !e.isOnline)
+        .sort((a, b) => a.startTime.localeCompare(b.startTime))[0];
+
+      if (firstOfflineExam) {
         const examMinutes =
-          parseInt(earliestExam.startTime.split(":")[0]) * 60 +
-          parseInt(earliestExam.startTime.split(":")[1]);
+          parseInt(firstOfflineExam.startTime.split(":")[0]) * 60 +
+          parseInt(firstOfflineExam.startTime.split(":")[1]);
         const travelStartMinutes = examMinutes - config.travelDurationHours * 60;
         const travelStartHour = Math.floor(travelStartMinutes / 60);
         const travelStartMin = travelStartMinutes % 60;
-        const travelStart = `${travelStartHour.toString().padStart(2, "0")}:${travelStartMin.toString().padStart(2, "0")}`;
+        const travelStart = `${Math.max(0, travelStartHour).toString().padStart(2, "0")}:${travelStartMin.toString().padStart(2, "0")}`;
 
         items.push({
           type: "travel_to",
-          date: day.date,
+          date: segment.arrivalDate,
           startTime: travelStart,
-          description: `${formatDate(day.date)} - ${travelStart} - Cesta do školy`,
+          description: `${formatDate(segment.arrivalDate)} - ${travelStart} - Cesta do školy`,
           cost: config.travelCostOneWay,
         });
       }
     }
 
-    // Accommodation before (if needed)
-    if (day.needsAccommodationBefore) {
-      const prevDate = new Date(`${day.date}T00:00:00`);
-      prevDate.setDate(prevDate.getDate() - 1);
-      const prevDateStr = prevDate.toISOString().split("T")[0];
-
+    // Add accommodation nights from the segment
+    for (const nightDate of segment.accommodationNights) {
+      const nextDateStr = getNextDay(nightDate);
       items.push({
         type: "accommodation",
-        date: prevDateStr,
-        description: `${formatDate(prevDateStr)} - ${formatDate(day.date)} - Ubytování`,
+        date: nightDate,
+        description: `${formatDate(nightDate)} - ${formatDate(nextDateStr)} - Ubytování`,
         cost: config.accommodationCostPerNight,
       });
     }
 
-    // Exams
+    // Add travel_from on departure day
+    if (lastDay.needsAccommodationAfter) {
+      // Leave next day morning
+      items.push({
+        type: "travel_from",
+        date: segment.departureDate,
+        startTime: "09:00",
+        description: `${formatDate(segment.departureDate)} - 09:00 - Cesta domů`,
+        cost: config.travelCostOneWay,
+      });
+    } else {
+      // Leave same day after last exam
+      const lastOfflineExam = [...lastDay.exams]
+        .filter((e) => !e.isOnline)
+        .sort((a, b) => b.endTime.localeCompare(a.endTime))[0];
+
+      if (lastOfflineExam) {
+        items.push({
+          type: "travel_from",
+          date: segment.departureDate,
+          startTime: lastOfflineExam.endTime,
+          description: `${formatDate(segment.departureDate)} - ${lastOfflineExam.endTime} - Cesta domů`,
+          cost: config.travelCostOneWay,
+        });
+      }
+    }
+  }
+
+  // Add all exams (including online)
+  for (const day of days) {
+    const sortedExams = [...day.exams].sort((a, b) =>
+      a.startTime.localeCompare(b.startTime)
+    );
     for (const exam of sortedExams) {
       items.push({
         type: "exam",
@@ -220,48 +287,13 @@ function buildScheduleItems(
         cost: 0,
       });
     }
-
-    // Travel from school (if needed)
-    if (day.needsTravelFrom) {
-      const latestExam = [...sortedExams]
-        .filter((e) => !e.isOnline)
-        .sort((a, b) => b.endTime.localeCompare(a.endTime))[0];
-
-      if (latestExam) {
-        items.push({
-          type: "travel_from",
-          date: day.date,
-          startTime: latestExam.endTime,
-          description: `${formatDate(day.date)} - ${latestExam.endTime} - Cesta domů`,
-          cost: config.travelCostOneWay,
-        });
-      }
-    }
-
-    // Accommodation after (if needed)
-    if (day.needsAccommodationAfter) {
-      const nextDate = new Date(`${day.date}T00:00:00`);
-      nextDate.setDate(nextDate.getDate() + 1);
-      const nextDateStr = nextDate.toISOString().split("T")[0];
-
-      items.push({
-        type: "accommodation",
-        date: day.date,
-        description: `${formatDate(day.date)} - ${formatDate(nextDateStr)} - Ubytování`,
-        cost: config.accommodationCostPerNight,
-      });
-    }
   }
 
   // Sort items by date, then by type order, then by time
-  const typeOrder = { accommodation: 0, travel_to: 1, exam: 2, travel_from: 3 };
+  const typeOrder: Record<ScheduleItemType, number> = { travel_to: 0, accommodation: 1, exam: 2, travel_from: 3 };
   items.sort((a, b) => {
     const dateCompare = compareDate(a.date, b.date);
     if (dateCompare !== 0) return dateCompare;
-
-    // Accommodation before should come first
-    if (a.type === "accommodation" && b.type !== "accommodation") return -1;
-    if (b.type === "accommodation" && a.type !== "accommodation") return 1;
 
     const orderCompare = typeOrder[a.type] - typeOrder[b.type];
     if (orderCompare !== 0) return orderCompare;

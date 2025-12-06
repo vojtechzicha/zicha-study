@@ -106,3 +106,11 @@ export interface ScheduleCandidate {
   exams: ExamWithSubject[];
   cost: number;
 }
+
+// Trip segment - represents a contiguous stay in the city
+export interface TripSegment {
+  arrivalDate: string; // Day you travel TO the city
+  departureDate: string; // Day you travel FROM the city
+  days: ScheduleDay[]; // Exam days in this segment
+  accommodationNights: string[]; // Nights you need to stay
+}
