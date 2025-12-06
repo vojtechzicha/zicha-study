@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,6 +54,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([])
   const supabase = createClient()
+  const { toast } = useToast()
   const { departments } = useDepartments(study.id)
 
   // Fetch subjects that can be repeated
@@ -65,10 +67,13 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
         .eq('is_repeat', false)
 
       if (data) {
+        // Type for Supabase subject result
+        type SubjectRow = { id: string; name: string; abbreviation: string | null; semester: string; subject_type: string; completed?: boolean; planned?: boolean }
+
         // Apply the same sorting as subject table
-        const sortedSubjects = data.sort((a, b) => {
+        const sortedSubjects = (data as SubjectRow[]).sort((a: SubjectRow, b: SubjectRow) => {
           // Get subject status priority (Active > Completed > Planned)
-          const getStatusPriority = (subject: any) => {
+          const getStatusPriority = (subject: SubjectRow) => {
             if (subject.planned) return 3  // Planned
             if (subject.completed) return 2  // Completed
             return 1  // Active
@@ -153,9 +158,26 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
     const { error } = await supabase.from("subjects").insert([insertData])
 
     if (error) {
-      setError("Chyba při ukládání předmětu. Zkuste to prosím znovu.")
+      // Provide more specific error messages based on error code/message
+      let errorMessage = "Chyba při ukládání předmětu. Zkuste to prosím znovu."
+
+      if (error.code === "23505") {
+        errorMessage = "Předmět s touto kombinací názvu a semestru již existuje."
+      } else if (error.code === "23503") {
+        errorMessage = "Neplatná reference - zkontrolujte vazbu na opakovaný předmět."
+      } else if (error.code === "PGRST301") {
+        errorMessage = "Nejste přihlášeni. Přihlaste se prosím znovu."
+      } else if (error.message) {
+        errorMessage = `Chyba při ukládání: ${error.message}`
+      }
+
+      setError(errorMessage)
       setLoading(false)
     } else {
+      toast({
+        title: "Předmět přidán",
+        description: `Předmět "${formData.name}" byl úspěšně přidán.`,
+      })
       onSuccess()
     }
   }

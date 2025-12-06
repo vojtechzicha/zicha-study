@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import type { User } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -28,11 +28,7 @@ export function Dashboard({ user }: DashboardProps) {
   const router = useRouter()
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchStudies()
-  }, [])
-
-  const fetchStudies = async () => {
+  const fetchStudies = useCallback(async () => {
     const { data, error } = await supabase.from("studies").select("*")
 
     if (!error && data) {
@@ -41,7 +37,11 @@ export function Dashboard({ user }: DashboardProps) {
       setStudies(sortedStudies)
     }
     setLoading(false)
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchStudies()
+  }, [fetchStudies])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -84,11 +84,7 @@ export function Dashboard({ user }: DashboardProps) {
           variant: "destructive",
         })
       }
-      
-      if (result.stats) {
-        console.log("Regeneration stats:", result.stats)
-      }
-      
+
       if (result.errors) {
         console.error("Regeneration errors:", result.errors)
       }

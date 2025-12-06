@@ -3,11 +3,10 @@
 import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  FileText, 
-  Download, 
-  ExternalLink, 
-  Calendar, 
+import {
+  FileText,
+  Download,
+  ExternalLink,
   BookOpen,
   Home,
   RefreshCw,
@@ -32,13 +31,14 @@ interface StudyNoteDisplayProps {
         name: string
         is_public: boolean
         public_slug: string | null
+        logo_url?: string | null
       }
-    }
+    }[]
   }
   subject?: {
     id: string
     name: string
-    abbreviation: string
+    abbreviation: string | null
     studies?: {
       id: string
       name: string
@@ -46,7 +46,7 @@ interface StudyNoteDisplayProps {
       public_slug: string | null
       logo_url?: string | null
     }
-  }
+  } | null
   study?: {
     id: string
     name: string
@@ -64,12 +64,12 @@ interface CacheInfo {
 
 export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDisplayProps) {
   const [cacheInfo, setCacheInfo] = React.useState<CacheInfo | null>(null)
-  const subjectData = subject || note.subjects
+  const subjectData = subject || note.subjects?.[0]
   const studyData = study || subjectData?.studies
 
   // Extract and apply theme colors from study logo
-  const { extractedColor, isLoading: colorLoading } = useLogoTheme(studyData?.logo_url || study?.logo_url)
-  
+  useLogoTheme(studyData?.logo_url || study?.logo_url)
+
   // Update favicon with study logo
   useFavicon(studyData?.logo_url || study?.logo_url)
 
@@ -79,13 +79,6 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
       month: "long",
       year: "numeric",
     })
-  }
-
-  const formatFileSize = (bytes: number | null): string => {
-    if (!bytes) return ""
-    const sizes = ["B", "KB", "MB", "GB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`
   }
 
   return (
@@ -157,7 +150,7 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => window.open(note.onedrive_web_url, "_blank")}
+                    onClick={() => note.onedrive_web_url && window.open(note.onedrive_web_url, "_blank")}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Otevřít v OneDrive
@@ -204,12 +197,14 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
           </Card>
 
           {/* Document Content Area */}
-          <StudyNoteContent 
-            slug={note.public_slug} 
-            studyId={note.study_id}
-            flush={flush} 
-            onCacheInfo={setCacheInfo}
-          />
+          {note.public_slug && (
+            <StudyNoteContent
+              slug={note.public_slug}
+              studyId={note.study_id}
+              flush={flush}
+              onCacheInfo={setCacheInfo}
+            />
+          )}
         </div>
       </main>
     </div>

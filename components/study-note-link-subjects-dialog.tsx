@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -47,20 +47,7 @@ export function StudyNoteLinkSubjectsDialog({
   const [linkedFinalExams, setLinkedFinalExams] = useState<AvailableSubject[]>([])
   const supabase = createClient()
 
-  useEffect(() => {
-    if (isOpen) {
-      loadData()
-      setSelectedSubjects(new Set())
-      setError(null)
-    }
-  }, [isOpen])
-
-  const loadData = async () => {
-    await loadLinkedFinalExams()
-    await loadAvailableSubjects()
-  }
-
-  const loadAvailableSubjects = async () => {
+  const loadAvailableSubjects = useCallback(async () => {
     try {
       let studyId: string
       let studyName: string
@@ -235,9 +222,9 @@ export function StudyNoteLinkSubjectsDialog({
       console.error("Failed to load available subjects:", err)
       setError("Nepodařilo se načíst dostupné předměty")
     }
-  }
+  }, [note, supabase])
 
-  const loadLinkedFinalExams = async () => {
+  const loadLinkedFinalExams = useCallback(async () => {
     try {
       // Get the linked final exams for this note
       const { data: links, error: linksError } = await supabase
@@ -279,7 +266,20 @@ export function StudyNoteLinkSubjectsDialog({
     } catch (err) {
       console.error("Failed to load linked final exams:", err)
     }
-  }
+  }, [note.id, supabase])
+
+  const loadData = useCallback(async () => {
+    await loadLinkedFinalExams()
+    await loadAvailableSubjects()
+  }, [loadLinkedFinalExams, loadAvailableSubjects])
+
+  useEffect(() => {
+    if (isOpen) {
+      loadData()
+      setSelectedSubjects(new Set())
+      setError(null)
+    }
+  }, [isOpen, loadData])
 
   const handleLink = async () => {
     if (selectedSubjects.size === 0) {

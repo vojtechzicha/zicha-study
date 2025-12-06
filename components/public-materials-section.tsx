@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ChevronRight, FolderOpen, AlertCircle } from "lucide-react"
+import { ChevronRight, AlertCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { MaterialCard } from "@/components/material-card"
 import { MaterialsTable } from "@/components/materials-table"
@@ -44,13 +44,13 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
 
         if (error) throw error
         setMaterials(data || [])
-      } catch (err) {
+      } catch {
         setError("Nepodařilo se načíst materiály")
       } finally {
         setLoading(false)
       }
     }
-    
+
     loadMaterials()
   }, [studyId, supabase])
 

@@ -20,7 +20,7 @@ import {
 
 interface DepartmentAutocompleteProps {
   value: string
-  onChange: (value: string) => void
+  onChange: (_value: string) => void
   departments: string[]
   placeholder?: string
   disabled?: boolean

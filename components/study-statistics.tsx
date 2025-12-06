@@ -3,14 +3,12 @@
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, BookOpen, Clock, Trophy, Target } from "lucide-react"
-import { StudyLogo } from "./study-logo"
+import { BookOpen, Clock, Trophy, Target } from "lucide-react"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
-import { calculateAverage, filterSubjectsBySemester, getUniqueSemesters } from "@/lib/grade-utils"
+import { calculateAverage } from "@/lib/grade-utils"
 import { isSubjectFailed } from "@/lib/status-utils"
 import { getSubjectTypeOptions, getSubjectTypeConfig } from "@/lib/constants"
 
@@ -31,6 +29,7 @@ interface Subject {
   completed: boolean
   exam_completed: boolean
   credit_completed: boolean
+  planned?: boolean
   final_date?: string
   created_at: string
   is_repeat?: boolean
@@ -50,7 +49,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   const [typeFilter, setTypeFilter] = useState<string>("all")
   
   // Extract and apply theme colors from logo
-  const { extractedColor, isLoading: colorLoading } = useLogoTheme(studyLogoUrl)
+  useLogoTheme(studyLogoUrl)
 
   // Extract years and semesters for filtering
   const { years, semesters } = useMemo(() => {
@@ -294,7 +293,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     })
 
     return stats
-  }, [filteredSubjects])
+  }, [filteredSubjects, subjectTypes])
 
   const getTypeColor = (type: string) => {
     return getSubjectTypeConfig(type).color

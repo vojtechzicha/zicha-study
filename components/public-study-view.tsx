@@ -3,7 +3,6 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Tooltip,
@@ -17,14 +16,13 @@ import { useFavicon } from "@/hooks/use-favicon"
 import { PublicMaterialsSection } from "./public-materials-section"
 import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
-import { BookOpen, Target, Clock, Trophy } from "lucide-react"
-import { 
-  getStatusColor, 
-  getStatusText, 
+import { StudyStatisticsCards } from "./study-statistics-cards"
+import { BookOpen } from "lucide-react"
+import {
+  getStatusColor,
+  getStatusText,
   StudyStatus,
   getSubjectStatus,
-  getSubjectStateColor,
-  getSubjectStateText,
   isFieldVisibleForState,
   getCompletionBadgeConfig,
   isSubjectFailed,
@@ -33,9 +31,10 @@ import {
   getCreditsAndHoursDisplay,
   getSubjectStateBadgeConfig
 } from "@/lib/status-utils"
-import { calculateAverage, getUniqueSemesters } from "@/lib/grade-utils"
+import { calculateAverage } from "@/lib/grade-utils"
 import { getSubjectTypeConfig, getStudyFormLabel } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
+import { sortSubjects } from "@/lib/utils/subject-utils"
 
 interface Study {
   id: string
@@ -46,6 +45,8 @@ interface Study {
   end_year?: number
   status: StudyStatus
   logo_url?: string
+  is_public?: boolean
+  public_slug?: string
   final_exams_enabled?: boolean
   public_description?: string
   last_updated?: string
@@ -80,122 +81,12 @@ interface PublicStudyViewProps {
   subjects: Subject[]
 }
 
-const sortSubjects = (subjects: Subject[]) => {
-  const getTypeOrder = (type: string) => getSubjectTypeConfig(type).order
-
-  // Get subject status priority (Active > Completed > Planned)
-  const getStatusPriority = (subject: Subject) => {
-    if (subject.planned) return 3  // Planned
-    if (subject.completed) return 2  // Completed
-    return 1  // Active
-  }
-
-  const getSemesterOrder = (semester: string) => {
-    const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
-    if (match) {
-      const year = Number.parseInt(match[1])
-      const semesterType = match[2].toUpperCase()
-      return year * 10 + (semesterType === "ZS" ? 1 : 2)
-    }
-    return 999
-  }
-
-  return [...subjects].sort((a, b) => {
-    // First sort by status priority (Active > Completed > Planned)
-    const aStatusPriority = getStatusPriority(a)
-    const bStatusPriority = getStatusPriority(b)
-    if (aStatusPriority !== bStatusPriority) {
-      return aStatusPriority - bStatusPriority
-    }
-
-    const aSemesterOrder = getSemesterOrder(a.semester)
-    const bSemesterOrder = getSemesterOrder(b.semester)
-    if (aSemesterOrder !== bSemesterOrder) {
-      return aSemesterOrder - bSemesterOrder
-    }
-
-    const aTypeOrder = getTypeOrder(a.subject_type)
-    const bTypeOrder = getTypeOrder(b.subject_type)
-    if (aTypeOrder !== bTypeOrder) {
-      return aTypeOrder - bTypeOrder
-    }
-
-    return a.name.localeCompare(b.name, "cs")
-  })
-}
-
 export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
   // Extract and apply theme colors from logo
-  const { extractedColor, isLoading: colorLoading } = useLogoTheme(study.logo_url)
-  
+  useLogoTheme(study.logo_url)
+
   // Update favicon with study logo
   useFavicon(study.logo_url)
-
-
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const total = subjects.length
-    const completed = subjects.filter((s) => s.completed && !s.planned).length
-    const creditsCompleted = subjects.filter((s) => s.credit_completed && !s.planned).length
-    
-    // First, get unique exam subjects (by abbreviation)
-    const uniqueExamSubjects = subjects
-      .filter((s) => s.completion_type.includes("Zk"))
-      .reduce((acc, subject) => {
-        // Only keep the first instance of each subject (by abbreviation)
-        if (!acc.some(s => s.abbreviation === subject.abbreviation)) {
-          acc.push(subject)
-        }
-        return acc
-      }, [] as Subject[])
-    
-    // Count unique subjects that have been successfully completed (any instance with passing grade)
-    const uniqueExamsCompleted = uniqueExamSubjects.filter(examSubject => {
-      // Find all instances of this subject
-      const allInstances = subjects.filter(s => s.abbreviation === examSubject.abbreviation && s.completion_type.includes("Zk"))
-      // Check if any instance has been successfully completed (not failed and not planned)
-      return allInstances.some(s => s.exam_completed && !s.planned && s.grade !== 'FN')
-    }).length
-    
-    const examsCompleted = uniqueExamsCompleted
-    
-
-    const totalCredits = subjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
-    const completedCredits = subjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
-    const totalHours = subjects.reduce((sum, s) => sum + (s.hours || 0), 0)
-    const completedHours = subjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
-
-    // Calculate weighted average using new utility
-    const completedSubjects = subjects.filter(s => s.completed && !isSubjectFailed(s))
-    const average = calculateAverage(completedSubjects)
-
-    const subjectsWithCredits = subjects.filter((s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp"))
-    const subjectsWithExams = uniqueExamSubjects
-    
-    const remainingCredits = subjects.filter(
-      (s) => (!s.credit_completed || s.planned) && (s.completion_type.includes("Zp") || s.completion_type.includes("KZp")),
-    ).length
-    const remainingExams = subjects.filter((s) => ((!s.exam_completed || s.planned) && s.completion_type.includes("Zk"))).length
-
-    return {
-      total,
-      completed,
-      creditsCompleted,
-      examsCompleted,
-      remainingCredits,
-      remainingExams,
-      totalCredits,
-      completedCredits,
-      totalHours,
-      completedHours,
-      average,
-      completionRate: total > 0 ? (completed / total) * 100 : 0,
-      creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
-      examCompletionRate: subjectsWithExams.length > 0 ? (examsCompleted / subjectsWithExams.length) * 100 : 0,
-      totalSubjectsWithCredits: subjectsWithCredits.length,
-      totalSubjectsWithExams: subjectsWithExams.length,
-    }
-  }, [subjects])
 
   // Group subjects by semester with averages
   const subjectsBySemester = useMemo(() => {
@@ -342,132 +233,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
-              <BookOpen className="h-4 w-4 text-primary-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <p className="text-xs text-gray-600 mt-1">
-                Dokončeno: {stats.completed} ({stats.completionRate.toFixed(1)}%)
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Získané kredity</CardTitle>
-              <Target className="h-4 w-4 text-indigo-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.completedCredits}</div>
-              <p className="text-xs text-gray-600 mt-1">z {stats.totalCredits} kreditů</p>
-            </CardContent>
-          </Card>
-
-          {stats.average.type !== 'none' && (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">{stats.average.label}</CardTitle>
-                <Trophy className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                {stats.average.type === 'both' ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-gray-900">
-                        {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
-                      </div>
-                      <p className="text-xs text-gray-600">body</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-gray-900">
-                        {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
-                      </div>
-                      <p className="text-xs text-gray-600">známky</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {stats.average.value ? stats.average.value.toFixed(2) : '-'}
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">vážené kredity</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Celkové hodiny</CardTitle>
-              <Clock className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.completedHours}</div>
-              <p className="text-xs text-gray-600 mt-1">
-                z {stats.totalHours} hodin ({stats.totalHours > 0 ? ((stats.completedHours / stats.totalHours) * 100).toFixed(1) : 0}%)
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Progress Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Dokončené předměty</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {stats.completed} z {stats.total}
-                  </span>
-                  <span className="font-medium">{stats.completionRate.toFixed(1)}%</span>
-                </div>
-                <Progress value={stats.completionRate} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Zápočty</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {stats.creditsCompleted} z {stats.totalSubjectsWithCredits}
-                  </span>
-                  <span className="font-medium">{stats.creditCompletionRate.toFixed(1)}%</span>
-                </div>
-                <Progress value={stats.creditCompletionRate} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Zkoušky</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {stats.examsCompleted} z {stats.totalSubjectsWithExams}
-                  </span>
-                  <span className="font-medium">{stats.examCompletionRate.toFixed(1)}%</span>
-                </div>
-                <Progress value={stats.examCompletionRate} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <StudyStatisticsCards subjects={subjects} variant="full" />
 
         {/* Materials Section */}
         <div className="mb-8">
@@ -600,32 +366,32 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                               }
                               
                               if (hasGrade && hasPoints) {
-                                const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
+                                const gradeConfig = getGradeBadgeConfig(subject.grade!, subject)
                                 return (
                                   <div className="flex items-center justify-center gap-2">
                                     <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                                       {subject.grade}
                                     </span>
                                     <span className="text-sm text-gray-600">
-                                      ({subject.points} {getCzechPointsWord(subject.points)})
+                                      ({subject.points} {getCzechPointsWord(subject.points!)})
                                     </span>
                                   </div>
                                 )
                               }
-                              
+
                               if (hasGrade) {
-                                const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
+                                const gradeConfig = getGradeBadgeConfig(subject.grade!, subject)
                                 return (
                                   <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                                     {subject.grade}
                                   </span>
                                 )
                               }
-                              
+
                               if (hasPoints) {
                                 return (
                                   <span className="text-sm text-gray-600">
-                                    {subject.points} {getCzechPointsWord(subject.points)}
+                                    {subject.points} {getCzechPointsWord(subject.points!)}
                                   </span>
                                 )
                               }

@@ -37,23 +37,11 @@ export class OneDriveTokenManagerV2 {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
       if (userError || !user) {
-        console.error('User error:', userError)
         return { token: null, error: 'User not authenticated', needsReauth: true }
-      }
-      
-      // Check if OAuth is configured for refresh tokens
-      if (!this.isConfigured()) {
-        console.warn('OAuth credentials not configured. Refresh tokens will not work. See docs/ONEDRIVE_OAUTH_SETUP.md')
       }
 
       // First, try to get the token from Supabase session (for fresh logins)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      
-      // Debug what's in the session
-      if (session) {
-        console.log('Session check - Has provider_token:', !!session.provider_token)
-        console.log('Session check - Has provider_refresh_token:', !!session.provider_refresh_token)
-      }
+      const { data: { session } } = await supabase.auth.getSession()
       
       if (session?.provider_token) {
         // Store tokens in our table if they're fresh from login
@@ -100,14 +88,11 @@ export class OneDriveTokenManagerV2 {
         if (refreshResult.token) {
           return refreshResult
         }
-      } else {
-        console.warn('No refresh token available. User will need to re-authenticate when token expires.')
       }
 
       // Can't refresh, need to re-authenticate
       return { token: null, error: 'Access token expired and refresh failed', needsReauth: true }
-    } catch (error) {
-      console.error('Error getting OneDrive token:', error)
+    } catch {
       return { token: null, error: 'Token retrieval failed', needsReauth: true }
     }
   }
@@ -115,14 +100,14 @@ export class OneDriveTokenManagerV2 {
   private static async refreshAccessToken(userId: string, refreshToken: string): Promise<OneDriveTokenResult> {
     try {
       if (!this.isConfigured()) {
-        console.error('Missing OAuth client credentials. Set NEXT_PUBLIC_SUPABASE_AZURE_CLIENT_ID and SUPABASE_AZURE_CLIENT_SECRET environment variables.')
-        return { token: null, error: 'OAuth configuration missing. See server logs for details.', needsReauth: true }
+        return { token: null, error: 'OAuth configuration missing', needsReauth: true }
       }
 
       // Prepare the token refresh request
+      // Note: We've already verified CLIENT_ID and CLIENT_SECRET exist via isConfigured()
       const params = new URLSearchParams({
-        client_id: this.CLIENT_ID,
-        client_secret: this.CLIENT_SECRET,
+        client_id: this.CLIENT_ID!,
+        client_secret: this.CLIENT_SECRET!,
         refresh_token: refreshToken,
         grant_type: 'refresh_token',
         redirect_uri: this.REDIRECT_URI || ''
@@ -138,8 +123,6 @@ export class OneDriveTokenManagerV2 {
       })
 
       if (!response.ok) {
-        const errorData = await response.text()
-        console.error('Token refresh failed:', response.status, errorData)
         return { token: null, error: 'Token refresh failed', needsReauth: true }
       }
 
@@ -158,8 +141,7 @@ export class OneDriveTokenManagerV2 {
       })
 
       return { token: data.access_token }
-    } catch (error) {
-      console.error('Error refreshing access token:', error)
+    } catch {
       return { token: null, error: 'Token refresh failed', needsReauth: true }
     }
   }
@@ -183,13 +165,11 @@ export class OneDriveTokenManagerV2 {
           onConflict: 'user_id,provider'
         })
 
-      if (error) {
-        console.error('Error storing tokens:', error)
-      } else {
-        console.log('Tokens stored/updated in database')
+      if (error && process.env.NODE_ENV === 'development') {
+        console.error('Error storing tokens:', error.message)
       }
-    } catch (error) {
-      console.error('Error in storeTokens:', error)
+    } catch {
+      // Silent failure - token storage is not critical
     }
   }
 

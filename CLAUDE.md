@@ -176,3 +176,5 @@ When using CSS variables directly in inline styles, wrap them in `hsl()`:
 ```tsx
 style={{ backgroundColor: "hsl(var(--primary-600))" }}
 ```
+- No new typescript build errors should be added (change previous guidance, make sure we do not change UI components but add error labels)
+- Respect the linter. Is hould show no errors and preferrably no warnings.

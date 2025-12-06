@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { ChevronRight, ChevronDown, FileText, AlertCircle, Search } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { StudyNoteOverviewCard } from "@/components/study-note-overview-card"
-import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
+import type { StudyNoteWithSubjects, RawStudyNoteSubjectLink, RawStudyNoteFinalExamLink, SubjectInfo, FinalExamInfo, StudyNoteSubject } from "@/lib/types/study-notes"
 
 interface Study {
   id: string
@@ -26,6 +26,29 @@ interface StudyNotesDisplaySectionProps {
   showSubjectNames?: boolean
 }
 
+interface RawStudyNote {
+  id: string
+  study_id: string
+  user_id: string
+  name: string
+  file_name: string
+  file_extension: string | null
+  onedrive_item_id: string | null
+  onedrive_web_url: string | null
+  onedrive_download_url: string | null
+  onedrive_embed_url: string | null
+  is_public: boolean
+  public_slug: string | null
+  last_modified_onedrive: string | null
+  created_at: string
+  description: string | null
+  converted_html: string | null
+  converted_at: string | null
+  onedrive_ctag: string | null
+  study_note_subjects?: RawStudyNoteSubjectLink[]
+  study_note_final_exams?: RawStudyNoteFinalExamLink[]
+}
+
 export function StudyNotesDisplaySection({ 
   studyId, 
   study, 
@@ -41,7 +64,7 @@ export function StudyNotesDisplaySection({
   const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
 
-  const loadStudyNotes = async (silent = false) => {
+  const loadStudyNotes = useCallback(async (silent = false) => {
     if (!silent) {
       setLoading(true)
       setError(null)
@@ -80,17 +103,17 @@ export function StudyNotesDisplaySection({
       // Get all unique subject and final exam IDs
       const subjectIds = new Set<string>()
       const finalExamIds = new Set<string>()
-      notesData?.forEach(note => {
-        note.study_note_subjects?.forEach((link: any) => {
+      ;(notesData as RawStudyNote[] | null)?.forEach((note: RawStudyNote) => {
+        note.study_note_subjects?.forEach((link: RawStudyNoteSubjectLink) => {
           subjectIds.add(link.subject_id)
         })
-        note.study_note_final_exams?.forEach((link: any) => {
+        note.study_note_final_exams?.forEach((link: RawStudyNoteFinalExamLink) => {
           finalExamIds.add(link.final_exam_id)
         })
       })
 
       // Fetch subject details
-      let subjectsMap = new Map<string, any>()
+      const subjectsMap = new Map<string, SubjectInfo>()
       if (subjectIds.size > 0) {
         const { data: subjectsData, error: subjectsError } = await supabase
           .from("subjects")
@@ -98,14 +121,14 @@ export function StudyNotesDisplaySection({
           .in("id", Array.from(subjectIds))
 
         if (subjectsError) throw subjectsError
-        
-        subjectsData?.forEach(subject => {
+
+        subjectsData?.forEach((subject: SubjectInfo) => {
           subjectsMap.set(subject.id, subject)
         })
       }
 
       // Fetch final exam details
-      let finalExamsMap = new Map<string, any>()
+      const finalExamsMap = new Map<string, FinalExamInfo>()
       if (finalExamIds.size > 0) {
         const { data: finalExamsData, error: finalExamsError } = await supabase
           .from("final_exams")
@@ -113,47 +136,54 @@ export function StudyNotesDisplaySection({
           .in("id", Array.from(finalExamIds))
 
         if (finalExamsError) throw finalExamsError
-        
-        finalExamsData?.forEach(exam => {
+
+        finalExamsData?.forEach((exam: FinalExamInfo) => {
           finalExamsMap.set(exam.id, exam)
         })
       }
 
       // Transform the data to include subject and final exam information
-      const transformedNotes: StudyNoteWithSubjects[] = notesData?.map(note => ({
-        ...note,
-        subjects: showSubjectNames ? [
-          ...(note.study_note_subjects?.map((link: any) => {
-            const subject = subjectsMap.get(link.subject_id)
-            return subject ? {
-              ...subject,
-              is_primary: link.is_primary
-            } : null
-          }).filter(Boolean) || []),
-          ...(note.study_note_final_exams?.map((link: any) => {
-            const exam = finalExamsMap.get(link.final_exam_id)
-            return exam ? {
-              ...exam,
-              name: `${exam.shortcut ? `${exam.shortcut  } - ` : ""}${exam.name}`,
-              is_primary: link.is_primary,
-              is_final_exam: true
-            } : null
-          }).filter(Boolean) || [])
-        ] : []
-      })) || []
+      const transformedNotes: StudyNoteWithSubjects[] = (notesData as RawStudyNote[] | null)?.map((note: RawStudyNote) => {
+        if (!showSubjectNames) {
+          return { ...note, subjects: [] }
+        }
+
+        const subjectItems = note.study_note_subjects?.map((link: RawStudyNoteSubjectLink) => {
+          const subject = subjectsMap.get(link.subject_id)
+          return subject ? {
+            ...subject,
+            is_primary: link.is_primary
+          } : null
+        }).filter((x): x is StudyNoteSubject => x !== null) || []
+
+        const examItems = note.study_note_final_exams?.map((link: RawStudyNoteFinalExamLink): StudyNoteSubject | null => {
+          const exam = finalExamsMap.get(link.final_exam_id)
+          return exam ? {
+            id: exam.id,
+            name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
+            study_id: exam.study_id,
+            is_primary: link.is_primary,
+            is_final_exam: true
+          } : null
+        }).filter((x): x is StudyNoteSubject => x !== null) || []
+
+        return {
+          ...note,
+          subjects: [...subjectItems, ...examItems]
+        }
+      }) || []
 
       setStudyNotes(transformedNotes)
-    } catch (err) {
+    } catch {
       if (!silent) {
         setError("Nepodařilo se načíst studijní zápisy")
       }
-      console.error(err)
     } finally {
       if (!silent) {
         setLoading(false)
       }
     }
-  }
+  }, [studyId, supabase, isPublicView, showSubjectNames])
 
   useEffect(() => {
     loadStudyNotes()
@@ -172,8 +202,7 @@ export function StudyNotesDisplaySection({
           table: 'study_notes',
           filter: `study_id=eq.${studyId}`
         },
-        (payload) => {
-          console.log('Study note change detected:', payload)
+        () => {
           loadStudyNotes(true) // silent refresh
         }
       )
@@ -184,19 +213,16 @@ export function StudyNotesDisplaySection({
           schema: 'public',
           table: 'study_note_subjects'
         },
-        (payload) => {
-          console.log('Study note subjects change detected:', payload)
+        () => {
           loadStudyNotes(true) // silent refresh
         }
       )
-      .subscribe((status) => {
-        console.log('Subscription status:', status)
-      })
+      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [studyId, supabase, isPublicView, showSubjectNames])
+  }, [studyId, supabase, isPublicView, showSubjectNames, loadStudyNotes])
 
   // Refresh periodically when page is visible (only for private views)
   useEffect(() => {
@@ -238,7 +264,7 @@ export function StudyNotesDisplaySection({
       stopPolling()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [isPublicView])
+  }, [isPublicView, loadStudyNotes])
 
   // Filter notes based on search query
   const filteredNotes = studyNotes.filter(note => {
@@ -247,7 +273,7 @@ export function StudyNotesDisplaySection({
     return (
       note.name.toLowerCase().includes(query) ||
       note.description?.toLowerCase().includes(query) ||
-      (showSubjectNames && note.subjects?.some(s => s.name.toLowerCase().includes(query)))
+      (showSubjectNames && note.subjects?.filter(Boolean).some(s => s.name.toLowerCase().includes(query)))
     )
   })
 

@@ -23,16 +23,14 @@ export async function regenerateAllStudyNotes() {
     const { data: studyNotes, error: notesError } = await supabase
       .from('study_notes')
       .select('id, public_slug, name, study_id')
-      .in('study_id', studies.map(s => s.id))
+      .in('study_id', studies.map((s: { id: string }) => s.id))
       .eq('is_public', true)
     
     if (notesError) throw notesError
     if (!studyNotes || studyNotes.length === 0) {
       return { success: true, message: 'Žádné studijní zápisy k regeneraci', stats: { total: 0, success: 0, failed: 0 } }
     }
-    
-    console.log(`Found ${studyNotes.length} study notes to regenerate`)
-    
+
     // Regenerate each study note
     let successCount = 0
     let failedCount = 0
@@ -40,18 +38,10 @@ export async function regenerateAllStudyNotes() {
     
     for (const note of studyNotes) {
       try {
-        console.log(`Regenerating: ${note.name} (${note.public_slug})`)
-        
         // Call the API without flush parameter to regenerate only if needed
         const response = await fetch(`/api/study-notes/${note.public_slug}/convert`)
-        
+
         if (response.ok) {
-          const data = await response.json()
-          if (data.cached) {
-            console.log(`✓ ${note.name} - using cached version`)
-          } else {
-            console.log(`✓ ${note.name} - regenerated successfully`)
-          }
           successCount++
         } else {
           const error = await response.text()

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, STUDY_STATUS, type StudyStatus } from "@/lib/constants"
+import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, type StudyStatus } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -95,17 +95,14 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
 
       // Upload new logo if provided
       if (logoFile) {
-        console.log("Uploading logo file:", logoFile.name, "size:", logoFile.size)
         const fileExt = logoFile.name.split(".").pop()
         const { data: { user } } = await supabase.auth.getUser()
         const fileName = `${user?.id}/${study.id}-${Date.now()}.${fileExt}`
-        console.log("Generated filename:", fileName)
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("study-logos")
           .upload(fileName, logoFile)
 
-        console.log("Upload result:", { uploadData, uploadError })
         if (uploadError) throw uploadError
 
         const { data: urlData } = supabase.storage.from("study-logos").getPublicUrl(uploadData.path)
@@ -221,6 +218,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 <div className="flex items-start gap-4">
                   {logoPreview ? (
                     <div className="relative flex-shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={logoPreview || "/placeholder.svg"}
                         alt="Logo preview"

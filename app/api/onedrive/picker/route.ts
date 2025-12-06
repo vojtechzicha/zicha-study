@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { OneDriveTokenManagerV2 } from '@/lib/utils/onedrive-token-manager-v2'
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate-limit'
 
 export async function GET() {
   const supabase = await createServerClient()
@@ -10,6 +11,12 @@ export async function GET() {
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Rate limiting
+  const rateLimitResult = checkRateLimit(`onedrive-picker:${user.id}`, RATE_LIMITS.ONEDRIVE_FILES)
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.resetTime)
   }
 
   try {
@@ -46,8 +53,6 @@ export async function GET() {
 
     return NextResponse.json({ files })
   } catch (error) {
-    console.error('OneDrive picker error:', error)
-
     // Check if it's a token-related error
     if (error instanceof Error && error.message.includes('token')) {
       return NextResponse.json({ error: error.message, needsReauth: true }, { status: 401 })

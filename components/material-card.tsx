@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, type JSX } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,16 +21,14 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Material } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 
 interface MaterialCardProps {
   material: Material
-  onDelete?: (id: string) => void
+  onDelete?: (_id: string) => void
   onUpdate?: () => void
   studySlug?: string
   isStudyPublic?: boolean

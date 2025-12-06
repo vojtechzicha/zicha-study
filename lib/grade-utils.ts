@@ -1,5 +1,8 @@
 import type { Subject } from './status-utils'
 
+// Minimum subject fields needed for grade calculation
+export type GradeCalculationSubject = Pick<Subject, 'completion_type' | 'credits' | 'points' | 'grade'>
+
 // Convert letter grade to numeric value
 export function gradeToNumber(grade: string): number | null {
   if (!grade || grade === '-') return null
@@ -33,7 +36,7 @@ export function gradeToNumber(grade: string): number | null {
 }
 
 // Check if subject should be included in average calculation
-export function shouldIncludeInAverage(subject: Subject): boolean {
+export function shouldIncludeInAverage(subject: GradeCalculationSubject): boolean {
   // Skip subjects with "Zápočet" type (credit only)
   if (subject.completion_type === 'Zápočet (Zp)') return false
   
@@ -46,8 +49,16 @@ export function shouldIncludeInAverage(subject: Subject): boolean {
 
 export type AverageType = 'grade' | 'points' | 'both' | 'none'
 
+export interface AverageResult {
+  type: AverageType
+  value: number | null
+  label: string
+  pointsValue?: number | null
+  gradeValue?: number | null
+}
+
 // Determine which type of average to calculate
-export function getAverageType(subjects: Subject[]): AverageType {
+export function getAverageType(subjects: GradeCalculationSubject[]): AverageType {
   const relevantSubjects = subjects.filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return 'none'
   
@@ -68,7 +79,7 @@ export function getAverageType(subjects: Subject[]): AverageType {
 }
 
 // Calculate weighted average for grades
-export function calculateWeightedGradeAverage(subjects: Subject[], includeSubjectsWithPoints: boolean = false): number | null {
+export function calculateWeightedGradeAverage(subjects: GradeCalculationSubject[], includeSubjectsWithPoints: boolean = false): number | null {
   const relevantSubjects = subjects.filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return null
   
@@ -91,7 +102,7 @@ export function calculateWeightedGradeAverage(subjects: Subject[], includeSubjec
 }
 
 // Calculate weighted average for points
-export function calculateWeightedPointsAverage(subjects: Subject[]): number | null {
+export function calculateWeightedPointsAverage(subjects: GradeCalculationSubject[]): number | null {
   const relevantSubjects = subjects.filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return null
   
@@ -110,13 +121,7 @@ export function calculateWeightedPointsAverage(subjects: Subject[]): number | nu
 }
 
 // Main function to calculate average with type detection
-export function calculateAverage(subjects: Subject[]): { 
-  type: 'grade' | 'points' | 'both' | 'none'
-  value: number | null
-  label: string
-  pointsValue?: number | null
-  gradeValue?: number | null
-} {
+export function calculateAverage(subjects: GradeCalculationSubject[]): AverageResult {
   const avgType = getAverageType(subjects)
   
   switch (avgType) {

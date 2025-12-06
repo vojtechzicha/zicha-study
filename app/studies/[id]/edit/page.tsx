@@ -78,7 +78,7 @@ export default function StudyEditPage({ params }: { params: Promise<{ id: string
     })
 
     return () => subscription.unsubscribe()
-  }, [id, supabase.auth])
+  }, [id, supabase, supabase.auth])
 
   if (loading) {
     return (

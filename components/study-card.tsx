@@ -9,8 +9,8 @@ import { Study, getStatusColor, getStatusText } from "@/lib/status-utils"
 
 interface StudyCardProps {
   study: Study
-  onSelect?: (study: Study) => void // click anywhere on the card
-  onEdit?: (study: Study) => void // edit button click
+  onSelect?: (_study: Study) => void // click anywhere on the card
+  onEdit?: (_study: Study) => void // edit button click
 }
 
 

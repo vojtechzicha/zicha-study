@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link, Unlink } from "lucide-react"
+import { BookOpen, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,21 +24,21 @@ import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
-import type { StudyNote, StudyNoteWithSubjects } from "@/lib/types/study-notes"
+import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
 import { StudyNoteLinkSubjectsDialog } from "@/components/study-note-link-subjects-dialog"
 import { cleanSlugInput } from "@/lib/utils/slug"
 
 interface StudyNoteCardProps {
   note: StudyNoteWithSubjects
-  onDelete?: (id: string) => void
+  onDelete?: (_id: string) => void
   onUpdate?: () => void
   studySlug?: string
   isStudyPublic?: boolean
   currentSubjectId?: string
+  isFinalExam?: boolean
 }
 
-export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic, currentSubjectId }: StudyNoteCardProps) {
+export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic: _isStudyPublic, currentSubjectId }: StudyNoteCardProps) {
   const [showPublicDialog, setShowPublicDialog] = useState(false)
   const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [isPublic, setIsPublic] = useState(note.is_public)
@@ -48,7 +48,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const [copied, setCopied] = useState(false)
   const supabase = createClient()
-  const router = useRouter()
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -66,7 +65,9 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
   }, [showPublicDialog, note.is_public, note.public_slug])
 
   const handleOpenInOneDrive = () => {
-    window.open(note.onedrive_web_url, '_blank', 'noopener,noreferrer')
+    if (note.onedrive_web_url) {
+      window.open(note.onedrive_web_url, '_blank', 'noopener,noreferrer')
+    }
   }
 
   const handleDisplayNote = () => {
@@ -174,7 +175,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                 <p className="text-xs text-gray-600 mb-2 line-clamp-2">{note.description}</p>
               )}
               <div className="flex items-center gap-4 text-xs text-gray-500">
-                <span>{formatFileSize(note.file_size)}</span>
+                <span>{formatFileSize(note.file_size ?? null)}</span>
                 <span>
                   {new Date(note.created_at).toLocaleDateString("cs-CZ")}
                 </span>
@@ -191,12 +192,12 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   <Link className="h-3 w-3 text-gray-400" />
                   <div className="flex flex-wrap gap-1">
                     {(() => {
-                      const primaryItem = note.subjects.find(s => s.is_primary)
+                      const primaryItem = note.subjects!.find(s => s.is_primary)
                       const isViewingPrimaryItem = primaryItem?.id === currentSubjectId
-                      
+
                       if (isViewingPrimaryItem) {
                         // Viewing from primary item - show linked items
-                        return note.subjects
+                        return note.subjects!
                           .filter(s => !s.is_primary)
                           .map(item => (
                             <Badge key={item.id} variant="outline" className="text-xs py-0 px-2">
@@ -320,7 +321,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                     <span className="text-sm text-gray-500">{window.location.origin}/{studySlug || "study-slug"}/</span>
                     <Input
                       id="slug"
-                      value={publicSlug}
+                      value={publicSlug ?? ""}
                       onChange={(e) => {
                         const cleanSlug = cleanSlugInput(e.target.value)
                         setPublicSlug(cleanSlug)

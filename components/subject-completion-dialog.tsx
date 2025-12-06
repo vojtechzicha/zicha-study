@@ -20,7 +20,7 @@ interface SubjectCompletionDialogProps {
   completionType: "credit" | "exam"
   isOpen: boolean
   onClose: () => void
-  onSave: (data: {
+  onSave: (_data: {
     points?: number
     grade?: string
     finalDate?: string
@@ -104,8 +104,6 @@ export function SubjectCompletionDialog({
   }
 
   if (!subject) return null
-
-  console.log("Dialog debug:", { subject, completionType, shouldShowGrade: shouldShowGrade() })
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

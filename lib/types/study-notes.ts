@@ -2,32 +2,39 @@ import { OneDriveFile } from './materials'
 
 export interface StudyNote {
   id: string
-  subject_id: string
+  subject_id?: string | null
   study_id: string
   user_id: string
-  
+
   // OneDrive metadata
   name: string
   file_name: string
   file_extension: string | null
-  file_size: number | null
-  mime_type: string | null
-  onedrive_id: string
-  onedrive_web_url: string
-  onedrive_download_url: string | null
-  parent_path: string | null
-  
+  file_size?: number | null
+  mime_type?: string | null
+  onedrive_id?: string | null
+  onedrive_item_id?: string | null
+  onedrive_web_url?: string | null
+  onedrive_download_url?: string | null
+  onedrive_embed_url?: string | null
+  parent_path?: string | null
+
   // Additional metadata
-  description: string | null
-  
+  description?: string | null
+
   // Public sharing (published by default)
   is_public: boolean
-  public_slug: string
-  
+  public_slug?: string | null
+
+  // Converted HTML cache
+  converted_html?: string | null
+  converted_at?: string | null
+  onedrive_ctag?: string | null
+
   // Timestamps
   created_at: string
-  updated_at: string
-  last_modified_onedrive: string | null
+  updated_at?: string
+  last_modified_onedrive?: string | null
 }
 
 export interface StudyNoteFormData {
@@ -46,20 +53,65 @@ export interface UpdateStudyNoteData {
 // Many-to-many relationship
 export interface StudyNoteSubjectLink {
   id: string
-  study_note_id: string
+  study_note_id?: string
   subject_id: string
   is_primary: boolean
-  linked_at: string
-  linked_by: string | null
+  linked_at?: string
+  linked_by?: string | null
+}
+
+// Final exam link (similar to subject link)
+export interface StudyNoteFinalExamLink {
+  id: string
+  study_note_id?: string
+  final_exam_id: string
+  is_primary: boolean
+  linked_at?: string
+  linked_by?: string | null
+}
+
+// Raw link from Supabase query (subject_id instead of subject)
+export interface RawStudyNoteSubjectLink {
+  id: string
+  is_primary: boolean
+  subject_id: string
+}
+
+// Raw link from Supabase query (final_exam_id instead of final_exam)
+export interface RawStudyNoteFinalExamLink {
+  id: string
+  is_primary: boolean
+  final_exam_id: string
+}
+
+// Subject info for display
+export interface SubjectInfo {
+  id: string
+  name: string
+  study_id: string
+}
+
+// Final exam info for display
+export interface FinalExamInfo {
+  id: string
+  name: string
+  shortcut?: string
+  study_id: string
+}
+
+// Subject info for display in study notes
+export interface StudyNoteSubject {
+  id: string
+  name: string
+  study_id: string
+  is_primary: boolean
+  is_final_exam?: boolean
+  shortcut?: string | null
 }
 
 // Extended study note with subject links
 export interface StudyNoteWithSubjects extends StudyNote {
-  study_note_subjects?: StudyNoteSubjectLink[]
-  subjects?: {
-    id: string
-    name: string
-    study_id: string
-    is_primary: boolean
-  }[]
+  study_note_subjects?: StudyNoteSubjectLink[] | RawStudyNoteSubjectLink[]
+  study_note_final_exams?: StudyNoteFinalExamLink[] | RawStudyNoteFinalExamLink[]
+  subjects?: StudyNoteSubject[]
 }

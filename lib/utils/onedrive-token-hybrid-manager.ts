@@ -1,4 +1,3 @@
-import { createServerClient } from '@/lib/supabase/server'
 import { OneDriveTokenManagerV2 } from './onedrive-token-manager-v2'
 import { OneDriveTokenManager } from './onedrive-token-manager'
 
@@ -12,23 +11,20 @@ export class OneDriveTokenHybridManager {
   static async getValidToken() {
     // First try V2 with refresh tokens
     const v2Result = await OneDriveTokenManagerV2.getValidToken()
-    
+
     // If V2 succeeds, use it
     if (v2Result.token) {
-      console.log('Using V2 token manager (with refresh support)')
       return v2Result
     }
-    
+
     // If V2 fails but it's not because we need reauth, try V1
     if (!v2Result.needsReauth) {
-      console.log('V2 failed, trying V1 token manager (session-based)')
       const v1Result = await OneDriveTokenManager.getValidToken()
       if (v1Result.token) {
-        console.log('Using V1 token manager (session-based)')
         return v1Result
       }
     }
-    
+
     // Return the V2 error (it has better error messages)
     return v2Result
   }

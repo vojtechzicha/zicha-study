@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client"
 import type { OneDriveFile } from "@/lib/types/materials"
 
 interface OneDriveFilePickerProps {
-  onFileSelected: (file: OneDriveFile) => void
+  onFileSelected: (_file: OneDriveFile) => void
   initialPath?: string
   initialPathName?: string
   fileExtensions?: string[] // Optional filter for file extensions
@@ -40,11 +40,7 @@ export function OneDriveFilePicker({
   const [isSearching, setIsSearching] = useState(false)
   const supabase = createClient()
 
-  useEffect(() => {
-    loadFiles(initialPath)
-  }, [initialPath])
-
-  const loadFiles = async (path: string = currentPath, search?: string) => {
+  const loadFiles = useCallback(async (path: string = currentPath, search?: string) => {
     setLoading(true)
     setError(null)
     
@@ -105,7 +101,11 @@ export function OneDriveFilePicker({
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPath, fileExtensions, supabase])
+
+  useEffect(() => {
+    loadFiles(initialPath)
+  }, [initialPath, loadFiles])
 
   const handleFolderClick = async (folder: OneDriveFile) => {
     const newPath = `/drive/items/${folder.id}`

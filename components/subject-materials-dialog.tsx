@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, type JSX } from "react"
 import {
   Dialog,
   DialogContent,
@@ -128,14 +128,7 @@ export function SubjectMaterialsDialog({
   const [publicError, setPublicError] = useState<string | null>(null)
   const supabase = createClient()
 
-  useEffect(() => {
-    if (isOpen && subject) {
-      loadMaterials()
-      loadNoteCount()
-    }
-  }, [isOpen, subject])
-
-  const loadMaterials = async () => {
+  const loadMaterials = useCallback(async () => {
     if (!subject) return
     
     setLoading(true)
@@ -155,14 +148,14 @@ export function SubjectMaterialsDialog({
 
       if (error) throw error
       setMaterials(data || [])
-    } catch (err) {
+    } catch {
       setError("Nepodařilo se načíst materiály předmětu")
     } finally {
       setLoading(false)
     }
-  }
+  }, [subject, supabase])
 
-  const loadNoteCount = async () => {
+  const loadNoteCount = useCallback(async () => {
     if (!subject) return
     
     try {
@@ -183,7 +176,14 @@ export function SubjectMaterialsDialog({
       console.error("Failed to load note count:", err)
       setNoteCount(0)
     }
-  }
+  }, [subject, supabase])
+
+  useEffect(() => {
+    if (isOpen && subject) {
+      loadMaterials()
+      loadNoteCount()
+    }
+  }, [isOpen, subject, loadMaterials, loadNoteCount])
 
   const handleDelete = async (materialId: string) => {
     if (!confirm("Opravdu chcete odstranit tento materiál?")) {
@@ -197,9 +197,9 @@ export function SubjectMaterialsDialog({
         .eq("id", materialId)
 
       if (error) throw error
-      
+
       setMaterials(materials.filter(m => m.id !== materialId))
-    } catch (err) {
+    } catch {
       setError("Nepodařilo se odstranit materiál")
     }
   }

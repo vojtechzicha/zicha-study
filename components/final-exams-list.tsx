@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, BookOpen, Calendar, User, Users, Edit, Trash2, GraduationCap, ChevronDown, ChevronRight } from "lucide-react"
+import { Plus, Calendar, User, Users, Edit, Trash2, GraduationCap, ChevronDown, ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDateCzech } from "@/lib/utils"
 import { FinalExamDialog } from "./final-exam-dialog"
@@ -37,16 +37,12 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingExam, setEditingExam] = useState<FinalExam | null>(null)
-  const [deletingExamId, setDeletingExamId] = useState<string | null>(null)
+  const [, setDeletingExamId] = useState<string | null>(null)
   const [expandedExamId, setExpandedExamId] = useState<string | null>(null)
-  const [examsWithNotes, setExamsWithNotes] = useState<Set<string>>(new Set())
+  const [, setExamsWithNotes] = useState<Set<string>>(new Set())
   const supabase = createClient()
 
-  useEffect(() => {
-    loadFinalExams()
-  }, [studyId])
-
-  const loadFinalExams = async () => {
+  const loadFinalExams = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("final_exams")
@@ -56,17 +52,17 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
 
       if (error) throw error
       setFinalExams(data || [])
-      
+
       // Check which exams have study notes
       if (data && data.length > 0) {
-        const examIds = data.map(exam => exam.id)
+        const examIds = data.map((exam: FinalExam) => exam.id)
         const { data: notesData } = await supabase
           .from("study_note_final_exams")
           .select("final_exam_id")
           .in("final_exam_id", examIds)
-        
+
         if (notesData) {
-          const examIdsWithNotes = new Set(notesData.map(n => n.final_exam_id))
+          const examIdsWithNotes = new Set<string>(notesData.map((n: { final_exam_id: string }) => n.final_exam_id))
           setExamsWithNotes(examIdsWithNotes)
         }
       }
@@ -75,7 +71,11 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
     } finally {
       setLoading(false)
     }
-  }
+  }, [studyId, supabase])
+
+  useEffect(() => {
+    loadFinalExams()
+  }, [studyId, loadFinalExams])
 
   const handleDelete = async (id: string) => {
     try {
@@ -232,7 +232,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Smazat předmět SZZ?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Opravdu chcete smazat předmět "{exam.name}"? Tato akce je nevratná.
+                                    Opravdu chcete smazat předmět &quot;{exam.name}&quot;? Tato akce je nevratná.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -391,7 +391,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Smazat předmět SZZ?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Opravdu chcete smazat předmět "{exam.name}"? Tato akce je nevratná.
+                                      Opravdu chcete smazat předmět &quot;{exam.name}&quot;? Tato akce je nevratná.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

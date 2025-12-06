@@ -1,6 +1,26 @@
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/client'
 
+// Subject type for export
+interface ExportSubject {
+  semester: string
+  abbreviation: string | null
+  name: string
+  subject_type: string
+  completion_type: string
+  credits: number
+  points?: number
+  hours?: number
+  completed: boolean
+  exam_completed: boolean
+  credit_completed: boolean
+  planned?: boolean
+  grade?: string
+  final_date?: string
+  lecturer?: string
+  department?: string
+}
+
 // Helper function to get study initials (matching StudyLogo component)
 function getStudyInitials(studyName: string): string {
   return studyName
@@ -106,7 +126,7 @@ export async function exportStudiesToExcel() {
           'Dokončeno', 'Zkouška', 'Zápočet', 'Plánováno', 'Známka', 'Datum', 'Vyučující', 'Katedra'
         ],
         // Data rows
-        ...subjects.map(subject => [
+        ...(subjects as ExportSubject[]).map((subject: ExportSubject) => [
           subject.semester,
           subject.abbreviation || '',
           subject.name,

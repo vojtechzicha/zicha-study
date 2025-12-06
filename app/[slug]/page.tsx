@@ -1,27 +1,11 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { PublicStudyView } from "@/components/public-study-view"
 import { notFound } from "next/navigation"
+import { RESERVED_ROUTES } from "@/lib/constants"
 
 interface PageProps {
   params: Promise<{ slug: string }>
 }
-
-// Reserved routes that should not be accessible as public study slugs
-const RESERVED_ROUTES = [
-  'auth',
-  'studies',
-  'api',
-  'admin',
-  'dashboard',
-  'settings',
-  'profile',
-  'help',
-  'about',
-  'contact',
-  'terms',
-  'privacy',
-  'public'
-]
 
 export default async function PublicStudyPage({ params }: PageProps) {
   const { slug } = await params

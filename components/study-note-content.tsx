@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -10,23 +10,19 @@ interface StudyNoteContentProps {
   slug: string
   studyId: string
   flush?: boolean
-  onCacheInfo?: (info: { onedriveLastModified?: string; generatedAt?: string }) => void
+  onCacheInfo?: (_info: { onedriveLastModified?: string; generatedAt?: string }) => void
 }
 
 export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNoteContentProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [content, setContent] = useState<string | null>(null)
-  const [cacheKey, setCacheKey] = useState<string | null>(null)
-  const [title, setTitle] = useState<string | null>(null)
+  const [, setCacheKey] = useState<string | null>(null)
+  const [, setTitle] = useState<string | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const katexLoadedRef = useRef(false)
 
-  useEffect(() => {
-    fetchContent()
-  }, [slug, studyId, flush])
-
-  const fetchContent = async () => {
+  const fetchContent = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -40,7 +36,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
 
       const data = await response.json()
       setCacheKey(data.cacheKey)
-      
+
       // Pass cache info to parent
       if (onCacheInfo) {
         onCacheInfo({
@@ -48,27 +44,25 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
           generatedAt: data.generatedAt
         })
       }
-      
+
       // Set the document title if available
       if (data.title) {
         setTitle(data.title)
         document.title = `${data.title} - Studijní zápis`
       }
-      
+
       // Process HTML to update image URLs
       let processedHtml = data.html
       if (data.mediaPath) {
         // Replace all image src attributes that contain "media/"
         processedHtml = processedHtml.replace(
           /src="([^"]*media\/[^"]+)"/g,
-          (match, path) => {
+          (match: string, path: string) => {
             // Remove any absolute path prefix and just get the media/filename part
             const mediaPath = path.includes('media/') ? path.substring(path.indexOf('media/')) : path
             return `src="/api/study-notes/${slug}/media/${mediaPath}?studyId=${studyId}&key=${data.cacheKey}"`
           }
         )
-        
-        console.log("Processed image URLs with cache key:", data.cacheKey)
       }
 
       setContent(processedHtml)
@@ -77,7 +71,11 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
     } finally {
       setLoading(false)
     }
-  }
+  }, [slug, studyId, flush, onCacheInfo])
+
+  useEffect(() => {
+    fetchContent()
+  }, [slug, studyId, flush, fetchContent])
 
   useEffect(() => {
     if (!content || !contentRef.current) return
@@ -115,7 +113,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
         
         await new Promise((resolve, reject) => {
           autoRenderScript.onload = () => {
-            console.log("Auto-render script loaded")
             resolve(undefined)
           }
           autoRenderScript.onerror = reject
@@ -130,12 +127,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
 
       // Render math
       if (window.renderMathInElement && contentRef.current) {
-        console.log("Rendering math with KaTeX...")
-        
-        // Also check for span.math elements that Pandoc might generate
-        const mathElements = contentRef.current.querySelectorAll('.math, .katex-math, span.math, script[type="math/tex"]')
-        console.log(`Found ${mathElements.length} math elements`)
-        
         window.renderMathInElement(contentRef.current, {
           delimiters: [
             { left: "$$", right: "$$", display: true },
@@ -158,9 +149,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
             "\\label": "\\htmlId{#1}{}"
           }
         })
-        console.log("Math rendering complete")
-      } else {
-        console.warn("KaTeX not loaded or content not ready")
       }
 
       // Process Pandoc's math spans if auto-render didn't catch them
@@ -344,11 +332,12 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
 
 // Extend window type for KaTeX
 declare global {
+  // eslint-disable-next-line no-unused-vars
   interface Window {
-    renderMathInElement: (element: HTMLElement, options?: any) => void
+    renderMathInElement: (_element: HTMLElement, _options?: unknown) => void
     katex: {
-      render: (tex: string, element: HTMLElement, options?: any) => void
-      renderToString: (tex: string, options?: any) => string
+      render: (_tex: string, _element: HTMLElement, _options?: unknown) => void
+      renderToString: (_tex: string, _options?: unknown) => string
     }
   }
 }

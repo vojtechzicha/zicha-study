@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 
-const MIME_TYPES: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".webp": "image/webp",
-  ".bmp": "image/bmp",
-  ".ico": "image/x-icon",
-}
-
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ slug: string; path: string[] }> }
@@ -100,7 +89,7 @@ export async function GET(
     }
     
     // Return the file with appropriate headers
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         "Content-Type": mediaFile.mime_type || "application/octet-stream",

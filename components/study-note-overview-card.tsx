@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { BookOpen, Globe, Calendar } from "lucide-react"
-import { useRouter } from "next/navigation"
 import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
 import {
   Tooltip,
@@ -25,8 +24,6 @@ export function StudyNoteOverviewCard({
   showPublicBadge = true,
   showSubjectNames = true
 }: StudyNoteOverviewCardProps) {
-  const router = useRouter()
-
   const handleCardClick = () => {
     if (studySlug && note.public_slug) {
       window.open(`/${studySlug}/${note.public_slug}`, '_blank', 'noopener,noreferrer')
@@ -68,7 +65,7 @@ export function StudyNoteOverviewCard({
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
               <Calendar className="h-3 w-3" />
               <span>
-                {formatDate(note.last_modified_onedrive)}
+                {formatDate(note.last_modified_onedrive ?? null)}
               </span>
             </div>
 

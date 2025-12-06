@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Edit, Play, CheckCircle, FolderOpen } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { SubjectEditForm } from "./subject-edit-form"
 import { SubjectCompletionModal } from "./subject-completion-modal"
 import { SubjectMaterialsDialog } from "./subject-materials-dialog"
@@ -189,7 +190,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study }: Subje
     setActionLoading({ ...actionLoading, [subjectId]: false })
   }
 
-  const handleCheckboxChange = (subject: Subject, field: "credit_completed" | "exam_completed", checked: boolean) => {
+  const handleCheckboxChange = (subject: Subject, field: "credit_completed" | "exam_completed", _checked: boolean) => {
     // Show completion modal when checking a checkbox
     setCompletionModalSubject(subject)
     setCompletionModalType(field === "credit_completed" ? "credit" : "exam")
@@ -249,8 +250,49 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study }: Subje
 
   if (loading) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        Načítání předmětů...
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={`skeleton-${index}`}
+            className="bg-white rounded-lg border p-4 space-y-3"
+          >
+            {/* Header skeleton */}
+            <div className="flex justify-between items-start">
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-5 w-8 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-48" />
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+              <div className="flex gap-1 ml-2">
+                <Skeleton className="h-8 w-8 rounded" />
+                <Skeleton className="h-8 w-8 rounded" />
+              </div>
+            </div>
+
+            {/* Completion and Grades skeleton */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-6 w-12 rounded-full" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-6 w-8 rounded" />
+              </div>
+            </div>
+
+            {/* Footer skeleton */}
+            <div className="flex justify-end pt-2 border-t">
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+          </div>
+        ))}
       </div>
     )
   }

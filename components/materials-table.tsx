@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, type JSX } from "react"
 import {
   Table,
   TableBody,
@@ -26,7 +26,7 @@ import { createSlug } from "@/lib/utils/slug"
 
 interface MaterialsTableProps {
   materials: Material[]
-  onDelete?: (id: string) => void
+  onDelete?: (_id: string) => void
   onUpdate?: () => void
   loading?: boolean
   studySlug?: string

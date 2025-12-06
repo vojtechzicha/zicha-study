@@ -95,7 +95,7 @@ export default function StudyStatisticsPage({ params }: { params: Promise<{ id: 
     })
 
     return () => subscription.unsubscribe()
-  }, [id, supabase.auth])
+  }, [id, supabase, supabase.auth])
 
   if (loading) {
     return (

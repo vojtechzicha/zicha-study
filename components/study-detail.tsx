@@ -5,18 +5,20 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, BarChart3, BookOpen, Calendar, Target, TrendingUp, Edit, Settings, Search, Filter } from "lucide-react"
+import { Plus, BarChart3, BookOpen, Edit, Settings, Search, Filter } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog"
 import { SubjectForm } from "./subject-form"
 import { SubjectTable } from "./subject-table"
 import { StudyHeader } from "./study-header"
 import { MaterialsSection } from "./materials-section"
 import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
+import { StudyStatisticsCards } from "./study-statistics-cards"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
-import { calculateAverage } from "@/lib/grade-utils"
-import { isSubjectFailed } from "@/lib/status-utils"
-import type { User } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
 
 interface Study {
@@ -28,6 +30,8 @@ interface Study {
   end_year?: number
   status: "active" | "completed" | "paused" | "abandoned"
   logo_url?: string
+  is_public?: boolean
+  public_slug?: string
   final_exams_enabled?: boolean
   created_at: string
 }
@@ -49,6 +53,7 @@ interface Subject {
   completed: boolean
   exam_completed: boolean
   credit_completed: boolean
+  planned?: boolean
   final_date?: string
   created_at: string
   is_repeat?: boolean
@@ -58,14 +63,13 @@ interface Subject {
 interface StudyDetailProps {
   study: Study
   onBack: () => void
-  user: User
 }
 
 export function StudyDetail({ study, onBack }: StudyDetailProps) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const [showSubjectForm, setShowSubjectForm] = useState(false)
-  const [currentStudy, setCurrentStudy] = useState<Study>(study)
+  const [currentStudy] = useState<Study>(study)
   const [searchQuery, setSearchQuery] = useState("")
   const [showActiveOnly, setShowActiveOnly] = useState(false)
   const supabase = createClient()
@@ -109,14 +113,6 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
     setLoading(false)
   }
 
-  const fetchStudyData = async () => {
-    const { data, error } = await supabase.from("studies").select("*").eq("id", study.id).single()
-
-    if (!error && data) {
-      setCurrentStudy(data)
-    }
-  }
-
   const handleSubjectAdded = () => {
     setShowSubjectForm(false)
     fetchSubjects()
@@ -152,20 +148,6 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
     })
   }, [subjects, searchQuery, showActiveOnly])
 
-  // Calculate statistics
-  const completedSubjects = subjects.filter((s) => s.completed && !isSubjectFailed(s))
-  const average = calculateAverage(completedSubjects)
-  
-  const stats = {
-    total: subjects.length,
-    completed: subjects.filter((s) => s.completed).length,
-    totalCredits: subjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0),
-    completedCredits: completedSubjects.reduce((sum, s) => sum + s.credits, 0),
-    average
-  }
-
-
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
       <StudyHeader 
@@ -192,77 +174,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
-              <BookOpen className="h-4 w-4 text-primary-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <p className="text-xs text-gray-600 mt-1">
-                Dokončeno: {stats.completed} ({stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(1) : 0}
-                %)
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Dokončeno</CardTitle>
-              <Calendar className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
-              <p className="text-xs text-gray-600 mt-1">z {stats.total} předmětů</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Celkem kreditů</CardTitle>
-              <Target className="h-4 w-4 text-indigo-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.completedCredits}</div>
-              <p className="text-xs text-gray-600 mt-1">z {stats.totalCredits} kreditů</p>
-            </CardContent>
-          </Card>
-
-          {stats.average.type !== 'none' && (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">{stats.average.label}</CardTitle>
-                <TrendingUp className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                {stats.average.type === 'both' ? (
-                  <div className="space-y-2">
-                    <div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
-                      </div>
-                      <p className="text-xs text-gray-600">body (vážené kredity)</p>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
-                      </div>
-                      <p className="text-xs text-gray-600">známky (vážené kredity)</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {stats.average.value ? stats.average.value.toFixed(2) : '-'}
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">průměr vážený kredity</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <StudyStatisticsCards subjects={subjects} variant="simple" />
 
         {/* Materials Section */}
         <div className="mb-8">
@@ -348,13 +260,11 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
       </main>
 
       {/* Subject Form Modal */}
-      {showSubjectForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <SubjectForm study={study} onSuccess={handleSubjectAdded} onClose={() => setShowSubjectForm(false)} />
-          </div>
-        </div>
-      )}
+      <Dialog open={showSubjectForm} onOpenChange={setShowSubjectForm}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+          <SubjectForm study={study} onSuccess={handleSubjectAdded} onClose={() => setShowSubjectForm(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -78,7 +78,7 @@ export default function StudySettingsPage({ params }: { params: Promise<{ id: st
     })
 
     return () => subscription.unsubscribe()
-  }, [id, supabase.auth])
+  }, [id, supabase, supabase.auth])
 
   if (loading) {
     return (

@@ -4,10 +4,10 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ChevronRight, FileText, AlertCircle } from "lucide-react"
+import { ChevronRight, AlertCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { StudyNoteOverviewCard } from "@/components/study-note-overview-card"
-import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
+import type { StudyNoteWithSubjects, RawStudyNoteSubjectLink, RawStudyNoteFinalExamLink, SubjectInfo, FinalExamInfo, StudyNoteSubject } from "@/lib/types/study-notes"
 
 interface Study {
   id: string
@@ -19,6 +19,31 @@ interface Study {
 interface PublicStudyNotesSectionProps {
   studyId: string
   study?: Study
+}
+
+// Type for raw note data from Supabase
+interface RawStudyNote {
+  id: string
+  study_id: string
+  user_id: string
+  name: string
+  file_name: string
+  file_extension: string | null
+  file_size: number | null
+  mime_type: string | null
+  onedrive_id: string
+  onedrive_web_url: string
+  onedrive_download_url: string | null
+  parent_path: string | null
+  description: string | null
+  is_public: boolean
+  public_slug: string
+  created_at: string
+  updated_at: string
+  last_modified_onedrive: string | null
+  subject_id: string
+  study_note_subjects?: RawStudyNoteSubjectLink[]
+  study_note_final_exams?: RawStudyNoteFinalExamLink[]
 }
 
 export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSectionProps) {
@@ -59,17 +84,18 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
         // Get all unique subject and final exam IDs
         const subjectIds = new Set<string>()
         const finalExamIds = new Set<string>()
-        notesData?.forEach(note => {
-          note.study_note_subjects?.forEach((link: any) => {
+        const typedNotesData = notesData as RawStudyNote[] | null
+        typedNotesData?.forEach((note: RawStudyNote) => {
+          note.study_note_subjects?.forEach((link: RawStudyNoteSubjectLink) => {
             subjectIds.add(link.subject_id)
           })
-          note.study_note_final_exams?.forEach((link: any) => {
+          note.study_note_final_exams?.forEach((link: RawStudyNoteFinalExamLink) => {
             finalExamIds.add(link.final_exam_id)
           })
         })
 
         // Fetch subject details
-        let subjectsMap = new Map<string, any>()
+        const subjectsMap = new Map<string, SubjectInfo>()
         if (subjectIds.size > 0) {
           const { data: subjectsData, error: subjectsError } = await supabase
             .from("subjects")
@@ -77,14 +103,14 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
             .in("id", Array.from(subjectIds))
 
           if (subjectsError) throw subjectsError
-          
-          subjectsData?.forEach(subject => {
+
+          subjectsData?.forEach((subject: SubjectInfo) => {
             subjectsMap.set(subject.id, subject)
           })
         }
 
         // Fetch final exam details
-        let finalExamsMap = new Map<string, any>()
+        const finalExamsMap = new Map<string, FinalExamInfo>()
         if (finalExamIds.size > 0) {
           const { data: finalExamsData, error: finalExamsError } = await supabase
             .from("final_exams")
@@ -92,39 +118,42 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
             .in("id", Array.from(finalExamIds))
 
           if (finalExamsError) throw finalExamsError
-          
-          finalExamsData?.forEach(exam => {
+
+          finalExamsData?.forEach((exam: FinalExamInfo) => {
             finalExamsMap.set(exam.id, exam)
           })
         }
 
         // Transform the data to include subject and final exam information
-        const transformedNotes: StudyNoteWithSubjects[] = notesData?.map(note => ({
-          ...note,
-          subjects: [
-            ...(note.study_note_subjects?.map((link: any) => {
-              const subject = subjectsMap.get(link.subject_id)
-              return subject ? {
-                ...subject,
-                is_primary: link.is_primary
-              } : null
-            }).filter(Boolean) || []),
-            ...(note.study_note_final_exams?.map((link: any) => {
-              const exam = finalExamsMap.get(link.final_exam_id)
-              return exam ? {
-                ...exam,
-                name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
-                is_primary: link.is_primary,
-                is_final_exam: true
-              } : null
-            }).filter(Boolean) || [])
-          ]
-        })) || []
+        const transformedNotes: StudyNoteWithSubjects[] = typedNotesData?.map((note: RawStudyNote) => {
+          const subjectItems = note.study_note_subjects?.map((link: RawStudyNoteSubjectLink): StudyNoteSubject | null => {
+            const subject = subjectsMap.get(link.subject_id)
+            return subject ? {
+              ...subject,
+              is_primary: link.is_primary
+            } : null
+          }).filter((x): x is StudyNoteSubject => x !== null) || []
+
+          const examItems = note.study_note_final_exams?.map((link: RawStudyNoteFinalExamLink): StudyNoteSubject | null => {
+            const exam = finalExamsMap.get(link.final_exam_id)
+            return exam ? {
+              id: exam.id,
+              name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
+              study_id: exam.study_id,
+              is_primary: link.is_primary,
+              is_final_exam: true
+            } : null
+          }).filter((x): x is StudyNoteSubject => x !== null) || []
+
+          return {
+            ...note,
+            subjects: [...subjectItems, ...examItems]
+          }
+        }) || []
 
         setStudyNotes(transformedNotes)
-      } catch (err) {
+      } catch {
         setError("Nepodařilo se načíst studijní zápisy")
-        console.error(err)
       } finally {
         setLoading(false)
       }

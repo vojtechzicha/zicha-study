@@ -6,6 +6,28 @@
  * maintenance easier by having a single source of truth.
  */
 
+// Reserved routes that should not be accessible as public study slugs
+const RESERVED_ROUTES_TUPLE = [
+  'auth',
+  'studies',
+  'api',
+  'admin',
+  'dashboard',
+  'settings',
+  'profile',
+  'help',
+  'about',
+  'contact',
+  'terms',
+  'privacy',
+  'public'
+] as const
+
+export type ReservedRoute = (typeof RESERVED_ROUTES_TUPLE)[number]
+
+// Export as readonly string[] for .includes() compatibility
+export const RESERVED_ROUTES: readonly string[] = RESERVED_ROUTES_TUPLE
+
 // Study Types
 export const STUDY_TYPES = {
   BACHELOR: 'Bakalářské',

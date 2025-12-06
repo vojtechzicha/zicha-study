@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -74,14 +74,7 @@ export function AddStudyNoteDialog({
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const supabase = createClient()
 
-  // Load study material settings when dialog opens
-  useEffect(() => {
-    if (isOpen && !settingsLoaded) {
-      loadStudyMaterialSettings()
-    }
-  }, [isOpen, settingsLoaded])
-
-  const loadStudyMaterialSettings = async () => {
+  const loadStudyMaterialSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("studies")
@@ -97,7 +90,14 @@ export function AddStudyNoteDialog({
       console.error("Failed to load study material settings:", err)
       setSettingsLoaded(true)
     }
-  }
+  }, [studyId, supabase])
+
+  // Load study material settings when dialog opens
+  useEffect(() => {
+    if (isOpen && !settingsLoaded) {
+      loadStudyMaterialSettings()
+    }
+  }, [isOpen, settingsLoaded, loadStudyMaterialSettings])
 
   const handleFileSelected = (file: OneDriveFile) => {
     setSelectedFile(file)

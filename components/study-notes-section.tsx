@@ -1,12 +1,37 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, BookOpen } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
-import type { StudyNote, StudyNoteWithSubjects } from "@/lib/types/study-notes"
+import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
+
+interface SubjectWithStudy {
+  id: string
+  name: string
+  study_id: string
+  is_primary: boolean
+}
+
+interface RawStudyNoteWithDetails {
+  id: string
+  study_id: string
+  user_id: string
+  name: string
+  file_name: string
+  file_extension: string | null
+  onedrive_item_id: string | null
+  onedrive_web_url: string | null
+  onedrive_download_url: string | null
+  is_public: boolean
+  public_slug: string | null
+  last_modified_onedrive: string | null
+  created_at: string
+  description: string | null
+  linked_subjects?: SubjectWithStudy[]
+}
 
 interface StudyNotesSectionProps {
   studyId: string
@@ -21,11 +46,7 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
   const [showAddDialog, setShowAddDialog] = useState(false)
   const supabase = createClient()
 
-  useEffect(() => {
-    loadNotes()
-  }, [subjectId])
-
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -34,7 +55,7 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
       if (error) throw error
       
       // Transform the data to match our interface
-      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map(note => ({
+      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note: RawStudyNoteWithDetails) => ({
         ...note,
         subjects: note.linked_subjects || []
       }))
@@ -45,7 +66,11 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
     } finally {
       setLoading(false)
     }
-  }
+  }, [subjectId, supabase])
+
+  useEffect(() => {
+    loadNotes()
+  }, [subjectId, loadNotes])
 
   const handleNoteDeleted = (noteId: string) => {
     setNotes(notes.filter(note => note.id !== noteId))

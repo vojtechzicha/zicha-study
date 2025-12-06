@@ -78,7 +78,7 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
     })
 
     return () => subscription.unsubscribe()
-  }, [id, supabase.auth])
+  }, [id, supabase, supabase.auth])
 
   if (loading) {
     return (
@@ -107,5 +107,5 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
     router.push("/")
   }
 
-  return <StudyDetail study={study} onBack={handleBack} user={user} />
+  return <StudyDetail study={study} onBack={handleBack} />
 }

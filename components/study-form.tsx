@@ -2,7 +2,8 @@
 
 import React, { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, STUDY_STATUS } from "@/lib/constants"
+import { useToast } from "@/hooks/use-toast"
+import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, STUDY_STATUS, type StudyStatus } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,7 +18,14 @@ interface StudyFormProps {
 }
 
 export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string
+    type: string
+    form: string
+    start_year: number
+    end_year: string
+    status: StudyStatus
+  }>({
     name: "",
     type: "",
     form: "",
@@ -28,6 +36,7 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,9 +55,27 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
     ])
 
     if (error) {
-      setError("Chyba při ukládání studia. Zkuste to prosím znovu.")
+      // Provide more specific error messages based on error code/message
+      let errorMessage = "Chyba při ukládání studia. Zkuste to prosím znovu."
+
+      if (error.code === "23505") {
+        errorMessage = "Studium s tímto názvem již existuje."
+      } else if (error.code === "23503") {
+        errorMessage = "Neplatná reference v databázi."
+      } else if (error.code === "PGRST301") {
+        errorMessage = "Nejste přihlášeni. Přihlaste se prosím znovu."
+      } else if (error.message) {
+        // Include the actual error message for debugging in development
+        errorMessage = `Chyba při ukládání: ${error.message}`
+      }
+
+      setError(errorMessage)
       setLoading(false)
     } else {
+      toast({
+        title: "Studium vytvořeno",
+        description: `Studium "${formData.name}" bylo úspěšně vytvořeno.`,
+      })
       onSuccess()
     }
   }
@@ -145,7 +172,7 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="status">Stav studia</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as StudyStatus })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

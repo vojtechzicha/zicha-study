@@ -2,10 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Edit, Settings, BarChart3, Plus } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { StudyLogo } from "./study-logo"
 import { getStatusColor, getStatusText, StudyStatus } from "@/lib/status-utils"
-import { getStudyFormLabel } from "@/lib/constants"
 
 interface Study {
   id: string
@@ -20,7 +19,7 @@ interface Study {
 interface StudyHeaderProps {
   study?: Study
   title?: string
-  subtitle?: string
+  subtitle?: string  // Reserved for future use
   logoUrl?: string | null
   onBack: () => void
   actions?: React.ReactNode
@@ -30,9 +29,8 @@ function getStatusBadge(status: StudyStatus) {
   return <Badge className={getStatusColor(status)}>{getStatusText(status)}</Badge>
 }
 
-export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }: StudyHeaderProps) {
+export function StudyHeader({ study, title, logoUrl, onBack, actions }: StudyHeaderProps) {
   const displayTitle = title || study?.name || ""
-  const displaySubtitle = subtitle || (study ? `${study.type} • ${getStudyFormLabel(study.form)}` : "")
   const displayLogoUrl = logoUrl || study?.logo_url
 
   return (

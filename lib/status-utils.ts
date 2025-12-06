@@ -38,6 +38,7 @@ export interface Subject {
   lecturer?: string
   department?: string
   created_at: string
+  is_repeat?: boolean
 }
 
 // Status styling utilities
@@ -85,15 +86,15 @@ export const getStatusPriority = (status: StudyStatus): number => {
 }
 
 // Subject state types
-export type SubjectState = "planned" | "active" | "completed"
+export type SubjectState = "planned" | "active" | "completed" | "failed"
 
 // Check if a subject is failed (grade starts with F)
-export const isSubjectFailed = (subject: Subject): boolean => {
+export const isSubjectFailed = (subject: Pick<Subject, 'completed' | 'grade'>): boolean => {
   return subject.completed && subject.grade?.toUpperCase().startsWith('F') === true
 }
 
 // Get grade badge configuration with inline styles
-export const getGradeBadgeConfig = (grade: string, subject: Subject) => {
+export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'completed' | 'grade'>) => {
   // Failed state has precedence - darker red for failed
   if (isSubjectFailed(subject)) {
     return {
@@ -373,7 +374,7 @@ export const getCompletionBadgeConfig = (completionType: string) => {
 }
 
 // Get subject state badge configuration with inline styles
-export const getSubjectStateBadgeConfig = (state: SubjectState, subject?: Subject, isPublic: boolean = false) => {
+export const getSubjectStateBadgeConfig = (state: SubjectState, subject?: Pick<Subject, 'completed' | 'grade'>, isPublic: boolean = false) => {
   // Check if subject is failed (completed with grade starting with F)
   if (state === "completed" && subject && isSubjectFailed(subject)) {
     // More subtle styling for public views

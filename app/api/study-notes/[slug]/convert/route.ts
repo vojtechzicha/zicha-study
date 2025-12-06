@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { OneDriveTokenManagerV2 } from '@/lib/utils/onedrive-token-manager-v2'
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate-limit'
 import fs from 'fs/promises'
 import path from 'path'
 import crypto from 'crypto'
 import os from 'os'
-import mammoth from 'mammoth'
+import mammoth, { type Image as MammothImage, type Options as MammothOptions } from 'mammoth'
 import { load } from 'cheerio'
 import JSZip from 'jszip'
 import { DOMParser, XMLSerializer } from 'xmldom'
@@ -19,14 +20,13 @@ interface ConversionResult {
   title: string | null
 }
 
-interface CacheData {
-  html_content: string
-  title: string | null
-  onedrive_last_modified: string
-  generated_at: string
-  cache_key: string
-  has_media: boolean
+// Type for mammoth document elements
+interface MammothElement {
+  type: string
+  children?: MammothElement[]
+  [key: string]: unknown
 }
+
 
 export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
   const { slug } = await context.params
@@ -34,19 +34,40 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
   const forceRegenerate = searchParams.get('flush') === '1'
   const studyId = searchParams.get('studyId')
 
+  // Rate limiting based on slug (since this is a public endpoint)
+  // Using slug as identifier to prevent abuse of specific documents
+  const rateLimitResult = checkRateLimit(`convert:${slug}`, RATE_LIMITS.DOCUMENT_CONVERSION)
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.resetTime)
+  }
+
   try {
     const supabase = await createServerClient()
 
-    // Get the study note by public slug and study_id
-    let query = supabase.from('study_notes').select('*').eq('public_slug', slug).eq('is_public', true)
-    
+    // Get current user (may be null for public notes)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // First, try to find a public note with this slug
+    let query = supabase
+      .from('study_notes')
+      .select('*, studies!inner(user_id)')
+      .eq('public_slug', slug)
+
     if (studyId) {
       query = query.eq('study_id', studyId)
     }
-    
+
     const { data: note, error } = await query.single()
 
     if (error || !note) {
+      return NextResponse.json({ error: 'Study note not found' }, { status: 404 })
+    }
+
+    // Authorization check:
+    // 1. If note is public, allow access
+    // 2. If note is private, only allow owner access
+    const isOwner = user && note.studies?.user_id === user.id
+    if (!note.is_public && !isOwner) {
       return NextResponse.json({ error: 'Study note not found' }, { status: 404 })
     }
 
@@ -62,7 +83,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
       const tokenResult = await OneDriveTokenManagerV2.getValidToken()
 
       if (!tokenResult.token) {
-        console.error('No OneDrive token available:', tokenResult.error)
         onedriveAccessible = false
       } else {
         // Get file metadata using direct API with the file's OneDrive ID
@@ -73,7 +93,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
         if (metadataResponse.ok) {
           const fileData = await metadataResponse.json()
           onedriveLastModified = new Date(fileData.lastModifiedDateTime)
-          console.log('OneDrive file last modified:', fileData.lastModifiedDateTime)
 
           // Download the file content
           const downloadResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest(
@@ -82,15 +101,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
           if (downloadResponse.ok) {
             fileBuffer = await downloadResponse.arrayBuffer()
-          } else {
-            console.error('Failed to download file content:', downloadResponse.status)
           }
-        } else {
-          console.error('Failed to get file metadata:', metadataResponse.status)
         }
       }
-    } catch (error) {
-      console.error('OneDrive access error:', error)
+    } catch {
       onedriveAccessible = false
     }
 
@@ -102,8 +116,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
     if (!shouldRegenerate && cachedData) {
       // Use cached version
-      console.log('Using cached version for:', slug)
-
       return NextResponse.json({
         html: cachedData.html_content,
         title: cachedData.title,
@@ -198,7 +210,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
       onedriveAccessible,
     })
   } catch (error) {
-    console.error('Conversion error:', error)
 
     // Try to return cached version if available
     try {
@@ -224,8 +235,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
           })
         }
       }
-    } catch (cacheError) {
-      console.error('Cache fallback error:', cacheError)
+    } catch {
+      // Cache fallback failed
     }
 
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Conversion failed' }, { status: 500 })
@@ -276,126 +287,15 @@ async function storeMediaInDatabase(noteId: string, mediaPath: string) {
 
     // Clean up temp media directory
     await fs.rm(mediaPath, { recursive: true, force: true })
-  } catch (error) {
-    console.error('Error storing media in database:', error)
+  } catch {
+    // Media storage failed - non-critical error
   }
 }
 
 interface MathEquation {
   latex: string
   isDisplay: boolean
-  context?: string
   placeholder?: string
-}
-
-// Extract and convert OMML equations to LaTeX with context
-async function extractAndConvertMathEquations(fileBuffer: Buffer): Promise<MathEquation[]> {
-  const mathEquations: MathEquation[] = []
-  const MAX_EQUATIONS = 500 // Safety limit to prevent infinite loops
-  
-  try {
-    // Load the DOCX file as a ZIP
-    const zip = await JSZip.loadAsync(fileBuffer)
-    const documentXml = await zip.file('word/document.xml')?.async('string')
-    
-    if (!documentXml) {
-      console.log('No document.xml found in DOCX file')
-      return mathEquations
-    }
-    
-    // Parse the XML
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(documentXml, 'text/xml')
-    
-    // Find all paragraphs to understand document structure
-    const wordNamespace = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
-    const mathNamespace = 'http://schemas.openxmlformats.org/officeDocument/2006/math'
-    
-    const paragraphs = doc.getElementsByTagNameNS(wordNamespace, 'p')
-    
-    // Process each paragraph to find math equations in context
-    for (let i = 0; i < paragraphs.length && mathEquations.length < MAX_EQUATIONS; i++) {
-      const para = paragraphs[i]
-      
-      // Check for display math (oMathPara)
-      const oMathParas = para.getElementsByTagNameNS(mathNamespace, 'oMathPara')
-      if (oMathParas.length > 0) {
-        for (let j = 0; j < oMathParas.length; j++) {
-          const oMathPara = oMathParas[j]
-          const oMath = oMathPara.getElementsByTagNameNS(mathNamespace, 'oMath')[0]
-          
-          if (oMath) {
-            try {
-              // Convert OMML to MathML
-              const mathmlElement = omml2mathml(oMath)
-              
-              // Get the MathML string - omml2mathml returns a DOM element, use outerHTML
-              const mathmlString = mathmlElement.outerHTML
-              
-              // Convert MathML to LaTeX
-              const latexString = MathMLToLaTeX.convert(mathmlString)
-              
-              // Get surrounding text for context
-              const prevPara = i > 0 ? paragraphs[i - 1] : null
-              const contextText = prevPara ? prevPara.textContent?.trim() || '' : ''
-              
-              mathEquations.push({
-                latex: latexString,
-                isDisplay: true,
-                context: contextText
-              })
-              
-              console.log(`Extracted display equation ${j + 1} from paragraph ${i + 1}: ${latexString.substring(0, 50)}...`)
-            } catch (err) {
-              console.error(`Error converting display equation ${j + 1} in paragraph ${i + 1}:`, err)
-              // Continue processing other equations
-            }
-          }
-        }
-      }
-      
-      // Check for inline math (oMath not in oMathPara)
-      const directMath = para.getElementsByTagNameNS(mathNamespace, 'oMath')
-      for (let j = 0; j < directMath.length && mathEquations.length < MAX_EQUATIONS; j++) {
-        const oMath = directMath[j]
-        // Skip if this oMath is inside an oMathPara (already processed)
-        if (oMath.parentNode && oMath.parentNode.localName === 'oMathPara') {
-          continue
-        }
-        
-        try {
-          // Convert OMML to MathML
-          const mathmlElement = omml2mathml(oMath)
-          
-          // Get the MathML string - omml2mathml returns a DOM element, use outerHTML
-          const mathmlString = mathmlElement.outerHTML
-          
-          // Convert MathML to LaTeX
-          const latexString = MathMLToLaTeX.convert(mathmlString)
-          
-          // Get paragraph text for context
-          const contextText = para.textContent?.trim() || ''
-          
-          mathEquations.push({
-            latex: latexString,
-            isDisplay: false,
-            context: contextText
-          })
-          
-          console.log(`Extracted inline equation ${j + 1} from paragraph ${i + 1}: ${latexString.substring(0, 50)}...`)
-        } catch (err) {
-          console.error(`Error converting inline equation ${j + 1} in paragraph ${i + 1}:`, err)
-          // Continue processing other equations
-        }
-      }
-    }
-    
-    console.log(`Total equations extracted: ${mathEquations.length}`)
-  } catch (error) {
-    console.error('Error extracting OMML equations:', error)
-  }
-  
-  return mathEquations
 }
 
 // Pre-process DOCX to replace math equations with placeholders
@@ -409,9 +309,8 @@ async function preprocessDocxWithMathPlaceholders(fileBuffer: Buffer): Promise<{
     // Load the DOCX file as a ZIP
     const zip = await JSZip.loadAsync(fileBuffer)
     const documentXml = await zip.file('word/document.xml')?.async('string')
-    
+
     if (!documentXml) {
-      console.log('No document.xml found in DOCX file')
       return { buffer: fileBuffer, mathMap }
     }
     
@@ -457,10 +356,10 @@ async function preprocessDocxWithMathPlaceholders(fileBuffer: Buffer): Promise<{
           // Replace the oMathPara with a paragraph containing our placeholder
           const para = doc.createElementNS(wordNamespace, 'w:p')
           para.appendChild(textRun)
-          
+
           oMathPara.parentNode?.replaceChild(para, oMathPara)
-        } catch (err) {
-          console.error(`Error processing display equation ${i}:`, err)
+        } catch {
+          // Continue processing other equations
         }
       }
     }
@@ -471,7 +370,7 @@ async function preprocessDocxWithMathPlaceholders(fileBuffer: Buffer): Promise<{
       const oMath = allMath[i]
       
       // Skip if inside oMathPara (already processed)
-      if (oMath.parentNode && oMath.parentNode.localName === 'oMathPara') {
+      if (oMath.parentNode && (oMath.parentNode as Element).localName === 'oMathPara') {
         continue
       }
       
@@ -499,12 +398,10 @@ async function preprocessDocxWithMathPlaceholders(fileBuffer: Buffer): Promise<{
         
         // Replace the oMath with our text run
         oMath.parentNode?.replaceChild(textRun, oMath)
-      } catch (err) {
-        console.error(`Error processing inline equation ${i}:`, err)
+      } catch {
+        // Continue processing other equations
       }
     }
-    
-    console.log(`Replaced ${mathMap.size} math equations with placeholders`)
     
     // Serialize the modified XML
     const serializer = new XMLSerializer()
@@ -517,8 +414,7 @@ async function preprocessDocxWithMathPlaceholders(fileBuffer: Buffer): Promise<{
     const modifiedBuffer = await zip.generateAsync({ type: 'nodebuffer' })
     
     return { buffer: modifiedBuffer, mathMap }
-  } catch (error) {
-    console.error('Error preprocessing DOCX:', error)
+  } catch {
     return { buffer: fileBuffer, mathMap }
   }
 }
@@ -535,8 +431,8 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   // Pre-process DOCX to inject math placeholders
   const { buffer: processedBuffer, mathMap } = await preprocessDocxWithMathPlaceholders(fileBuffer)
 
-  const imageConverter = (image: mammoth.images.Image) => {
-    return image.read().then(imageBuffer => {
+  const imageConverter = (image: MammothImage) => {
+    return image.read().then((imageBuffer: Buffer) => {
       hasMedia = true
       const extension = image.contentType.split('/')[1] || 'png'
       const filename = `image${Object.keys(mediaFiles).length + 1}.${extension}`
@@ -553,7 +449,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   }
 
   // Transform document to remove unwanted elements (replicates Lua filter)
-  const transformDocument = (element: mammoth.documents.Element): mammoth.documents.Element | null => {
+  const transformDocument = (element: MammothElement): MammothElement | null => {
     // Add a guard clause for safety
     if (!element) {
       return element
@@ -579,8 +475,8 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
     // Recursively process children
     if (element.children) {
       element.children = element.children
-        .map(child => transformDocument(child as mammoth.documents.Element))
-        .filter(child => child !== null) as mammoth.documents.Element[]
+        .map((child: MammothElement) => transformDocument(child))
+        .filter((child): child is MammothElement => child !== null)
     }
 
     return element
@@ -590,7 +486,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   let documentTitle: string | null = null
   
   // First convert with basic options to extract title
-  const extractTitleOptions: mammoth.Options = {
+  const extractTitleOptions: MammothOptions = {
     styleMap: [
       // Map Title style to a special marker we can find
       "p[style-name='Title'] => p.mammoth-document-title > :fresh",
@@ -618,12 +514,12 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   }
   
   // Enhanced transform function that also removes TOC entries
-  const enhancedTransformDocument = (element: mammoth.documents.Element): mammoth.documents.Element | null => {
+  const enhancedTransformDocument = (element: MammothElement): MammothElement | null => {
     // Apply the original transform logic
     return transformDocument(element);
   }
-  
-  const mammothOptions: mammoth.Options = {
+
+  const mammothOptions: MammothOptions = {
     convertImage: mammoth.images.inline(imageConverter),
     transformDocument: enhancedTransformDocument,
     styleMap: [
@@ -643,8 +539,6 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   
   // Replace math placeholders with actual equations
   if (mathMap.size > 0) {
-    console.log(`Replacing ${mathMap.size} math placeholders`)
-    
     // Simple string replacement for each placeholder
     mathMap.forEach((equation, placeholder) => {
       const mathHtml = equation.isDisplay

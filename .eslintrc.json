@@ -3,8 +3,8 @@
     "next/core-web-vitals"
   ],
   "rules": {
-    "no-unused-vars": "warn",
-    "no-console": "warn",
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
     "no-debugger": "error",
     "no-duplicate-imports": "error",
     "no-unused-expressions": "error",

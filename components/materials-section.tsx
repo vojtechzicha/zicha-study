@@ -45,20 +45,20 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
 
         if (error) throw error
         setMaterials(data || [])
-      } catch (err) {
+      } catch {
         setError("Nepodařilo se načíst materiály")
       } finally {
         setLoading(false)
       }
     }
-    
+
     loadMaterials()
   }, [studyId, supabase])
 
   const fetchMaterials = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const { data, error } = await supabase
         .from("materials")
@@ -68,7 +68,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
 
       if (error) throw error
       setMaterials(data || [])
-    } catch (err) {
+    } catch {
       setError("Nepodařilo se načíst materiály")
     } finally {
       setLoading(false)
@@ -87,9 +87,9 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
         .eq("id", materialId)
 
       if (error) throw error
-      
+
       setMaterials(materials.filter(m => m.id !== materialId))
-    } catch (err) {
+    } catch {
       setError("Nepodařilo se odstranit materiál")
     }
   }

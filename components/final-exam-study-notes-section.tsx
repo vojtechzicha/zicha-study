@@ -1,12 +1,29 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, BookOpen } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
-import type { StudyNote, StudyNoteWithSubjects } from "@/lib/types/study-notes"
+import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
+
+interface RawStudyNoteResult {
+  id: string
+  study_id: string
+  user_id: string
+  name: string
+  file_name: string
+  file_extension: string | null
+  onedrive_item_id: string | null
+  onedrive_web_url: string | null
+  onedrive_download_url: string | null
+  is_public: boolean
+  public_slug: string | null
+  last_modified_onedrive: string | null
+  created_at: string
+  description: string | null
+}
 
 interface FinalExamStudyNotesSectionProps {
   studyId: string
@@ -17,38 +34,41 @@ interface FinalExamStudyNotesSectionProps {
 }
 
 export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, isStudyPublic, onUpdate }: FinalExamStudyNotesSectionProps) {
-  // Don't show study notes in public view
-  if (isStudyPublic) return null
   const [notes, setNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const supabase = createClient()
 
-  useEffect(() => {
-    loadNotes()
-  }, [finalExamId])
-
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
         .rpc("get_final_exam_study_notes", { p_final_exam_id: finalExamId })
 
       if (error) throw error
-      
+
       // Transform the data to match our interface
-      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map(note => ({
+      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note: RawStudyNoteResult) => ({
         ...note,
         subjects: [] // Final exam notes don't have subjects, but we need this for the interface
       }))
-      
+
       setNotes(notesWithSubjects)
     } catch (err) {
       console.error("Failed to load study notes:", err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [finalExamId, supabase])
+
+  useEffect(() => {
+    if (!isStudyPublic) {
+      loadNotes()
+    }
+  }, [finalExamId, isStudyPublic, loadNotes])
+
+  // Don't show study notes in public view
+  if (isStudyPublic) return null
 
   const handleNoteDeleted = (noteId: string) => {
     setNotes(notes.filter(note => note.id !== noteId))

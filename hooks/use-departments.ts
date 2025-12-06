@@ -17,9 +17,9 @@ export function useDepartments(studyId: string) {
         .not("department", "eq", "")
 
       if (!error && data) {
-        const uniqueDepartments = [...new Set(data.map(item => item.department).filter(Boolean))]
-          .sort((a, b) => a.localeCompare(b, 'cs'))
-        setDepartments(uniqueDepartments as string[])
+        const deptValues = data.map((item: { department: string | null }) => item.department).filter((d: string | null): d is string => Boolean(d))
+        const uniqueDepartments = Array.from(new Set<string>(deptValues)).sort((a: string, b: string) => a.localeCompare(b, 'cs'))
+        setDepartments(uniqueDepartments)
       }
       
       setLoading(false)

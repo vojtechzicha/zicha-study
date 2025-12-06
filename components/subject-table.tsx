@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Edit, Play, CheckCircle, FolderOpen, ChevronLeft, ChevronRight } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { SubjectEditForm } from "./subject-edit-form"
 import { SubjectCompletionModal } from "./subject-completion-modal"
 import { SubjectTableMobile } from "./subject-table-mobile"
@@ -28,11 +29,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { 
-  SubjectState, 
-  getSubjectStatus, 
-  getSubjectStateColor, 
-  getSubjectStateText,
+import {
+  SubjectState,
+  getSubjectStatus,
   getAvailableActions,
   isFieldVisibleForState,
   requiresCredit,
@@ -45,6 +44,7 @@ import {
 } from "@/lib/status-utils"
 import { getSubjectTypeConfig } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
+import { sortSubjects } from "@/lib/utils/subject-utils"
 
 interface Subject {
   id: string
@@ -86,57 +86,6 @@ interface SubjectTableProps {
 }
 
 type FilterType = "all" | "active"
-
-const sortSubjects = (subjects: Subject[]) => {
-  const getTypeOrder = (type: string) => getSubjectTypeConfig(type).order
-
-  // Get subject status priority (Active > Completed > Planned)
-  const getStatusPriority = (subject: Subject) => {
-    if (subject.planned) return 3  // Planned
-    if (subject.completed) return 2  // Completed
-    return 1  // Active
-  }
-
-  // Custom semester sorting function
-  const getSemesterOrder = (semester: string) => {
-    // Extract year and semester type
-    const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
-    if (match) {
-      const year = Number.parseInt(match[1])
-      const semesterType = match[2].toUpperCase()
-      // ZS (winter) comes before LS (summer) in the same year
-      return year * 10 + (semesterType === "ZS" ? 1 : 2)
-    }
-    // Fallback for non-standard semester names
-    return 999
-  }
-
-  return [...subjects].sort((a, b) => {
-    // First sort by status priority (Active > Completed > Planned)
-    const aStatusPriority = getStatusPriority(a)
-    const bStatusPriority = getStatusPriority(b)
-    if (aStatusPriority !== bStatusPriority) {
-      return aStatusPriority - bStatusPriority
-    }
-
-    // Then sort by semester with proper ZS/LS ordering
-    const aSemesterOrder = getSemesterOrder(a.semester)
-    const bSemesterOrder = getSemesterOrder(b.semester)
-    if (aSemesterOrder !== bSemesterOrder) {
-      return aSemesterOrder - bSemesterOrder
-    }
-
-    // Then sort by subject type
-    const aTypeOrder = getTypeOrder(a.subject_type)
-    const bTypeOrder = getTypeOrder(b.subject_type)
-    if (aTypeOrder !== bTypeOrder) {
-      return aTypeOrder - bTypeOrder
-    }
-
-    // Finally sort alphabetically by name
-    return a.name.localeCompare(b.name, "cs")
-  })
-}
 
 export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false, study }: SubjectTableProps) {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
@@ -242,7 +191,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
     setActionLoading({ ...actionLoading, [subjectId]: false })
   }
 
-  const handleCheckboxChange = (subject: Subject, field: "credit_completed" | "exam_completed", checked: boolean) => {
+  const handleCheckboxChange = (subject: Subject, field: "credit_completed" | "exam_completed", _checked: boolean) => {
     // Show completion modal when checking a checkbox
     setCompletionModalSubject(subject)
     setCompletionModalType(field === "credit_completed" ? "credit" : "exam")
@@ -263,15 +212,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         </Tooltip>
       </TooltipProvider>
     )
-  }
-
-  const getSemesterShort = (semester: string) => {
-    // Convert "1. ročník ZS" to "1/ZS", "2. ročník LS" to "2/LS", etc.
-    const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
-    if (match) {
-      return `${match[1]}/${match[2]}`
-    }
-    return semester
   }
 
   const getCompletionBadge = (type: string) => {
@@ -394,11 +334,41 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           </TableHeader>
         <TableBody>
           {loading ? (
-            <TableRow>
-              <TableCell colSpan={hasDetailInfo ? 11 : 10} className="text-center py-8 text-gray-500">
-                Načítání předmětů...
-              </TableCell>
-            </TableRow>
+            // Skeleton loading rows
+            Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={`skeleton-${index}`}>
+                <TableCell className="sticky left-0 z-10 bg-white">
+                  <Skeleton className="h-4 w-16" />
+                </TableCell>
+                <TableCell className="sticky left-[120px] z-20 bg-white min-w-[250px]">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </TableCell>
+                {hasDetailInfo && (
+                  <TableCell>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </TableCell>
+                )}
+                <TableCell><Skeleton className="h-5 w-8 rounded-full" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-10 rounded-full" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-8 rounded" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-4 rounded" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-4 rounded" /></TableCell>
+                <TableCell className="sticky right-0 z-10 bg-white">
+                  <div className="flex gap-1 justify-end">
+                    <Skeleton className="h-8 w-8 rounded" />
+                    <Skeleton className="h-8 w-8 rounded" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
           ) : (hideFilters ? subjects : sortedSubjects).length === 0 ? (
             <TableRow>
               <TableCell colSpan={hasDetailInfo ? 11 : 10} className="text-center py-8 text-gray-500">
@@ -517,28 +487,28 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                       
                       
                       if (hasGrade && hasPoints) {
-                        const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
+                        const gradeConfig = getGradeBadgeConfig(subject.grade!, subject)
                         return (
                           <div className="flex items-center gap-2">
                             <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                               {subject.grade}
                             </span>
-                            <span className="text-sm text-gray-600">({subject.points} {getCzechPointsWord(subject.points)})</span>
+                            <span className="text-sm text-gray-600">({subject.points} {getCzechPointsWord(subject.points!)})</span>
                           </div>
                         )
                       }
-                      
+
                       if (hasGrade) {
-                        const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
+                        const gradeConfig = getGradeBadgeConfig(subject.grade!, subject)
                         return (
                           <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                             {subject.grade}
                           </span>
                         )
                       }
-                      
+
                       if (hasPoints) {
-                        return <span className="text-sm text-gray-600">{subject.points} {getCzechPointsWord(subject.points)}</span>
+                        return <span className="text-sm text-gray-600">{subject.points} {getCzechPointsWord(subject.points!)}</span>
                       }
                     })()}
                   </TableCell>

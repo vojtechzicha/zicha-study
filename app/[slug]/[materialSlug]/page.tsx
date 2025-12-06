@@ -1,7 +1,8 @@
+import type { JSX } from 'react'
 import { createServerClient } from "@/lib/supabase/server"
 import { redirect, notFound } from "next/navigation"
 import { Loader2, FileText, ArrowLeft, Globe, AlertCircle } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
@@ -9,6 +10,27 @@ import Link from "next/link"
 interface PageProps {
   params: Promise<{ slug: string; materialSlug: string }>
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+// Type for Supabase linked subjects query result
+interface LinkedSubjectResult {
+  subject_id: string
+  is_primary: boolean
+  subjects: {
+    id: string
+    name: string
+    abbreviation: string | null
+    study_id: string
+  }
+}
+
+// Type for metadata linked subjects query result
+interface MetadataLinkedSubjectResult {
+  is_primary: boolean
+  subjects: {
+    name: string
+    abbreviation: string | null
+  }
 }
 
 export default async function PublicMaterialPage({ params, searchParams }: PageProps) {
@@ -61,7 +83,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
   // If it's a study note, render the note display instead
   if (isStudyNote) {
     // Get all linked subjects for this study note
-    const { data: linkedSubjects } = await supabase
+    const { data: linkedSubjectsRaw } = await supabase
       .from("study_note_subjects")
       .select(`
         subject_id,
@@ -75,6 +97,8 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
       `)
       .eq("study_note_id", studyNote.id)
       .order("is_primary", { ascending: false })
+
+    const linkedSubjects = linkedSubjectsRaw as LinkedSubjectResult[] | null
 
     // Find the primary subject for display
     const primarySubjectLink = linkedSubjects?.find(link => link.is_primary)
@@ -276,7 +300,7 @@ export async function generateMetadata({ params }: PageProps) {
 
   if (note) {
     // Get all linked subjects
-    const { data: linkedSubjects } = await supabase
+    const { data: linkedSubjectsRaw } = await supabase
       .from("study_note_subjects")
       .select(`
         is_primary,
@@ -288,13 +312,14 @@ export async function generateMetadata({ params }: PageProps) {
       .eq("study_note_id", note.id)
       .order("is_primary", { ascending: false })
 
+    const linkedSubjects = linkedSubjectsRaw as MetadataLinkedSubjectResult[] | null
     const subjects = linkedSubjects?.map(link => link.subjects) || []
     const primarySubject = linkedSubjects?.find(link => link.is_primary)?.subjects
-    
-    const subjectNames = subjects.length > 0 
+
+    const subjectNames = subjects.length > 0
       ? subjects.map(s => s.abbreviation || s.name).join(", ")
       : "Neznámý předmět"
-    
+
     return {
       title: `${note.name} - ${primarySubject?.abbreviation || subjectNames}`,
       description: note.description || `Studijní poznámka k předmětům: ${subjects.map(s => s.name).join(", ")}`,
