@@ -74,6 +74,7 @@ interface Study {
   name: string
   is_public?: boolean
   public_slug?: string
+  exam_scheduler_enabled?: boolean
 }
 
 interface SubjectTableMobileProps {
@@ -81,6 +82,7 @@ interface SubjectTableMobileProps {
   loading: boolean
   onUpdate: () => void
   study?: Study
+  examSchedulerEnabled?: boolean
 }
 
 const sortSubjects = (subjects: Subject[]) => {
@@ -134,7 +136,7 @@ const sortSubjects = (subjects: Subject[]) => {
   })
 }
 
-export function SubjectTableMobile({ subjects, loading, onUpdate, study }: SubjectTableMobileProps) {
+export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSchedulerEnabled = false }: SubjectTableMobileProps) {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({})
   const [editFormOpen, setEditFormOpen] = useState(false)
@@ -558,6 +560,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study }: Subje
           open={editFormOpen}
           onClose={handleEditClose}
           onSuccess={handleEditSuccess}
+          examSchedulerEnabled={examSchedulerEnabled || study?.exam_scheduler_enabled}
         />
       )}
       
