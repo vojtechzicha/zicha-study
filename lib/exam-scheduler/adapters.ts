@@ -35,10 +35,11 @@ export interface TrackerStudy {
 }
 
 /**
- * Check if a subject requires an exam (Zkouška or Zápočet+Zkouška)
+ * Check if a subject requires scheduling (any completion type except "Other")
+ * This includes: Zk (exam), Zp (credit), KZp (classified credit), Kl (assessment), Zp+Zk (credit+exam)
  */
-function requiresExam(completionType: string): boolean {
-  return completionType.includes("Zk");
+function requiresScheduling(completionType: string): boolean {
+  return completionType !== '-' && completionType !== '';
 }
 
 /**
@@ -51,8 +52,8 @@ export function mapTrackerSubjectToSchedulerSubject(
     id: subject.id,
     shortcut: subject.abbreviation || subject.name.substring(0, 5).toUpperCase(),
     name: subject.name,
-    // Mark as complete if: completed, planned, or doesn't require an exam
-    isComplete: subject.completed || subject.planned === true || !requiresExam(subject.completion_type),
+    // Mark as complete if: completed, planned, or doesn't require scheduling
+    isComplete: subject.completed || subject.planned === true || !requiresScheduling(subject.completion_type),
   };
 }
 
