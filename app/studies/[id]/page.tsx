@@ -18,6 +18,7 @@ interface Study {
   end_year?: number
   status: "active" | "completed" | "paused" | "abandoned"
   logo_url?: string
+  earliest_arrival_time?: string | null
   created_at: string
 }
 

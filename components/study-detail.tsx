@@ -38,6 +38,7 @@ interface Study {
   transit_duration_hours?: number
   transit_cost_one_way?: number
   accommodation_cost_per_night?: number
+  earliest_arrival_time?: string | null
   created_at: string
 }
 
@@ -219,6 +220,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
                 transit_duration_hours: currentStudy.transit_duration_hours || 4,
                 transit_cost_one_way: currentStudy.transit_cost_one_way || 200,
                 accommodation_cost_per_night: currentStudy.accommodation_cost_per_night || 2000,
+                earliest_arrival_time: currentStudy.earliest_arrival_time,
               }}
               subjects={subjects}
               refreshTrigger={examSchedulerRefreshTrigger}
