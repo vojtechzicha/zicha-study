@@ -32,6 +32,7 @@ export interface TrackerStudy {
   transit_duration_hours: number;
   transit_cost_one_way: number;
   accommodation_cost_per_night: number;
+  earliest_arrival_time?: string | null; // HH:MM:SS or HH:MM format, null means compute from transit_duration
 }
 
 /**
@@ -94,6 +95,10 @@ export function createSchedulerConfigFromStudy(
     travelCostOneWay: study.transit_cost_one_way,
     travelDurationHours: study.transit_duration_hours,
     accommodationCostPerNight: study.accommodation_cost_per_night,
+    // Convert HH:MM:SS to HH:MM if provided, undefined if null/empty
+    earliestArrivalTime: study.earliest_arrival_time
+      ? study.earliest_arrival_time.substring(0, 5)
+      : undefined,
   };
 }
 

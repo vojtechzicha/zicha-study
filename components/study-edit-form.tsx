@@ -38,6 +38,7 @@ interface Study {
   transit_duration_hours?: number
   transit_cost_one_way?: number
   accommodation_cost_per_night?: number
+  earliest_arrival_time?: string | null
   created_at: string
 }
 
@@ -60,6 +61,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     transit_duration_hours: study.transit_duration_hours || 4,
     transit_cost_one_way: study.transit_cost_one_way || 200,
     accommodation_cost_per_night: study.accommodation_cost_per_night || 2000,
+    // Convert HH:MM:SS to HH:MM for display, empty string if null
+    earliest_arrival_time: study.earliest_arrival_time
+      ? study.earliest_arrival_time.substring(0, 5)
+      : "",
   })
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(study.logo_url || null)
@@ -142,6 +147,8 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
           ...formData,
           end_year: formData.end_year || null,
           logo_url: logoUrl,
+          // Store as null if empty, otherwise as time string
+          earliest_arrival_time: formData.earliest_arrival_time || null,
         })
         .eq("id", study.id)
 
@@ -392,7 +399,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 {formData.exam_scheduler_enabled && (
                   <div className="p-4 border rounded-lg bg-primary-50/30 space-y-4">
                     <p className="text-sm font-medium text-gray-700">Nastavení plánovače</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="transit_duration">Doba cesty (hodiny)</Label>
                         <Input
@@ -408,6 +415,20 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                           })}
                         />
                         <p className="text-xs text-gray-500">Jednosměrná cesta do školy</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="earliest_arrival">Nejdřívější příjezd</Label>
+                        <Input
+                          id="earliest_arrival"
+                          type="time"
+                          value={formData.earliest_arrival_time}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            earliest_arrival_time: e.target.value
+                          })}
+                          placeholder="08:50"
+                        />
+                        <p className="text-xs text-gray-500">Kdy nejdříve můžete být ve škole (volitelné)</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="transit_cost">Cena cesty (Kč)</Label>

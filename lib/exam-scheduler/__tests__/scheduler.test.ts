@@ -655,4 +655,106 @@ describe("generateSchedule", () => {
     expect(result.breakdown.accommodationNights).toBe(2);
     expect(result.totalCost).toBe(600);
   });
+
+  // REGRESSION TEST: Custom earliest arrival time allows early morning exams without accommodation
+  it("respects custom earliestArrivalTime for early morning exams", () => {
+    const subjects: Subject[] = [
+      { id: "s1", shortcut: "ALG", name: "Algorithms", isComplete: false },
+    ];
+    const exams: Exam[] = [
+      {
+        id: "e1",
+        subjectId: "s1",
+        note: null,
+        date: "2025-01-10",
+        startTime: "09:00", // 9:00 AM exam
+        durationMinutes: 90,
+        isOnline: false,
+      },
+    ];
+
+    // With default config (4h travel, 5:30 AM departure = 9:30 AM arrival),
+    // a 9:00 AM exam would require overnight stay
+    const defaultResult = generateSchedule(subjects, exams, {
+      travelCostOneWay: 200,
+      travelDurationHours: 4,
+      accommodationCostPerNight: 2000,
+    });
+
+    expect(defaultResult.success).toBe(true);
+    expect(defaultResult.breakdown.accommodationNights).toBe(1); // Needs overnight
+    expect(defaultResult.totalCost).toBe(2400); // 400 travel + 2000 accommodation
+
+    // With custom earliestArrivalTime of 08:50, same-day travel is possible
+    const customResult = generateSchedule(subjects, exams, {
+      travelCostOneWay: 200,
+      travelDurationHours: 4,
+      accommodationCostPerNight: 2000,
+      earliestArrivalTime: "08:50", // Can arrive by 8:50 AM
+    });
+
+    expect(customResult.success).toBe(true);
+    expect(customResult.breakdown.accommodationNights).toBe(0); // No overnight needed
+    expect(customResult.totalCost).toBe(400); // Just 2 trips, no accommodation
+  });
+
+  // REGRESSION TEST: earliestArrivalTime affects exam scheduling optimization
+  it("prefers earlier exam date when earliestArrivalTime makes it feasible", () => {
+    const subjects: Subject[] = [
+      { id: "s1", shortcut: "ACJ", name: "Anglický jazyk", isComplete: false },
+      { id: "s2", shortcut: "EFP", name: "Etika a filozofie", isComplete: false },
+    ];
+    const exams: Exam[] = [
+      // ACJ_1 option 1: Jan 10 at 9:00 AM (early, might need overnight)
+      {
+        id: "e1",
+        subjectId: "s1",
+        note: null,
+        date: "2026-01-10",
+        startTime: "09:00",
+        durationMinutes: 90,
+        isOnline: false,
+      },
+      // ACJ_1 option 2: Jan 24 at 11:00 AM (later, safe for same-day travel)
+      {
+        id: "e2",
+        subjectId: "s1",
+        note: null,
+        date: "2026-01-24",
+        startTime: "11:00",
+        durationMinutes: 90,
+        isOnline: false,
+      },
+      // EFP exam on Jan 10 at 12:10 (we're already traveling there this day)
+      {
+        id: "e3",
+        subjectId: "s2",
+        note: null,
+        date: "2026-01-10",
+        startTime: "12:10",
+        durationMinutes: 110,
+        isOnline: false,
+      },
+    ];
+
+    // With earliestArrivalTime of 08:50, both Jan 10 exams can be done same-day
+    const result = generateSchedule(subjects, exams, {
+      travelCostOneWay: 200,
+      travelDurationHours: 4,
+      accommodationCostPerNight: 2000,
+      earliestArrivalTime: "08:50",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.selectedExams).toHaveLength(2);
+
+    // Should pick e1 (Jan 10) and e3 (Jan 10) - both on same day = cheapest
+    const selectedIds = result.selectedExams.map((e) => e.id).sort();
+    expect(selectedIds).toEqual(["e1", "e3"]);
+
+    // Cost: just one trip (2 ways = 400 CZK), no accommodation needed
+    expect(result.breakdown.travelTrips).toBe(2);
+    expect(result.breakdown.accommodationNights).toBe(0);
+    expect(result.totalCost).toBe(400);
+  });
 });
