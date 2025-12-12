@@ -9,7 +9,7 @@ import os from 'os'
 import mammoth, { type Image as MammothImage, type Options as MammothOptions } from 'mammoth'
 import { load } from 'cheerio'
 import JSZip from 'jszip'
-import { DOMParser, XMLSerializer } from 'xmldom'
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom'
 import omml2mathml from 'omml2mathml'
 import { MathMLToLaTeX } from 'mathml-to-latex'
 
