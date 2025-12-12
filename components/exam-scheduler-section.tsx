@@ -22,6 +22,7 @@ interface Study {
   transit_duration_hours: number
   transit_cost_one_way: number
   accommodation_cost_per_night: number
+  earliest_arrival_time?: string | null
 }
 
 interface ExamSchedulerSectionProps {
@@ -93,6 +94,10 @@ export function ExamSchedulerSection({ study, subjects, refreshTrigger = 0 }: Ex
       travelCostOneWay: study.transit_cost_one_way,
       travelDurationHours: study.transit_duration_hours,
       accommodationCostPerNight: study.accommodation_cost_per_night,
+      // Convert HH:MM:SS to HH:MM if provided
+      earliestArrivalTime: study.earliest_arrival_time
+        ? study.earliest_arrival_time.substring(0, 5)
+        : undefined,
     })
 
     setResult(scheduleResult)
@@ -192,6 +197,9 @@ export function ExamSchedulerSection({ study, subjects, refreshTrigger = 0 }: Ex
             <div className="flex flex-wrap gap-4">
               <span>Cesta: {study.transit_duration_hours}h, {study.transit_cost_one_way} Kč</span>
               <span>Ubytování: {study.accommodation_cost_per_night} Kč/noc</span>
+              {study.earliest_arrival_time && (
+                <span>Nejdřívější příjezd: {study.earliest_arrival_time.substring(0, 5)}</span>
+              )}
             </div>
           </div>
         </CardContent>
