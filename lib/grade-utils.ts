@@ -7,8 +7,8 @@ export type GradeCalculationSubject = Pick<Subject, 'completion_type' | 'credits
 export function gradeToNumber(grade: string): number | null {
   if (!grade || grade === '-') return null
   
-  // Handle F grades
-  if (grade === '0' || grade.startsWith('F')) return 5.0
+  // Handle F grades (Czech ECTS: nedostatečně = 4)
+  if (grade === '0' || grade.startsWith('F')) return 4.0
   
   // Handle numeric grades with optional minus
   const numericMatch = grade.match(/^(\d)(-)?$/)
@@ -18,18 +18,13 @@ export function gradeToNumber(grade: string): number | null {
     return baseGrade + (hasMinus ? 0.5 : 0)
   }
   
-  // Handle letter grades
+  // Handle letter grades (Czech ECTS scale)
   const gradeMap: Record<string, number> = {
-    'A': 1.0,
-    'A-': 1.5,
-    'B': 2.0,
-    'B-': 2.5,
-    'C': 3.0,
-    'C-': 3.5,
-    'D': 4.0,
-    'D-': 4.5,
-    'E': 5.0,
-    'E-': 5.0,
+    'A': 1.0,   // výborně
+    'B': 1.5,   // velmi dobře
+    'C': 2.0,   // dobře
+    'D': 2.5,   // uspokojivě
+    'E': 3.0,   // dostatečně
   }
   
   return gradeMap[grade.toUpperCase()] || null
