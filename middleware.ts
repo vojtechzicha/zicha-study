@@ -1,6 +1,5 @@
 // middleware.ts
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
   // Get the full hostname (e.g., 'tul.zicha.study')
