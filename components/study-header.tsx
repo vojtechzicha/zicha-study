@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, ExternalLink } from "lucide-react"
 import { StudyLogo } from "./study-logo"
 import { getStatusColor, getStatusText, StudyStatus } from "@/lib/status-utils"
 
@@ -14,6 +14,7 @@ interface Study {
   status: StudyStatus
   logo_url?: string | null
   is_public?: boolean
+  is_url?: string
 }
 
 interface StudyHeaderProps {
@@ -60,6 +61,20 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
                           <Badge variant="outline" className="bg-primary-50 text-primary-700 border-primary-200">
                             Veřejné
                           </Badge>
+                        </>
+                      )}
+                      {study.is_url && (
+                        <>
+                          <span className="hidden sm:inline">•</span>
+                          <a
+                            href={study.is_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 transition-colors"
+                          >
+                            <span className="hidden sm:inline">IS</span>
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
                         </>
                       )}
                     </>

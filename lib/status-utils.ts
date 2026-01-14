@@ -15,6 +15,7 @@ export interface Study {
   logo_url?: string
   is_public?: boolean
   public_slug?: string
+  is_url?: string
   created_at: string
 }
 
