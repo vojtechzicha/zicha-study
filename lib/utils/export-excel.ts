@@ -33,9 +33,9 @@ function getStudyInitials(studyName: string): string {
 
 // Helper function to sort semesters correctly (ZS before LS within each year)
 function compareSemesters(a: string, b: string): number {
-  // Extract year number and semester type (e.g., "1. ZS" -> { year: 1, type: "ZS" })
-  const parsesSemester = (s: string) => {
-    const match = s.match(/^(\d+)\.\s*(ZS|LS)$/i)
+  // Extract year number and semester type (e.g., "1. ročník ZS" -> { year: 1, type: "ZS" })
+  const parseSemester = (s: string) => {
+    const match = s.match(/^(\d+)\.\s*ročník\s*(ZS|LS)$/i)
     if (match) {
       return { year: parseInt(match[1], 10), type: match[2].toUpperCase() }
     }
@@ -43,8 +43,8 @@ function compareSemesters(a: string, b: string): number {
     return { year: 0, type: s }
   }
 
-  const semA = parsesSemester(a)
-  const semB = parsesSemester(b)
+  const semA = parseSemester(a)
+  const semB = parseSemester(b)
 
   // First compare by year
   if (semA.year !== semB.year) {
