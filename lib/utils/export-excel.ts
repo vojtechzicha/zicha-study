@@ -31,6 +31,34 @@ function getStudyInitials(studyName: string): string {
     .slice(0, 2)
 }
 
+// Helper function to sort semesters correctly (ZS before LS within each year)
+function compareSemesters(a: string, b: string): number {
+  // Extract year number and semester type (e.g., "1. ročník ZS" -> { year: 1, type: "ZS" })
+  const parseSemester = (s: string) => {
+    const match = s.match(/^(\d+)\.\s*ročník\s*(ZS|LS)$/i)
+    if (match) {
+      return { year: parseInt(match[1], 10), type: match[2].toUpperCase() }
+    }
+    // Fallback for unexpected format
+    return { year: 0, type: s }
+  }
+
+  const semA = parseSemester(a)
+  const semB = parseSemester(b)
+
+  // First compare by year
+  if (semA.year !== semB.year) {
+    return semA.year - semB.year
+  }
+
+  // Then ZS comes before LS
+  if (semA.type === 'ZS' && semB.type === 'LS') return -1
+  if (semA.type === 'LS' && semB.type === 'ZS') return 1
+
+  // Fallback to string comparison
+  return a.localeCompare(b)
+}
+
 export async function exportStudiesToExcel() {
   const supabase = createClient()
 
@@ -63,11 +91,18 @@ export async function exportStudiesToExcel() {
       .from('subjects')
       .select('*')
       .eq('study_id', study.id)
-      .order('semester', { ascending: true })
-      .order('name', { ascending: true })
 
     if (subjectsError) {
       continue
+    }
+
+    // Sort subjects: first by semester (ZS before LS), then by name
+    if (subjects) {
+      subjects.sort((a, b) => {
+        const semesterCompare = compareSemesters(a.semester, b.semester)
+        if (semesterCompare !== 0) return semesterCompare
+        return a.name.localeCompare(b.name)
+      })
     }
 
     // Sheet 1: Study metadata with branding

@@ -39,6 +39,7 @@ interface Study {
   transit_cost_one_way?: number
   accommodation_cost_per_night?: number
   earliest_arrival_time?: string | null
+  is_url?: string
   created_at: string
 }
 
@@ -65,6 +66,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     earliest_arrival_time: study.earliest_arrival_time
       ? study.earliest_arrival_time.substring(0, 5)
       : "",
+    is_url: study.is_url || "",
   })
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(study.logo_url || null)
@@ -149,6 +151,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
           logo_url: logoUrl,
           // Store as null if empty, otherwise as time string
           earliest_arrival_time: formData.earliest_arrival_time || null,
+          is_url: formData.is_url || null,
         })
         .eq("id", study.id)
 
@@ -352,6 +355,19 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* IS URL */}
+              <div className="space-y-2">
+                <Label htmlFor="is_url">URL stránky v informačním systému</Label>
+                <Input
+                  id="is_url"
+                  type="url"
+                  value={formData.is_url}
+                  onChange={(e) => setFormData({ ...formData, is_url: e.target.value })}
+                  placeholder="https://is.muni.cz/studium/..."
+                />
+                <p className="text-xs text-gray-500">Odkaz na stránku studia v informačním systému školy (volitelné)</p>
               </div>
 
               {/* Final Exams Toggle */}

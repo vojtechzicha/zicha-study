@@ -39,6 +39,7 @@ interface Study {
   transit_cost_one_way?: number
   accommodation_cost_per_night?: number
   earliest_arrival_time?: string | null
+  is_url?: string
   created_at: string
 }
 

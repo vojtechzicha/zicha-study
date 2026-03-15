@@ -237,6 +237,7 @@ export interface StudyWithFinalExams {
   transit_duration_hours: number
   transit_cost_one_way: number
   accommodation_cost_per_night: number
+  is_url?: string
   created_at: string
   updated_at: string
 }
