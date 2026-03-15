@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
     apple: "/favicon.png",
   },
-  generator: "v0.dev",
+  generator: "zicha-study",
 }
 
 export default function RootLayout({

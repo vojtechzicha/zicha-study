@@ -7,7 +7,7 @@ I've created and run comprehensive tests to verify the failed subject detection 
 ## ✅ What Works Correctly
 
 ### 1. Failed Subject Detection (`isSubjectFailed` function)
-- **Location**: `/Users/vojtechzicha/Developer/university-study-tracker/lib/status-utils.ts` (line 97)
+- **Location**: `lib/status-utils.ts` (line 97)
 - **Status**: ✅ WORKING CORRECTLY
 - **Test Results**:
   - Grade "F" → correctly identified as failed

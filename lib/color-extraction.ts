@@ -166,8 +166,17 @@ export async function extractDominantColor(imageUrl: string): Promise<ExtractedC
           // Calculate weight based on color characteristics
           let weight = 1
           
-          // Boost saturated colors (more vibrant = higher weight)
-          weight *= 1 + (saturation / 100)
+          // Dramatically boost saturated colors (exponential scaling for vibrant colors)
+          // Saturation below 20% gets heavily penalized, above 50% gets boosted exponentially
+          if (saturation < 20) {
+            weight *= 0.1 // Heavily penalize desaturated colors
+          } else if (saturation < 30) {
+            weight *= 0.3
+          } else if (saturation >= 50) {
+            weight *= Math.pow(saturation / 50, 2) // Exponential boost for high saturation
+          } else {
+            weight *= saturation / 30 // Linear scaling for moderate saturation
+          }
           
           // Boost colors that aren't too light or too dark
           if (lightness >= 20 && lightness <= 80) {
@@ -176,14 +185,28 @@ export async function extractDominantColor(imageUrl: string): Promise<ExtractedC
           
           // Reduce weight for background-like colors
           if (backgroundMatch) {
-            weight *= 0.1
+            weight *= 0.05 // More aggressive penalty
+          }
+          
+          // Aggressively filter grayscale colors (larger threshold for gray detection)
+          const grayThreshold = 20 // Increased from 10
+          const isGrayscale = Math.abs(r - g) < grayThreshold && 
+                             Math.abs(g - b) < grayThreshold && 
+                             Math.abs(r - b) < grayThreshold
+          
+          if (isGrayscale) {
+            // Only accept grayscale if it has some darkness/character (not just light gray)
+            if (lightness > 30 || saturation < 5) {
+              weight *= 0.05 // Nearly eliminate light grays
+            } else {
+              weight *= 0.2 // Still penalize dark grays but less severely
+            }
           }
           
           // Reduce weight for very common "background" colors
           if ((r > 240 && g > 240 && b > 240) || // white-ish
-              (r < 30 && g < 30 && b < 30) ||   // black-ish
-              (Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && Math.abs(r - b) < 10)) { // grayscale
-            weight *= 0.2
+              (r < 30 && g < 30 && b < 30)) {   // black-ish
+            weight *= 0.1
           }
           
           const existing = colorMap.get(colorKey) || { count: 0, weight: 0 }

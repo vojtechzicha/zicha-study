@@ -1,29 +1,29 @@
-# University Study Tracker
+# zicha-study
 
-A comprehensive web application for tracking university studies, subjects, and academic progress.
-
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/zicha-dev/v0-university-study-tracker)
+A web application for tracking university studies, subjects, and academic progress.
 
 ## Overview
 
-This is a Next.js application that allows students to track their university studies, manage subjects, monitor academic progress, and share their study plans publicly. The application uses Supabase for authentication and data storage.
+zicha-study allows students to track their university studies, manage subjects, monitor academic progress, and share their study plans publicly. It also supports study notes (DOCX files served via OneDrive), exam scheduling, and detailed statistics.
 
 **Features:**
+
 - Create and manage multiple university studies
 - Track subjects with grades, credits, and completion status
 - View detailed statistics and analytics
 - Share study plans publicly via unique URLs
+- Upload and display study notes from OneDrive (DOCX to HTML)
+- Exam scheduling with conflict detection
+- Dynamic theming based on study logos
 - Responsive design with dark/light mode support
 
 ## Tech Stack
 
-- **Frontend:** Next.js 15, React 19, TypeScript
+- **Frontend:** Next.js, React, TypeScript
 - **Backend:** Supabase (PostgreSQL with Row Level Security)
 - **Styling:** Tailwind CSS with shadcn/ui components
-- **Authentication:** Supabase Auth
+- **Authentication:** Supabase Auth + Microsoft OAuth (OneDrive)
 - **Deployment:** Vercel
-
-> **Note:** This project was initially scaffolded with v0.dev but is now actively developed and maintained using Claude Code.
 
 ## Development
 
@@ -31,14 +31,14 @@ This is a Next.js application that allows students to track their university stu
 
 - Node.js 18+ and pnpm
 - Supabase account and project
-- Git for version control
+- (Optional) Azure App Registration for OneDrive integration
 
 ### Setup
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
-   cd university-study-tracker
+   git clone https://github.com/vojtechzicha/zicha-study.git
+   cd zicha-study
    ```
 
 2. **Install dependencies:**
@@ -47,10 +47,9 @@ This is a Next.js application that allows students to track their university stu
    ```
 
 3. **Environment setup:**
-   Create a `.env.local` file with your Supabase credentials:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   Copy `.env.example` to `.env.local` and fill in your credentials:
+   ```bash
+   cp .env.example .env.local
    ```
 
 4. **Start development server:**
@@ -58,35 +57,21 @@ This is a Next.js application that allows students to track their university stu
    pnpm dev
    ```
 
-   The application will be available at `http://localhost:3000`.
-
 ### Commands
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Run development server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Run linting
-pnpm lint
-
-# Run linting with auto-fix
-pnpm lint:fix
+pnpm install     # Install dependencies
+pnpm dev         # Run development server
+pnpm build       # Build for production
+pnpm lint        # Run linting
+pnpm lint:fix    # Run linting with auto-fix
+pnpm test        # Run tests
 ```
-
-### Code Quality
-
-The project uses ESLint with Next.js and TypeScript support for code quality. The linter is configured with moderate rules to catch common issues without being overly strict.
 
 ## Deployment
 
-The application is deployed on Vercel. Any changes pushed to the main branch will automatically trigger a new deployment.
+The application is deployed on Vercel. See [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) for details.
 
-## Contributing
+## License
 
-This project is actively developed using Claude Code. All code generation and modifications are handled through AI assistance, ensuring consistent code quality and patterns throughout the application.
+[MIT](LICENSE)
