@@ -39,7 +39,7 @@ export function OneDriveFilePicker({
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
 
-  const loadFiles = useCallback(async (path: string = currentPath, search?: string) => {
+  const loadFiles = useCallback(async (path: string, search?: string) => {
     setLoading(true)
     setError(null)
     
@@ -90,7 +90,7 @@ export function OneDriveFilePicker({
     } finally {
       setLoading(false)
     }
-  }, [currentPath, fileExtensions])
+  }, [fileExtensions])
 
   useEffect(() => {
     loadFiles(initialPath)
