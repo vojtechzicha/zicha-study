@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, FolderOpen, ChevronRight, AlertCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchMaterials, deleteMaterialAction } from "@/lib/actions/materials"
 import { MaterialCard } from "@/components/material-card"
 import { MaterialsTable } from "@/components/materials-table"
 import { AddMaterialDialog } from "@/components/add-material-dialog"
@@ -29,51 +29,24 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
   const [showAll, setShowAll] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
-  useEffect(() => {
-    const loadMaterials = async () => {
-      setLoading(true)
-      setError(null)
-      
-      try {
-        const { data, error } = await supabase
-          .from("materials")
-          .select("*")
-          .eq("study_id", studyId)
-          .order("created_at", { ascending: false })
-
-        if (error) throw error
-        setMaterials(data || [])
-      } catch {
-        setError("Nepodařilo se načíst materiály")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadMaterials()
-  }, [studyId, supabase])
-
-  const fetchMaterials = async () => {
+  const loadMaterials = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const { data, error } = await supabase
-        .from("materials")
-        .select("*")
-        .eq("study_id", studyId)
-        .order("created_at", { ascending: false })
-
-      if (error) throw error
+      const data = await fetchMaterials(studyId) as Material[]
       setMaterials(data || [])
     } catch {
       setError("Nepodařilo se načíst materiály")
     } finally {
       setLoading(false)
     }
-  }
+  }, [studyId])
+
+  useEffect(() => {
+    loadMaterials()
+  }, [loadMaterials])
 
   const handleDelete = async (materialId: string) => {
     if (!confirm("Opravdu chcete odstranit tento materiál?")) {
@@ -81,12 +54,8 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
     }
 
     try {
-      const { error } = await supabase
-        .from("materials")
-        .delete()
-        .eq("id", materialId)
-
-      if (error) throw error
+      const result = await deleteMaterialAction(materialId)
+      if (result.error) throw new Error(result.error.message)
 
       setMaterials(materials.filter(m => m.id !== materialId))
     } catch {
@@ -96,11 +65,11 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
 
   const handleAddSuccess = () => {
     setShowAddDialog(false)
-    fetchMaterials()
+    loadMaterials()
   }
 
   const handleMaterialUpdate = () => {
-    fetchMaterials()
+    loadMaterials()
   }
 
   // Show only first 3 materials in preview mode

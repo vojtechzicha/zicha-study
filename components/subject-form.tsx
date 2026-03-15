@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchSubjectsForRepeatSelection, createSubject } from "@/lib/actions/subjects"
 import { useToast } from "@/hooks/use-toast"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -53,66 +53,17 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([])
-  const supabase = createClient()
   const { toast } = useToast()
   const { departments } = useDepartments(study.id)
 
   // Fetch subjects that can be repeated
   useEffect(() => {
-    const fetchSubjects = async () => {
-      const { data } = await supabase
-        .from('subjects')
-        .select('id, name, abbreviation, semester, subject_type, completed, planned')
-        .eq('study_id', study.id)
-        .eq('is_repeat', false)
-
-      if (data) {
-        // Type for Supabase subject result
-        type SubjectRow = { id: string; name: string; abbreviation: string | null; semester: string; subject_type: string; completed?: boolean; planned?: boolean }
-
-        // Apply the same sorting as subject table
-        const sortedSubjects = (data as SubjectRow[]).sort((a: SubjectRow, b: SubjectRow) => {
-          // Get subject status priority (Active > Completed > Planned)
-          const getStatusPriority = (subject: SubjectRow) => {
-            if (subject.planned) return 3  // Planned
-            if (subject.completed) return 2  // Completed
-            return 1  // Active
-          }
-
-          // Custom semester sorting function
-          const getSemesterOrder = (semester: string) => {
-            const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
-            if (match) {
-              const year = Number.parseInt(match[1])
-              const semesterType = match[2].toUpperCase()
-              return year * 10 + (semesterType === "ZS" ? 1 : 2)
-            }
-            return 999
-          }
-
-          // First sort by status priority
-          const aStatusPriority = getStatusPriority(a)
-          const bStatusPriority = getStatusPriority(b)
-          if (aStatusPriority !== bStatusPriority) {
-            return aStatusPriority - bStatusPriority
-          }
-
-          // Then sort by semester
-          const aSemesterOrder = getSemesterOrder(a.semester)
-          const bSemesterOrder = getSemesterOrder(b.semester)
-          if (aSemesterOrder !== bSemesterOrder) {
-            return aSemesterOrder - bSemesterOrder
-          }
-
-          // Finally sort alphabetically by name
-          return a.name.localeCompare(b.name, "cs")
-        })
-
-        setAvailableSubjects(sortedSubjects)
-      }
+    const loadSubjects = async () => {
+      const data = await fetchSubjectsForRepeatSelection(study.id)
+      setAvailableSubjects(data)
     }
-    fetchSubjects()
-  }, [study.id, supabase])
+    loadSubjects()
+  }, [study.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -155,20 +106,16 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
       insertData.exam_completed = false
     }
 
-    const { error } = await supabase.from("subjects").insert([insertData])
+    const result = await createSubject(insertData)
 
-    if (error) {
+    if (result.error) {
       // Provide more specific error messages based on error code/message
       let errorMessage = "Chyba při ukládání předmětu. Zkuste to prosím znovu."
 
-      if (error.code === "23505") {
+      if (result.error.code === "23505") {
         errorMessage = "Předmět s touto kombinací názvu a semestru již existuje."
-      } else if (error.code === "23503") {
-        errorMessage = "Neplatná reference - zkontrolujte vazbu na opakovaný předmět."
-      } else if (error.code === "PGRST301") {
-        errorMessage = "Nejste přihlášeni. Přihlaste se prosím znovu."
-      } else if (error.message) {
-        errorMessage = `Chyba při ukládání: ${error.message}`
+      } else if (result.error.message) {
+        errorMessage = `Chyba při ukládání: ${result.error.message}`
       }
 
       setError(errorMessage)

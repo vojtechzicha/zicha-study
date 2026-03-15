@@ -3,27 +3,10 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, BookOpen } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchStudyNotesByFinalExamId } from "@/lib/actions/study-notes"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
 import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
-
-interface RawStudyNoteResult {
-  id: string
-  study_id: string
-  user_id: string
-  name: string
-  file_name: string
-  file_extension: string | null
-  onedrive_item_id: string | null
-  onedrive_web_url: string | null
-  onedrive_download_url: string | null
-  is_public: boolean
-  public_slug: string | null
-  last_modified_onedrive: string | null
-  created_at: string
-  description: string | null
-}
 
 interface FinalExamStudyNotesSectionProps {
   studyId: string
@@ -37,20 +20,21 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
   const [notes, setNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const supabase = createClient()
 
   const loadNotes = useCallback(async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .rpc("get_final_exam_study_notes", { p_final_exam_id: finalExamId })
-
-      if (error) throw error
+      const data = await fetchStudyNotesByFinalExamId(finalExamId)
 
       // Transform the data to match our interface
-      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note: RawStudyNoteResult) => ({
+      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note: any) => ({
         ...note,
-        subjects: [] // Final exam notes don't have subjects, but we need this for the interface
+        subjects: note.linked_subjects?.map((ls: any) => ({
+          id: ls.subject_id,
+          name: ls.subject_id,
+          study_id: "",
+          is_primary: ls.is_primary
+        })) || []
       }))
 
       setNotes(notesWithSubjects)
@@ -59,7 +43,7 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
     } finally {
       setLoading(false)
     }
-  }, [finalExamId, supabase])
+  }, [finalExamId])
 
   useEffect(() => {
     if (!isStudyPublic) {

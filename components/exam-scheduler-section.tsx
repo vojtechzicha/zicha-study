@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchExamOptionsBySubjectIds } from "@/lib/actions/exam-options"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CalendarDays, RefreshCw, AlertTriangle, Loader2 } from "lucide-react"
@@ -36,7 +36,6 @@ export function ExamSchedulerSection({ study, subjects, refreshTrigger = 0 }: Ex
   const [result, setResult] = useState<ScheduleResult | null>(null)
   const [examOptions, setExamOptions] = useState<ExamOption[]>([])
   const [optionsLoading, setOptionsLoading] = useState(true)
-  const supabase = createClient()
 
   // Create a stable key from subject IDs for dependency tracking
   const subjectIdsKey = subjects.map(s => s.id).sort().join(',')
@@ -53,11 +52,7 @@ export function ExamSchedulerSection({ study, subjects, refreshTrigger = 0 }: Ex
         return
       }
 
-      const { data } = await supabase
-        .from('exam_options')
-        .select('*')
-        .in('subject_id', subjectIds)
-
+      const data = await fetchExamOptionsBySubjectIds(subjectIds) as ExamOption[]
       if (data) {
         setExamOptions(data)
       }

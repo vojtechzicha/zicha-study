@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { checkSlugAvailability, updateStudy } from "@/lib/actions/studies"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -49,8 +49,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   })
   const [showFolderPicker, setShowFolderPicker] = useState(false)
 
-  const supabase = createClient()
-
   const publicUrl = `${window.location.origin}/${slug}`
 
   useEffect(() => {
@@ -61,7 +59,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
     }
   }, [study.name, slug])
 
-  const checkSlugAvailability = useCallback(async () => {
+  const checkSlug = useCallback(async () => {
     if (!slug || slug === study.public_slug) {
       setSlugAvailable(true)
       return
@@ -73,21 +71,15 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
       return
     }
 
-    const { data } = await supabase
-      .from("studies")
-      .select("id")
-      .eq("public_slug", slug)
-      .neq("id", study.id)
-      .single()
-
-    setSlugAvailable(!data)
-  }, [slug, study.id, study.public_slug, supabase])
+    const available = await checkSlugAvailability(slug, study.id)
+    setSlugAvailable(available)
+  }, [slug, study.id, study.public_slug])
 
   useEffect(() => {
     if (slug && slug.length >= 3) {
-      checkSlugAvailability()
+      checkSlug()
     }
-  }, [slug, checkSlugAvailability])
+  }, [slug, checkSlug])
 
   const handleSlugChange = (value: string) => {
     const cleanSlug = cleanSlugInput(value)
@@ -114,19 +106,14 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
         throw new Error("Zadejte platný a dostupný slug")
       }
 
-      const { error: updateError } = await supabase
-        .from("studies")
-        .update({
-          is_public: isPublic,
-          public_slug: isPublic ? slug : null,
-          public_description: isPublic ? description : null,
-          materials_root_folder_id: materialsRootFolder.id,
-          materials_root_folder_name: materialsRootFolder.name,
-          materials_root_folder_path: materialsRootFolder.path,
-        })
-        .eq("id", study.id)
-
-      if (updateError) throw updateError
+      await updateStudy(study.id, {
+        is_public: isPublic,
+        public_slug: isPublic ? slug : null,
+        public_description: isPublic ? description : null,
+        materials_root_folder_id: materialsRootFolder.id,
+        materials_root_folder_name: materialsRootFolder.name,
+        materials_root_folder_path: materialsRootFolder.path,
+      })
 
       onSuccess()
     } catch (err) {

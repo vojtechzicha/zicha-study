@@ -23,7 +23,11 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import {
+  updateStudyNoteAction,
+  deleteStudyNoteAction,
+  checkNoteSlugGlobal,
+} from "@/lib/actions/study-notes"
 import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
 import { StudyNoteLinkSubjectsDialog } from "@/components/study-note-link-subjects-dialog"
 import { cleanSlugInput } from "@/lib/utils/slug"
@@ -47,7 +51,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
   const [error, setError] = useState<string | null>(null)
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const [copied, setCopied] = useState(false)
-  const supabase = createClient()
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -88,14 +91,8 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
       return
     }
 
-    const { data } = await supabase
-      .from("study_notes")
-      .select("id")
-      .eq("public_slug", slug)
-      .neq("id", note.id)
-      .single()
-
-    setSlugAvailable(!data)
+    const available = await checkNoteSlugGlobal(slug, note.id)
+    setSlugAvailable(available)
   }
 
   const handleUpdatePublicSettings = async () => {
@@ -109,12 +106,9 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
         public_slug: isPublic ? publicSlug : null,
       }
 
-      const { error: updateError } = await supabase
-        .from("study_notes")
-        .update(updateData)
-        .eq("id", note.id)
+      const result = await updateStudyNoteAction(note.id, updateData)
 
-      if (updateError) throw updateError
+      if (result.error) throw new Error(result.error.message)
 
       setShowPublicDialog(false)
       if (onUpdate) onUpdate()
@@ -130,12 +124,9 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
 
     setLoading(true)
     try {
-      const { error: deleteError } = await supabase
-        .from("study_notes")
-        .delete()
-        .eq("id", note.id)
+      const result = await deleteStudyNoteAction(note.id)
 
-      if (deleteError) throw deleteError
+      if (result.error) throw new Error(result.error.message)
 
       if (onDelete) onDelete(note.id)
     } catch (err) {
@@ -146,7 +137,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
   }
 
   const handleCopyLink = async () => {
-    const url = studySlug 
+    const url = studySlug
       ? `${window.location.origin}/${studySlug}/${note.public_slug}`
       : `${window.location.origin}/notes/${note.public_slug}`
     await navigator.clipboard.writeText(url)
@@ -221,9 +212,9 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-8 w-8 p-0"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -285,7 +276,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
               {isPublic ? "Nastavení sdílení studijního zápisu" : "Publikovat studijní zápis"}
             </DialogTitle>
             <DialogDescription>
-              {isPublic 
+              {isPublic
                 ? "Upravte nastavení veřejného sdílení tohoto studijního zápisu"
                 : `Nastavte veřejný odkaz pro tento zápis. Bude dostupný na adrese /${studySlug || "study-slug"}/{publicSlug || "url-zapisu"}`
               }
@@ -358,13 +349,13 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                 {/* URL Preview - Always Visible When Slug Exists */}
                 {publicSlug && (
                   <div className={`p-4 rounded-lg border ${
-                    slugAvailable === true ? 'bg-primary-50 border-primary-200' : 
-                    slugAvailable === false ? 'bg-red-50 border-red-200' : 
+                    slugAvailable === true ? 'bg-primary-50 border-primary-200' :
+                    slugAvailable === false ? 'bg-red-50 border-red-200' :
                     'bg-primary-50 border-primary-200'
                   }`}>
                     <Label className={`text-sm font-medium ${
-                      slugAvailable === true ? 'text-primary-900' : 
-                      slugAvailable === false ? 'text-red-900' : 
+                      slugAvailable === true ? 'text-primary-900' :
+                      slugAvailable === false ? 'text-red-900' :
                       'text-gray-700'
                     }`}>
                       Veřejná URL adresa:

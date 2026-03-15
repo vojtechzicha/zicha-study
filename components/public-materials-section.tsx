@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ChevronRight, AlertCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchPublicMaterials } from "@/lib/actions/materials"
 import { MaterialCard } from "@/components/material-card"
 import { MaterialsTable } from "@/components/materials-table"
 import type { Material } from "@/lib/types/materials"
@@ -27,22 +27,14 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
   const [loading, setLoading] = useState(true)
   const [showAll, setShowAll] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     const loadMaterials = async () => {
       setLoading(true)
       setError(null)
-      
-      try {
-        const { data, error } = await supabase
-          .from("materials")
-          .select("*")
-          .eq("study_id", studyId)
-          .eq("is_public", true)
-          .order("created_at", { ascending: false })
 
-        if (error) throw error
+      try {
+        const data = await fetchPublicMaterials(studyId) as Material[]
         setMaterials(data || [])
       } catch {
         setError("Nepodařilo se načíst materiály")
@@ -52,7 +44,7 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
     }
 
     loadMaterials()
-  }, [studyId, supabase])
+  }, [studyId])
 
   // Show only first 3 materials in preview mode
   const displayedMaterials = showAll ? materials : materials.slice(0, 3)

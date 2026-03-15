@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { updateSubject } from "@/lib/actions/subjects"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -103,7 +103,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   const [showRightIndicator, setShowRightIndicator] = useState(false)
   const [showScrollHint, setShowScrollHint] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
 
   // Filter subjects based on selected filter
   const filteredSubjects = filter === "active" 
@@ -181,10 +180,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       updates.credit_completed = false
     }
 
-    const { error } = await supabase
-      .from("subjects")
-      .update(updates)
-      .eq("id", subjectId)
+    const { error } = await updateSubject(subjectId, updates)
 
     if (!error) {
       onUpdate()

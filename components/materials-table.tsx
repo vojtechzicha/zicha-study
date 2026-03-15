@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { createClient } from "@/lib/supabase/client"
+import { updateMaterialAction } from "@/lib/actions/materials"
 import type { Material } from "@/lib/types/materials"
 import { createSlug } from "@/lib/utils/slug"
 
@@ -70,13 +70,12 @@ function formatDate(dateString: string | null): string {
 export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySlug, isStudyPublic }: MaterialsTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [copied, setCopied] = useState<string | null>(null)
-  const supabase = createClient()
 
   const handlePublicToggle = async (material: Material) => {
     if (!material.is_public) {
       // Generate initial slug from material name
       const initialSlug = createSlug(material.name)
-      
+
       await updatePublicStatus(material.id, true, initialSlug)
     } else {
       await updatePublicStatus(material.id, false, null)
@@ -86,12 +85,12 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
   const updatePublicStatus = async (materialId: string, isPublic: boolean, slug: string | null) => {
     try {
       let publicShareUrl = null
-      
+
       if (isPublic) {
         // Find the material to get its OneDrive ID
         const material = materials.find(m => m.id === materialId)
         if (!material) throw new Error("Material not found")
-        
+
         // Generate public share link
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
@@ -102,32 +101,29 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
             onedriveId: material.onedrive_id
           })
         })
-        
+
         if (!response.ok) {
           const errorData = await response.json()
-          
+
           // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
             throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
           }
-          
+
           throw new Error(errorData.error || "Failed to create public share link")
         }
-        
+
         const { shareUrl } = await response.json()
         publicShareUrl = shareUrl
       }
 
-      const { error } = await supabase
-        .from("materials")
-        .update({
-          is_public: isPublic,
-          public_slug: slug,
-          public_share_url: publicShareUrl,
-        })
-        .eq("id", materialId)
+      const result = await updateMaterialAction(materialId, {
+        is_public: isPublic,
+        public_slug: slug,
+        public_share_url: publicShareUrl,
+      })
 
-      if (error) throw error
+      if (result.error) throw new Error(result.error.message)
       if (onUpdate) onUpdate()
     } catch (err) {
       console.error("Error updating public status:", err)
@@ -136,7 +132,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
 
   const copyPublicUrl = async (material: Material) => {
     if (!studySlug || !material.public_slug) return
-    
+
     const publicUrl = `${window.location.origin}/${studySlug}/${material.public_slug}`
     await navigator.clipboard.writeText(publicUrl)
     setCopied(material.id)
@@ -280,7 +276,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                               </a>
                             </DropdownMenuItem>
                           )}
-                          
+
                           {isStudyPublic && (
                             <>
                               {material.onedrive_download_url && <DropdownMenuSeparator />}
@@ -296,7 +292,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                               )}
                             </>
                           )}
-                          
+
                           {onDelete && (
                             <>
                               <DropdownMenuSeparator />

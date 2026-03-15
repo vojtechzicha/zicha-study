@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
-import { createClient } from '@/lib/supabase/client'
+import { fetchStudiesWithPublicSlug } from '@/lib/actions/studies'
+import { fetchSubjectsByStudyId } from '@/lib/actions/subjects'
 
 // Subject type for export
 interface ExportSubject {
@@ -60,16 +61,9 @@ function compareSemesters(a: string, b: string): number {
 }
 
 export async function exportStudiesToExcel() {
-  const supabase = createClient()
-
   // Fetch all studies with public slugs (single-user app, no user filter needed)
-  const { data: studies, error: studiesError } = await supabase
-    .from('studies')
-    .select('*')
-    .not('public_slug', 'is', null)
-    .order('created_at', { ascending: false })
+  const studies = await fetchStudiesWithPublicSlug()
 
-  if (studiesError) throw studiesError
   if (!studies || studies.length === 0) {
     throw new Error('No studies with public slugs found')
   }
@@ -82,12 +76,10 @@ export async function exportStudiesToExcel() {
   // Process each study
   for (const study of studies) {
     // Fetch subjects for this study
-    const { data: subjects, error: subjectsError } = await supabase
-      .from('subjects')
-      .select('*')
-      .eq('study_id', study.id)
-
-    if (subjectsError) {
+    let subjects
+    try {
+      subjects = await fetchSubjectsByStudyId(study.id)
+    } catch {
       continue
     }
 
@@ -175,7 +167,7 @@ export async function exportStudiesToExcel() {
       })
 
       // Add data rows
-      const dataRows = (subjects as ExportSubject[]).map((subject: ExportSubject) => [
+      const dataRows = (subjects as unknown as ExportSubject[]).map((subject: ExportSubject) => [
         subject.semester,
         subject.abbreviation || '',
         subject.name,

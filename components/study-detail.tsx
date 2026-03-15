@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchSubjectsByStudyId } from "@/lib/actions/subjects"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -80,7 +80,6 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [showActiveOnly, setShowActiveOnly] = useState(false)
   const [examSchedulerRefreshTrigger, setExamSchedulerRefreshTrigger] = useState(0)
-  const supabase = createClient()
   const router = useRouter()
   
   // Extract and apply theme colors from logo
@@ -92,32 +91,18 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
   useEffect(() => {
     const loadSubjects = async () => {
       setLoading(true)
-      const { data, error } = await supabase
-        .from("subjects")
-        .select("*")
-        .eq("study_id", study.id)
-        .order("semester", { ascending: true })
-
-      if (!error && data) {
-        setSubjects(data)
-      }
+      const data = await fetchSubjectsByStudyId(study.id)
+      setSubjects(data)
       setLoading(false)
     }
-    
+
     loadSubjects()
-  }, [study.id, supabase])
+  }, [study.id])
 
   const fetchSubjects = async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from("subjects")
-      .select("*")
-      .eq("study_id", study.id)
-      .order("semester", { ascending: true })
-
-    if (!error && data) {
-      setSubjects(data)
-    }
+    const data = await fetchSubjectsByStudyId(study.id)
+    setSubjects(data)
     setLoading(false)
     // Trigger exam scheduler to reload exam options
     setExamSchedulerRefreshTrigger(prev => prev + 1)

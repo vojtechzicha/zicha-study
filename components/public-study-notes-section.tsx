@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ChevronRight, AlertCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchStudyNotes } from "@/lib/actions/study-notes"
+import { fetchSubjectsByIds } from "@/lib/actions/subjects"
+import { fetchFinalExamsByIds } from "@/lib/actions/final-exams"
 import { StudyNoteOverviewCard } from "@/components/study-note-overview-card"
-import type { StudyNoteWithSubjects, RawStudyNoteSubjectLink, RawStudyNoteFinalExamLink, SubjectInfo, FinalExamInfo, StudyNoteSubject } from "@/lib/types/study-notes"
+import type { StudyNoteWithSubjects, SubjectInfo, FinalExamInfo, StudyNoteSubject } from "@/lib/types/study-notes"
 
 interface Study {
   id: string
@@ -21,75 +23,29 @@ interface PublicStudyNotesSectionProps {
   study?: Study
 }
 
-// Type for raw note data from Supabase
-interface RawStudyNote {
-  id: string
-  study_id: string
-  user_id: string
-  name: string
-  file_name: string
-  file_extension: string | null
-  file_size: number | null
-  mime_type: string | null
-  onedrive_id: string
-  onedrive_web_url: string
-  onedrive_download_url: string | null
-  parent_path: string | null
-  description: string | null
-  is_public: boolean
-  public_slug: string
-  created_at: string
-  updated_at: string
-  last_modified_onedrive: string | null
-  subject_id: string
-  study_note_subjects?: RawStudyNoteSubjectLink[]
-  study_note_final_exams?: RawStudyNoteFinalExamLink[]
-}
-
 export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSectionProps) {
   const [studyNotes, setStudyNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
   const [showAll, setShowAll] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     const loadStudyNotes = async () => {
       setLoading(true)
       setError(null)
-      
+
       try {
-        // Get all public study notes for this study with their subject and final exam links
-        const { data: notesData, error: notesError } = await supabase
-          .from("study_notes")
-          .select(`
-            *,
-            study_note_subjects (
-              id,
-              is_primary,
-              subject_id
-            ),
-            study_note_final_exams (
-              id,
-              is_primary,
-              final_exam_id
-            )
-          `)
-          .eq("study_id", studyId)
-          .eq("is_public", true)
-          .order("last_modified_onedrive", { ascending: false, nullsFirst: false })
+        // Get all public study notes for this study (MongoDB has embedded linked_subjects/linked_final_exams)
+        const notesData = await fetchStudyNotes(studyId, true)
 
-        if (notesError) throw notesError
-
-        // Get all unique subject and final exam IDs
+        // Get all unique subject and final exam IDs from embedded arrays
         const subjectIds = new Set<string>()
         const finalExamIds = new Set<string>()
-        const typedNotesData = notesData as RawStudyNote[] | null
-        typedNotesData?.forEach((note: RawStudyNote) => {
-          note.study_note_subjects?.forEach((link: RawStudyNoteSubjectLink) => {
+        notesData?.forEach((note: any) => {
+          note.linked_subjects?.forEach((link: any) => {
             subjectIds.add(link.subject_id)
           })
-          note.study_note_final_exams?.forEach((link: RawStudyNoteFinalExamLink) => {
+          note.linked_final_exams?.forEach((link: any) => {
             finalExamIds.add(link.final_exam_id)
           })
         })
@@ -97,14 +53,8 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
         // Fetch subject details
         const subjectsMap = new Map<string, SubjectInfo>()
         if (subjectIds.size > 0) {
-          const { data: subjectsData, error: subjectsError } = await supabase
-            .from("subjects")
-            .select("id, name, study_id")
-            .in("id", Array.from(subjectIds))
-
-          if (subjectsError) throw subjectsError
-
-          subjectsData?.forEach((subject: SubjectInfo) => {
+          const subjectsData = await fetchSubjectsByIds(Array.from(subjectIds)) as SubjectInfo[]
+          subjectsData?.forEach((subject) => {
             subjectsMap.set(subject.id, subject)
           })
         }
@@ -112,29 +62,23 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
         // Fetch final exam details
         const finalExamsMap = new Map<string, FinalExamInfo>()
         if (finalExamIds.size > 0) {
-          const { data: finalExamsData, error: finalExamsError } = await supabase
-            .from("final_exams")
-            .select("id, name, shortcut, study_id")
-            .in("id", Array.from(finalExamIds))
-
-          if (finalExamsError) throw finalExamsError
-
-          finalExamsData?.forEach((exam: FinalExamInfo) => {
+          const finalExamsData = await fetchFinalExamsByIds(Array.from(finalExamIds)) as FinalExamInfo[]
+          finalExamsData?.forEach((exam) => {
             finalExamsMap.set(exam.id, exam)
           })
         }
 
         // Transform the data to include subject and final exam information
-        const transformedNotes: StudyNoteWithSubjects[] = typedNotesData?.map((note: RawStudyNote) => {
-          const subjectItems = note.study_note_subjects?.map((link: RawStudyNoteSubjectLink): StudyNoteSubject | null => {
+        const transformedNotes: StudyNoteWithSubjects[] = notesData?.map((note: any) => {
+          const subjectItems = note.linked_subjects?.map((link: any): StudyNoteSubject | null => {
             const subject = subjectsMap.get(link.subject_id)
             return subject ? {
               ...subject,
               is_primary: link.is_primary
             } : null
-          }).filter((x): x is StudyNoteSubject => x !== null) || []
+          }).filter((x: StudyNoteSubject | null): x is StudyNoteSubject => x !== null) || []
 
-          const examItems = note.study_note_final_exams?.map((link: RawStudyNoteFinalExamLink): StudyNoteSubject | null => {
+          const examItems = note.linked_final_exams?.map((link: any): StudyNoteSubject | null => {
             const exam = finalExamsMap.get(link.final_exam_id)
             return exam ? {
               id: exam.id,
@@ -143,7 +87,7 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
               is_primary: link.is_primary,
               is_final_exam: true
             } : null
-          }).filter((x): x is StudyNoteSubject => x !== null) || []
+          }).filter((x: StudyNoteSubject | null): x is StudyNoteSubject => x !== null) || []
 
           return {
             ...note,
@@ -158,9 +102,9 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
         setLoading(false)
       }
     }
-    
+
     loadStudyNotes()
-  }, [studyId, supabase])
+  }, [studyId])
 
   // Show only first 8 study notes in preview mode
   const displayedNotes = showAll ? studyNotes : studyNotes.slice(0, 8)

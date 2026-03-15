@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchFinalExams, deleteFinalExamAction, fetchFinalExamIdsWithNotes } from "@/lib/actions/final-exams"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Calendar, User, Users, Edit, Trash2, GraduationCap, ChevronDown, ChevronRight } from "lucide-react"
@@ -40,38 +40,24 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
   const [, setDeletingExamId] = useState<string | null>(null)
   const [expandedExamId, setExpandedExamId] = useState<string | null>(null)
   const [, setExamsWithNotes] = useState<Set<string>>(new Set())
-  const supabase = createClient()
 
   const loadFinalExams = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("final_exams")
-        .select("*")
-        .eq("study_id", studyId)
-        .order("created_at", { ascending: true })
-
-      if (error) throw error
+      const data = await fetchFinalExams(studyId) as FinalExam[]
       setFinalExams(data || [])
 
       // Check which exams have study notes
       if (data && data.length > 0) {
-        const examIds = data.map((exam: FinalExam) => exam.id)
-        const { data: notesData } = await supabase
-          .from("study_note_final_exams")
-          .select("final_exam_id")
-          .in("final_exam_id", examIds)
-
-        if (notesData) {
-          const examIdsWithNotes = new Set<string>(notesData.map((n: { final_exam_id: string }) => n.final_exam_id))
-          setExamsWithNotes(examIdsWithNotes)
-        }
+        const examIds = data.map((exam) => exam.id)
+        const idsWithNotes = await fetchFinalExamIdsWithNotes(examIds)
+        setExamsWithNotes(new Set<string>(idsWithNotes))
       }
     } catch (error) {
       console.error("Error loading final exams:", error)
     } finally {
       setLoading(false)
     }
-  }, [studyId, supabase])
+  }, [studyId])
 
   useEffect(() => {
     loadFinalExams()
@@ -79,13 +65,9 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("final_exams")
-        .delete()
-        .eq("id", id)
+      const { error } = await deleteFinalExamAction(id)
+      if (error) throw new Error(error.message)
 
-      if (error) throw error
-      
       await loadFinalExams()
       onUpdate?.()
     } catch (error) {

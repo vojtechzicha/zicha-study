@@ -20,9 +20,9 @@ zicha-study allows students to track their university studies, manage subjects, 
 ## Tech Stack
 
 - **Frontend:** Next.js, React, TypeScript
-- **Backend:** Supabase (PostgreSQL with Row Level Security)
+- **Backend:** MongoDB Atlas
 - **Styling:** Tailwind CSS with shadcn/ui components
-- **Authentication:** Supabase Auth + Microsoft OAuth (OneDrive)
+- **Authentication:** NextAuth.js v5 + Microsoft Entra ID (personal accounts)
 - **Deployment:** Vercel
 
 ## Development
@@ -30,8 +30,8 @@ zicha-study allows students to track their university studies, manage subjects, 
 ### Prerequisites
 
 - Node.js 18+ and pnpm
-- Supabase account and project
-- (Optional) Azure App Registration for OneDrive integration
+- MongoDB Atlas account and cluster
+- Azure App Registration for Microsoft login and OneDrive integration
 
 ### Setup
 

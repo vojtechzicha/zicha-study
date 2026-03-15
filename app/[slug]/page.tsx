@@ -1,4 +1,4 @@
-import { createServerDb } from "@/lib/supabase/db"
+import * as db from "@/lib/mongodb/db"
 import { PublicStudyView } from "@/components/public-study-view"
 import { notFound } from "next/navigation"
 import { RESERVED_ROUTES } from "@/lib/constants"
@@ -15,32 +15,20 @@ export default async function PublicStudyPage({ params }: PageProps) {
     notFound()
   }
 
-  const supabase = createServerDb()
-
   // Fetch study data
-  const { data: study, error: studyError } = await supabase
-    .from("studies")
-    .select("*")
-    .eq("public_slug", slug)
-    .eq("is_public", true)
-    .single()
+  const rawStudy = await db.getStudyBySlug(slug)
 
-  if (studyError || !study) {
+  if (!rawStudy) {
     notFound()
   }
+
+  const study = db.normalizeId(rawStudy)!
 
   // Fetch subjects data
-  const { data: subjects, error: subjectsError } = await supabase
-    .from("subjects")
-    .select("*")
-    .eq("study_id", study.id)
-    .order("semester", { ascending: true })
+  const rawSubjects = await db.getSubjectsByStudyId(study.id)
+  const subjects = db.normalizeIds(rawSubjects)
 
-  if (subjectsError) {
-    notFound()
-  }
-
-  return <PublicStudyView study={study} subjects={subjects || []} />
+  return <PublicStudyView study={study} subjects={subjects} />
 }
 
 export async function generateMetadata({ params }: PageProps) {
@@ -53,14 +41,8 @@ export async function generateMetadata({ params }: PageProps) {
     }
   }
 
-  const supabase = createServerDb()
-
-  const { data: study } = await supabase
-    .from("studies")
-    .select("name, public_description, type, form")
-    .eq("public_slug", slug)
-    .eq("is_public", true)
-    .single()
+  const rawStudy = await db.getStudyBySlugMetadata(slug, { name: 1, public_description: 1, type: 1, form: 1 })
+  const study = db.normalizeId(rawStudy)
 
   if (!study) {
     return {

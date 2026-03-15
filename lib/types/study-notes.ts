@@ -70,14 +70,14 @@ export interface StudyNoteFinalExamLink {
   linked_by?: string | null
 }
 
-// Raw link from Supabase query (subject_id instead of subject)
+// Raw link from denormalized array in study_notes document
 export interface RawStudyNoteSubjectLink {
   id: string
   is_primary: boolean
   subject_id: string
 }
 
-// Raw link from Supabase query (final_exam_id instead of final_exam)
+// Raw link from denormalized array in study_notes document
 export interface RawStudyNoteFinalExamLink {
   id: string
   is_primary: boolean
@@ -111,6 +111,10 @@ export interface StudyNoteSubject {
 
 // Extended study note with subject links
 export interface StudyNoteWithSubjects extends StudyNote {
+  // Denormalized arrays stored in MongoDB document
+  linked_subjects?: RawStudyNoteSubjectLink[]
+  linked_final_exams?: RawStudyNoteFinalExamLink[]
+  // Legacy Supabase join table fields (kept for compatibility)
   study_note_subjects?: StudyNoteSubjectLink[] | RawStudyNoteSubjectLink[]
   study_note_final_exams?: StudyNoteFinalExamLink[] | RawStudyNoteFinalExamLink[]
   subjects?: StudyNoteSubject[]

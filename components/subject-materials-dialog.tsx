@@ -20,14 +20,14 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { 
-  FileText, 
-  ExternalLink, 
-  Download, 
-  Trash2, 
-  Search, 
-  Globe, 
-  Plus, 
+import {
+  FileText,
+  ExternalLink,
+  Download,
+  Trash2,
+  Search,
+  Globe,
+  Plus,
   FolderOpen,
   AlertCircle,
   Copy,
@@ -43,7 +43,13 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createClient } from "@/lib/supabase/client"
+import {
+  fetchSubjectMaterials,
+  deleteSubjectMaterialAction,
+  updateSubjectMaterialAction,
+  checkSubjectMaterialSlug,
+} from "@/lib/actions/materials"
+import { fetchStudyNotesBySubjectId } from "@/lib/actions/study-notes"
 import { AddMaterialDialog } from "@/components/add-material-dialog"
 import type { SubjectMaterial } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
@@ -107,11 +113,11 @@ function formatDate(dateString: string | null): string {
   })
 }
 
-export function SubjectMaterialsDialog({ 
-  subject, 
+export function SubjectMaterialsDialog({
+  subject,
   study,
-  isOpen, 
-  onClose 
+  isOpen,
+  onClose
 }: SubjectMaterialsDialogProps) {
   const [materials, setMaterials] = useState<SubjectMaterial[]>([])
   const [noteCount, setNoteCount] = useState(0)
@@ -126,57 +132,45 @@ export function SubjectMaterialsDialog({
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const [publicLoading, setPublicLoading] = useState(false)
   const [publicError, setPublicError] = useState<string | null>(null)
-  const supabase = createClient()
 
   const loadMaterials = useCallback(async () => {
     if (!subject) return
-    
+
     setLoading(true)
     setError(null)
-    
+
     try {
       // If this is a repeated subject, fetch materials from the original subject
-      const subjectIdToFetch = subject.is_repeat && subject.repeats_subject_id 
-        ? subject.repeats_subject_id 
+      const subjectIdToFetch = subject.is_repeat && subject.repeats_subject_id
+        ? subject.repeats_subject_id
         : subject.id
 
-      const { data, error } = await supabase
-        .from("subject_materials")
-        .select("*")
-        .eq("subject_id", subjectIdToFetch)
-        .order("created_at", { ascending: false })
-
-      if (error) throw error
+      const data = await fetchSubjectMaterials(subjectIdToFetch) as SubjectMaterial[]
       setMaterials(data || [])
     } catch {
       setError("Nepodařilo se načíst materiály předmětu")
     } finally {
       setLoading(false)
     }
-  }, [subject, supabase])
+  }, [subject])
 
   const loadNoteCount = useCallback(async () => {
     if (!subject) return
-    
+
     try {
       // If this is a repeated subject, count notes from the original subject
-      const subjectIdToCount = subject.is_repeat && subject.repeats_subject_id 
-        ? subject.repeats_subject_id 
+      const subjectIdToCount = subject.is_repeat && subject.repeats_subject_id
+        ? subject.repeats_subject_id
         : subject.id
 
-      // Count all notes linked to this subject (both primary and linked)
-      const { count, error } = await supabase
-        .from("study_note_subjects")
-        .select("*", { count: "exact", head: true })
-        .eq("subject_id", subjectIdToCount)
-
-      if (error) throw error
-      setNoteCount(count || 0)
+      // Count notes linked to this subject by fetching them and checking length
+      const notes = await fetchStudyNotesBySubjectId(subjectIdToCount)
+      setNoteCount(notes?.length || 0)
     } catch (err) {
       console.error("Failed to load note count:", err)
       setNoteCount(0)
     }
-  }, [subject, supabase])
+  }, [subject])
 
   useEffect(() => {
     if (isOpen && subject) {
@@ -191,12 +185,8 @@ export function SubjectMaterialsDialog({
     }
 
     try {
-      const { error } = await supabase
-        .from("subject_materials")
-        .delete()
-        .eq("id", materialId)
-
-      if (error) throw error
+      const result = await deleteSubjectMaterialAction(materialId)
+      if (result.error) throw new Error(result.error.message)
 
       setMaterials(materials.filter(m => m.id !== materialId))
     } catch {
@@ -210,31 +200,14 @@ export function SubjectMaterialsDialog({
       return
     }
 
-    // Check both study materials and subject materials for slug uniqueness
-    const [studyMaterialsResult, subjectMaterialsResult] = await Promise.all([
-      supabase
-        .from("materials")
-        .select("id")
-        .eq("study_id", subject.study_id)
-        .eq("public_slug", slug)
-        .single(),
-      supabase
-        .from("subject_materials")
-        .select("id")
-        .eq("study_id", subject.study_id)
-        .eq("public_slug", slug)
-        .neq("id", materialId)
-        .single()
-    ])
-
-    const isAvailable = !studyMaterialsResult.data && !subjectMaterialsResult.data
+    const isAvailable = await checkSubjectMaterialSlug(subject.study_id, slug, materialId)
     setSlugAvailable(isAvailable)
   }
 
   const handleSlugChange = (value: string) => {
     const cleanSlug = cleanSlugInput(value)
     setPublicSlug(cleanSlug)
-    
+
     if (cleanSlug && cleanSlug.length >= 3 && publicDialogMaterial) {
       checkSlugAvailability(cleanSlug, publicDialogMaterial.id)
     } else {
@@ -246,12 +219,12 @@ export function SubjectMaterialsDialog({
     if (!material.is_public) {
       // Generate initial slug from material name
       const initialSlug = createSlug(material.name)
-      
+
       setPublicDialogMaterial(material)
       setPublicSlug(initialSlug)
       setPublicError(null)
       setShowPublicDialog(true)
-      
+
       if (initialSlug.length >= 3) {
         checkSlugAvailability(initialSlug, material.id)
       }
@@ -274,15 +247,15 @@ export function SubjectMaterialsDialog({
   const updatePublicStatus = async (materialId: string, isPublic: boolean, slug: string | null) => {
     setPublicLoading(true)
     setPublicError(null)
-    
+
     try {
       let publicShareUrl = null
-      
+
       if (isPublic) {
         // Find the material to get its OneDrive ID
         const material = materials.find(m => m.id === materialId)
         if (!material) throw new Error("Material not found")
-        
+
         // Generate public share link
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
@@ -293,32 +266,29 @@ export function SubjectMaterialsDialog({
             onedriveId: material.onedrive_id
           })
         })
-        
+
         if (!response.ok) {
           const errorData = await response.json()
-          
+
           // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
             throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
           }
-          
+
           throw new Error(errorData.error || "Failed to create public share link")
         }
-        
+
         const { shareUrl } = await response.json()
         publicShareUrl = shareUrl
       }
 
-      const { error } = await supabase
-        .from("subject_materials")
-        .update({
-          is_public: isPublic,
-          public_slug: slug,
-          public_share_url: publicShareUrl,
-        })
-        .eq("id", materialId)
+      const result = await updateSubjectMaterialAction(materialId, {
+        is_public: isPublic,
+        public_slug: slug,
+        public_share_url: publicShareUrl,
+      })
 
-      if (error) throw error
+      if (result.error) throw new Error(result.error.message)
       await loadMaterials()
     } catch (err) {
       setPublicError(err instanceof Error ? err.message : "Nepodařilo se aktualizovat publikování materiálu")
@@ -329,7 +299,7 @@ export function SubjectMaterialsDialog({
 
   const copyPublicUrl = async (material: SubjectMaterial) => {
     if (!study?.public_slug || !material.public_slug) return
-    
+
     const publicUrl = `${window.location.origin}/${study.public_slug}/${material.public_slug}`
     await navigator.clipboard.writeText(publicUrl)
     setCopied(material.id)
@@ -343,7 +313,7 @@ export function SubjectMaterialsDialog({
 
   const filteredMaterials = materials.filter((material) => {
     if (!searchQuery.trim()) return true
-    
+
     const query = searchQuery.toLowerCase().trim()
     const searchableFields = [
       material.name?.toLowerCase() || "",
@@ -381,7 +351,7 @@ export function SubjectMaterialsDialog({
                   Materiály ({materials.length})
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="notes" className="flex-1 overflow-auto">
                 {subject && (
                   <StudyNotesSection
@@ -392,7 +362,7 @@ export function SubjectMaterialsDialog({
                   />
                 )}
               </TabsContent>
-              
+
               <TabsContent value="materials" className="flex-1 flex flex-col space-y-4 overflow-hidden">
                 {error && (
                   <Alert variant="destructive">
@@ -445,8 +415,8 @@ export function SubjectMaterialsDialog({
                     {filteredMaterials.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center text-gray-500 py-8">
-                          {searchQuery 
-                            ? "Žádné materiály neodpovídají vyhledávání" 
+                          {searchQuery
+                            ? "Žádné materiály neodpovídají vyhledávání"
                             : materials.length === 0
                             ? "Zatím nejsou přidány žádné materiály k tomuto předmětu"
                             : "Žádné materiály nenalezeny"
@@ -529,7 +499,7 @@ export function SubjectMaterialsDialog({
                                       </a>
                                     </DropdownMenuItem>
                                   )}
-                                  
+
                                   {study?.is_public && (
                                     <>
                                       {material.onedrive_download_url && <DropdownMenuSeparator />}
@@ -545,7 +515,7 @@ export function SubjectMaterialsDialog({
                                       )}
                                     </>
                                   )}
-                                  
+
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     onClick={() => handleDelete(material.id)}
@@ -640,13 +610,13 @@ export function SubjectMaterialsDialog({
             {/* URL Preview - Always Visible When Slug Exists */}
             {publicSlug && (
               <div className={`p-4 rounded-lg border ${
-                slugAvailable === true ? 'bg-primary-50 border-primary-200' : 
-                slugAvailable === false ? 'bg-red-50 border-red-200' : 
+                slugAvailable === true ? 'bg-primary-50 border-primary-200' :
+                slugAvailable === false ? 'bg-red-50 border-red-200' :
                 'bg-primary-50 border-primary-200'
               }`}>
                 <Label className={`text-sm font-medium ${
-                  slugAvailable === true ? 'text-primary-900' : 
-                  slugAvailable === false ? 'text-red-900' : 
+                  slugAvailable === true ? 'text-primary-900' :
+                  slugAvailable === false ? 'text-red-900' :
                   'text-gray-700'
                 }`}>
                   Veřejná URL adresa:

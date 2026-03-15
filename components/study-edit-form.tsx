@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { updateStudy, deleteStudyAction } from "@/lib/actions/studies"
+import { uploadLogo, removeLogo as removeLogoAction } from "@/lib/actions/logos"
 import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, type StudyStatus } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -73,7 +74,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
   const router = useRouter()
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,55 +106,26 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     setError(null)
 
     try {
-      let logoUrl = study.logo_url
+      let logoUrl: string | undefined = study.logo_url
 
       // Upload new logo if provided
       if (logoFile) {
-        const fileExt = logoFile.name.split(".").pop()
-        const fileName = `logos/${study.id}-${Date.now()}.${fileExt}`
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("study-logos")
-          .upload(fileName, logoFile)
-
-        if (uploadError) throw uploadError
-
-        const { data: urlData } = supabase.storage.from("study-logos").getPublicUrl(uploadData.path)
-        logoUrl = urlData.publicUrl
-
-        // Delete old logo if it exists
-        if (study.logo_url) {
-          const urlParts = study.logo_url.split("/")
-          const bucketIndex = urlParts.findIndex(part => part === "study-logos")
-          if (bucketIndex !== -1 && bucketIndex + 1 < urlParts.length) {
-            const oldPath = urlParts.slice(bucketIndex + 1).join("/")
-            await supabase.storage.from("study-logos").remove([oldPath])
-          }
-        }
+        const arrayBuffer = await logoFile.arrayBuffer()
+        logoUrl = await uploadLogo(study.id, arrayBuffer, logoFile.type)
       } else if (logoPreview === null && study.logo_url) {
         // Remove logo if user cleared it
-        const urlParts = study.logo_url.split("/")
-        const bucketIndex = urlParts.findIndex(part => part === "study-logos")
-        if (bucketIndex !== -1 && bucketIndex + 1 < urlParts.length) {
-          const oldPath = urlParts.slice(bucketIndex + 1).join("/")
-          await supabase.storage.from("study-logos").remove([oldPath])
-        }
+        await removeLogoAction(study.id)
         logoUrl = undefined
       }
 
-      const { error: updateError } = await supabase
-        .from("studies")
-        .update({
-          ...formData,
-          end_year: formData.end_year || null,
-          logo_url: logoUrl,
-          // Store as null if empty, otherwise as time string
-          earliest_arrival_time: formData.earliest_arrival_time || null,
-          is_url: formData.is_url || null,
-        })
-        .eq("id", study.id)
-
-      if (updateError) throw updateError
+      await updateStudy(study.id, {
+        ...formData,
+        end_year: formData.end_year || null,
+        logo_url: logoUrl,
+        // Store as null if empty, otherwise as time string
+        earliest_arrival_time: formData.earliest_arrival_time || null,
+        is_url: formData.is_url || null,
+      })
 
       onSuccess()
     } catch (err) {
@@ -170,31 +141,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     setError(null)
 
     try {
-      // First delete all subjects
-      const { error: subjectsError } = await supabase
-        .from("subjects")
-        .delete()
-        .eq("study_id", study.id)
-
-      if (subjectsError) throw subjectsError
-
-      // Delete the logo from storage if it exists
-      if (study.logo_url) {
-        const urlParts = study.logo_url.split("/")
-        const bucketIndex = urlParts.findIndex(part => part === "study-logos")
-        if (bucketIndex !== -1 && bucketIndex + 1 < urlParts.length) {
-          const logoPath = urlParts.slice(bucketIndex + 1).join("/")
-          await supabase.storage.from("study-logos").remove([logoPath])
-        }
-      }
-
-      // Then delete the study
-      const { error: studyError } = await supabase
-        .from("studies")
-        .delete()
-        .eq("id", study.id)
-
-      if (studyError) throw studyError
+      await deleteStudyAction(study.id)
 
       // Navigate back to dashboard
       router.push("/")

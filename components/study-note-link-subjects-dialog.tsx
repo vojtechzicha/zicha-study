@@ -14,7 +14,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { createClient } from "@/lib/supabase/client"
+import {
+  linkSubjectToNoteAction,
+  linkFinalExamToNoteAction,
+  unlinkSubjectFromNoteAction,
+  unlinkFinalExamFromNoteAction,
+  fetchLinkedSubjectIds,
+  fetchLinkedFinalExamIds,
+} from "@/lib/actions/study-notes"
+import { fetchSubjectsByStudyId, fetchSubject } from "@/lib/actions/subjects"
+import { fetchFinalExams, fetchFinalExamsByIds } from "@/lib/actions/final-exams"
 import { Link, Unlink, AlertCircle } from "lucide-react"
 import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
 
@@ -43,6 +52,8 @@ interface DbSubject {
   completed: boolean
   planned: boolean
   subject_type: string
+  is_repeat?: boolean
+  [key: string]: unknown
 }
 
 interface DbFinalExam {
@@ -50,6 +61,7 @@ interface DbFinalExam {
   name: string
   shortcut: string
   study_id: string
+  [key: string]: unknown
 }
 
 export function StudyNoteLinkSubjectsDialog({
@@ -63,37 +75,27 @@ export function StudyNoteLinkSubjectsDialog({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [linkedFinalExams, setLinkedFinalExams] = useState<AvailableSubject[]>([])
-  const supabase = createClient()
 
   const loadAvailableSubjects = useCallback(async () => {
     try {
       let studyId: string
-      let studyName: string
-      
-      // Check if the primary is a final exam or subject
-      const { data: finalExamLinks } = await supabase
-        .from("study_note_final_exams")
-        .select("final_exam_id, is_primary")
-        .eq("study_note_id", note.id)
-        .eq("is_primary", true)
-        .single()
-      
-      if (finalExamLinks) {
-        // Primary is a final exam, get study_id from final_exams table
-        const { data: examData, error: examError } = await supabase
-          .from("final_exams")
-          .select("study_id, studies(id, name)")
-          .eq("id", finalExamLinks.final_exam_id)
-          .single()
-          
-        if (examError) throw examError
-        if (!examData?.study_id) {
+      let studyName: string = ""
+
+      // Determine the study from the note's linked data
+      // Check if the primary is a final exam or subject using denormalized arrays
+      const linkedFinalExamEntries = (note as any).linked_final_exams || []
+      const primaryFinalExamEntry = linkedFinalExamEntries.find((e: { is_primary: boolean }) => e.is_primary)
+
+      if (primaryFinalExamEntry) {
+        // Primary is a final exam, get study_id from final_exams
+        const finalExamIds = [primaryFinalExamEntry.final_exam_id]
+        const examData = await fetchFinalExamsByIds(finalExamIds)
+        if (!examData || examData.length === 0) {
           setError("Nepodařilo se najít studium pro státní zkoušku")
           return
         }
-        
-        studyId = examData.study_id
-        studyName = examData.studies?.name || "Neznámé studium"
+        studyId = examData[0].study_id
+        studyName = "" // We'll use study_id to fetch the study name if needed
       } else {
         // Primary is a regular subject
         const primarySubject = note.subjects?.find(s => s.is_primary)
@@ -103,57 +105,28 @@ export function StudyNoteLinkSubjectsDialog({
         }
 
         // Get the study info for the primary subject
-        const { data: subjectData, error: subjectError } = await supabase
-          .from("subjects")
-          .select("study_id, studies(id, name)")
-          .eq("id", primarySubject.id)
-          .single()
-
-        if (subjectError) throw subjectError
+        const subjectData = await fetchSubject(primarySubject.id)
         if (!subjectData?.study_id) {
           setError("Nepodařilo se najít studium pro hlavní předmět")
           return
         }
 
         studyId = subjectData.study_id
-        studyName = subjectData.studies?.name || "Neznámé studium"
+        studyName = "" // Study name not critical for this UI
       }
 
       // Get all subjects from the same study (excluding repeated subjects)
-      const { data: allSubjects, error: subjectsError } = await supabase
-        .from("subjects")
-        .select("id, name, study_id, semester, completed, planned, subject_type")
-        .eq("study_id", studyId)
-        .eq("is_repeat", false)
+      const allSubjects = await fetchSubjectsByStudyId(studyId) as DbSubject[]
 
-      if (subjectsError) throw subjectsError
-      
       // Get all final exams from the same study
-      const { data: allFinalExams, error: finalExamsError } = await supabase
-        .from("final_exams")
-        .select("id, name, shortcut, study_id")
-        .eq("study_id", studyId)
+      const allFinalExams = await fetchFinalExams(studyId) as DbFinalExam[]
 
-      if (finalExamsError) throw finalExamsError
+      // Get already linked subject IDs and final exam IDs
+      const linkedSubjectIdsList = await fetchLinkedSubjectIds(note.id)
+      const linkedFinalExamIdsList = await fetchLinkedFinalExamIds(note.id)
 
-      // Get already linked subjects
-      const { data: linkedSubjects, error: linkedError } = await supabase
-        .from("study_note_subjects")
-        .select("subject_id")
-        .eq("study_note_id", note.id)
-
-      if (linkedError && linkedError.code !== 'PGRST116') throw linkedError
-
-      // Get already linked final exams
-      const { data: linkedFinalExams, error: linkedFinalError } = await supabase
-        .from("study_note_final_exams")
-        .select("final_exam_id")
-        .eq("study_note_id", note.id)
-
-      if (linkedFinalError && linkedFinalError.code !== 'PGRST116') throw linkedFinalError
-
-      const linkedSubjectIds = new Set(linkedSubjects?.map((ls: { subject_id: string }) => ls.subject_id) || [])
-      const linkedFinalExamIds = new Set(linkedFinalExams?.map((lf: { final_exam_id: string }) => lf.final_exam_id) || [])
+      const linkedSubjectIdsSet = new Set(linkedSubjectIdsList || [])
+      const linkedFinalExamIdsSet = new Set(linkedFinalExamIdsList || [])
 
       // Helper functions for sorting (matching study detail page)
       const getStatusPriority = (subject: DbSubject) => {
@@ -182,9 +155,9 @@ export function StudyNoteLinkSubjectsDialog({
         return typeOrders[type] || 5
       }
 
-      // Filter out already linked subjects and sort them
-      const availableSubjects = ((allSubjects || []) as DbSubject[])
-        .filter((subject: DbSubject) => !linkedSubjectIds.has(subject.id))
+      // Filter out already linked subjects and repeated subjects, then sort them
+      const availableSubjectsList = (allSubjects || [])
+        .filter((subject: DbSubject) => !linkedSubjectIdsSet.has(subject.id) && !subject.is_repeat)
         .sort((a: DbSubject, b: DbSubject) => {
           // First sort by status priority
           const aStatusPriority = getStatusPriority(a)
@@ -220,8 +193,8 @@ export function StudyNoteLinkSubjectsDialog({
         }))
 
       // Filter out already linked final exams
-      const availableFinalExams = ((allFinalExams || []) as DbFinalExam[])
-        .filter((exam: DbFinalExam) => !linkedFinalExamIds.has(exam.id))
+      const availableFinalExamsList = (allFinalExams || [])
+        .filter((exam: DbFinalExam) => !linkedFinalExamIdsSet.has(exam.id))
         .sort((a: DbFinalExam, b: DbFinalExam) => a.name.localeCompare(b.name, "cs"))
         .map((exam: DbFinalExam) => ({
           id: exam.id,
@@ -233,45 +206,35 @@ export function StudyNoteLinkSubjectsDialog({
         }))
 
       // Combine subjects and final exams
-      const available = [...availableSubjects, ...availableFinalExams]
+      const available = [...availableSubjectsList, ...availableFinalExamsList]
 
       setAvailableSubjects(available)
     } catch (err) {
       console.error("Failed to load available subjects:", err)
       setError("Nepodařilo se načíst dostupné předměty")
     }
-  }, [note, supabase])
+  }, [note])
 
   const loadLinkedFinalExams = useCallback(async () => {
     try {
-      // Get the linked final exams for this note
-      const { data: links, error: linksError } = await supabase
-        .from("study_note_final_exams")
-        .select("final_exam_id, is_primary")
-        .eq("study_note_id", note.id)
+      // Get the linked final exam IDs for this note from denormalized data
+      const linkedFinalExamEntries = (note as any).linked_final_exams || []
 
-      if (linksError && linksError.code !== 'PGRST116') throw linksError
-
-      if (links && links.length > 0) {
+      if (linkedFinalExamEntries.length > 0) {
         // Get the final exam details
-        const finalExamIds = links.map((l: { final_exam_id: string }) => l.final_exam_id)
-        const { data: finalExams, error: examsError } = await supabase
-          .from("final_exams")
-          .select("id, name, shortcut")
-          .in("id", finalExamIds)
+        const finalExamIds = linkedFinalExamEntries.map((l: { final_exam_id: string }) => l.final_exam_id)
+        const finalExams = await fetchFinalExamsByIds(finalExamIds)
 
-        if (examsError) throw examsError
+        type FinalExamRow = { id: string; name: string; shortcut?: string | null; study_id: string }
+        const examsMap = new Map<string, FinalExamRow>()
+        ;(finalExams as FinalExamRow[] || []).forEach((e) => { examsMap.set(e.id, e) })
 
-        type FinalExamRow = { id: string; name: string; shortcut: string | null }
-        type LinkRow = { final_exam_id: string; is_primary: boolean }
-        const examsMap = new Map<string, FinalExamRow>(finalExams?.map((e: FinalExamRow) => [e.id, e]) || [])
-
-        const linkedExams = links.map((link: LinkRow) => {
+        const linkedExams = linkedFinalExamEntries.map((link: { final_exam_id: string; is_primary: boolean }) => {
           const exam = examsMap.get(link.final_exam_id)
           return exam ? {
             id: exam.id,
             name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
-            study_id: "", // Not needed for display
+            study_id: exam.study_id || "",
             study_name: "",
             semester: "Státní zkouška",
             is_final_exam: true,
@@ -286,7 +249,7 @@ export function StudyNoteLinkSubjectsDialog({
     } catch (err) {
       console.error("Failed to load linked final exams:", err)
     }
-  }, [note.id, supabase])
+  }, [note])
 
   const loadData = useCallback(async () => {
     await loadLinkedFinalExams()
@@ -317,29 +280,9 @@ export function StudyNoteLinkSubjectsDialog({
         const selectedItem = availableSubjects.find(s => s.id === itemId)
 
         if (selectedItem?.is_final_exam) {
-          // Link to final exam
-          const { error } = await supabase
-            .from("study_note_final_exams")
-            .insert({
-              study_note_id: note.id,
-              final_exam_id: itemId,
-              is_primary: false,
-              linked_by: null
-            })
-
-          if (error && error.code !== '23505') throw error
+          await linkFinalExamToNoteAction(note.id, itemId, false)
         } else {
-          // Link to regular subject
-          const { error } = await supabase
-            .from("study_note_subjects")
-            .insert({
-              study_note_id: note.id,
-              subject_id: itemId,
-              is_primary: false,
-              linked_by: null
-            })
-
-          if (error && error.code !== '23505') throw error
+          await linkSubjectToNoteAction(note.id, itemId, false)
         }
       }
 
@@ -360,49 +303,27 @@ export function StudyNoteLinkSubjectsDialog({
 
     try {
       if (isFinalExam) {
-        // Check if this is primary for final exam
-        const { data: linkData } = await supabase
-          .from("study_note_final_exams")
-          .select("is_primary")
-          .eq("study_note_id", note.id)
-          .eq("final_exam_id", subjectId)
-          .single()
+        // Check if this is primary for final exam using denormalized data
+        const linkedFinalExamEntries = (note as any).linked_final_exams || []
+        const linkData = linkedFinalExamEntries.find((l: { final_exam_id: string }) => l.final_exam_id === subjectId)
 
         if (linkData?.is_primary) {
           throw new Error("Nelze odpojit hlavní státní zkoušku")
         }
 
-        // Delete the final exam link
-        const { error } = await supabase
-          .from("study_note_final_exams")
-          .delete()
-          .eq("study_note_id", note.id)
-          .eq("final_exam_id", subjectId)
-
-        if (error) throw error
+        await unlinkFinalExamFromNoteAction(note.id, subjectId)
       } else {
-        // Check if this is the primary subject
-        const { data: linkData } = await supabase
-          .from("study_note_subjects")
-          .select("is_primary")
-          .eq("study_note_id", note.id)
-          .eq("subject_id", subjectId)
-          .single()
+        // Check if this is the primary subject using denormalized data
+        const linkedSubjectEntries = (note as any).linked_subjects || []
+        const linkData = linkedSubjectEntries.find((l: { subject_id: string }) => l.subject_id === subjectId)
 
         if (linkData?.is_primary) {
           throw new Error("Nelze odpojit hlavní předmět")
         }
 
-        // Delete the subject link
-        const { error } = await supabase
-          .from("study_note_subjects")
-          .delete()
-          .eq("study_note_id", note.id)
-          .eq("subject_id", subjectId)
-
-        if (error) throw error
+        await unlinkSubjectFromNoteAction(note.id, subjectId)
       }
-      
+
       onUpdate()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nepodařilo se odpojit od předmětu")

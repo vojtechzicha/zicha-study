@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { updateSubject } from "@/lib/actions/subjects"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,7 +47,6 @@ export function SubjectCompletionModal({
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   // Determine current state based on subject properties
   const currentState = subject.planned ? "planned" : subject.completed ? "completed" : "active"
@@ -88,12 +87,9 @@ export function SubjectCompletionModal({
       }
     }
 
-    const { error } = await supabase
-      .from("subjects")
-      .update(updates)
-      .eq("id", subject.id)
+    const result = await updateSubject(subject.id, updates)
 
-    if (error) {
+    if (result.error) {
       setError("Chyba při ukládání. Zkuste to prosím znovu.")
       setLoading(false)
     } else {

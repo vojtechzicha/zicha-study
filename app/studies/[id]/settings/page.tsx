@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react"
 import { useSession } from "next-auth/react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchStudy } from "@/lib/actions/studies"
 import { StudySettings } from "@/components/study-settings"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -28,7 +28,6 @@ export default function StudySettingsPage({ params }: { params: Promise<{ id: st
   const [study, setStudy] = useState<Study | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const supabase = createClient()
   const router = useRouter()
   useFavicon(study?.logo_url)
 
@@ -42,14 +41,10 @@ export default function StudySettingsPage({ params }: { params: Promise<{ id: st
   useEffect(() => {
     if (status !== "authenticated") return
 
-    const fetchStudy = async () => {
-      const { data, error } = await supabase
-        .from("studies")
-        .select("*")
-        .eq("id", id)
-        .single()
+    const loadStudy = async () => {
+      const data = await fetchStudy(id)
 
-      if (error || !data) {
+      if (!data) {
         setNotFound(true)
       } else {
         setStudy(data)
@@ -57,8 +52,8 @@ export default function StudySettingsPage({ params }: { params: Promise<{ id: st
       setLoading(false)
     }
 
-    fetchStudy()
-  }, [id, supabase, status])
+    loadStudy()
+  }, [id, status])
 
   if (status === "loading" || loading) {
     return (

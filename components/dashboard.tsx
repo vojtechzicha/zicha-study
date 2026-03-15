@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import type { User } from "next-auth"
 import { signOut } from "next-auth/react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchStudies } from "@/lib/actions/studies"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -25,24 +25,20 @@ export function Dashboard({ user }: DashboardProps) {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
-  const supabase = createClient()
   const router = useRouter()
   const { toast } = useToast()
 
-  const fetchStudies = useCallback(async () => {
-    const { data, error } = await supabase.from("studies").select("*")
-
-    if (!error && data) {
-      // Sort studies by status priority, then by created_at
-      const sortedStudies = sortStudiesByStatus(data)
-      setStudies(sortedStudies)
-    }
+  const loadStudies = useCallback(async () => {
+    const data = await fetchStudies()
+    // Sort studies by status priority, then by created_at
+    const sortedStudies = sortStudiesByStatus(data)
+    setStudies(sortedStudies)
     setLoading(false)
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
-    fetchStudies()
-  }, [fetchStudies])
+    loadStudies()
+  }, [loadStudies])
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" })

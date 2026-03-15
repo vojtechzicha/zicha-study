@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { createServerDb } from "@/lib/supabase/db"
+import * as db from "@/lib/mongodb/db"
 import { redirect, notFound } from "next/navigation"
 import { Loader2, FileText, ArrowLeft, Globe, AlertCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -12,109 +12,75 @@ interface PageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-// Type for Supabase linked subjects query result
-interface LinkedSubjectResult {
-  subject_id: string
-  is_primary: boolean
-  subjects: {
-    id: string
-    name: string
-    abbreviation: string | null
-    study_id: string
-  }
-}
-
-// Type for metadata linked subjects query result
-interface MetadataLinkedSubjectResult {
-  is_primary: boolean
-  subjects: {
-    name: string
-    abbreviation: string | null
-  }
-}
-
 export default async function PublicMaterialPage({ params, searchParams }: PageProps) {
   const { slug, materialSlug } = await params
   const search = await searchParams
-  const supabase = createServerDb()
 
-  // First, get the study by public slug
-  const { data: study, error: studyError } = await supabase
-    .from("studies")
-    .select("id, name, is_public, public_slug, logo_url")
-    .eq("public_slug", slug)
-    .eq("is_public", true)
-    .single()
+  // First, get the study by public slug (with specific fields)
+  const rawStudy = await db.getStudyBySlugMetadata(slug, { name: 1, is_public: 1, public_slug: 1, logo_url: 1 })
 
-  if (studyError || !study) {
+  if (!rawStudy) {
     notFound()
   }
 
+  const study = db.normalizeId(rawStudy)!
+
   // Try to find the item in study materials, subject materials, and study notes
-  const [studyMaterialResult, subjectMaterialResult, studyNoteResult] = await Promise.all([
-    supabase
-      .from("materials")
-      .select("*")
-      .eq("study_id", study.id)
-      .eq("public_slug", materialSlug)
-      .eq("is_public", true)
-      .single(),
-    supabase
-      .from("subject_materials")
-      .select("*, subjects(name, abbreviation)")
-      .eq("study_id", study.id)
-      .eq("public_slug", materialSlug)
-      .eq("is_public", true)
-      .single(),
-    supabase
-      .from("study_notes")
-      .select("*")
-      .eq("study_id", study.id)
-      .eq("public_slug", materialSlug)
-      .eq("is_public", true)
-      .single()
+  const [rawStudyMaterial, rawSubjectMaterial, rawStudyNote] = await Promise.all([
+    db.getMaterialBySlug(study.id, materialSlug),
+    db.getSubjectMaterialBySlug(study.id, materialSlug),
+    db.getPublicStudyNoteBySlug(materialSlug, study.id)
   ])
 
-  const material = studyMaterialResult.data || subjectMaterialResult.data
-  const studyNote = studyNoteResult.data
-  const isSubjectMaterial = !!subjectMaterialResult.data
+  const studyMaterial = rawStudyMaterial ? db.normalizeId(rawStudyMaterial) : null
+  const subjectMaterial = rawSubjectMaterial ? db.normalizeId(rawSubjectMaterial) : null
+  const studyNote = rawStudyNote ? db.normalizeId(rawStudyNote) : null
+  const isSubjectMaterial = !!subjectMaterial
   const isStudyNote = !!studyNote
 
   // If it's a study note, render the note display instead
-  if (isStudyNote) {
-    // Get all linked subjects for this study note
-    const { data: linkedSubjectsRaw } = await supabase
-      .from("study_note_subjects")
-      .select(`
-        subject_id,
-        is_primary,
-        subjects!inner (
-          id,
-          name,
-          abbreviation,
-          study_id
-        )
-      `)
-      .eq("study_note_id", studyNote.id)
-      .order("is_primary", { ascending: false })
+  if (isStudyNote && studyNote) {
+    // Get linked subjects from the denormalized array on the study note
+    const linkedSubjectsData = (rawStudyNote as any)?.linked_subjects || []
 
-    const linkedSubjects = linkedSubjectsRaw as LinkedSubjectResult[] | null
+    // Fetch actual subject details for all linked subjects
+    const linkedSubjectIds = linkedSubjectsData.map((link: { subject_id: string }) => link.subject_id)
+    const rawSubjects = linkedSubjectIds.length > 0
+      ? await db.getSubjectsByIds(linkedSubjectIds)
+      : []
+    const subjects = db.normalizeIds(rawSubjects)
+
+    // Build subject map for easy lookup
+    const subjectMap = new Map(subjects.map(s => [s.id, s]))
+
+    // Sort: primary first, then others
+    const sortedLinks = [...linkedSubjectsData].sort(
+      (a: { is_primary: boolean }, b: { is_primary: boolean }) =>
+        (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0)
+    )
 
     // Find the primary subject for display
-    const primarySubjectLink = linkedSubjects?.find(link => link.is_primary)
-    const primarySubject = primarySubjectLink ? {
-      id: primarySubjectLink.subjects.id,
-      name: primarySubjectLink.subjects.name,
-      abbreviation: primarySubjectLink.subjects.abbreviation
+    const primaryLink = sortedLinks.find((link: { is_primary: boolean }) => link.is_primary)
+    const primarySubjectData = primaryLink ? subjectMap.get(primaryLink.subject_id) : null
+    const primarySubject = primarySubjectData ? {
+      id: primarySubjectData.id,
+      name: primarySubjectData.name,
+      abbreviation: (primarySubjectData as any).abbreviation
     } : null
 
     // Get all subjects for display in the header
-    const allSubjects = linkedSubjects?.map(link => ({
-      id: link.subjects.id,
-      name: link.subjects.name,
-      abbreviation: link.subjects.abbreviation,
-      is_primary: link.is_primary
-    })) || []
+    const allSubjects = sortedLinks
+      .map((link: { subject_id: string; is_primary: boolean }) => {
+        const subj = subjectMap.get(link.subject_id)
+        if (!subj) return null
+        return {
+          id: subj.id,
+          name: subj.name,
+          abbreviation: (subj as any).abbreviation,
+          is_primary: link.is_primary
+        }
+      })
+      .filter(Boolean) as { id: string; name: string; abbreviation: string | null; is_primary: boolean }[]
 
     const { StudyNoteDisplay } = await import("@/components/study-note-display")
     return (
@@ -132,8 +98,22 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
     )
   }
 
+  const material = studyMaterial || subjectMaterial
+
   if (!material) {
     notFound()
+  }
+
+  // For subject materials, fetch the subject info
+  let subjectInfo: { name: string; abbreviation: string | null } | null = null
+  if (isSubjectMaterial && subjectMaterial && (subjectMaterial as any).subject_id) {
+    const rawSubject = await db.getSubjectById((subjectMaterial as any).subject_id)
+    if (rawSubject) {
+      subjectInfo = {
+        name: (rawSubject as any).name,
+        abbreviation: (rawSubject as any).abbreviation
+      }
+    }
   }
 
   // Use the stored public share URL
@@ -141,8 +121,8 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
   let shareError: string | null = null
 
   try {
-    if (material.public_share_url) {
-      shareUrl = material.public_share_url
+    if ((material as any).public_share_url) {
+      shareUrl = (material as any).public_share_url
     } else {
       shareError = "Veřejný odkaz pro tento materiál není dostupný"
     }
@@ -200,8 +180,8 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
             <h1 className="text-2xl font-bold text-gray-900">Veřejný materiál</h1>
           </div>
           <p className="text-gray-600">
-            {isSubjectMaterial
-              ? `Materiál z předmětu ${(material as any).subjects?.abbreviation || (material as any).subjects?.name} (${study.name})`
+            {isSubjectMaterial && subjectInfo
+              ? `Materiál z předmětu ${subjectInfo.abbreviation || subjectInfo.name} (${study.name})`
               : `Materiál ze studia ${study.name}`
             }
           </p>
@@ -212,27 +192,27 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
           <CardContent className="p-8">
             <div className="flex items-start gap-6">
               <div className="flex-shrink-0 p-4 bg-primary-50 rounded-xl">
-                {getFileIcon(material.file_extension)}
+                {getFileIcon((material as any).file_extension)}
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{material.name}</h2>
-                <p className="text-sm text-gray-600 mb-2">Soubor: {material.file_name}</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{(material as any).name}</h2>
+                <p className="text-sm text-gray-600 mb-2">Soubor: {(material as any).file_name}</p>
 
                 <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                  {material.category && (
+                  {(material as any).category && (
                     <span className="bg-primary-100 px-2 py-1 rounded">
-                      {material.category}
+                      {(material as any).category}
                     </span>
                   )}
-                  {material.file_size && (
-                    <span>{formatFileSize(material.file_size)}</span>
+                  {(material as any).file_size && (
+                    <span>{formatFileSize((material as any).file_size)}</span>
                   )}
                 </div>
 
-                {material.description && (
+                {(material as any).description && (
                   <div className="mb-6">
                     <h3 className="text-sm font-medium text-gray-900 mb-2">Popis</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">{material.description}</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">{(material as any).description}</p>
                   </div>
                 )}
 
@@ -271,86 +251,81 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug, materialSlug } = await params
-  const supabase = createServerDb()
 
   // First, get the study by public slug
-  const { data: study } = await supabase
-    .from("studies")
-    .select("id, name")
-    .eq("public_slug", slug)
-    .eq("is_public", true)
-    .single()
+  const rawStudy = await db.getStudyBySlugMetadata(slug, { name: 1 })
+  const study = db.normalizeId(rawStudy)
 
   if (!study) {
     return { title: "Nenalezeno" }
   }
 
   // Check if it's a study note
-  const { data: note } = await supabase
-    .from("study_notes")
-    .select(`
-      id,
-      name,
-      description
-    `)
-    .eq("study_id", study.id)
-    .eq("public_slug", materialSlug)
-    .eq("is_public", true)
-    .single()
+  const rawNote = await db.getPublicStudyNoteBySlug(materialSlug, study.id)
 
-  if (note) {
-    // Get all linked subjects
-    const { data: linkedSubjectsRaw } = await supabase
-      .from("study_note_subjects")
-      .select(`
-        is_primary,
-        subjects!inner (
-          name,
-          abbreviation
-        )
-      `)
-      .eq("study_note_id", note.id)
-      .order("is_primary", { ascending: false })
+  if (rawNote) {
+    const note = db.normalizeId(rawNote)!
 
-    const linkedSubjects = linkedSubjectsRaw as MetadataLinkedSubjectResult[] | null
-    const subjects = linkedSubjects?.map(link => link.subjects) || []
-    const primarySubject = linkedSubjects?.find(link => link.is_primary)?.subjects
+    // Get linked subjects from the denormalized array
+    const linkedSubjectsData = (rawNote as any).linked_subjects || []
 
-    const subjectNames = subjects.length > 0
-      ? subjects.map(s => s.abbreviation || s.name).join(", ")
+    // Fetch actual subject details
+    const linkedSubjectIds = linkedSubjectsData.map((link: { subject_id: string }) => link.subject_id)
+    const rawSubjects = linkedSubjectIds.length > 0
+      ? await db.getSubjectsByIds(linkedSubjectIds)
+      : []
+    const subjects = db.normalizeIds(rawSubjects)
+    const subjectMap = new Map(subjects.map(s => [s.id, s]))
+
+    // Sort: primary first
+    const sortedLinks = [...linkedSubjectsData].sort(
+      (a: { is_primary: boolean }, b: { is_primary: boolean }) =>
+        (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0)
+    )
+
+    const allSubjects = sortedLinks
+      .map((link: { subject_id: string }) => subjectMap.get(link.subject_id))
+      .filter(Boolean) as { id: string; name: string; abbreviation?: string | null }[]
+
+    const primaryLink = sortedLinks.find((link: { is_primary: boolean }) => link.is_primary)
+    const primarySubject = primaryLink ? subjectMap.get(primaryLink.subject_id) : null
+
+    const subjectNames = allSubjects.length > 0
+      ? allSubjects.map(s => (s as any).abbreviation || s.name).join(", ")
       : "Neznámý předmět"
 
     return {
-      title: `${note.name} - ${primarySubject?.abbreviation || subjectNames}`,
-      description: note.description || `Studijní poznámka k předmětům: ${subjects.map(s => s.name).join(", ")}`,
+      title: `${(note as any).name} - ${(primarySubject as any)?.abbreviation || subjectNames}`,
+      description: (note as any).description || `Studijní poznámka k předmětům: ${allSubjects.map(s => s.name).join(", ")}`,
     }
   }
 
   // Check if it's a material
-  const [studyMaterialResult, subjectMaterialResult] = await Promise.all([
-    supabase
-      .from("materials")
-      .select("name, description")
-      .eq("study_id", study.id)
-      .eq("public_slug", materialSlug)
-      .eq("is_public", true)
-      .single(),
-    supabase
-      .from("subject_materials")
-      .select("name, description, subjects(name, abbreviation)")
-      .eq("study_id", study.id)
-      .eq("public_slug", materialSlug)
-      .eq("is_public", true)
-      .single()
+  const [rawStudyMaterial, rawSubjectMaterial] = await Promise.all([
+    db.getMaterialBySlug(study.id, materialSlug),
+    db.getSubjectMaterialBySlug(study.id, materialSlug)
   ])
 
-  const material = studyMaterialResult.data || subjectMaterialResult.data
+  const studyMaterialData = rawStudyMaterial ? db.normalizeId(rawStudyMaterial) : null
+  const subjectMaterialData = rawSubjectMaterial ? db.normalizeId(rawSubjectMaterial) : null
+  const material = studyMaterialData || subjectMaterialData
 
   if (material) {
-    const subjectInfo = subjectMaterialResult.data?.subjects as { name: string; abbreviation: string } | undefined
+    // For subject materials, fetch subject info separately
+    let subjectInfo: { name: string; abbreviation: string } | undefined
+    if (subjectMaterialData && (subjectMaterialData as any).subject_id) {
+      const rawSubject = await db.getSubjectById((subjectMaterialData as any).subject_id)
+      if (rawSubject) {
+        subjectInfo = {
+          name: (rawSubject as any).name,
+          abbreviation: (rawSubject as any).abbreviation
+        }
+      }
+    }
+
     return {
-      title: `${material.name} - ${study.name}`,
-      description: material.description || `Materiál ze studia ${study.name}${subjectInfo ? ` - ${subjectInfo.name}` : ''}`,
+      title: `${(material as any).name} - ${study.name}`,
+      description: (material as any).description || `Materiál ze studia ${study.name}${subjectInfo ? ` - ${subjectInfo.name}` : ''}`,
     }
   }
 

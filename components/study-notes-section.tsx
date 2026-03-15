@@ -3,34 +3,34 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, BookOpen } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchStudyNotesBySubjectId } from "@/lib/actions/study-notes"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
-import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
+import type { StudyNoteWithSubjects, StudyNoteSubject } from "@/lib/types/study-notes"
 
-interface SubjectWithStudy {
-  id: string
-  name: string
-  study_id: string
+interface LinkedSubjectEntry {
+  subject_id: string
   is_primary: boolean
 }
 
-interface RawStudyNoteWithDetails {
+interface RawStudyNoteFromMongo {
   id: string
   study_id: string
   user_id: string
   name: string
   file_name: string
   file_extension: string | null
-  onedrive_item_id: string | null
-  onedrive_web_url: string | null
-  onedrive_download_url: string | null
+  onedrive_item_id?: string | null
+  onedrive_web_url?: string | null
+  onedrive_download_url?: string | null
   is_public: boolean
-  public_slug: string | null
-  last_modified_onedrive: string | null
+  public_slug?: string | null
+  last_modified_onedrive?: string | null
   created_at: string
-  description: string | null
-  linked_subjects?: SubjectWithStudy[]
+  description?: string | null
+  linked_subjects?: LinkedSubjectEntry[]
+  linked_final_exams?: Array<{ final_exam_id: string; is_primary: boolean }>
+  [key: string]: unknown
 }
 
 interface StudyNotesSectionProps {
@@ -44,29 +44,35 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
   const [notes, setNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const supabase = createClient()
 
   const loadNotes = useCallback(async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .rpc("get_subject_study_notes_with_details", { p_subject_id: subjectId })
+      const data = await fetchStudyNotesBySubjectId(subjectId) as RawStudyNoteFromMongo[]
 
-      if (error) throw error
-      
       // Transform the data to match our interface
-      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note: RawStudyNoteWithDetails) => ({
-        ...note,
-        subjects: note.linked_subjects || []
-      }))
-      
+      // The notes now have linked_subjects array embedded
+      const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note) => {
+        const subjects: StudyNoteSubject[] = (note.linked_subjects || []).map((link) => ({
+          id: link.subject_id,
+          name: "", // Name not available from denormalized data, but not needed here
+          study_id: note.study_id,
+          is_primary: link.is_primary
+        }))
+
+        return {
+          ...note,
+          subjects
+        }
+      })
+
       setNotes(notesWithSubjects)
     } catch (err) {
       console.error("Failed to load study notes:", err)
     } finally {
       setLoading(false)
     }
-  }, [subjectId, supabase])
+  }, [subjectId])
 
   useEffect(() => {
     loadNotes()

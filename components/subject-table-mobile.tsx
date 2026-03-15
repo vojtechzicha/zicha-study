@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { updateSubject } from "@/lib/actions/subjects"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
@@ -144,7 +144,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
   const [completionModalSubject, setCompletionModalSubject] = useState<Subject | null>(null)
   const [completionModalType, setCompletionModalType] = useState<"credit" | "exam">("credit")
   const [materialsDialogSubject, setMaterialsDialogSubject] = useState<Subject | null>(null)
-  const supabase = createClient()
 
   const sortedSubjects = sortSubjects(subjects)
 
@@ -180,10 +179,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
       updates.credit_completed = false
     }
 
-    const { error } = await supabase
-      .from("subjects")
-      .update(updates)
-      .eq("id", subjectId)
+    const { error } = await updateSubject(subjectId, updates)
 
     if (!error) {
       onUpdate()

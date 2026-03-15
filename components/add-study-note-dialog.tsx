@@ -21,7 +21,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { FileText, AlertCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchStudyMaterialSettings } from "@/lib/actions/studies"
+import {
+  createStudyNote,
+  checkStudyNoteSlug,
+  linkSubjectToNoteAction,
+  linkFinalExamToNoteAction,
+} from "@/lib/actions/study-notes"
 import type { OneDriveFile } from "@/lib/types/materials"
 import type { StudyNoteFormData } from "@/lib/types/study-notes"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
@@ -37,7 +43,7 @@ interface AddStudyNoteDialogProps {
   onSuccess: () => void
 }
 
-interface StudyMaterialSettings {
+interface StudyMaterialSettingsData {
   materials_root_folder_id?: string
   materials_root_folder_name?: string
   materials_root_folder_path?: string
@@ -63,7 +69,7 @@ export function AddStudyNoteDialog({
   const [error, setError] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<OneDriveFile | null>(null)
   const [showFilePicker, setShowFilePicker] = useState(false)
-  const [studyMaterialSettings, setStudyMaterialSettings] = useState<StudyMaterialSettings>({})
+  const [studyMaterialSettingsData, setStudyMaterialSettingsData] = useState<StudyMaterialSettingsData>({})
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [formData, setFormData] = useState<Partial<StudyNoteFormData>>({
     name: "",
@@ -72,41 +78,36 @@ export function AddStudyNoteDialog({
   const [isPublic, setIsPublic] = useState(true)
   const [publicSlug, setPublicSlug] = useState("")
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
-  const supabase = createClient()
 
-  const loadStudyMaterialSettings = useCallback(async () => {
+  const loadStudyMaterialSettingsData = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("studies")
-        .select("materials_root_folder_id, materials_root_folder_name, materials_root_folder_path")
-        .eq("id", studyId)
-        .single()
+      const data = await fetchStudyMaterialSettings(studyId)
 
-      if (!error && data) {
-        setStudyMaterialSettings(data)
+      if (data) {
+        setStudyMaterialSettingsData(data)
       }
       setSettingsLoaded(true)
     } catch (err) {
       console.error("Failed to load study material settings:", err)
       setSettingsLoaded(true)
     }
-  }, [studyId, supabase])
+  }, [studyId])
 
   // Load study material settings when dialog opens
   useEffect(() => {
     if (isOpen && !settingsLoaded) {
-      loadStudyMaterialSettings()
+      loadStudyMaterialSettingsData()
     }
-  }, [isOpen, settingsLoaded, loadStudyMaterialSettings])
+  }, [isOpen, settingsLoaded, loadStudyMaterialSettingsData])
 
   const handleFileSelected = (file: OneDriveFile) => {
     setSelectedFile(file)
     setShowFilePicker(false)
-    
+
     // Pre-fill the name with the file name without extension
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
     setFormData((prev) => ({ ...prev, name: prev.name || nameWithoutExt }))
-    
+
     // Generate initial slug if not set
     if (!publicSlug) {
       const initialSlug = createSlug(nameWithoutExt)
@@ -128,30 +129,8 @@ export function AddStudyNoteDialog({
     }
 
     try {
-      // Check both study notes and subject materials for slug uniqueness within the study
-      const [notesResult, materialsResult, subjectMaterialsResult] = await Promise.all([
-        supabase
-          .from("study_notes")
-          .select("id")
-          .eq("study_id", studyId)
-          .eq("public_slug", slug)
-          .single(),
-        supabase
-          .from("materials")
-          .select("id")
-          .eq("study_id", studyId)
-          .eq("public_slug", slug)
-          .single(),
-        supabase
-          .from("subject_materials")
-          .select("id")
-          .eq("study_id", studyId)
-          .eq("public_slug", slug)
-          .single()
-      ])
-
-      const isAvailable = !notesResult.data && !materialsResult.data && !subjectMaterialsResult.data
-      setSlugAvailable(isAvailable)
+      const available = await checkStudyNoteSlug(slug, studyId)
+      setSlugAvailable(available)
     } catch (err) {
       console.error("Failed to check slug availability:", err)
       setSlugAvailable(null)
@@ -202,37 +181,17 @@ export function AddStudyNoteDialog({
         public_slug: publicSlug || generateUniqueSlug(),
       }
 
-      const { data: insertedNote, error: insertError } = await supabase
-        .from("study_notes")
-        .insert(noteData)
-        .select()
-        .single()
+      const result = await createStudyNote(noteData)
 
-      if (insertError) throw insertError
+      if (result.error || !result.data) throw new Error(result.error?.message || "Failed to create note")
 
-      // Create the primary link in the appropriate many-to-many table
+      const insertedNote = result.data
+
+      // Create the primary link using server action
       if (isFinalExam) {
-        const { error: linkError } = await supabase
-          .from("study_note_final_exams")
-          .insert({
-            study_note_id: insertedNote.id,
-            final_exam_id: subjectId,
-            is_primary: true,
-            linked_by: null
-          })
-
-        if (linkError) throw linkError
+        await linkFinalExamToNoteAction(insertedNote.id, subjectId, true)
       } else {
-        const { error: linkError } = await supabase
-          .from("study_note_subjects")
-          .insert({
-            study_note_id: insertedNote.id,
-            subject_id: subjectId,
-            is_primary: true,
-            linked_by: null
-          })
-
-        if (linkError) throw linkError
+        await linkSubjectToNoteAction(insertedNote.id, subjectId, true)
       }
 
       onSuccess()
@@ -247,7 +206,7 @@ export function AddStudyNoteDialog({
   const handleClose = () => {
     setSelectedFile(null)
     setShowFilePicker(false)
-    setStudyMaterialSettings({})
+    setStudyMaterialSettingsData({})
     setSettingsLoaded(false)
     setFormData({
       name: "",
@@ -262,20 +221,20 @@ export function AddStudyNoteDialog({
 
   const truncateFileName = (fileName: string, maxLength: number = 35): string => {
     if (fileName.length <= maxLength) return fileName
-    
+
     const dotIndex = fileName.lastIndexOf('.')
     if (dotIndex === -1) {
       return `${fileName.substring(0, maxLength - 3)  }...`
     }
-    
+
     const extension = fileName.substring(dotIndex)
     const nameWithoutExt = fileName.substring(0, dotIndex)
     const availableLength = maxLength - extension.length - 3
-    
+
     if (availableLength <= 0) {
       return `${fileName.substring(0, maxLength - 3)  }...`
     }
-    
+
     return `${nameWithoutExt.substring(0, availableLength)  }...${  extension}`
   }
 
@@ -287,7 +246,7 @@ export function AddStudyNoteDialog({
             {showFilePicker ? "Vyberte studijní zápis" : "Přidat studijní zápis"}
           </DialogTitle>
           <DialogDescription>
-            {showFilePicker 
+            {showFilePicker
               ? "Vyberte DOCX soubor se studijními zápisy"
               : isFinalExam
                 ? "Přidejte studijní zápis ke státní zkoušce (pouze DOCX formát)"
@@ -307,8 +266,8 @@ export function AddStudyNoteDialog({
           {showFilePicker ? (
             <OneDriveFilePicker
               onFileSelected={handleFileSelected}
-              initialPath={studyMaterialSettings.materials_root_folder_path || "/drive/root:"}
-              initialPathName={studyMaterialSettings.materials_root_folder_name || "OneDrive"}
+              initialPath={studyMaterialSettingsData.materials_root_folder_path || "/drive/root:"}
+              initialPathName={studyMaterialSettingsData.materials_root_folder_name || "OneDrive"}
               fileExtensions={[".docx", ".doc"]}
             />
           ) : !selectedFile ? (

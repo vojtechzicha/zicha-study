@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { createServerDb } from '@/lib/supabase/db'
+import * as db from '@/lib/mongodb/db'
 import { getOneDriveToken, makeGraphRequest } from '@/lib/utils/onedrive'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate-limit'
 import fs from 'fs/promises'
@@ -42,26 +42,20 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
   }
 
   try {
-    const supabase = createServerDb()
-
     // Get current user (may be null for public notes)
     const session = await auth()
 
-    // First, try to find a public note with this slug
-    let query = supabase
-      .from('study_notes')
-      .select('*, studies!inner(user_id)')
-      .eq('public_slug', slug)
+    // First, try to find a note with this slug
+    const note = await db.getStudyNoteBySlug(slug, studyId || undefined)
 
-    if (studyId) {
-      query = query.eq('study_id', studyId)
-    }
-
-    const { data: note, error } = await query.single()
-
-    if (error || !note) {
+    if (!note) {
       return NextResponse.json({ error: 'Study note not found' }, { status: 404 })
     }
+
+    const noteId = note._id as string
+
+    // Get the study to check user_id for authorization
+    const study = await db.getStudyById(note.study_id as string)
 
     // Authorization check:
     // 1. If note is public, allow access
@@ -71,8 +65,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
       return NextResponse.json({ error: 'Study note not found' }, { status: 404 })
     }
 
+    // Suppress unused variable warning - study is fetched for potential future auth checks
+    void study
+
     // Check if we have a cached version
-    const { data: cachedData } = await supabase.from('study_notes_cache').select('*').eq('study_note_id', note.id).single()
+    const cachedData = await db.getStudyNotesCache(noteId)
 
     let onedriveLastModified: Date | null = null
     let onedriveAccessible = true
@@ -112,7 +109,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     const shouldRegenerate =
       forceRegenerate ||
       !cachedData ||
-      (onedriveAccessible && fileBuffer && onedriveLastModified && new Date(cachedData.onedrive_last_modified) < onedriveLastModified)
+      (onedriveAccessible && fileBuffer && onedriveLastModified && new Date(cachedData.onedrive_last_modified as string) < onedriveLastModified)
 
     if (!shouldRegenerate && cachedData) {
       // Use cached version
@@ -150,55 +147,32 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     // Generate new cache key including generation time for cache busting
     const cacheKey = crypto
       .createHash('md5')
-      .update(`${note.id}-${onedriveLastModified?.toISOString() || 'unknown'}-${Date.now()}`)
+      .update(`${noteId}-${onedriveLastModified?.toISOString() || 'unknown'}-${Date.now()}`)
       .digest('hex')
 
     // Convert the document
     const result = await convertDocxToHtmlWithMammoth(Buffer.from(fileBuffer), cacheKey)
 
-    // Store in database
-    if (cachedData) {
-      // Update existing cache
-      await supabase
-        .from('study_notes_cache')
-        .update({
-          html_content: result.html,
-          title: result.title,
-          onedrive_last_modified: onedriveLastModified || cachedData.onedrive_last_modified,
-          generated_at: new Date(),
-          cache_key: cacheKey,
-          has_media: !!result.mediaPath,
-        })
-        .eq('study_note_id', note.id)
-    } else {
-      // Insert new cache - only insert if we have a valid last modified date
-      if (!onedriveLastModified) {
-        throw new Error('Unable to determine file modification date from OneDrive')
-      }
-
-      await supabase.from('study_notes_cache').insert({
-        study_note_id: note.id,
-        html_content: result.html,
-        title: result.title,
-        onedrive_last_modified: onedriveLastModified,
-        cache_key: cacheKey,
-        has_media: !!result.mediaPath,
-      })
-    }
+    // Store in database using upsert
+    await db.upsertStudyNotesCache(noteId, {
+      html_content: result.html,
+      title: result.title,
+      onedrive_last_modified: onedriveLastModified || (cachedData?.onedrive_last_modified ?? null),
+      generated_at: new Date().toISOString(),
+      cache_key: cacheKey,
+      has_media: !!result.mediaPath,
+    })
 
     // Also update the main study_notes table with the new OneDrive last modified date
     if (onedriveLastModified) {
-      await supabase
-        .from('study_notes')
-        .update({
-          last_modified_onedrive: onedriveLastModified,
-        })
-        .eq('id', note.id)
+      await db.updateStudyNote(noteId, {
+        last_modified_onedrive: onedriveLastModified,
+      })
     }
 
     // Store media files if any
     if (result.mediaPath) {
-      await storeMediaInDatabase(note.id, result.mediaPath)
+      await storeMediaInDatabase(noteId, result.mediaPath)
       await fs.rm(path.dirname(result.mediaPath), { recursive: true, force: true })
     }
 
@@ -213,13 +187,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
     // Try to return cached version if available
     try {
-      const supabase = createServerDb()
-
       // Get the study note again to ensure we have the ID
-      const { data: noteForCache } = await supabase.from('study_notes').select('id').eq('public_slug', slug).eq('is_public', true).single()
+      const noteForCache = await db.getPublicStudyNoteBySlug(slug)
 
       if (noteForCache) {
-        const { data: cachedData } = await supabase.from('study_notes_cache').select('*').eq('study_note_id', noteForCache.id).single()
+        const noteForCacheId = noteForCache._id as string
+        const cachedData = await db.getStudyNotesCache(noteForCacheId)
 
         if (cachedData) {
           return NextResponse.json({
@@ -245,15 +218,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
 async function storeMediaInDatabase(noteId: string, mediaPath: string) {
   try {
-    const supabase = createServerDb()
-
     // Get cache record
-    const { data: cacheRecord } = await supabase.from('study_notes_cache').select('id').eq('study_note_id', noteId).single()
+    const cacheRecord = await db.getStudyNotesCache(noteId)
 
     if (!cacheRecord) return
 
+    const cacheId = cacheRecord._id as string
+
     // Delete old media files
-    await supabase.from('study_notes_media').delete().eq('cache_id', cacheRecord.id)
+    await db.deleteMediaByCacheId(cacheId)
 
     // Read all media files
     const mediaFiles = await fs.readdir(mediaPath)
@@ -273,15 +246,8 @@ async function storeMediaInDatabase(noteId: string, mediaPath: string) {
         '.webp': 'image/webp',
       }
 
-      // Convert to hex string for PostgreSQL BYTEA
-      const hexString = `\\x${fileData.toString('hex')}`
-
-      await supabase.from('study_notes_media').insert({
-        cache_id: cacheRecord.id,
-        file_path: `media/${file}`,
-        file_data: hexString,
-        mime_type: mimeTypes[ext] || 'application/octet-stream',
-      })
+      // No need for hex conversion - MongoDB Binary handles binary data natively
+      await db.insertMedia(cacheId, `media/${file}`, fileData, mimeTypes[ext] || 'application/octet-stream')
     }
 
     // Clean up temp media directory
@@ -553,7 +519,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   const $ = load(bodyHtml)
 
   // Use the title extracted from the Word document
-  let title: string | null = documentTitle
+  const title: string | null = documentTitle
 
   // If we found a title, remove it from the body HTML
   if (title) {

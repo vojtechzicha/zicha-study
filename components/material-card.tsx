@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createClient } from "@/lib/supabase/client"
+import { updateMaterialAction, checkMaterialSlug } from "@/lib/actions/materials"
 import type { Material } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 
@@ -66,7 +66,6 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
   const [error, setError] = useState<string | null>(null)
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const [copied, setCopied] = useState(false)
-  const supabase = createClient()
 
   const handleCardClick = () => {
     window.open(material.onedrive_web_url, '_blank', 'noopener,noreferrer')
@@ -78,31 +77,14 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
       return
     }
 
-    // Check both study materials and subject materials for slug uniqueness
-    const [studyMaterialsResult, subjectMaterialsResult] = await Promise.all([
-      supabase
-        .from("materials")
-        .select("id")
-        .eq("study_id", material.study_id)
-        .eq("public_slug", slug)
-        .neq("id", material.id)
-        .single(),
-      supabase
-        .from("subject_materials")
-        .select("id")
-        .eq("study_id", material.study_id)
-        .eq("public_slug", slug)
-        .single()
-    ])
-
-    const isAvailable = !studyMaterialsResult.data && !subjectMaterialsResult.data
+    const isAvailable = await checkMaterialSlug(material.study_id, slug, material.id)
     setSlugAvailable(isAvailable)
   }
 
   const handleSlugChange = (value: string) => {
     const cleanSlug = cleanSlugInput(value)
     setPublicSlug(cleanSlug)
-    
+
     if (cleanSlug && cleanSlug.length >= 3) {
       checkSlugAvailability(cleanSlug)
     } else {
@@ -130,7 +112,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
 
     try {
       let publicShareUrl = null
-      
+
       if (isPublicNew) {
         // Generate public share link
         const response = await fetch('/api/onedrive/share', {
@@ -142,32 +124,29 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
             onedriveId: material.onedrive_id
           })
         })
-        
+
         if (!response.ok) {
           const errorData = await response.json()
-          
+
           // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
             throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
           }
-          
+
           throw new Error(errorData.error || "Failed to create public share link")
         }
-        
+
         const { shareUrl } = await response.json()
         publicShareUrl = shareUrl
       }
 
-      const { error: updateError } = await supabase
-        .from("materials")
-        .update({
-          is_public: isPublicNew,
-          public_slug: slug,
-          public_share_url: publicShareUrl,
-        })
-        .eq("id", material.id)
+      const result = await updateMaterialAction(material.id, {
+        is_public: isPublicNew,
+        public_slug: slug,
+        public_share_url: publicShareUrl,
+      })
 
-      if (updateError) throw updateError
+      if (result.error) throw new Error(result.error.message)
 
       setIsPublic(isPublicNew)
       if (onUpdate) onUpdate()
@@ -190,7 +169,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
 
   const copyPublicUrl = async () => {
     if (!studySlug || !material.public_slug) return
-    
+
     const publicUrl = `${window.location.origin}/${studySlug}/${material.public_slug}`
     await navigator.clipboard.writeText(publicUrl)
     setCopied(true)
@@ -201,7 +180,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
     <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div 
+          <div
             className="flex-shrink-0 p-2 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
             onClick={handleCardClick}
           >
@@ -233,9 +212,9 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-8 w-8 p-0"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -266,7 +245,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                       </a>
                     </DropdownMenuItem>
                   )}
-                  
+
                   {isStudyPublic && (
                     <>
                       <DropdownMenuSeparator />
@@ -285,7 +264,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                       )}
                     </>
                   )}
-                  
+
                   {onDelete && (
                     <>
                       <DropdownMenuSeparator />

@@ -1,27 +1,23 @@
-import { createClient } from '@/lib/supabase/client'
+import { fetchStudies } from '@/lib/actions/studies'
+import { fetchStudyNotes } from '@/lib/actions/study-notes'
 
 export async function regenerateAllStudyNotes() {
-  const supabase = createClient()
-
   try {
     // Get all studies (single-user app, no user_id filter needed)
-    const { data: studies, error: studiesError } = await supabase
-      .from('studies')
-      .select('id, name')
+    const studies = await fetchStudies()
 
-    if (studiesError) throw studiesError
     if (!studies || studies.length === 0) {
       return { success: true, message: 'Žádná studia k regeneraci', stats: { total: 0, success: 0, failed: 0 } }
     }
 
     // Get all public study notes across all studies
-    const { data: studyNotes, error: notesError } = await supabase
-      .from('study_notes')
-      .select('id, public_slug, name, study_id')
-      .in('study_id', studies.map((s: { id: string }) => s.id))
-      .eq('is_public', true)
+    const allNotes = []
+    for (const study of studies) {
+      const notes = await fetchStudyNotes(study.id, true)
+      allNotes.push(...notes)
+    }
+    const studyNotes = allNotes
 
-    if (notesError) throw notesError
     if (!studyNotes || studyNotes.length === 0) {
       return { success: true, message: 'Žádné studijní zápisy k regeneraci', stats: { total: 0, success: 0, failed: 0 } }
     }

@@ -26,11 +26,11 @@ pnpm lint:fix
 
 ## Architecture Overview
 
-This is a Next.js 15 app with Supabase backend for tracking university studies. The application uses:
+This is a Next.js 15 app with MongoDB Atlas backend for tracking university studies. The application uses:
 
 - **Next.js App Router** for pages and routing
 - **NextAuth.js v5** for authentication with Microsoft Entra ID (personal accounts)
-- **Supabase** for PostgreSQL database (RLS disabled — single-user app)
+- **MongoDB Atlas** for database (single-user app, auth enforced by NextAuth middleware)
 - **Shadcn/ui** component library (47 pre-built components in components/ui/)
 - **TypeScript** throughout with path aliases (@/ prefix)
 - **Tailwind CSS** for styling with CSS variables
@@ -55,25 +55,41 @@ components/
 └── *.tsx               # Feature components
 
 lib/
-├── supabase/           # Supabase client configs
-│   ├── client.ts       # Client-side Supabase (anon key, for browser)
-│   ├── db.ts           # Server-side Supabase (service role, for API routes & server components)
-│   └── service.ts      # Service role client (alias, for backward compat)
+├── mongodb/            # MongoDB Atlas connection and data access
+│   ├── connection.ts   # Cached MongoClient singleton (survives HMR)
+│   └── db.ts           # Server-side data access layer (typed async functions for all collections)
+├── actions/            # Next.js Server Actions (client-side data layer)
+│   ├── studies.ts      # Study CRUD operations
+│   ├── subjects.ts     # Subject CRUD operations
+│   ├── materials.ts    # Material and subject material operations
+│   ├── study-notes.ts  # Study notes + linked subjects/exams
+│   ├── final-exams.ts  # Final exam operations
+│   ├── exam-options.ts # Exam scheduler options
+│   └── logos.ts        # Logo upload/delete (stored as Binary in MongoDB)
 └── utils/
     └── onedrive.ts     # OneDrive token from NextAuth session + Graph API helper
 ```
 
 ## Database Schema
 
-Tables (RLS disabled — auth enforced by NextAuth middleware):
+MongoDB Atlas collections (auth enforced by NextAuth middleware):
 
-- **studies**: User's university programs (id, user_id, name, type, years, status, is_public, public_slug)
-- **subjects**: Courses within studies (id, study_id, name, semester, credits, is_mandatory, completion_type, grade, exam_date, hours)
+- **studies**: User's university programs (_id, user_id, name, type, years, status, is_public, public_slug, logo_data, logo_mime_type)
+- **subjects**: Courses within studies (_id, study_id, name, semester, credits, subject_type, completion_type, grade, final_date, hours)
+- **final_exams**: State final exams (_id, study_id, name, shortcut, grade, exam_date)
+- **materials**: Study materials from OneDrive (_id, study_id, name, onedrive_id, is_public, public_slug)
+- **subject_materials**: Subject-specific materials (_id, study_id, subject_id, name, onedrive_id)
+- **study_notes**: DOCX study notes with denormalized linked_subjects[] and linked_final_exams[] arrays
+- **study_notes_cache**: Cached HTML conversions (_id, study_note_id, html_content)
+- **study_notes_media**: Extracted images stored as Binary (_id, cache_id, file_path, file_data)
+- **exam_options**: Exam scheduler options (_id, subject_id, date, start_time, duration_minutes)
+
+Note: study_note_subjects and study_note_final_exams join tables from PostgreSQL are denormalized into study_notes.linked_subjects[] and study_notes.linked_final_exams[] arrays.
 
 ## Important Patterns
 
 1. **Authentication**: All /studies/* routes require authentication via NextAuth.js middleware. Use `useSession()` on client, `auth()` on server.
-2. **Data Access**: Use `createServerDb()` from `lib/supabase/db.ts` for server components/API routes. Use `createClient()` from `lib/supabase/client.ts` for browser.
+2. **Data Access**: Use `lib/mongodb/db.ts` functions directly in server components/API routes. Use Server Actions from `lib/actions/` in client components (never import MongoDB driver in client code).
 3. **Forms**: Use react-hook-form with zod validation (see existing forms for patterns)
 4. **UI Components**: Always check components/ui/ for existing components before creating new ones
 5. **Public Sharing**: Studies can be shared via public_slug at /[slug] routes
@@ -91,7 +107,7 @@ Tables (RLS disabled — auth enforced by NextAuth middleware):
 - The project uses ESLint for code quality with Next.js and TypeScript support
 - ESLint is configured with moderate rules to catch common issues without being overly strict
 - Build process ignores ESLint and TypeScript errors (configured in next.config.js)
-- Environment variables are stored in .env (Supabase URL and keys required)
+- Environment variables are stored in .env (MONGODB_URI and MONGODB_DB required)
 - No test suite is configured
 - The project auto-syncs with v0.dev deployments
 

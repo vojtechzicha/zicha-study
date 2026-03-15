@@ -27,7 +27,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { FileText, AlertCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchStudyMaterialSettings } from "@/lib/actions/studies"
+import { createMaterial, createSubjectMaterial } from "@/lib/actions/materials"
 import { getMaterialCategoryOptions } from "@/lib/constants"
 import type { OneDriveFile, MaterialFormData } from "@/lib/types/materials"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
@@ -40,7 +41,7 @@ interface AddMaterialDialogProps {
   onSuccess: () => void
 }
 
-interface StudyMaterialSettings {
+interface StudyMaterialSettingsData {
   materials_root_folder_id?: string
   materials_root_folder_name?: string
   materials_root_folder_path?: string
@@ -57,44 +58,39 @@ export function AddMaterialDialog({
   const [error, setError] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<OneDriveFile | null>(null)
   const [showFilePicker, setShowFilePicker] = useState(false)
-  const [studyMaterialSettings, setStudyMaterialSettings] = useState<StudyMaterialSettings>({})
+  const [studyMaterialSettingsData, setStudyMaterialSettingsData] = useState<StudyMaterialSettingsData>({})
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [formData, setFormData] = useState<Partial<MaterialFormData>>({
     name: "",
     description: "",
     category: "",
   })
-  const supabase = createClient()
 
-  const loadStudyMaterialSettings = useCallback(async () => {
+  const loadStudyMaterialSettingsData = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("studies")
-        .select("materials_root_folder_id, materials_root_folder_name, materials_root_folder_path")
-        .eq("id", studyId)
-        .single()
+      const data = await fetchStudyMaterialSettings(studyId)
 
-      if (!error && data) {
-        setStudyMaterialSettings(data)
+      if (data) {
+        setStudyMaterialSettingsData(data)
       }
       setSettingsLoaded(true)
     } catch (err) {
       console.error("Failed to load study material settings:", err)
       setSettingsLoaded(true)
     }
-  }, [studyId, supabase])
+  }, [studyId])
 
   // Load study material settings when dialog opens
   useEffect(() => {
     if (isOpen && !settingsLoaded) {
-      loadStudyMaterialSettings()
+      loadStudyMaterialSettingsData()
     }
-  }, [isOpen, settingsLoaded, loadStudyMaterialSettings])
+  }, [isOpen, settingsLoaded, loadStudyMaterialSettingsData])
 
   const handleFileSelected = (file: OneDriveFile) => {
     setSelectedFile(file)
     setShowFilePicker(false)
-    
+
     // Pre-fill the name with the file name without extension
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
     setFormData((prev) => ({ ...prev, name: prev.name || nameWithoutExt }))
@@ -137,16 +133,14 @@ export function AddMaterialDialog({
         last_modified_onedrive: selectedFile.lastModifiedDateTime,
       }
 
-      let insertError
+      let result
       if (subjectId) {
-        const result = await supabase.from("subject_materials").insert({ ...materialData, subject_id: subjectId } as any)
-        insertError = result.error
+        result = await createSubjectMaterial({ ...materialData, subject_id: subjectId })
       } else {
-        const result = await supabase.from("materials").insert(materialData as any)
-        insertError = result.error
+        result = await createMaterial(materialData)
       }
 
-      if (insertError) throw insertError
+      if (result.error) throw new Error(result.error.message)
 
       onSuccess()
       handleClose()
@@ -160,7 +154,7 @@ export function AddMaterialDialog({
   const handleClose = () => {
     setSelectedFile(null)
     setShowFilePicker(false)
-    setStudyMaterialSettings({})
+    setStudyMaterialSettingsData({})
     setSettingsLoaded(false)
     setFormData({
       name: "",
@@ -174,22 +168,22 @@ export function AddMaterialDialog({
 
   const truncateFileName = (fileName: string, maxLength: number = 40): string => {
     if (fileName.length <= maxLength) return fileName
-    
+
     const dotIndex = fileName.lastIndexOf('.')
     if (dotIndex === -1) {
       // No extension, just truncate
       return `${fileName.substring(0, maxLength - 3)  }...`
     }
-    
+
     const extension = fileName.substring(dotIndex)
     const nameWithoutExt = fileName.substring(0, dotIndex)
     const availableLength = maxLength - extension.length - 3 // 3 for "..."
-    
+
     if (availableLength <= 0) {
       // Extension is too long, just show the beginning
       return `${fileName.substring(0, maxLength - 3)  }...`
     }
-    
+
     return `${nameWithoutExt.substring(0, availableLength)  }...${  extension}`
   }
 
@@ -201,7 +195,7 @@ export function AddMaterialDialog({
             {showFilePicker ? "Vyberte soubor z OneDrive" : `Přidat materiál ${subjectId ? "k předmětu" : "ke studiu"}`}
           </DialogTitle>
           <DialogDescription>
-            {showFilePicker 
+            {showFilePicker
               ? "Klikněte na soubor, který chcete přidat"
               : `Vyberte soubor z vašeho OneDrive a přidejte ho ${subjectId ? "k předmětu" : "ke studiu"}`
             }
@@ -219,8 +213,8 @@ export function AddMaterialDialog({
           {showFilePicker ? (
             <OneDriveFilePicker
               onFileSelected={handleFileSelected}
-              initialPath={studyMaterialSettings.materials_root_folder_path || "/drive/root:"}
-              initialPathName={studyMaterialSettings.materials_root_folder_name || "OneDrive"}
+              initialPath={studyMaterialSettingsData.materials_root_folder_path || "/drive/root:"}
+              initialPathName={studyMaterialSettingsData.materials_root_folder_name || "OneDrive"}
             />
           ) : !selectedFile ? (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, use } from "react"
 import { useSession } from "next-auth/react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchStudy } from "@/lib/actions/studies"
+import { fetchSubjectsByStudyId } from "@/lib/actions/subjects"
 import { StudyStatistics } from "@/components/study-statistics"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -42,7 +43,6 @@ export default function StudyStatisticsPage({ params }: { params: Promise<{ id: 
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const supabase = createClient()
   const router = useRouter()
   useFavicon(study?.logo_url)
 
@@ -56,26 +56,26 @@ export default function StudyStatisticsPage({ params }: { params: Promise<{ id: 
   useEffect(() => {
     if (status !== "authenticated") return
 
-    const fetchData = async () => {
-      const { data: studyData, error: studyError } = await supabase.from("studies").select("id, name, logo_url").eq("id", id).single()
+    const loadData = async () => {
+      const studyData = await fetchStudy(id)
 
-      if (studyError || !studyData) {
+      if (!studyData) {
         setNotFound(true)
       } else {
         setStudy(studyData)
       }
 
-      const { data: subjectsData, error: subjectsError } = await supabase.from("subjects").select("*").eq("study_id", id).order("semester", { ascending: true })
+      const subjectsData = await fetchSubjectsByStudyId(id)
 
-      if (!subjectsError && subjectsData) {
+      if (subjectsData) {
         setSubjects(subjectsData)
       }
 
       setLoading(false)
     }
 
-    fetchData()
-  }, [id, supabase, status])
+    loadData()
+  }, [id, status])
 
   if (status === "loading" || loading) {
     return (

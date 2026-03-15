@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createServerDb } from "@/lib/supabase/db"
+import * as db from "@/lib/mongodb/db"
 
 export async function GET(
   request: NextRequest,
@@ -15,35 +15,23 @@ export async function GET(
   }
 
   try {
-    const supabase = createServerDb()
-
     // Get the study note by public slug and study_id
-    let query = supabase
-      .from("study_notes")
-      .select("id")
-      .eq("public_slug", slug)
-      .eq("is_public", true)
+    const note = await db.getPublicStudyNoteBySlug(slug, studyId || undefined)
 
-    if (studyId) {
-      query = query.eq("study_id", studyId)
-    }
-
-    const { data: note, error: noteError } = await query.single()
-
-    if (noteError || !note) {
+    if (!note) {
       return NextResponse.json({ error: "Study note not found" }, { status: 404 })
     }
 
-    // Get the cache record
-    const { data: cache, error: cacheError } = await supabase
-      .from("study_notes_cache")
-      .select("id")
-      .eq("study_note_id", note.id)
-      .single()
+    const noteId = note._id as string
 
-    if (cacheError || !cache) {
+    // Get the cache record
+    const cache = await db.getStudyNotesCache(noteId)
+
+    if (!cache) {
       return NextResponse.json({ error: "No cached content found" }, { status: 404 })
     }
+
+    const cacheId = cache._id as string
 
     // Construct the file path
     let cleanedSegments = [...pathSegments]
@@ -54,28 +42,18 @@ export async function GET(
     const filePath = `media/${cleanedSegments.join('/')}`
 
     // Get the media file from database
-    const { data: mediaFile, error: mediaError } = await supabase
-      .from("study_notes_media")
-      .select("file_data, mime_type")
-      .eq("cache_id", cache.id)
-      .eq("file_path", filePath)
-      .single()
+    const mediaFile = await db.getMediaFile(cacheId, filePath)
 
-    if (mediaError || !mediaFile) {
-      console.error("Media not found:", filePath, mediaError)
+    if (!mediaFile) {
+      console.error("Media not found:", filePath)
       return NextResponse.json({ error: "Media file not found" }, { status: 404 })
     }
 
-    // Supabase returns BYTEA as hex string with \x prefix
+    // MongoDB Binary - extract the buffer directly
     let fileBuffer: Buffer
-    if (typeof mediaFile.file_data === 'string') {
-      if (mediaFile.file_data.startsWith('\\x')) {
-        // PostgreSQL hex format
-        fileBuffer = Buffer.from(mediaFile.file_data.slice(2), 'hex')
-      } else {
-        // Fallback to base64
-        fileBuffer = Buffer.from(mediaFile.file_data, 'base64')
-      }
+    if (mediaFile.file_data && typeof mediaFile.file_data === 'object' && 'buffer' in mediaFile.file_data) {
+      // MongoDB Binary type
+      fileBuffer = Buffer.from(mediaFile.file_data.buffer)
     } else if (Buffer.isBuffer(mediaFile.file_data)) {
       fileBuffer = mediaFile.file_data
     } else {

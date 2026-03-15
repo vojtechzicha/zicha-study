@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { createFinalExam, updateFinalExamAction } from "@/lib/actions/final-exams"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -43,7 +43,6 @@ export function FinalExamDialog({ studyId, exam, onClose, onSave }: FinalExamDia
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,18 +61,11 @@ export function FinalExamDialog({ studyId, exam, onClose, onSave }: FinalExamDia
       }
 
       if (exam) {
-        const { error: updateError } = await supabase
-          .from("final_exams")
-          .update(data)
-          .eq("id", exam.id)
-
-        if (updateError) throw updateError
+        const { error: updateError } = await updateFinalExamAction(exam.id, data)
+        if (updateError) throw new Error(updateError.message)
       } else {
-        const { error: insertError } = await supabase
-          .from("final_exams")
-          .insert([data])
-
-        if (insertError) throw insertError
+        const result = await createFinalExam(data)
+        if (result.error) throw new Error(result.error.message)
       }
 
       onSave()

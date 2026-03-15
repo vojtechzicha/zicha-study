@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { createStudy } from "@/lib/actions/studies"
 import { useToast } from "@/hooks/use-toast"
 import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, STUDY_STATUS, type StudyStatus } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -35,7 +35,6 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
   const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,40 +42,31 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.from("studies").insert([
-      {
+    try {
+      await createStudy({
         name: formData.name,
         type: formData.type,
         form: formData.form,
         start_year: formData.start_year,
         end_year: formData.end_year ? Number.parseInt(formData.end_year) : null,
         status: formData.status,
-      },
-    ])
-
-    if (error) {
-      // Provide more specific error messages based on error code/message
-      let errorMessage = "Chyba při ukládání studia. Zkuste to prosím znovu."
-
-      if (error.code === "23505") {
-        errorMessage = "Studium s tímto názvem již existuje."
-      } else if (error.code === "23503") {
-        errorMessage = "Neplatná reference v databázi."
-      } else if (error.code === "PGRST301") {
-        errorMessage = "Nejste přihlášeni. Přihlaste se prosím znovu."
-      } else if (error.message) {
-        // Include the actual error message for debugging in development
-        errorMessage = `Chyba při ukládání: ${error.message}`
-      }
-
-      setError(errorMessage)
-      setLoading(false)
-    } else {
+      })
       toast({
         title: "Studium vytvořeno",
         description: `Studium "${formData.name}" bylo úspěšně vytvořeno.`,
       })
       onSuccess()
+    } catch (err: any) {
+      let errorMessage = "Chyba při ukládání studia. Zkuste to prosím znovu."
+
+      if (err?.message?.includes("Duplicate") || err?.code === 11000) {
+        errorMessage = "Studium s tímto názvem již existuje."
+      } else if (err?.message) {
+        errorMessage = `Chyba při ukládání: ${err.message}`
+      }
+
+      setError(errorMessage)
+      setLoading(false)
     }
   }
 

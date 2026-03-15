@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { fetchSubjectsForRepeatSelection, updateSubject, deleteSubjectAction } from "@/lib/actions/subjects"
+import { fetchExamOptions, saveExamOptions } from "@/lib/actions/exam-options"
 import { useToast } from "@/hooks/use-toast"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -87,21 +88,15 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([])
-  const supabase = createClient()
   const { toast } = useToast()
   const { departments } = useDepartments(subject.study_id)
 
   // Fetch exam options when dialog opens
   useEffect(() => {
-    const fetchExamOptions = async () => {
+    const loadExamOptions = async () => {
       if (!examSchedulerEnabled || examOptionsLoaded) return
 
-      const { data } = await supabase
-        .from('exam_options')
-        .select('*')
-        .eq('subject_id', subject.id)
-        .order('date', { ascending: true })
-
+      const data = await fetchExamOptions(subject.id)
       if (data) {
         type ExamOptionRow = { id: string; date: string; start_time: string; duration_minutes: number; is_online: boolean; note: string | null }
         setExamOptions(data.map((opt: ExamOptionRow) => ({
@@ -117,69 +112,20 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     }
 
     if (open && examSchedulerEnabled) {
-      fetchExamOptions()
+      loadExamOptions()
     }
-  }, [open, examSchedulerEnabled, subject.id, supabase, examOptionsLoaded])
+  }, [open, examSchedulerEnabled, subject.id, examOptionsLoaded])
 
   // Fetch subjects that can be repeated
   useEffect(() => {
-    const fetchSubjects = async () => {
-      const { data } = await supabase
-        .from('subjects')
-        .select('id, name, abbreviation, semester, subject_type, completed, planned')
-        .eq('study_id', subject.study_id)
-        .eq('is_repeat', false)
-        .neq('id', subject.id) // Exclude current subject
-
-      if (data) {
-        // Type for Supabase subject result
-        type SubjectRow = { id: string; abbreviation: string | null; name: string; semester: string; completed?: boolean; planned?: boolean }
-
-        // Apply the same sorting as subject table
-        const sortedSubjects = (data as SubjectRow[]).sort((a: SubjectRow, b: SubjectRow) => {
-          // Get subject status priority (Active > Completed > Planned)
-          const getStatusPriority = (subject: SubjectRow) => {
-            if (subject.planned) return 3  // Planned
-            if (subject.completed) return 2  // Completed
-            return 1  // Active
-          }
-
-          // Custom semester sorting function
-          const getSemesterOrder = (semester: string) => {
-            const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
-            if (match) {
-              const year = Number.parseInt(match[1])
-              const semesterType = match[2].toUpperCase()
-              return year * 10 + (semesterType === "ZS" ? 1 : 2)
-            }
-            return 999
-          }
-
-          // First sort by status priority
-          const aStatusPriority = getStatusPriority(a)
-          const bStatusPriority = getStatusPriority(b)
-          if (aStatusPriority !== bStatusPriority) {
-            return aStatusPriority - bStatusPriority
-          }
-
-          // Then sort by semester
-          const aSemesterOrder = getSemesterOrder(a.semester)
-          const bSemesterOrder = getSemesterOrder(b.semester)
-          if (aSemesterOrder !== bSemesterOrder) {
-            return aSemesterOrder - bSemesterOrder
-          }
-
-          // Finally sort alphabetically by name
-          return a.name.localeCompare(b.name, "cs")
-        })
-
-        setAvailableSubjects(sortedSubjects)
-      }
+    const loadSubjects = async () => {
+      const data = await fetchSubjectsForRepeatSelection(subject.study_id, subject.id)
+      setAvailableSubjects(data)
     }
     if (open) {
-      fetchSubjects()
+      loadSubjects()
     }
-  }, [subject.study_id, subject.id, supabase, open])
+  }, [subject.study_id, subject.id, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -228,23 +174,16 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       updateData.credit_completed = false
     }
 
-    const { error } = await supabase
-      .from("subjects")
-      .update(updateData)
-      .eq("id", subject.id)
+    const result = await updateSubject(subject.id, updateData)
 
-    if (error) {
+    if (result.error) {
       // Provide more specific error messages based on error code/message
       let errorMessage = "Chyba při ukládání předmětu. Zkuste to prosím znovu."
 
-      if (error.code === "23505") {
+      if (result.error.code === "23505") {
         errorMessage = "Předmět s touto kombinací názvu a semestru již existuje."
-      } else if (error.code === "23503") {
-        errorMessage = "Neplatná reference - zkontrolujte vazbu na opakovaný předmět."
-      } else if (error.code === "PGRST301") {
-        errorMessage = "Nejste přihlášeni. Přihlaste se prosím znovu."
-      } else if (error.message) {
-        errorMessage = `Chyba při ukládání: ${error.message}`
+      } else if (result.error.message) {
+        errorMessage = `Chyba při ukládání: ${result.error.message}`
       }
 
       setError(errorMessage)
@@ -255,33 +194,14 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     // Save exam options if exam scheduler is enabled
     if (examSchedulerEnabled) {
       try {
-        // Delete existing exam options
-        await supabase
-          .from('exam_options')
-          .delete()
-          .eq('subject_id', subject.id)
-
-        // Insert new exam options (only those with a date)
         const validOptions = examOptions.filter(opt => opt.date)
-        if (validOptions.length > 0) {
-          const optionsToInsert = validOptions.map(opt => ({
-            subject_id: subject.id,
-            date: opt.date,
-            start_time: opt.start_time,
-            duration_minutes: opt.duration_minutes,
-            is_online: opt.is_online,
-            note: opt.note || null,
-          }))
-
-          const { error: insertError } = await supabase
-            .from('exam_options')
-            .insert(optionsToInsert)
-
-          if (insertError) {
-            console.error('Error saving exam options:', insertError)
-            // Don't fail the whole save, just log the error
-          }
-        }
+        await saveExamOptions(subject.id, validOptions.map(opt => ({
+          date: opt.date,
+          start_time: opt.start_time,
+          duration_minutes: opt.duration_minutes,
+          is_online: opt.is_online,
+          note: opt.note || null,
+        })))
       } catch (err) {
         console.error('Error saving exam options:', err)
       }
@@ -299,18 +219,13 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     setDeleting(true)
     setError(null)
 
-    const { error } = await supabase.from("subjects").delete().eq("id", subject.id)
+    const result = await deleteSubjectAction(subject.id)
 
-    if (error) {
-      // Provide more specific error messages based on error code/message
+    if (result.error) {
       let errorMessage = "Chyba při mazání předmětu. Zkuste to prosím znovu."
 
-      if (error.code === "23503") {
-        errorMessage = "Nelze smazat předmět - existují na něj vazby z jiných předmětů."
-      } else if (error.code === "PGRST301") {
-        errorMessage = "Nejste přihlášeni. Přihlaste se prosím znovu."
-      } else if (error.message) {
-        errorMessage = `Chyba při mazání: ${error.message}`
+      if (result.error.message) {
+        errorMessage = `Chyba při mazání: ${result.error.message}`
       }
 
       setError(errorMessage)
