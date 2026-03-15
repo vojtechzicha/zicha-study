@@ -178,11 +178,8 @@ export function AddStudyNoteDialog({
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("Uživatel není přihlášen")
-
       const fileExtension = selectedFile.name.split(".").pop()
-      
+
       // Check if file is DOCX
       if (!fileExtension || !['docx', 'doc'].includes(fileExtension.toLowerCase())) {
         throw new Error("Studijní zápisy musí být ve formátu DOCX")
@@ -190,7 +187,6 @@ export function AddStudyNoteDialog({
 
       const noteData = {
         study_id: studyId,
-        user_id: user.id,
         name: formData.name.trim(),
         file_name: selectedFile.name,
         file_extension: `.${fileExtension}`,
@@ -222,7 +218,7 @@ export function AddStudyNoteDialog({
             study_note_id: insertedNote.id,
             final_exam_id: subjectId,
             is_primary: true,
-            linked_by: user.id
+            linked_by: null
           })
 
         if (linkError) throw linkError
@@ -233,7 +229,7 @@ export function AddStudyNoteDialog({
             study_note_id: insertedNote.id,
             subject_id: subjectId,
             is_primary: true,
-            linked_by: user.id
+            linked_by: null
           })
 
         if (linkError) throw linkError

@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { FileText, AlertCircle, Search, X, Folder, ChevronRight, File } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { signIn } from "next-auth/react"
 import type { OneDriveFile } from "@/lib/types/materials"
 
 interface OneDriveFilePickerProps {
@@ -38,7 +38,6 @@ export function OneDriveFilePicker({
   ])
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
-  const supabase = createClient()
 
   const loadFiles = useCallback(async (path: string = currentPath, search?: string) => {
     setLoading(true)
@@ -59,17 +58,7 @@ export function OneDriveFilePicker({
         
         // Handle authentication errors that need re-authentication
         if (errorData.needsReauth) {
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: "azure",
-            options: {
-              scopes: "openid email profile offline_access Files.Read Files.Read.All Files.ReadWrite",
-              redirectTo: `${window.location.origin}/auth/callback`,
-            },
-          })
-          
-          if (error) {
-            throw new Error("Nepodařilo se obnovit přístup k OneDrive. Zkuste to prosím znovu.")
-          }
+          await signIn("microsoft-entra-id")
           return
         }
         
@@ -101,7 +90,7 @@ export function OneDriveFilePicker({
     } finally {
       setLoading(false)
     }
-  }, [currentPath, fileExtensions, supabase])
+  }, [currentPath, fileExtensions])
 
   useEffect(() => {
     loadFiles(initialPath)

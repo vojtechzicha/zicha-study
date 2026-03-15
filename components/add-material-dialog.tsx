@@ -119,14 +119,10 @@ export function AddMaterialDialog({
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("Uživatel není přihlášen")
-
       const fileExtension = selectedFile.name.split(".").pop()
 
       const materialData = {
         study_id: studyId,
-        user_id: user.id,
         name: formData.name.trim(),
         file_name: selectedFile.name,
         file_extension: fileExtension ? `.${fileExtension}` : null,
@@ -141,12 +137,14 @@ export function AddMaterialDialog({
         last_modified_onedrive: selectedFile.lastModifiedDateTime,
       }
 
-      const tableName = subjectId ? "subject_materials" : "materials"
-      const insertData = subjectId 
-        ? { ...materialData, subject_id: subjectId }
-        : materialData
-
-      const { error: insertError } = await supabase.from(tableName).insert(insertData)
+      let insertError
+      if (subjectId) {
+        const result = await supabase.from("subject_materials").insert({ ...materialData, subject_id: subjectId } as any)
+        insertError = result.error
+      } else {
+        const result = await supabase.from("materials").insert(materialData as any)
+        insertError = result.error
+      }
 
       if (insertError) throw insertError
 

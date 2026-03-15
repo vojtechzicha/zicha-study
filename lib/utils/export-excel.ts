@@ -62,15 +62,10 @@ function compareSemesters(a: string, b: string): number {
 export async function exportStudiesToExcel() {
   const supabase = createClient()
 
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('User not authenticated')
-
-  // Fetch all studies with public slugs
+  // Fetch all studies with public slugs (single-user app, no user filter needed)
   const { data: studies, error: studiesError } = await supabase
     .from('studies')
     .select('*')
-    .eq('user_id', user.id)
     .not('public_slug', 'is', null)
     .order('created_at', { ascending: false })
 

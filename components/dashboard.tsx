@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import type { User } from "@supabase/supabase-js"
+import type { User } from "next-auth"
+import { signOut } from "next-auth/react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,7 +45,7 @@ export function Dashboard({ user }: DashboardProps) {
   }, [fetchStudies])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOut({ callbackUrl: "/" })
   }
 
   const handleExport = async () => {
@@ -71,7 +72,7 @@ export function Dashboard({ user }: DashboardProps) {
     setRegenerating(true)
     try {
       const result = await regenerateAllStudyNotes()
-      
+
       if (result.success) {
         toast({
           title: "Regenerace dokončena",
@@ -102,11 +103,8 @@ export function Dashboard({ user }: DashboardProps) {
 
 
   const getUserDisplayName = () => {
-    if (user.user_metadata?.full_name) {
-      return user.user_metadata.full_name
-    }
-    if (user.user_metadata?.name) {
-      return user.user_metadata.name
+    if (user.name) {
+      return user.name
     }
     return user.email?.split("@")[0] || "Uživatel"
   }
@@ -128,9 +126,9 @@ export function Dashboard({ user }: DashboardProps) {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleExport}
                 disabled={exporting || studies.length === 0}
                 title="Export studií do Excelu"
@@ -141,9 +139,9 @@ export function Dashboard({ user }: DashboardProps) {
                   <FileSpreadsheet className="h-4 w-4" />
                 )}
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleRegenerateNotes}
                 disabled={regenerating || studies.length === 0}
                 title="Regenerovat všechny studijní zápisy"

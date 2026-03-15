@@ -311,14 +311,11 @@ export function StudyNoteLinkSubjectsDialog({
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("Uživatel není přihlášen")
-
       // Link to each selected item (subject or final exam)
       for (const itemId of selectedSubjects) {
         // Find if this is a final exam or regular subject
         const selectedItem = availableSubjects.find(s => s.id === itemId)
-        
+
         if (selectedItem?.is_final_exam) {
           // Link to final exam
           const { error } = await supabase
@@ -327,7 +324,7 @@ export function StudyNoteLinkSubjectsDialog({
               study_note_id: note.id,
               final_exam_id: itemId,
               is_primary: false,
-              linked_by: user.id
+              linked_by: null
             })
 
           if (error && error.code !== '23505') throw error
@@ -339,7 +336,7 @@ export function StudyNoteLinkSubjectsDialog({
               study_note_id: note.id,
               subject_id: itemId,
               is_primary: false,
-              linked_by: user.id
+              linked_by: null
             })
 
           if (error && error.code !== '23505') throw error

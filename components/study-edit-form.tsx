@@ -111,8 +111,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
       // Upload new logo if provided
       if (logoFile) {
         const fileExt = logoFile.name.split(".").pop()
-        const { data: { user } } = await supabase.auth.getUser()
-        const fileName = `${user?.id}/${study.id}-${Date.now()}.${fileExt}`
+        const fileName = `logos/${study.id}-${Date.now()}.${fileExt}`
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("study-logos")

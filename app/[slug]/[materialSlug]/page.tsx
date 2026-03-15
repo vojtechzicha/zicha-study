@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { createServerClient } from "@/lib/supabase/server"
+import { createServerDb } from "@/lib/supabase/db"
 import { redirect, notFound } from "next/navigation"
 import { Loader2, FileText, ArrowLeft, Globe, AlertCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -36,7 +36,7 @@ interface MetadataLinkedSubjectResult {
 export default async function PublicMaterialPage({ params, searchParams }: PageProps) {
   const { slug, materialSlug } = await params
   const search = await searchParams
-  const supabase = await createServerClient()
+  const supabase = createServerDb()
 
   // First, get the study by public slug
   const { data: study, error: studyError } = await supabase
@@ -119,11 +119,11 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
     const { StudyNoteDisplay } = await import("@/components/study-note-display")
     return (
       <div className="min-h-screen bg-primary-50">
-        <StudyNoteDisplay 
+        <StudyNoteDisplay
           note={{
             ...studyNote,
             subjects: allSubjects
-          }} 
+          }}
           subject={primarySubject}
           study={study}
           flush={search?.flush === '1'}
@@ -181,9 +181,9 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
   }
 
   return (
-    <div 
-      className="min-h-screen" 
-      style={{ 
+    <div
+      className="min-h-screen"
+      style={{
         background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
         minHeight: "100vh"
       } as React.CSSProperties}
@@ -200,7 +200,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
             <h1 className="text-2xl font-bold text-gray-900">Veřejný materiál</h1>
           </div>
           <p className="text-gray-600">
-            {isSubjectMaterial 
+            {isSubjectMaterial
               ? `Materiál z předmětu ${(material as any).subjects?.abbreviation || (material as any).subjects?.name} (${study.name})`
               : `Materiál ze studia ${study.name}`
             }
@@ -217,7 +217,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-bold text-gray-900 mb-2">{material.name}</h2>
                 <p className="text-sm text-gray-600 mb-2">Soubor: {material.file_name}</p>
-                
+
                 <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                   {material.category && (
                     <span className="bg-primary-100 px-2 py-1 rounded">
@@ -271,8 +271,8 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug, materialSlug } = await params
-  const supabase = await createServerClient()
-  
+  const supabase = createServerDb()
+
   // First, get the study by public slug
   const { data: study } = await supabase
     .from("studies")
@@ -345,7 +345,7 @@ export async function generateMetadata({ params }: PageProps) {
   ])
 
   const material = studyMaterialResult.data || subjectMaterialResult.data
-  
+
   if (material) {
     const subjectInfo = subjectMaterialResult.data?.subjects as { name: string; abbreviation: string } | undefined
     return {

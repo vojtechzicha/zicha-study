@@ -1,31 +1,24 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import { OneDriveTokenManagerV2 } from '@/lib/utils/onedrive-token-manager-v2'
+import { auth } from '@/auth'
+import { makeGraphRequest } from '@/lib/utils/onedrive'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate-limit'
 
 export async function GET() {
-  const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
+  const session = await auth()
+  if (!session?.accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   // Rate limiting
-  const rateLimitResult = checkRateLimit(`onedrive-picker:${user.id}`, RATE_LIMITS.ONEDRIVE_FILES)
+  const rateLimitResult = checkRateLimit(`onedrive-picker:session`, RATE_LIMITS.ONEDRIVE_FILES)
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult.resetTime)
   }
 
   try {
-    // Use the centralized token manager to make the request
-    const graphResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest('https://graph.microsoft.com/v1.0/me/drive/root/children')
-
+    const graphResponse = await makeGraphRequest('https://graph.microsoft.com/v1.0/me/drive/root/children')
     const data = await graphResponse.json()
 
-    // Filter for files only (not folders) and include common document types
     const files = data.value
       .filter(
         (item: any) =>
@@ -53,7 +46,6 @@ export async function GET() {
 
     return NextResponse.json({ files })
   } catch (error) {
-    // Check if it's a token-related error
     if (error instanceof Error && error.message.includes('token')) {
       return NextResponse.json({ error: error.message, needsReauth: true }, { status: 401 })
     }

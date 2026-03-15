@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { GraduationCap } from "lucide-react"
@@ -10,25 +10,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   const handleMicrosoftLogin = async () => {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "azure",
-      options: {
-        scopes: "openid email profile offline_access Files.Read Files.Read.All Files.ReadWrite",
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          prompt: 'consent',  // Force consent to ensure refresh token
-          access_type: 'offline'  // Request offline access
-        }
-      },
-    })
-
-    if (error) {
+    try {
+      await signIn("microsoft-entra-id", { callbackUrl: "/" })
+    } catch {
       setError("Chyba při přihlašování. Zkuste to prosím znovu.")
       setLoading(false)
     }

@@ -29,7 +29,8 @@ pnpm lint:fix
 This is a Next.js 15 app with Supabase backend for tracking university studies. The application uses:
 
 - **Next.js App Router** for pages and routing
-- **Supabase** for authentication and PostgreSQL database with Row Level Security
+- **NextAuth.js v5** for authentication with Microsoft Entra ID (personal accounts)
+- **Supabase** for PostgreSQL database (RLS disabled — single-user app)
 - **Shadcn/ui** component library (47 pre-built components in components/ui/)
 - **TypeScript** throughout with path aliases (@/ prefix)
 - **Tailwind CSS** for styling with CSS variables
@@ -38,15 +39,16 @@ This is a Next.js 15 app with Supabase backend for tracking university studies. 
 ## Key Code Structure
 
 ```
+auth.ts                  # NextAuth.js v5 config (Microsoft Entra ID provider, JWT token refresh)
 app/
 ├── [slug]/              # Public study view (dynamic route)
-├── studies/             # Protected study management
+├── api/auth/[...nextauth]/ # NextAuth API route handler
+├── studies/             # Protected study management (guarded by middleware)
 │   ├── [id]/           # Individual study routes
 │   │   ├── edit/       # Edit study details
 │   │   ├── settings/   # Study settings
 │   │   └── statistics/ # Study analytics
 │   └── new/            # Create new study
-└── auth/callback/       # Supabase auth callback
 
 components/
 ├── ui/                  # Shadcn/ui components (don't modify)
@@ -54,22 +56,24 @@ components/
 
 lib/
 ├── supabase/           # Supabase client configs
-│   ├── client.ts       # Client-side Supabase
-│   └── server.ts       # Server-side Supabase
-└── utils/              # Helper functions
+│   ├── client.ts       # Client-side Supabase (anon key, for browser)
+│   ├── db.ts           # Server-side Supabase (service role, for API routes & server components)
+│   └── service.ts      # Service role client (alias, for backward compat)
+└── utils/
+    └── onedrive.ts     # OneDrive token from NextAuth session + Graph API helper
 ```
 
 ## Database Schema
 
-Two main tables with RLS policies:
+Tables (RLS disabled — auth enforced by NextAuth middleware):
 
 - **studies**: User's university programs (id, user_id, name, type, years, status, is_public, public_slug)
 - **subjects**: Courses within studies (id, study_id, name, semester, credits, is_mandatory, completion_type, grade, exam_date, hours)
 
 ## Important Patterns
 
-1. **Authentication**: All /studies/* routes require authentication via Supabase
-2. **Data Access**: Use server-side Supabase client for initial data fetching in server components
+1. **Authentication**: All /studies/* routes require authentication via NextAuth.js middleware. Use `useSession()` on client, `auth()` on server.
+2. **Data Access**: Use `createServerDb()` from `lib/supabase/db.ts` for server components/API routes. Use `createClient()` from `lib/supabase/client.ts` for browser.
 3. **Forms**: Use react-hook-form with zod validation (see existing forms for patterns)
 4. **UI Components**: Always check components/ui/ for existing components before creating new ones
 5. **Public Sharing**: Studies can be shared via public_slug at /[slug] routes
@@ -108,12 +112,11 @@ Study notes allow users to upload DOCX files to OneDrive and display them as bea
 - Regeneration triggered by OneDrive file changes or ?flush=1 parameter
 
 ### OneDrive Token Management
-The app uses Microsoft OAuth for OneDrive access. There are known limitations with Supabase's OAuth integration:
-- Supabase may not always expose the provider refresh token
-- Access tokens expire after 1 hour
-- Refresh token support requires setting environment variables (see `.env.example`)
-- The auth callback logs token availability for debugging
-- If refresh tokens aren't available, users need to re-authenticate periodically
+OneDrive access tokens are managed by NextAuth.js:
+- Microsoft OAuth tokens are stored in the NextAuth JWT
+- Token refresh is handled automatically in the `jwt` callback (60s before expiry)
+- Use `getOneDriveToken()` or `makeGraphRequest()` from `lib/utils/onedrive.ts` in API routes
+- The access token is exposed on the session via `session.accessToken`
 
 ## Dynamic Theming System
 

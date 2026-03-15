@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import { OneDriveTokenManagerV2 } from '@/lib/utils/onedrive-token-manager-v2'
+import { auth } from '@/auth'
+import { createServerDb } from '@/lib/supabase/db'
+import { getOneDriveToken, makeGraphRequest } from '@/lib/utils/onedrive'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate-limit'
 import fs from 'fs/promises'
 import path from 'path'
@@ -35,17 +36,16 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
   const studyId = searchParams.get('studyId')
 
   // Rate limiting based on slug (since this is a public endpoint)
-  // Using slug as identifier to prevent abuse of specific documents
   const rateLimitResult = checkRateLimit(`convert:${slug}`, RATE_LIMITS.DOCUMENT_CONVERSION)
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult.resetTime)
   }
 
   try {
-    const supabase = await createServerClient()
+    const supabase = createServerDb()
 
     // Get current user (may be null for public notes)
-    const { data: { user } } = await supabase.auth.getUser()
+    const session = await auth()
 
     // First, try to find a public note with this slug
     let query = supabase
@@ -65,8 +65,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
     // Authorization check:
     // 1. If note is public, allow access
-    // 2. If note is private, only allow owner access
-    const isOwner = user && note.studies?.user_id === user.id
+    // 2. If note is private, only allow authenticated access
+    const isOwner = !!session?.accessToken
     if (!note.is_public && !isOwner) {
       return NextResponse.json({ error: 'Study note not found' }, { status: 404 })
     }
@@ -80,13 +80,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
     // Try to access OneDrive to check for updates
     try {
-      const tokenResult = await OneDriveTokenManagerV2.getValidToken()
+      const token = await getOneDriveToken()
 
-      if (!tokenResult.token) {
+      if (!token) {
         onedriveAccessible = false
       } else {
         // Get file metadata using direct API with the file's OneDrive ID
-        const metadataResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest(
+        const metadataResponse = await makeGraphRequest(
           `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}`
         )
 
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
           onedriveLastModified = new Date(fileData.lastModifiedDateTime)
 
           // Download the file content
-          const downloadResponse = await OneDriveTokenManagerV2.makeAuthenticatedRequest(
+          const downloadResponse = await makeGraphRequest(
             `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}/content`
           )
 
@@ -213,7 +213,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
     // Try to return cached version if available
     try {
-      const supabase = await createServerClient()
+      const supabase = createServerDb()
 
       // Get the study note again to ensure we have the ID
       const { data: noteForCache } = await supabase.from('study_notes').select('id').eq('public_slug', slug).eq('is_public', true).single()
@@ -245,7 +245,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
 
 async function storeMediaInDatabase(noteId: string, mediaPath: string) {
   try {
-    const supabase = await createServerClient()
+    const supabase = createServerDb()
 
     // Get cache record
     const { data: cacheRecord } = await supabase.from('study_notes_cache').select('id').eq('study_note_id', noteId).single()
@@ -274,7 +274,6 @@ async function storeMediaInDatabase(noteId: string, mediaPath: string) {
       }
 
       // Convert to hex string for PostgreSQL BYTEA
-      // Supabase expects hex string with \x prefix for BYTEA columns
       const hexString = `\\x${fileData.toString('hex')}`
 
       await supabase.from('study_notes_media').insert({
@@ -304,7 +303,7 @@ async function preprocessDocxWithMathPlaceholders(fileBuffer: Buffer): Promise<{
   mathMap: Map<string, MathEquation>
 }> {
   const mathMap = new Map<string, MathEquation>()
-  
+
   try {
     // Load the DOCX file as a ZIP
     const zip = await JSZip.loadAsync(fileBuffer)
@@ -313,46 +312,46 @@ async function preprocessDocxWithMathPlaceholders(fileBuffer: Buffer): Promise<{
     if (!documentXml) {
       return { buffer: fileBuffer, mathMap }
     }
-    
+
     // Parse the XML
     const parser = new DOMParser()
     const doc = parser.parseFromString(documentXml, 'text/xml')
-    
+
     const wordNamespace = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
     const mathNamespace = 'http://schemas.openxmlformats.org/officeDocument/2006/math'
-    
+
     let equationCounter = 0
-    
+
     // Process all math elements and replace with placeholders
     // First handle display equations (oMathPara)
     const oMathParas = doc.getElementsByTagNameNS(mathNamespace, 'oMathPara')
     for (let i = oMathParas.length - 1; i >= 0; i--) {
       const oMathPara = oMathParas[i]
       const oMath = oMathPara.getElementsByTagNameNS(mathNamespace, 'oMath')[0]
-      
+
       if (oMath) {
         try {
           // Convert OMML to LaTeX
           const mathmlElement = omml2mathml(oMath)
           const mathmlString = mathmlElement.outerHTML
           const latexString = MathMLToLaTeX.convert(mathmlString)
-          
+
           // Create placeholder
           const placeholder = `[[MATH_DISPLAY_${equationCounter++}]]`
-          
+
           // Store in map
           mathMap.set(placeholder, {
             latex: latexString,
             isDisplay: true,
             placeholder
           })
-          
+
           // Create a text run with the placeholder
           const textRun = doc.createElementNS(wordNamespace, 'w:r')
           const text = doc.createElementNS(wordNamespace, 'w:t')
           text.textContent = placeholder
           textRun.appendChild(text)
-          
+
           // Replace the oMathPara with a paragraph containing our placeholder
           const para = doc.createElementNS(wordNamespace, 'w:p')
           para.appendChild(textRun)
@@ -363,56 +362,56 @@ async function preprocessDocxWithMathPlaceholders(fileBuffer: Buffer): Promise<{
         }
       }
     }
-    
+
     // Then handle inline equations (oMath not in oMathPara)
     const allMath = doc.getElementsByTagNameNS(mathNamespace, 'oMath')
     for (let i = allMath.length - 1; i >= 0; i--) {
       const oMath = allMath[i]
-      
+
       // Skip if inside oMathPara (already processed)
       if (oMath.parentNode && (oMath.parentNode as Element).localName === 'oMathPara') {
         continue
       }
-      
+
       try {
         // Convert OMML to LaTeX
         const mathmlElement = omml2mathml(oMath)
         const mathmlString = mathmlElement.outerHTML
         const latexString = MathMLToLaTeX.convert(mathmlString)
-        
+
         // Create placeholder
         const placeholder = `[[MATH_INLINE_${equationCounter++}]]`
-        
+
         // Store in map
         mathMap.set(placeholder, {
           latex: latexString,
           isDisplay: false,
           placeholder
         })
-        
+
         // Create a text run with the placeholder
         const textRun = doc.createElementNS(wordNamespace, 'w:r')
         const text = doc.createElementNS(wordNamespace, 'w:t')
         text.textContent = placeholder
         textRun.appendChild(text)
-        
+
         // Replace the oMath with our text run
         oMath.parentNode?.replaceChild(textRun, oMath)
       } catch {
         // Continue processing other equations
       }
     }
-    
+
     // Serialize the modified XML
     const serializer = new XMLSerializer()
     const modifiedXml = serializer.serializeToString(doc)
-    
+
     // Update the ZIP with modified document.xml
     zip.file('word/document.xml', modifiedXml)
-    
+
     // Generate the modified DOCX buffer
     const modifiedBuffer = await zip.generateAsync({ type: 'nodebuffer' })
-    
+
     return { buffer: modifiedBuffer, mathMap }
   } catch {
     return { buffer: fileBuffer, mathMap }
@@ -427,7 +426,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   let hasMedia = false
   const mediaFiles: { [key: string]: Buffer } = {}
-  
+
   // Pre-process DOCX to inject math placeholders
   const { buffer: processedBuffer, mathMap } = await preprocessDocxWithMathPlaceholders(fileBuffer)
 
@@ -484,7 +483,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   // Keep track of title text during conversion
   let documentTitle: string | null = null
-  
+
   // First convert with basic options to extract title
   const extractTitleOptions: MammothOptions = {
     styleMap: [
@@ -492,11 +491,11 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
       "p[style-name='Title'] => p.mammoth-document-title > :fresh",
     ]
   }
-  
+
   // Do a preliminary conversion to extract the title
   const preliminaryResult = await mammoth.convertToHtml({ buffer: fileBuffer }, extractTitleOptions)
   const $preliminary = load(preliminaryResult.value)
-  
+
   // Try to find title with the mapped class
   const titleElement = $preliminary('p.mammoth-document-title').first()
   if (titleElement.length > 0) {
@@ -512,7 +511,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
       }
     }
   }
-  
+
   // Enhanced transform function that also removes TOC entries
   const enhancedTransformDocument = (element: MammothElement): MammothElement | null => {
     // Apply the original transform logic
@@ -536,7 +535,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
   // Convert the DOCX buffer to HTML
   const result = await mammoth.convertToHtml({ buffer: processedBuffer }, mammothOptions)
   let bodyHtml = result.value
-  
+
   // Replace math placeholders with actual equations
   if (mathMap.size > 0) {
     // Simple string replacement for each placeholder
@@ -544,7 +543,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
       const mathHtml = equation.isDisplay
         ? `<span class="math display">\\[${equation.latex}\\]</span>`
         : `<span class="math inline">\\(${equation.latex}\\)</span>`
-      
+
       // Replace all occurrences of the placeholder
       bodyHtml = bodyHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), mathHtml)
     })
@@ -555,7 +554,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   // Use the title extracted from the Word document
   let title: string | null = documentTitle
-  
+
   // If we found a title, remove it from the body HTML
   if (title) {
     // Remove the first paragraph if it matches our title
@@ -636,7 +635,7 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
 
   // Inject the main content
   finalHtml = finalHtml.replace('$body$', $.html())
-  
+
   // Clean up any remaining unreplaced placeholders
   finalHtml = finalHtml.replace(/\$[a-zA-Z]+\$/g, '')
 

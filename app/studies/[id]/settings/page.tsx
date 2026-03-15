@@ -1,13 +1,12 @@
 "use client"
 
 import { useState, useEffect, use } from "react"
+import { useSession } from "next-auth/react"
 import { createClient } from "@/lib/supabase/client"
 import { StudySettings } from "@/components/study-settings"
-import { LoginForm } from "@/components/login-form"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useFavicon } from "@/hooks/use-favicon"
-import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 interface Study {
   id: string
@@ -25,7 +24,7 @@ interface Study {
 
 export default function StudySettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [user, setUser] = useState<User | null>(null)
+  const { status } = useSession()
   const [study, setStudy] = useState<Study | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -41,19 +40,7 @@ export default function StudySettingsPage({ params }: { params: Promise<{ id: st
   }, [study?.name])
 
   useEffect(() => {
-    const initialize = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      
-      setUser(user)
-      
-      if (user) {
-        await fetchStudy()
-      }
-      
-      setLoading(false)
-    }
+    if (status !== "authenticated") return
 
     const fetchStudy = async () => {
       const { data, error } = await supabase
@@ -67,29 +54,18 @@ export default function StudySettingsPage({ params }: { params: Promise<{ id: st
       } else {
         setStudy(data)
       }
+      setLoading(false)
     }
 
-    initialize()
+    fetchStudy()
+  }, [id, supabase, status])
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [id, supabase, supabase.auth])
-
-  if (loading) {
+  if (status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
-  }
-
-  if (!user) {
-    return <LoginForm />
   }
 
   if (notFound || !study) {

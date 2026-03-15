@@ -2,30 +2,25 @@ import { createClient } from '@/lib/supabase/client'
 
 export async function regenerateAllStudyNotes() {
   const supabase = createClient()
-  
+
   try {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-    
-    // Get all studies for the user
+    // Get all studies (single-user app, no user_id filter needed)
     const { data: studies, error: studiesError } = await supabase
       .from('studies')
       .select('id, name')
-      .eq('user_id', user.id)
-    
+
     if (studiesError) throw studiesError
     if (!studies || studies.length === 0) {
       return { success: true, message: 'Žádná studia k regeneraci', stats: { total: 0, success: 0, failed: 0 } }
     }
-    
+
     // Get all public study notes across all studies
     const { data: studyNotes, error: notesError } = await supabase
       .from('study_notes')
       .select('id, public_slug, name, study_id')
       .in('study_id', studies.map((s: { id: string }) => s.id))
       .eq('is_public', true)
-    
+
     if (notesError) throw notesError
     if (!studyNotes || studyNotes.length === 0) {
       return { success: true, message: 'Žádné studijní zápisy k regeneraci', stats: { total: 0, success: 0, failed: 0 } }
@@ -35,7 +30,7 @@ export async function regenerateAllStudyNotes() {
     let successCount = 0
     let failedCount = 0
     const errors: string[] = []
-    
+
     for (const note of studyNotes) {
       try {
         // Call the API without flush parameter to regenerate only if needed
@@ -54,15 +49,15 @@ export async function regenerateAllStudyNotes() {
         errors.push(`${note.name}: ${error}`)
         failedCount++
       }
-      
+
       // Small delay between requests to avoid overwhelming the server
       await new Promise(resolve => setTimeout(resolve, 500))
     }
-    
+
     const message = failedCount > 0
       ? `Regenerováno ${successCount} z ${studyNotes.length} zápisů. ${failedCount} selhalo.`
       : `Úspěšně regenerováno všech ${successCount} studijních zápisů.`
-    
+
     return {
       success: failedCount === 0,
       message,

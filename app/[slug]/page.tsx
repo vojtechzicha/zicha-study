@@ -1,4 +1,4 @@
-import { createServerClient } from "@/lib/supabase/server"
+import { createServerDb } from "@/lib/supabase/db"
 import { PublicStudyView } from "@/components/public-study-view"
 import { notFound } from "next/navigation"
 import { RESERVED_ROUTES } from "@/lib/constants"
@@ -9,13 +9,13 @@ interface PageProps {
 
 export default async function PublicStudyPage({ params }: PageProps) {
   const { slug } = await params
-  
+
   // Check if the slug conflicts with reserved routes
   if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
     notFound()
   }
-  
-  const supabase = await createServerClient()
+
+  const supabase = createServerDb()
 
   // Fetch study data
   const { data: study, error: studyError } = await supabase
@@ -45,15 +45,15 @@ export default async function PublicStudyPage({ params }: PageProps) {
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
-  
+
   // Check if the slug conflicts with reserved routes
   if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
     return {
       title: "Stránka nenalezena",
     }
   }
-  
-  const supabase = await createServerClient()
+
+  const supabase = createServerDb()
 
   const { data: study } = await supabase
     .from("studies")

@@ -1,13 +1,12 @@
 "use client"
 
 import { useState, useEffect, use } from "react"
+import { useSession } from "next-auth/react"
 import { createClient } from "@/lib/supabase/client"
 import { StudyStatistics } from "@/components/study-statistics"
-import { LoginForm } from "@/components/login-form"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useFavicon } from "@/hooks/use-favicon"
-import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 interface Study {
   id: string
@@ -38,7 +37,7 @@ interface Subject {
 
 export default function StudyStatisticsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [user, setUser] = useState<User | null>(null)
+  const { status } = useSession()
   const [study, setStudy] = useState<Study | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,58 +54,35 @@ export default function StudyStatisticsPage({ params }: { params: Promise<{ id: 
   }, [study?.name])
 
   useEffect(() => {
-    const initialize = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      
-      setUser(user)
-      
-      if (user) {
-        await fetchData()
+    if (status !== "authenticated") return
+
+    const fetchData = async () => {
+      const { data: studyData, error: studyError } = await supabase.from("studies").select("id, name, logo_url").eq("id", id).single()
+
+      if (studyError || !studyData) {
+        setNotFound(true)
+      } else {
+        setStudy(studyData)
       }
-      
+
+      const { data: subjectsData, error: subjectsError } = await supabase.from("subjects").select("*").eq("study_id", id).order("semester", { ascending: true })
+
+      if (!subjectsError && subjectsData) {
+        setSubjects(subjectsData)
+      }
+
       setLoading(false)
     }
 
-    const fetchData = async () => {
-      const [studyResult, subjectsResult] = await Promise.all([
-        supabase.from("studies").select("id, name, logo_url").eq("id", id).single(),
-        supabase.from("subjects").select("*").eq("study_id", id).order("semester", { ascending: true })
-      ])
+    fetchData()
+  }, [id, supabase, status])
 
-      if (studyResult.error || !studyResult.data) {
-        setNotFound(true)
-      } else {
-        setStudy(studyResult.data)
-      }
-
-      if (!subjectsResult.error && subjectsResult.data) {
-        setSubjects(subjectsResult.data)
-      }
-    }
-
-    initialize()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [id, supabase, supabase.auth])
-
-  if (loading) {
+  if (status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
-  }
-
-  if (!user) {
-    return <LoginForm />
   }
 
   if (notFound || !study) {
