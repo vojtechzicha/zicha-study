@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { updateMaterialAction, checkMaterialSlug } from "@/lib/actions/materials"
+import { createCacheShareLinkAction } from "@/lib/actions/onedrive-cache"
 import type { Material } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 
@@ -147,6 +148,15 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
       })
 
       if (result.error) throw new Error(result.error.message)
+
+      // Create cache share link if publishing and cache exists (non-blocking)
+      if (isPublicNew && material.cache_onedrive_id) {
+        createCacheShareLinkAction(
+          material.id,
+          material.cache_onedrive_id,
+          "materials"
+        ).catch((err) => console.error("Cache share link creation failed:", err))
+      }
 
       setIsPublic(isPublicNew)
       if (onUpdate) onUpdate()

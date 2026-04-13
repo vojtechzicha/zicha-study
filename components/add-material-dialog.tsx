@@ -29,6 +29,7 @@ import {
 import { FileText, AlertCircle } from "lucide-react"
 import { fetchStudyMaterialSettings } from "@/lib/actions/studies"
 import { createMaterial, createSubjectMaterial } from "@/lib/actions/materials"
+import { cacheFileToOneDrive } from "@/lib/actions/onedrive-cache"
 import { getMaterialCategoryOptions } from "@/lib/constants"
 import type { OneDriveFile, MaterialFormData } from "@/lib/types/materials"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
@@ -141,6 +142,19 @@ export function AddMaterialDialog({
       }
 
       if (result.error) throw new Error(result.error.message)
+
+      // Cache file to OneDrive cache directory (non-blocking)
+      if (result.data?.id) {
+        const collection = subjectId ? "subject_materials" : "materials"
+        cacheFileToOneDrive(
+          result.data.id,
+          selectedFile.id,
+          selectedFile.name,
+          studyId,
+          "materials",
+          collection as "materials" | "subject_materials"
+        ).catch((err) => console.error("Cache to OneDrive failed:", err))
+      }
 
       onSuccess()
       handleClose()

@@ -26,6 +26,10 @@ export interface StudyNote {
   is_public: boolean
   public_slug?: string | null
 
+  // OneDrive cache
+  cache_onedrive_id?: string | null
+  cache_onedrive_web_url?: string | null
+
   // Converted HTML cache
   converted_html?: string | null
   converted_at?: string | null

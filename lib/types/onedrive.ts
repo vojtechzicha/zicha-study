@@ -105,6 +105,13 @@ export interface MaterialsRootFolder {
   path: string
 }
 
+// Cache folder configuration (global app setting)
+export interface CacheFolderConfig {
+  cache_folder_id: string | null
+  cache_folder_name: string
+  cache_folder_path: string
+}
+
 // Type guard to check if an item is a folder
 export function isOneDriveFolder(item: OneDriveItem): boolean {
   return !!item.folder

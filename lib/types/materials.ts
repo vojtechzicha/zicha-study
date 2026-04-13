@@ -23,7 +23,12 @@ export interface Material {
   is_public: boolean
   public_slug: string | null
   public_share_url: string | null
-  
+
+  // OneDrive cache
+  cache_onedrive_id: string | null
+  cache_onedrive_web_url: string | null
+  cache_public_share_url: string | null
+
   // Timestamps
   created_at: string
   updated_at: string
@@ -35,7 +40,7 @@ export interface SubjectMaterial {
   subject_id: string
   study_id: string
   user_id: string
-  
+
   // OneDrive metadata
   name: string
   file_name: string
@@ -46,17 +51,22 @@ export interface SubjectMaterial {
   onedrive_web_url: string
   onedrive_download_url: string | null
   parent_path: string | null
-  
+
   // Additional metadata
   description: string | null
   category: string | null
   tags: string[] | null
-  
+
   // Public sharing
   is_public: boolean
   public_slug: string | null
   public_share_url: string | null
-  
+
+  // OneDrive cache
+  cache_onedrive_id: string | null
+  cache_onedrive_web_url: string | null
+  cache_public_share_url: string | null
+
   // Timestamps
   created_at: string
   updated_at: string

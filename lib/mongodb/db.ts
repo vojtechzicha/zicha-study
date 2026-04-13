@@ -550,6 +550,41 @@ export async function getLogoData(studyId: string) {
   return c.findOne({ _id: studyId as any }, { projection: { logo_data: 1, logo_mime_type: 1 } })
 }
 
+// ─── App Settings ──────────────────────────────────────────────────────────
+
+export async function getAppSettings() {
+  const c = await col("app_settings")
+  return c.findOne({ _id: "app_settings" as any })
+}
+
+export async function upsertAppSettings(data: Record<string, any>) {
+  const c = await col("app_settings")
+  await c.updateOne(
+    { _id: "app_settings" as any },
+    { $set: { ...data, updated_at: new Date().toISOString() } },
+    { upsert: true }
+  )
+}
+
+/**
+ * Get documents from a collection that have onedrive_id but no cache_onedrive_id.
+ * Used for bulk migration/sync to cache.
+ */
+export async function getDocumentsNeedingCache(
+  collectionName: "materials" | "subject_materials" | "study_notes"
+) {
+  const c = await col(collectionName)
+  return c
+    .find({
+      onedrive_id: { $exists: true, $ne: null },
+      $or: [
+        { cache_onedrive_id: { $exists: false } },
+        { cache_onedrive_id: null },
+      ],
+    })
+    .toArray()
+}
+
 // ─── ID normalization helper ────────────────────────────────────────────────
 // MongoDB documents use _id, but the app expects id.
 // This helper converts _id to id for all documents returned from queries.

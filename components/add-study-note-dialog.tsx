@@ -28,6 +28,7 @@ import {
   linkSubjectToNoteAction,
   linkFinalExamToNoteAction,
 } from "@/lib/actions/study-notes"
+import { cacheFileToOneDrive } from "@/lib/actions/onedrive-cache"
 import type { OneDriveFile } from "@/lib/types/materials"
 import type { StudyNoteFormData } from "@/lib/types/study-notes"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
@@ -193,6 +194,16 @@ export function AddStudyNoteDialog({
       } else {
         await linkSubjectToNoteAction(insertedNote.id, subjectId, true)
       }
+
+      // Cache file to OneDrive cache directory (non-blocking)
+      cacheFileToOneDrive(
+        insertedNote.id,
+        selectedFile.id,
+        selectedFile.name,
+        studyId,
+        "study-notes",
+        "study_notes"
+      ).catch((err) => console.error("Cache to OneDrive failed:", err))
 
       onSuccess()
       handleClose()

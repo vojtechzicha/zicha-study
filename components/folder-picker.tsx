@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -36,7 +36,7 @@ export function FolderPicker({
     { name: "OneDrive", path: "/drive/root:" }
   ])
 
-  const loadFolders = async (path: string = "/drive/root:") => {
+  const loadFolders = useCallback(async (path: string = "/drive/root:") => {
     setFolderPickerLoading(true)
     setFolderPickerError(null)
 
@@ -73,16 +73,16 @@ export function FolderPicker({
     } finally {
       setFolderPickerLoading(false)
     }
-  }
+  }, [])
 
-  const handleOpenChange = async (isOpen: boolean) => {
-    if (isOpen) {
+  // Load folders when dialog opens
+  useEffect(() => {
+    if (open) {
       setCurrentFolderPath("/drive/root:")
       setFolderPathHistory([{ name: "OneDrive", path: "/drive/root:" }])
-      await loadFolders()
+      loadFolders()
     }
-    onOpenChange(isOpen)
-  }
+  }, [open, loadFolders])
 
   const handleFolderNavigation = async (folder: OneDriveFolderItem) => {
     const newPath = `/drive/items/${folder.id}`
@@ -119,7 +119,7 @@ export function FolderPicker({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

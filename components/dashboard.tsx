@@ -7,7 +7,7 @@ import { fetchStudies } from "@/lib/actions/studies"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet, RefreshCw } from "lucide-react"
+import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet, RefreshCw, HardDrive } from "lucide-react"
 import { StudyLogo } from "@/components/study-logo"
 import { useRouter } from "next/navigation"
 import { Study, getStatusColor, getStatusText, sortStudiesByStatus } from "@/lib/status-utils"
@@ -15,6 +15,7 @@ import { getStudyFormLabel } from "@/lib/constants"
 import { exportStudiesToExcel } from "@/lib/utils/export-excel"
 import { regenerateAllStudyNotes } from "@/lib/utils/regenerate-study-notes"
 import { useToast } from "@/hooks/use-toast"
+import { CacheSettingsDialog } from "@/components/cache-settings-dialog"
 
 interface DashboardProps {
   user: User
@@ -25,6 +26,7 @@ export function Dashboard({ user }: DashboardProps) {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [showCacheSettings, setShowCacheSettings] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -147,6 +149,14 @@ export function Dashboard({ user }: DashboardProps) {
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCacheSettings(true)}
+                title="Nastavení OneDrive cache"
+              >
+                <HardDrive className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" />
@@ -289,6 +299,11 @@ export function Dashboard({ user }: DashboardProps) {
           </div>
         )}
       </main>
+
+      <CacheSettingsDialog
+        open={showCacheSettings}
+        onOpenChange={setShowCacheSettings}
+      />
     </div>
   )
 }

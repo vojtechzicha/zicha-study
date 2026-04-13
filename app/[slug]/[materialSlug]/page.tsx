@@ -1,5 +1,7 @@
 import type { JSX } from 'react'
 import * as db from "@/lib/mongodb/db"
+import { auth } from "@/auth"
+import { checkFileExists } from "@/lib/utils/onedrive-cache"
 import { redirect, notFound } from "next/navigation"
 import { Loader2, FileText, ArrowLeft, Globe, AlertCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -82,12 +84,34 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
       })
       .filter(Boolean) as { id: string; name: string; abbreviation: string | null; is_primary: boolean }[]
 
+    // Resolve OneDrive URLs: prefer original, fall back to cache copy
+    let effectiveWebUrl = studyNote.onedrive_web_url
+    let effectiveDownloadUrl = studyNote.onedrive_download_url
+    const session = await auth()
+    if (session?.accessToken && (studyNote as any).onedrive_id) {
+      try {
+        const { exists } = await checkFileExists((studyNote as any).onedrive_id)
+        if (!exists) {
+          effectiveWebUrl = (studyNote as any).cache_onedrive_web_url || studyNote.onedrive_web_url
+          effectiveDownloadUrl = (studyNote as any).cache_onedrive_web_url || studyNote.onedrive_download_url
+        }
+      } catch {
+        // Check failed, keep original URLs
+      }
+    } else if (!session?.accessToken) {
+      // No admin session — prefer cache URL if available (can't verify original)
+      effectiveWebUrl = (studyNote as any).cache_onedrive_web_url || studyNote.onedrive_web_url
+      effectiveDownloadUrl = (studyNote as any).cache_onedrive_web_url || studyNote.onedrive_download_url
+    }
+
     const { StudyNoteDisplay } = await import("@/components/study-note-display")
     return (
       <div className="min-h-screen bg-primary-50">
         <StudyNoteDisplay
           note={{
             ...studyNote,
+            onedrive_web_url: effectiveWebUrl,
+            onedrive_download_url: effectiveDownloadUrl,
             subjects: allSubjects
           }}
           subject={primarySubject}
@@ -116,14 +140,32 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
     }
   }
 
-  // Use the stored public share URL
+  // Determine which share URL to use (original or cache fallback)
   let shareUrl: string | null = null
   let shareError: string | null = null
 
   try {
-    if ((material as any).public_share_url) {
-      shareUrl = (material as any).public_share_url
+    const session = await auth()
+
+    if (session?.accessToken && (material as any).onedrive_id) {
+      // Admin is logged in — do a live check on the original file
+      try {
+        const { exists } = await checkFileExists((material as any).onedrive_id)
+        if (exists) {
+          shareUrl = (material as any).public_share_url || (material as any).cache_public_share_url || null
+        } else {
+          // Original gone — use cache share URL
+          shareUrl = (material as any).cache_public_share_url || (material as any).public_share_url || null
+        }
+      } catch {
+        shareUrl = (material as any).public_share_url || (material as any).cache_public_share_url || null
+      }
     } else {
+      // No admin session — use whichever URL we have
+      shareUrl = (material as any).public_share_url || (material as any).cache_public_share_url || null
+    }
+
+    if (!shareUrl) {
       shareError = "Veřejný odkaz pro tento materiál není dostupný"
     }
   } catch (error) {

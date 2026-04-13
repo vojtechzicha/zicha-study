@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import * as db from '@/lib/mongodb/db'
-import { getOneDriveToken, makeGraphRequest } from '@/lib/utils/onedrive'
+import { getOneDriveToken } from '@/lib/utils/onedrive'
+import { downloadFromOneDrive, updateCacheFromOriginal } from '@/lib/utils/onedrive-cache'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate-limit'
 import fs from 'fs/promises'
 import path from 'path'
@@ -68,51 +69,55 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     // Suppress unused variable warning - study is fetched for potential future auth checks
     void study
 
-    // Check if we have a cached version
+    // Check if we have a cached HTML conversion
     const cachedData = await db.getStudyNotesCache(noteId)
 
     let onedriveLastModified: Date | null = null
-    let onedriveAccessible = true
     let fileBuffer: ArrayBuffer | null = null
+    let sourceUsed: 'original' | 'cache' = 'original'
+    let hasToken = false
 
-    // Try to access OneDrive to check for updates
+    // Try to download from original OneDrive location
     try {
-      const token = await getOneDriveToken()
+      await getOneDriveToken()
+      hasToken = true
 
-      if (!token) {
-        onedriveAccessible = false
-      } else {
-        // Get file metadata using direct API with the file's OneDrive ID
-        const metadataResponse = await makeGraphRequest(
-          `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}`
-        )
+      if (note.onedrive_id) {
+        const originalResult = await downloadFromOneDrive(note.onedrive_id as string)
+        if (originalResult) {
+          fileBuffer = originalResult.buffer
+          onedriveLastModified = originalResult.lastModified
+          sourceUsed = 'original'
 
-        if (metadataResponse.ok) {
-          const fileData = await metadataResponse.json()
-          onedriveLastModified = new Date(fileData.lastModifiedDateTime)
-
-          // Download the file content
-          const downloadResponse = await makeGraphRequest(
-            `https://graph.microsoft.com/v1.0/me/drive/items/${note.onedrive_id}/content`
-          )
-
-          if (downloadResponse.ok) {
-            fileBuffer = await downloadResponse.arrayBuffer()
+          // If original succeeded and cache copy exists, sync cache if original is newer (fire-and-forget)
+          if (note.cache_onedrive_id) {
+            updateCacheFromOriginal(note.onedrive_id as string, note.cache_onedrive_id as string)
+              .catch(() => { /* non-critical */ })
           }
         }
       }
     } catch {
-      onedriveAccessible = false
+      hasToken = false
     }
 
-    // Determine if we should use cache or regenerate
+    // If original failed, try cache copy
+    if (!fileBuffer && note.cache_onedrive_id && hasToken) {
+      const cacheResult = await downloadFromOneDrive(note.cache_onedrive_id as string)
+      if (cacheResult) {
+        fileBuffer = cacheResult.buffer
+        onedriveLastModified = cacheResult.lastModified
+        sourceUsed = 'cache'
+      }
+    }
+
+    // Determine if we should use cached HTML or regenerate
     const shouldRegenerate =
       forceRegenerate ||
       !cachedData ||
-      (onedriveAccessible && fileBuffer && onedriveLastModified && new Date(cachedData.onedrive_last_modified as string) < onedriveLastModified)
+      (fileBuffer && onedriveLastModified && new Date(cachedData.onedrive_last_modified as string) < onedriveLastModified)
 
     if (!shouldRegenerate && cachedData) {
-      // Use cached version
+      // Use cached HTML conversion (performance cache — DOCX hasn't changed)
       return NextResponse.json({
         html: cachedData.html_content,
         title: cachedData.title,
@@ -121,27 +126,17 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
         cached: true,
         onedriveLastModified: cachedData.onedrive_last_modified,
         generatedAt: cachedData.generated_at,
-        onedriveAccessible,
+        onedriveAccessible: fileBuffer !== null || !hasToken,
+        sourceUsed,
       })
     }
 
-    // Need to regenerate
+    // Need to regenerate — must have file content from either original or cache
     if (!fileBuffer) {
-      if (cachedData) {
-        // OneDrive not accessible but we have cache
-        return NextResponse.json({
-          html: cachedData.html_content,
-          title: cachedData.title,
-          cacheKey: cachedData.cache_key,
-          mediaPath: cachedData.has_media ? `media-${cachedData.cache_key}` : null,
-          cached: true,
-          onedriveLastModified: cachedData.onedrive_last_modified,
-          generatedAt: cachedData.generated_at,
-          onedriveAccessible: false,
-        })
-      }
-
-      return NextResponse.json({ error: 'Unable to access file and no cache available' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Unable to access file from original location or cache' },
+        { status: 500 }
+      )
     }
 
     // Generate new cache key including generation time for cache busting
@@ -181,38 +176,14 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
       cached: false,
       onedriveLastModified: onedriveLastModified?.toISOString(),
       generatedAt: new Date().toISOString(),
-      onedriveAccessible,
+      onedriveAccessible: true,
+      sourceUsed,
     })
   } catch (error) {
-
-    // Try to return cached version if available
-    try {
-      // Get the study note again to ensure we have the ID
-      const noteForCache = await db.getPublicStudyNoteBySlug(slug)
-
-      if (noteForCache) {
-        const noteForCacheId = noteForCache._id as string
-        const cachedData = await db.getStudyNotesCache(noteForCacheId)
-
-        if (cachedData) {
-          return NextResponse.json({
-            html: cachedData.html_content,
-            title: cachedData.title,
-            cacheKey: cachedData.cache_key,
-            mediaPath: cachedData.has_media ? `media-${cachedData.cache_key}` : null,
-            cached: true,
-            onedriveLastModified: cachedData.onedrive_last_modified,
-            generatedAt: cachedData.generated_at,
-            onedriveAccessible: false,
-            error: 'Fell back to cache due to error',
-          })
-        }
-      }
-    } catch {
-      // Cache fallback failed
-    }
-
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Conversion failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Conversion failed' },
+      { status: 500 }
+    )
   }
 }
 
