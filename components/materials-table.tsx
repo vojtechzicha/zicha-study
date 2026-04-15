@@ -20,9 +20,19 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { updateMaterialAction } from "@/lib/actions/materials"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { updateMaterialAction, checkMaterialSlug } from "@/lib/actions/materials"
+import { createCacheShareLinkAction } from "@/lib/actions/onedrive-cache"
 import type { Material } from "@/lib/types/materials"
-import { createSlug } from "@/lib/utils/slug"
+import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 
 interface MaterialsTableProps {
   materials: Material[]
@@ -70,27 +80,67 @@ function formatDate(dateString: string | null): string {
 export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySlug, isStudyPublic }: MaterialsTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [copied, setCopied] = useState<string | null>(null)
+  const [publishingMaterial, setPublishingMaterial] = useState<Material | null>(null)
+  const [publicSlug, setPublicSlug] = useState("")
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
+  const [publishLoading, setPublishLoading] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
 
-  const handlePublicToggle = async (material: Material) => {
-    if (!material.is_public) {
-      // Generate initial slug from material name
-      const initialSlug = createSlug(material.name)
+  const checkSlugAvailability = async (studyId: string, slug: string, materialId: string, currentSlug?: string | null) => {
+    if (!slug || slug === currentSlug) {
+      setSlugAvailable(true)
+      return
+    }
 
-      await updatePublicStatus(material.id, true, initialSlug)
+    const isAvailable = await checkMaterialSlug(studyId, slug, materialId)
+    setSlugAvailable(isAvailable)
+  }
+
+  const handleSlugChange = (value: string) => {
+    const cleanSlug = cleanSlugInput(value)
+    setPublicSlug(cleanSlug)
+
+    if (publishingMaterial && cleanSlug && cleanSlug.length >= 3) {
+      checkSlugAvailability(publishingMaterial.study_id, cleanSlug, publishingMaterial.id, publishingMaterial.public_slug)
     } else {
-      await updatePublicStatus(material.id, false, null)
+      setSlugAvailable(null)
     }
   }
 
-  const updatePublicStatus = async (materialId: string, isPublic: boolean, slug: string | null) => {
+  const handlePublicToggle = async (material: Material) => {
+    if (!material.is_public) {
+      // Open dialog to let user choose the slug
+      const initialSlug = createSlug(material.name)
+      setPublishingMaterial(material)
+      setPublicSlug(initialSlug)
+      setSlugAvailable(null)
+      setPublishError(null)
+      if (initialSlug && initialSlug.length >= 3) {
+        checkSlugAvailability(material.study_id, initialSlug, material.id, material.public_slug)
+      }
+    } else {
+      await updatePublicStatus(material, false, null)
+    }
+  }
+
+  const handlePublishSubmit = async () => {
+    if (!publishingMaterial) return
+    if (!publicSlug || slugAvailable === false) {
+      setPublishError("Zadejte platný a dostupný slug")
+      return
+    }
+
+    await updatePublicStatus(publishingMaterial, true, publicSlug)
+  }
+
+  const updatePublicStatus = async (material: Material, isPublic: boolean, slug: string | null) => {
+    setPublishLoading(true)
+    setPublishError(null)
+
     try {
       let publicShareUrl = null
 
       if (isPublic) {
-        // Find the material to get its OneDrive ID
-        const material = materials.find(m => m.id === materialId)
-        if (!material) throw new Error("Material not found")
-
         // Generate public share link
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
@@ -117,16 +167,32 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
         publicShareUrl = shareUrl
       }
 
-      const result = await updateMaterialAction(materialId, {
+      const result = await updateMaterialAction(material.id, {
         is_public: isPublic,
         public_slug: slug,
         public_share_url: publicShareUrl,
       })
 
       if (result.error) throw new Error(result.error.message)
+
+      // Create cache share link if publishing and cache exists (non-blocking)
+      if (isPublic && material.cache_onedrive_id) {
+        createCacheShareLinkAction(
+          material.id,
+          material.cache_onedrive_id,
+          "materials"
+        ).catch((err) => console.error("Cache share link creation failed:", err))
+      }
+
       if (onUpdate) onUpdate()
+      setPublishingMaterial(null)
+      setPublicSlug("")
+      setSlugAvailable(null)
     } catch (err) {
+      setPublishError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
       console.error("Error updating public status:", err)
+    } finally {
+      setPublishLoading(false)
     }
   }
 
@@ -315,6 +381,95 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
           </TableBody>
         </Table>
       </div>
+
+      {/* Public Sharing Dialog */}
+      <Dialog
+        open={publishingMaterial !== null}
+        onOpenChange={(open) => {
+          if (!open && !publishLoading) {
+            setPublishingMaterial(null)
+            setPublicSlug("")
+            setSlugAvailable(null)
+            setPublishError(null)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Publikovat materiál</DialogTitle>
+            <DialogDescription>
+              Nastavte veřejný odkaz pro tento materiál. Bude dostupný na adrese /{studySlug}/{publicSlug}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {publishError && (
+              <Alert variant="destructive">
+                <AlertDescription>{publishError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="public-slug">URL adresa *</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">
+                  {typeof window !== "undefined" ? window.location.origin : ""}/{studySlug}/
+                </span>
+                <Input
+                  id="public-slug"
+                  value={publicSlug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  placeholder="material-name"
+                  className={
+                    slugAvailable === false ? "border-red-500" : slugAvailable === true ? "border-green-500" : ""
+                  }
+                  required
+                />
+              </div>
+              {slugAvailable === false && (
+                <p className="text-sm text-red-600">Tato URL adresa již není dostupná pro toto studium</p>
+              )}
+              {slugAvailable === true && publicSlug && (
+                <p className="text-sm text-green-600">URL adresa je dostupná</p>
+              )}
+              <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+            </div>
+
+            {publicSlug && slugAvailable && (
+              <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
+                <Label className="text-sm font-medium text-primary-900">Veřejná URL adresa:</Label>
+                <div className="flex items-center gap-2 mt-2">
+                  <code className="flex-1 p-2 bg-white rounded border text-sm">
+                    {typeof window !== "undefined" ? window.location.origin : ""}/{studySlug}/{publicSlug}
+                  </code>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPublishingMaterial(null)
+                setPublicSlug("")
+                setSlugAvailable(null)
+                setPublishError(null)
+              }}
+              disabled={publishLoading}
+            >
+              Zrušit
+            </Button>
+            <Button
+              onClick={handlePublishSubmit}
+              disabled={publishLoading || !publicSlug || slugAvailable === false}
+              className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
+            >
+              {publishLoading ? "Publikování..." : "Publikovat"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
