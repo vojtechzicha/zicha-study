@@ -3,13 +3,14 @@
 import React, { useState } from "react"
 import { updateStudy, deleteStudyAction } from "@/lib/actions/studies"
 import { uploadLogo, removeLogo as removeLogoAction } from "@/lib/actions/logos"
+import { uploadDiploma, removeDiploma as removeDiplomaAction } from "@/lib/actions/diplomas"
 import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, type StudyStatus } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Upload, X, Trash2 } from "lucide-react"
+import { ArrowLeft, Upload, X, Trash2, Award, FileText } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertDialog,
@@ -34,6 +35,9 @@ interface Study {
   end_year?: number
   status: StudyStatus
   logo_url?: string
+  diploma_url?: string | null
+  diploma_mime_type?: string
+  diploma_uploaded_at?: string
   final_exams_enabled?: boolean
   exam_scheduler_enabled?: boolean
   transit_duration_hours?: number
@@ -71,6 +75,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
   })
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(study.logo_url || null)
+  const [diplomaFile, setDiplomaFile] = useState<File | null>(null)
+  const [diplomaUrl, setDiplomaUrl] = useState<string | null>(study.diploma_url || null)
+  const [diplomaMime, setDiplomaMime] = useState<string | null>(study.diploma_mime_type || null)
+  const [diplomaFileName, setDiplomaFileName] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -100,6 +108,40 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     setLogoPreview(null)
   }
 
+  const handleDiplomaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError("Diplom musí být menší než 10MB")
+        return
+      }
+      const isPdf = file.type === "application/pdf"
+      const isImage = file.type.startsWith("image/")
+      if (!isPdf && !isImage) {
+        setError("Diplom musí být PDF nebo obrázek")
+        return
+      }
+      setDiplomaFile(file)
+      setDiplomaMime(file.type)
+      setDiplomaFileName(file.name)
+      if (isImage) {
+        const reader = new FileReader()
+        reader.onload = (e) => setDiplomaUrl(e.target?.result as string)
+        reader.readAsDataURL(file)
+      } else {
+        setDiplomaUrl("pending")
+      }
+      setError(null)
+    }
+  }
+
+  const removeDiplomaLocal = () => {
+    setDiplomaFile(null)
+    setDiplomaUrl(null)
+    setDiplomaMime(null)
+    setDiplomaFileName(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -116,6 +158,14 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
         // Remove logo if user cleared it
         await removeLogoAction(study.id)
         logoUrl = undefined
+      }
+
+      // Upload new diploma if provided
+      if (diplomaFile) {
+        const arrayBuffer = await diplomaFile.arrayBuffer()
+        await uploadDiploma(study.id, arrayBuffer, diplomaFile.type)
+      } else if (diplomaUrl === null && study.diploma_url) {
+        await removeDiplomaAction(study.id)
       }
 
       await updateStudy(study.id, {
@@ -300,6 +350,66 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Diploma Upload */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Award className="h-4 w-4 text-amber-600" />
+                  <Label>Diplom</Label>
+                  {formData.status !== "completed" && (
+                    <span className="text-xs text-gray-500">
+                      (zobrazí se po dokončení studia)
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-start gap-4">
+                  {diplomaUrl ? (
+                    <div className="relative flex-shrink-0">
+                      {diplomaMime?.startsWith("image/") && diplomaUrl !== "pending" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={diplomaUrl}
+                          alt="Diplom preview"
+                          className="w-20 h-20 object-cover border border-amber-200 rounded shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 flex flex-col items-center justify-center border border-amber-200 rounded bg-gradient-to-br from-amber-50 to-amber-100 shadow-sm">
+                          <FileText className="h-7 w-7 text-amber-700" />
+                          <span className="text-[10px] mt-1 font-medium text-amber-900">PDF</span>
+                        </div>
+                      )}
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                        onClick={removeDiplomaLocal}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 border-2 border-dashed border-amber-300 rounded flex items-center justify-center flex-shrink-0 bg-amber-50/50">
+                      <Award className="h-7 w-7 text-amber-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <Input
+                      type="file"
+                      accept="application/pdf,image/*"
+                      onChange={handleDiplomaChange}
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-800 hover:file:bg-amber-100 file:cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {diplomaFileName ? (
+                        <span className="text-amber-700 font-medium">{diplomaFileName}</span>
+                      ) : (
+                        "PDF nebo obrázek do 10MB"
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
 

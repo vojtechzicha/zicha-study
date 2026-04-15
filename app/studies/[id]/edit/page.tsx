@@ -17,6 +17,9 @@ interface Study {
   end_year?: number
   status: "active" | "completed" | "paused" | "abandoned"
   logo_url?: string
+  diploma_url?: string | null
+  diploma_mime_type?: string
+  diploma_uploaded_at?: string
   created_at: string
 }
 

@@ -550,6 +550,41 @@ export async function getLogoData(studyId: string) {
   return c.findOne({ _id: studyId as any }, { projection: { logo_data: 1, logo_mime_type: 1 } })
 }
 
+// ─── Diplomas (stored as Binary in studies collection) ──────────────────────
+
+export async function storeDiploma(studyId: string, fileBuffer: Buffer, mimeType: string) {
+  const c = await col("studies")
+  await c.updateOne(
+    { _id: studyId as any },
+    {
+      $set: {
+        diploma_data: new Binary(fileBuffer),
+        diploma_mime_type: mimeType,
+        diploma_url: `/api/diplomas/${studyId}`,
+        diploma_uploaded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    }
+  )
+  return `/api/diplomas/${studyId}`
+}
+
+export async function deleteDiploma(studyId: string) {
+  const c = await col("studies")
+  await c.updateOne(
+    { _id: studyId as any },
+    {
+      $unset: { diploma_data: "", diploma_mime_type: "", diploma_uploaded_at: "" },
+      $set: { diploma_url: null, updated_at: new Date().toISOString() }
+    }
+  )
+}
+
+export async function getDiplomaData(studyId: string) {
+  const c = await col("studies")
+  return c.findOne({ _id: studyId as any }, { projection: { diploma_data: 1, diploma_mime_type: 1 } })
+}
+
 // ─── App Settings ──────────────────────────────────────────────────────────
 
 export async function getAppSettings() {
@@ -588,12 +623,12 @@ export async function getDocumentsNeedingCache(
 // ─── ID normalization helper ────────────────────────────────────────────────
 // MongoDB documents use _id, but the app expects id.
 // This helper converts _id to id for all documents returned from queries.
-// It also strips Binary fields (logo_data, file_data) that can't be serialized
+// It also strips Binary fields (logo_data, diploma_data, file_data) that can't be serialized
 // when passed from Server Components to Client Components.
 
 export function normalizeId<T extends Record<string, any>>(doc: T | null): (Omit<T, '_id'> & { id: string }) | null {
   if (!doc) return null
-  const { _id, logo_data: _logoData, ...rest } = doc
+  const { _id, logo_data: _logoData, diploma_data: _diplomaData, ...rest } = doc
   return { id: _id as string, ...rest } as any
 }
 

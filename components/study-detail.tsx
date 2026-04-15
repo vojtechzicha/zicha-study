@@ -18,6 +18,7 @@ import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
 import { ExamSchedulerSection } from "./exam-scheduler-section"
 import { StudyStatisticsCards } from "./study-statistics-cards"
+import { DiplomaShowcase } from "./diploma-showcase"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
 import { useRouter } from "next/navigation"
@@ -31,6 +32,9 @@ interface Study {
   end_year?: number
   status: "active" | "completed" | "paused" | "abandoned"
   logo_url?: string
+  diploma_url?: string | null
+  diploma_mime_type?: string
+  diploma_uploaded_at?: string
   is_public?: boolean
   public_slug?: string
   final_exams_enabled?: boolean
@@ -168,6 +172,9 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Diploma Showcase (only renders when study is completed and diploma uploaded) */}
+        <DiplomaShowcase study={currentStudy} variant="compact" />
+
         {/* Statistics Cards */}
         <StudyStatisticsCards subjects={subjects} variant="simple" />
 

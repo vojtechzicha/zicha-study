@@ -17,6 +17,7 @@ import { PublicMaterialsSection } from "./public-materials-section"
 import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
 import { StudyStatisticsCards } from "./study-statistics-cards"
+import { DiplomaShowcase } from "./diploma-showcase"
 import { BookOpen } from "lucide-react"
 import {
   getStatusColor,
@@ -45,6 +46,9 @@ interface Study {
   end_year?: number
   status: StudyStatus
   logo_url?: string
+  diploma_url?: string | null
+  diploma_mime_type?: string
+  diploma_uploaded_at?: string
   is_public?: boolean
   public_slug?: string
   final_exams_enabled?: boolean
@@ -232,6 +236,9 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Diploma Showcase (only renders when study is completed and diploma uploaded) */}
+        <DiplomaShowcase study={study} />
+
         {/* Statistics Cards */}
         <StudyStatisticsCards subjects={subjects} variant="full" />
 
