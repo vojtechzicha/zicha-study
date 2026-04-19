@@ -532,8 +532,8 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           disabled={actionLoading[`${subject.id}_credit_completed`] || subject.credit_completed}
                           className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           style={subject.credit_completed ? {
-                            backgroundColor: 'var(--primary-600)',
-                            borderColor: 'var(--primary-600)',
+                            backgroundColor: 'hsl(var(--primary-600))',
+                            borderColor: 'hsl(var(--primary-600))',
                             color: 'white'
                           } : {}}
                         />
@@ -561,8 +561,8 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           disabled={actionLoading[`${subject.id}_exam_completed`] || subject.exam_completed}
                           className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           style={subject.exam_completed ? {
-                            backgroundColor: 'var(--primary-600)',
-                            borderColor: 'var(--primary-600)',
+                            backgroundColor: 'hsl(var(--primary-600))',
+                            borderColor: 'hsl(var(--primary-600))',
                             color: 'white'
                           } : {}}
                         />
