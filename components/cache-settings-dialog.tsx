@@ -19,12 +19,14 @@ import {
   syncAllToCache,
   syncByFilename,
 } from "@/lib/actions/onedrive-cache"
-import type { CacheFolderConfig } from "@/lib/types/onedrive"
-import type { MaterialsRootFolder } from "@/lib/types/onedrive"
+import type {
+  CacheFolderConfig,
+  MaterialsRootFolder,
+} from "@/lib/types/onedrive"
 
 interface CacheSettingsDialogProps {
   open: boolean
-  onOpenChange: (open: boolean) => void
+  onOpenChange: (_open: boolean) => void
 }
 
 export function CacheSettingsDialog({
