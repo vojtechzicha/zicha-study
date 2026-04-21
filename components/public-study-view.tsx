@@ -18,6 +18,7 @@ import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
 import { StudyStatisticsCards } from "./study-statistics-cards"
 import { DiplomaShowcase } from "./diploma-showcase"
+import { PublicPageFooter } from "./public-page-footer"
 import { BookOpen } from "lucide-react"
 import {
   getStatusColor,
@@ -188,7 +189,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                       style={{
                         width: study.end_year 
                           ? `${Math.min(100, Math.max(5, ((new Date().getFullYear() - study.start_year) / (study.end_year - study.start_year)) * 100))}%`
-                          : '66%' // Default progress for ongoing studies
+                          : '66%'
                       }}
                     />
                   </div>
@@ -205,7 +206,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                   {study.end_year && new Date().getFullYear() >= study.start_year && new Date().getFullYear() <= study.end_year && (() => {
                     const currentYear = new Date().getFullYear()
                     const progress = (currentYear - study.start_year) / (study.end_year - study.start_year)
-                    const leftPosition = Math.max(8, Math.min(92, progress * 100)) // Keep between 8% and 92% to avoid text cutoff
+                    const leftPosition = Math.max(8, Math.min(92, progress * 100))
                     
                     return (
                       <div 
@@ -435,10 +436,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
           ))}
         </div>
 
-        {/* Footer */}
-        <div className="mt-12 text-center text-sm text-gray-500">
-          <p>Vytvořeno pomocí University Study Tracker</p>
-        </div>
+        <PublicPageFooter />
       </main>
     </div>
   )

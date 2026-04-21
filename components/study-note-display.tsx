@@ -15,6 +15,7 @@ import {
 import Link from "next/link"
 import type { StudyNote } from "@/lib/types/study-notes"
 import { StudyNoteContent } from "@/components/study-note-content"
+import { PublicPageFooter } from "./public-page-footer"
 import { StudyLogo } from "./study-logo"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
@@ -206,6 +207,11 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
             />
           )}
         </div>
+
+        <PublicPageFooter
+          studyName={studyData?.name || study?.name}
+          studySlug={studyData?.public_slug || study?.public_slug}
+        />
       </main>
     </div>
   )

@@ -7,6 +7,7 @@ import { Loader2, FileText, ArrowLeft, Globe, AlertCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { PublicPageFooter } from "@/components/public-page-footer"
 import Link from "next/link"
 
 interface PageProps {
@@ -286,6 +287,11 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
             </Button>
           </div>
         )}
+
+        <PublicPageFooter
+          studyName={study.name}
+          studySlug={study.public_slug}
+        />
       </div>
     </div>
   )
