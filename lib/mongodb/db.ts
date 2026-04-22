@@ -69,6 +69,7 @@ export async function deleteStudy(id: string) {
   await db.collection("final_exams").deleteMany({ study_id: id })
   await db.collection("materials").deleteMany({ study_id: id })
   await db.collection("subject_materials").deleteMany({ study_id: id })
+  await db.collection("tasks").deleteMany({ study_id: id })
 
   // Delete exam options for subjects in this study
   const subjects = await db.collection("subjects").find({ study_id: id }).toArray()
@@ -187,6 +188,35 @@ export async function updateFinalExam(id: string, data: Record<string, any>) {
 
 export async function deleteFinalExam(id: string) {
   const c = await col("final_exams")
+  await c.deleteOne({ _id: id as any })
+}
+
+// ─── Tasks ──────────────────────────────────────────────────────────────────
+
+export async function getTasksByStudyId(studyId: string) {
+  const c = await col("tasks")
+  return c.find({ study_id: studyId }).sort({ deadline: 1, created_at: 1 }).toArray()
+}
+
+export async function getTaskById(id: string) {
+  const c = await col("tasks")
+  return c.findOne({ _id: id as any })
+}
+
+export async function createTask(data: Record<string, any>) {
+  const c = await col("tasks")
+  const doc = { _id: newId() as any, ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+  await c.insertOne(doc)
+  return doc
+}
+
+export async function updateTask(id: string, data: Record<string, any>) {
+  const c = await col("tasks")
+  await c.updateOne({ _id: id as any }, { $set: { ...data, updated_at: new Date().toISOString() } })
+}
+
+export async function deleteTask(id: string) {
+  const c = await col("tasks")
   await c.deleteOne({ _id: id as any })
 }
 

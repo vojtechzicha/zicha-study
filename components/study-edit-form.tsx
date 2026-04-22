@@ -40,6 +40,7 @@ interface Study {
   diploma_uploaded_at?: string
   final_exams_enabled?: boolean
   exam_scheduler_enabled?: boolean
+  tasks_enabled?: boolean
   transit_duration_hours?: number
   transit_cost_one_way?: number
   accommodation_cost_per_night?: number
@@ -64,6 +65,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     status: study.status,
     final_exams_enabled: study.final_exams_enabled || false,
     exam_scheduler_enabled: study.exam_scheduler_enabled || false,
+    tasks_enabled: study.tasks_enabled || false,
     transit_duration_hours: study.transit_duration_hours || 4,
     transit_cost_one_way: study.transit_cost_one_way || 200,
     accommodation_cost_per_night: study.accommodation_cost_per_night || 2000,
@@ -442,6 +444,27 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                     checked={formData.final_exams_enabled}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, final_exams_enabled: checked })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Tasks Toggle */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="tasks-enabled" className="text-base font-medium">
+                      Úkoly
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Evidence deadlinů a termínů k tomuto studiu (viditelné pouze pro vás)
+                    </p>
+                  </div>
+                  <Switch
+                    id="tasks-enabled"
+                    checked={formData.tasks_enabled}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, tasks_enabled: checked })
                     }
                   />
                 </div>

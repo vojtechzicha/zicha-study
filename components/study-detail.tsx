@@ -19,6 +19,7 @@ import { FinalExamsList } from "./final-exams-list"
 import { ExamSchedulerSection } from "./exam-scheduler-section"
 import { StudyStatisticsCards } from "./study-statistics-cards"
 import { DiplomaShowcase } from "./diploma-showcase"
+import { TasksSection } from "./tasks-section"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
 import { useRouter } from "next/navigation"
@@ -39,6 +40,7 @@ interface Study {
   public_slug?: string
   final_exams_enabled?: boolean
   exam_scheduler_enabled?: boolean
+  tasks_enabled?: boolean
   transit_duration_hours?: number
   transit_cost_one_way?: number
   accommodation_cost_per_night?: number
@@ -177,6 +179,13 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
 
         {/* Statistics Cards */}
         <StudyStatisticsCards subjects={subjects} variant="simple" />
+
+        {/* Tasks Section */}
+        {currentStudy.tasks_enabled && (
+          <div className="mb-8">
+            <TasksSection studyId={study.id} />
+          </div>
+        )}
 
         {/* Materials Section */}
         <div className="mb-8">

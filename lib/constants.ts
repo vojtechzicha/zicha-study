@@ -262,3 +262,81 @@ export const EXAM_DURATION_OPTIONS = [
 
 // Helper to get exam duration options
 export const getExamDurationOptions = () => [...EXAM_DURATION_OPTIONS]
+
+// ─── Tasks ──────────────────────────────────────────────────────────────────
+
+export interface Task {
+  id: string
+  study_id: string
+  title: string
+  description: string | null
+  start_date: string | null
+  deadline: string
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export const TASK_STATE = {
+  OVERDUE: 'overdue',
+  RUNNING: 'running',
+  UPCOMING: 'upcoming',
+  COMPLETED: 'completed',
+} as const
+
+export type TaskState = (typeof TASK_STATE)[keyof typeof TASK_STATE]
+
+export const TASK_STATE_CONFIG: Record<TaskState, {
+  label: string
+  badgeClass: string
+  cardClass: string
+  dotClass: string
+  accentClass: string
+}> = {
+  [TASK_STATE.OVERDUE]: {
+    label: 'Po termínu',
+    badgeClass: 'bg-red-100 text-red-700 border-red-200',
+    cardClass: 'border-red-300 bg-gradient-to-br from-red-50 via-white to-white shadow-red-100/50',
+    dotClass: 'bg-red-500',
+    accentClass: 'text-red-600',
+  },
+  [TASK_STATE.RUNNING]: {
+    label: 'Probíhá',
+    badgeClass: 'bg-amber-100 text-amber-700 border-amber-200',
+    cardClass: 'border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white shadow-amber-100/40',
+    dotClass: 'bg-amber-500',
+    accentClass: 'text-amber-700',
+  },
+  [TASK_STATE.UPCOMING]: {
+    label: 'Nadcházející',
+    badgeClass: 'bg-primary-50 text-primary-700 border-primary-200',
+    cardClass: 'border-primary-200 bg-white',
+    dotClass: 'bg-primary-500',
+    accentClass: 'text-primary-700',
+  },
+  [TASK_STATE.COMPLETED]: {
+    label: 'Hotovo',
+    badgeClass: 'bg-green-100 text-green-700 border-green-200',
+    cardClass: 'border-green-200 bg-green-50/40',
+    dotClass: 'bg-green-500',
+    accentClass: 'text-green-700',
+  },
+}
+
+// Returns YYYY-MM-DD in local timezone (NOT UTC), matching how <input type="date"> values are stored.
+export function todayLocalIso(date: Date = new Date()): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+export function getTaskState(
+  task: Pick<Task, 'start_date' | 'deadline' | 'completed_at'>,
+  today: string = todayLocalIso(),
+): TaskState {
+  if (task.completed_at) return TASK_STATE.COMPLETED
+  if (task.deadline && task.deadline < today) return TASK_STATE.OVERDUE
+  if (task.start_date && task.start_date > today) return TASK_STATE.UPCOMING
+  return TASK_STATE.RUNNING
+}
