@@ -1,6 +1,7 @@
 "use server"
 
 import * as db from "@/lib/mongodb/db"
+import { deleteCacheFiles, deleteStudyCacheDirectory } from "@/lib/utils/onedrive-cache"
 
 export async function fetchStudies() {
   const docs = await db.getStudies()
@@ -27,6 +28,9 @@ export async function updateStudy(id: string, data: Record<string, any>) {
 }
 
 export async function deleteStudyAction(id: string) {
+  const cacheOneDriveIds = await db.getCacheOneDriveIdsByStudyId(id)
+  await deleteCacheFiles(cacheOneDriveIds)
+  await deleteStudyCacheDirectory(id)
   await db.deleteStudy(id)
 }
 

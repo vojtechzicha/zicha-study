@@ -4,6 +4,7 @@ import type { CacheFolderConfig } from "@/lib/types/onedrive"
 
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 const SIMPLE_UPLOAD_MAX_SIZE = 4 * 1024 * 1024 // 4MB
+type CacheDirectoryType = "materials" | "study-notes"
 
 /**
  * Read cache folder config from app_settings.
@@ -25,7 +26,7 @@ export async function getCacheFolderConfig(): Promise<CacheFolderConfig | null> 
  */
 export async function ensureCacheSubfolder(
   studyId: string,
-  type: "materials" | "study-notes"
+  type: CacheDirectoryType
 ): Promise<string> {
   const config = await getCacheFolderConfig()
   if (!config?.cache_folder_id) {
@@ -43,6 +44,129 @@ export async function ensureCacheSubfolder(
   const typeFolderId = await createFolderIfNotExists(studyFolderId, type)
 
   return typeFolderId
+}
+
+function cacheStudyFolderName(studyId: string): string {
+  return studyId.substring(0, 8)
+}
+
+function isNonEmptyString(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.length > 0
+}
+
+async function deleteDriveItem(itemId: string): Promise<void> {
+  const response = await makeGraphRequest(
+    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(itemId)}`,
+    { method: "DELETE" }
+  )
+
+  if (response.ok || response.status === 404) {
+    return
+  }
+
+  throw new Error(`Failed to delete OneDrive cache item: ${response.status}`)
+}
+
+async function findChildFolder(parentId: string, folderName: string): Promise<string | null> {
+  const params = new URLSearchParams({
+    "$filter": `name eq '${folderName.replace(/'/g, "''")}'`,
+    "$select": "id,name,folder",
+  })
+  const response = await makeGraphRequest(
+    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(parentId)}/children?${params.toString()}`
+  )
+
+  if (response.status === 404) {
+    return null
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to inspect OneDrive cache folder: ${response.status}`)
+  }
+
+  const data = await response.json()
+  const folder = data.value?.find(
+    (item: { id?: string; name?: string; folder?: unknown }) =>
+      item.name === folderName && item.folder && item.id
+  )
+
+  return folder?.id ?? null
+}
+
+async function isDriveFolderEmpty(folderId: string): Promise<boolean> {
+  const params = new URLSearchParams({
+    "$top": "1",
+    "$select": "id",
+  })
+  const response = await makeGraphRequest(
+    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(folderId)}/children?${params.toString()}`
+  )
+
+  if (response.status === 404) {
+    return true
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to inspect OneDrive cache folder contents: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return !data.value?.length
+}
+
+/**
+ * Delete cached OneDrive copies only. This never targets the original file ID.
+ */
+export async function deleteCacheFiles(
+  cacheOnedriveIds: Array<string | null | undefined>
+): Promise<void> {
+  const uniqueIds = Array.from(new Set(cacheOnedriveIds.filter(isNonEmptyString)))
+
+  for (const cacheOnedriveId of uniqueIds) {
+    await deleteDriveItem(cacheOnedriveId)
+  }
+}
+
+export async function deleteCacheFile(cacheOnedriveId: string | null | undefined): Promise<void> {
+  await deleteCacheFiles([cacheOnedriveId])
+}
+
+export async function cleanupEmptyCacheDirectories(
+  studyId: string,
+  types: CacheDirectoryType[] = ["materials", "study-notes"]
+): Promise<void> {
+  const config = await getCacheFolderConfig()
+  if (!config?.cache_folder_id) {
+    return
+  }
+
+  const studyFolderId = await findChildFolder(config.cache_folder_id, cacheStudyFolderName(studyId))
+  if (!studyFolderId) {
+    return
+  }
+
+  for (const type of types) {
+    const typeFolderId = await findChildFolder(studyFolderId, type)
+    if (typeFolderId && await isDriveFolderEmpty(typeFolderId)) {
+      await deleteDriveItem(typeFolderId)
+    }
+  }
+
+  if (await isDriveFolderEmpty(studyFolderId)) {
+    await deleteDriveItem(studyFolderId)
+  }
+}
+
+export async function deleteStudyCacheDirectory(studyId: string): Promise<void> {
+  const config = await getCacheFolderConfig()
+  if (!config?.cache_folder_id) {
+    return
+  }
+
+  const studyFolderId = await findChildFolder(config.cache_folder_id, cacheStudyFolderName(studyId))
+  if (studyFolderId) {
+    await deleteDriveItem(studyFolderId)
+  }
 }
 
 /**
@@ -94,7 +218,7 @@ export async function copyFileToCache(
   fileName: string,
   studyId: string,
   docId: string,
-  type: "materials" | "study-notes"
+  type: CacheDirectoryType
 ): Promise<{ cacheOnedriveId: string; cacheWebUrl: string }> {
   const folderId = await ensureCacheSubfolder(studyId, type)
 

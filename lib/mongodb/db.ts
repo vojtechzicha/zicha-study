@@ -53,6 +53,8 @@ export async function deleteStudy(id: string) {
   // Get study notes for this study to cascade media/cache
   const studyNotes = await db.collection("study_notes").find({ study_id: id }).toArray()
   const noteIds = studyNotes.map((n) => n._id)
+  const subjects = await db.collection("subjects").find({ study_id: id }).toArray()
+  const subjectIds = subjects.map((s) => s._id)
 
   if (noteIds.length > 0) {
     // Delete study notes cache and media
@@ -72,8 +74,6 @@ export async function deleteStudy(id: string) {
   await db.collection("tasks").deleteMany({ study_id: id })
 
   // Delete exam options for subjects in this study
-  const subjects = await db.collection("subjects").find({ study_id: id }).toArray()
-  const subjectIds = subjects.map((s) => s._id)
   if (subjectIds.length > 0) {
     await db.collection("exam_options").deleteMany({ subject_id: { $in: subjectIds } })
   }
@@ -152,7 +152,7 @@ export async function getDepartmentsByStudyId(studyId: string) {
   const c = await col("subjects")
   const results = await c.distinct("department", {
     study_id: studyId,
-    department: { $ne: null, $ne: "" } as any
+    department: { $nin: [null, ""] } as any
   })
   return results.filter((d: any) => d && d !== "").sort((a: string, b: string) => a.localeCompare(b, "cs"))
 }
@@ -237,6 +237,11 @@ export async function getMaterialBySlug(studyId: string, slug: string) {
   return c.findOne({ study_id: studyId, public_slug: slug, is_public: true })
 }
 
+export async function getMaterialById(id: string) {
+  const c = await col("materials")
+  return c.findOne({ _id: id as any })
+}
+
 export async function createMaterial(data: Record<string, any>) {
   const c = await col("materials")
   const doc = { _id: newId() as any, ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
@@ -271,6 +276,11 @@ export async function checkMaterialSlugAvailability(studyId: string, slug: strin
 export async function getSubjectMaterialBySlug(studyId: string, slug: string) {
   const c = await col("subject_materials")
   return c.findOne({ study_id: studyId, public_slug: slug, is_public: true })
+}
+
+export async function getSubjectMaterialById(id: string) {
+  const c = await col("subject_materials")
+  return c.findOne({ _id: id as any })
 }
 
 export async function createSubjectMaterial(data: Record<string, any>) {
@@ -648,6 +658,26 @@ export async function getDocumentsNeedingCache(
       ],
     })
     .toArray()
+}
+
+export async function getCacheOneDriveIdsByStudyId(studyId: string) {
+  const db = await getDb()
+  const collections = ["materials", "subject_materials", "study_notes"] as const
+  const docsByCollection = await Promise.all(
+    collections.map((collectionName) =>
+      db.collection(collectionName)
+        .find(
+          { study_id: studyId },
+          { projection: { cache_onedrive_id: 1 } }
+        )
+        .toArray()
+    )
+  )
+
+  return docsByCollection
+    .flat()
+    .map((doc) => doc.cache_onedrive_id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0)
 }
 
 // ─── ID normalization helper ────────────────────────────────────────────────

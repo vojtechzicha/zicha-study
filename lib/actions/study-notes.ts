@@ -1,6 +1,7 @@
 "use server"
 
 import * as db from "@/lib/mongodb/db"
+import { cleanupEmptyCacheDirectories, deleteCacheFile } from "@/lib/utils/onedrive-cache"
 
 export async function fetchStudyNotes(studyId: string, publicOnly = false) {
   const docs = await db.getStudyNotesByStudyId(studyId, publicOnly)
@@ -37,6 +38,12 @@ export async function updateStudyNoteAction(id: string, data: Record<string, any
 
 export async function deleteStudyNoteAction(id: string) {
   try {
+    const note = await db.getStudyNoteById(id)
+    await deleteCacheFile(note?.cache_onedrive_id as string | null | undefined)
+    if (note?.study_id) {
+      await cleanupEmptyCacheDirectories(note.study_id as string)
+    }
+
     await db.deleteStudyNote(id)
     return { error: null }
   } catch (err: any) {

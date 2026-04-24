@@ -1,6 +1,7 @@
 "use server"
 
 import * as db from "@/lib/mongodb/db"
+import { cleanupEmptyCacheDirectories, deleteCacheFile } from "@/lib/utils/onedrive-cache"
 
 export async function fetchMaterials(studyId: string) {
   const docs = await db.getMaterialsByStudyId(studyId)
@@ -41,6 +42,12 @@ export async function updateMaterialAction(id: string, data: Record<string, any>
 
 export async function deleteMaterialAction(id: string) {
   try {
+    const material = await db.getMaterialById(id)
+    await deleteCacheFile(material?.cache_onedrive_id as string | null | undefined)
+    if (material?.study_id) {
+      await cleanupEmptyCacheDirectories(material.study_id as string)
+    }
+
     await db.deleteMaterial(id)
     return { error: null }
   } catch (err: any) {
@@ -63,6 +70,12 @@ export async function fetchSubjectMaterials(subjectId: string) {
 
 export async function deleteSubjectMaterialAction(id: string) {
   try {
+    const material = await db.getSubjectMaterialById(id)
+    await deleteCacheFile(material?.cache_onedrive_id as string | null | undefined)
+    if (material?.study_id) {
+      await cleanupEmptyCacheDirectories(material.study_id as string)
+    }
+
     await db.deleteSubjectMaterial(id)
     return { error: null }
   } catch (err: any) {
