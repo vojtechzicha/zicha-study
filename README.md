@@ -57,6 +57,17 @@ zicha-study allows students to track their university studies, manage subjects, 
    pnpm dev
    ```
 
+### Customize footer attribution
+
+Forks and third-party deployments should update the footer attribution before publishing. The visible name, profile image, attribution text, and footer home-link labels are centralized in [`lib/site-config.ts`](lib/site-config.ts).
+
+- Change `footerAttribution.name` to the deployer's name
+- Change `footerAttribution.imageSrc` to a file in `public/` such as `/profile.jpg`
+- Change `footerAttribution.description` for the short footer byline
+- Change `footerHomeLabel` and `publicFooterHomeLabel` if the deployment uses a different site name
+
+If you only want to replace the photo, keep `imageSrc` as `/profile.jpg` and replace `public/profile.jpg`.
+
 ### Commands
 
 ```bash

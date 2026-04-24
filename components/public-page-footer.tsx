@@ -3,6 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { GraduationCap } from "lucide-react"
+import { SITE_CONFIG } from "@/lib/site-config"
 
 interface PublicPageFooterProps {
   studyName?: string
@@ -11,6 +12,7 @@ interface PublicPageFooterProps {
 
 export function PublicPageFooter({ studyName, studySlug }: PublicPageFooterProps) {
   const currentYear = new Date().getFullYear()
+  const { footerAttribution } = SITE_CONFIG
 
   return (
     <footer className="mt-16 pt-8 pb-6">
@@ -22,18 +24,18 @@ export function PublicPageFooter({ studyName, studySlug }: PublicPageFooterProps
         <div className="flex items-center gap-3.5">
           <div className="relative h-9 w-9 overflow-hidden rounded-full ring-1 ring-primary-200/60 shadow-sm">
             <Image
-              src="/profile.jpg"
-              alt="Vojtěch Zicha"
+              src={footerAttribution.imageSrc}
+              alt={footerAttribution.imageAlt}
               fill
               className="object-cover"
             />
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-gray-800">
-              Vojtěch Zicha
+              {footerAttribution.name}
             </span>
             <span className="text-xs text-gray-400">
-              osobní studijní archiv · &copy; {currentYear}
+              {footerAttribution.description} · &copy; {currentYear}
             </span>
           </div>
         </div>
@@ -52,11 +54,11 @@ export function PublicPageFooter({ studyName, studySlug }: PublicPageFooterProps
             <span className="text-gray-300">·</span>
           )}
           <Link
-            href="/"
+            href={SITE_CONFIG.homeHref}
             className="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-primary-600"
           >
             <GraduationCap className="h-3.5 w-3.5" />
-            <span>Sledování studií</span>
+            <span>{SITE_CONFIG.publicFooterHomeLabel}</span>
           </Link>
         </div>
       </div>

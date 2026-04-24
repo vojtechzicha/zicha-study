@@ -3,6 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { GitCommitHorizontal, GraduationCap } from "lucide-react"
+import { SITE_CONFIG } from "@/lib/site-config"
 
 const fullCommitSha = process.env.NEXT_PUBLIC_COMMIT_SHA || "development"
 const commitLabel = fullCommitSha === "development"
@@ -18,6 +19,7 @@ const commitTitle = [
 
 export function TitlePageFooter() {
   const currentYear = new Date().getFullYear()
+  const { footerAttribution } = SITE_CONFIG
 
   return (
     <footer className="px-4 pb-6">
@@ -27,29 +29,29 @@ export function TitlePageFooter() {
         <div className="flex items-center gap-3.5">
           <div className="relative h-9 w-9 overflow-hidden rounded-full shadow-sm ring-1 ring-primary-200/60">
             <Image
-              src="/profile.jpg"
-              alt="Vojtěch Zicha"
+              src={footerAttribution.imageSrc}
+              alt={footerAttribution.imageAlt}
               fill
               className="object-cover"
             />
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-gray-800">
-              Vojtěch Zicha
+              {footerAttribution.name}
             </span>
             <span className="text-xs text-gray-400">
-              osobní studijní archiv · &copy; {currentYear}
+              {footerAttribution.description} · &copy; {currentYear}
             </span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
           <Link
-            href="/"
+            href={SITE_CONFIG.homeHref}
             className="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-primary-600"
           >
             <GraduationCap className="h-3.5 w-3.5" />
-            <span>zicha.study</span>
+            <span>{SITE_CONFIG.footerHomeLabel}</span>
           </Link>
           <span className="hidden text-gray-300 sm:inline">·</span>
           <span

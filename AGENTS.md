@@ -101,6 +101,7 @@ Note: study_note_subjects and study_note_final_exams join tables from PostgreSQL
    - Gradient-styled action buttons (blue-to-indigo gradient)
    - Clear visual feedback for URL availability
    - When disabling public access, clear the public_slug to null
+8. **Footer Attribution**: Use `lib/site-config.ts` for footer owner attribution, profile image path, byline, and footer home-link labels. Do not hardcode deployer-specific attribution in components.
 
 ## Development Notes
 

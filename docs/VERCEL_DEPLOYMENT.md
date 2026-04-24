@@ -1,5 +1,11 @@
 # Vercel Deployment Notes
 
+## Deployment Customization
+
+Before deploying a fork, review `lib/site-config.ts`. Footer attribution and footer home-link labels are centralized there so each deployment can use its own owner name, profile image, short byline, and site label without editing footer components.
+
+Profile images should live in `public/` and be referenced with an absolute public path such as `/profile.jpg`.
+
 ## Study Notes DOCX Conversion
 
 The study notes feature uses Mammoth.js for converting DOCX files to HTML, which is fully compatible with Vercel's deployment environment.
