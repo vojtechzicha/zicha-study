@@ -15,6 +15,7 @@ import { getStudyFormLabel } from "@/lib/constants"
 import { exportStudiesToExcel } from "@/lib/utils/export-excel"
 import { useToast } from "@/hooks/use-toast"
 import { CacheSettingsDialog } from "@/components/cache-settings-dialog"
+import { TitlePageFooter } from "@/components/title-page-footer"
 
 interface DashboardProps {
   user: User
@@ -250,6 +251,8 @@ export function Dashboard({ user }: DashboardProps) {
           </div>
         )}
       </main>
+
+      <TitlePageFooter />
 
       <CacheSettingsDialog
         open={showCacheSettings}
