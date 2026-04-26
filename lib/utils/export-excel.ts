@@ -1,8 +1,24 @@
 import ExcelJS from 'exceljs'
-import { fetchStudiesWithPublicSlug } from '@/lib/actions/studies'
+import { fetchStudies } from '@/lib/actions/studies'
 import { fetchSubjectsByStudyId } from '@/lib/actions/subjects'
 import { fetchFinalExams } from '@/lib/actions/final-exams'
-import { getStudyStatusLabel, getStudyFormLabel } from '@/lib/constants'
+import { getStudyStatusLabel, getStudyFormLabel, type StudyStatus } from '@/lib/constants'
+import { sortStudiesByStatus } from '@/lib/status-utils'
+
+// Study type for export
+interface ExportStudy {
+  id: string
+  name: string
+  type: string
+  form?: string | null
+  start_year?: number | string | null
+  end_year?: number | string | null
+  status: StudyStatus
+  logo_url?: string | null
+  is_public?: boolean
+  public_slug?: string | null
+  created_at?: string | Date | null
+}
 
 // Subject type for export
 interface ExportSubject {
@@ -65,10 +81,6 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-function getStudyInitials(name: string): string {
-  return name.split(' ').map(w => w.charAt(0)).join('').toUpperCase().slice(0, 2)
-}
 
 function compareSemesters(a: string, b: string): number {
   const parse = (s: string) => {
@@ -133,6 +145,7 @@ const COLS = [
 ]
 
 const NUM_COLS = COLS.length
+const MAX_WORKSHEET_NAME_LENGTH = 31
 
 // ── Grade Color Map ─────────────────────────────────────────────────────────
 
@@ -146,9 +159,65 @@ function getGradeColor(grade: string): string {
   return C.DARK_TEXT
 }
 
+// ── Worksheet name helpers ──────────────────────────────────────────────────
+
+function sanitizeWorksheetName(name: string): string {
+  return name
+    .replace(/[\[\]*?:/\\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^'+|'+$/g, '')
+    .trim()
+}
+
+function humanizeSlug(slug: string): string {
+  return slug
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\p{L}/gu, (char) => char.toLocaleUpperCase('cs-CZ'))
+}
+
+function truncateWorksheetName(name: string, maxLength: number): string {
+  if (name.length <= maxLength) return name
+
+  const hardTrimmed = name.slice(0, maxLength).trim()
+  const lastSpace = hardTrimmed.lastIndexOf(' ')
+
+  if (lastSpace >= Math.floor(maxLength * 0.6)) {
+    return hardTrimmed.slice(0, lastSpace).trim()
+  }
+
+  return hardTrimmed
+}
+
+function getWorksheetBaseName(study: ExportStudy): string {
+  const fromName = sanitizeWorksheetName(study.name)
+  if (fromName) return truncateWorksheetName(fromName, MAX_WORKSHEET_NAME_LENGTH)
+
+  const fromSlug = study.public_slug ? sanitizeWorksheetName(humanizeSlug(study.public_slug)) : ''
+  if (fromSlug) return truncateWorksheetName(fromSlug, MAX_WORKSHEET_NAME_LENGTH)
+
+  return 'Studium'
+}
+
+function getUniqueWorksheetName(study: ExportStudy, usedNames: Set<string>): string {
+  const baseName = getWorksheetBaseName(study)
+  let name = baseName
+  let suffix = 2
+
+  while (usedNames.has(name.toLocaleLowerCase('cs-CZ'))) {
+    const suffixText = ` ${suffix}`
+    name = `${truncateWorksheetName(baseName, MAX_WORKSHEET_NAME_LENGTH - suffixText.length)}${suffixText}`
+    suffix++
+  }
+
+  usedNames.add(name.toLocaleLowerCase('cs-CZ'))
+  return name
+}
+
 // ── Shared row helpers ──────────────────────────────────────────────────────
 
-function writeFooter(ws: ExcelJS.Worksheet, startRow: number, slug: string): number {
+function writeFooter(ws: ExcelJS.Worksheet, startRow: number, publicSlug?: string | null): number {
   let r = startRow
   ws.getRow(r).height = 8
   r++
@@ -157,7 +226,10 @@ function writeFooter(ws: ExcelJS.Worksheet, startRow: number, slug: string): num
   r++
   ws.mergeCells(r, 1, r, NUM_COLS)
   const footerCell = ws.getCell(r, 1)
-  footerCell.value = `Export: ${new Date().toLocaleString('cs-CZ')}  |  zicha.study/${slug}`
+  const exportedAt = new Date().toLocaleString('cs-CZ')
+  footerCell.value = publicSlug
+    ? `Export: ${exportedAt}  |  ${window.location.origin}/${publicSlug}`
+    : `Export: ${exportedAt}  |  Soukromé studium`
   footerCell.font = { name: 'Arial', size: 8, italic: true, color: { argb: C.SUBTLE } }
   footerCell.alignment = { horizontal: 'right', vertical: 'middle' }
   return r
@@ -166,14 +238,15 @@ function writeFooter(ws: ExcelJS.Worksheet, startRow: number, slug: string): num
 // ── Main Export Function ────────────────────────────────────────────────────
 
 export async function exportStudiesToExcel() {
-  const studies = await fetchStudiesWithPublicSlug()
+  const studies = sortStudiesByStatus((await fetchStudies()) as ExportStudy[])
   if (!studies || studies.length === 0) {
-    throw new Error('No studies with public slugs found')
+    throw new Error('Nebyla nalezena žádná studia k exportu.')
   }
 
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'Sledování studií'
   workbook.created = new Date()
+  const usedWorksheetNames = new Set<string>()
 
   for (const study of studies) {
     let subjects: ExportSubject[] = []
@@ -199,8 +272,8 @@ export async function exportStudiesToExcel() {
       return sc !== 0 ? sc : a.name.localeCompare(b.name)
     })
 
-    const slug = study.public_slug || getStudyInitials(study.name).toLowerCase()
-    const ws = workbook.addWorksheet(slug.substring(0, 31))
+    const publicSlug = study.is_public ? study.public_slug : null
+    const ws = workbook.addWorksheet(getUniqueWorksheetName(study, usedWorksheetNames))
 
     // Set column widths
     COLS.forEach((col, i) => { ws.getColumn(i + 1).width = col.width })
@@ -277,8 +350,8 @@ export async function exportStudiesToExcel() {
 
     // ── Row 6: URL + metadata ───────────────────────────────────────────
     r = 6
-    if (study.public_slug) {
-      const url = `${window.location.origin}/${study.public_slug}`
+    if (publicSlug) {
+      const url = `${window.location.origin}/${publicSlug}`
       ws.mergeCells(r, 1, r, NUM_COLS - 4)
       const urlCell = ws.getCell(r, 1)
       urlCell.value = { text: url, hyperlink: url }
@@ -503,7 +576,7 @@ export async function exportStudiesToExcel() {
     }
 
     // ── Footer ────────────────────────────────────────────────────────────
-    writeFooter(ws, nextRow, study.public_slug || slug)
+    writeFooter(ws, nextRow, publicSlug)
 
     // ── Sheet settings ────────────────────────────────────────────────────
     ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 9, topLeftCell: 'A10', activeCell: 'A10' }]

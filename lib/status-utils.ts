@@ -441,7 +441,7 @@ export const getAvailableActions = (state: SubjectState, completionType: string 
 }
 
 // Sorting utilities
-export const sortStudiesByStatus = (studies: Study[]): Study[] => {
+export const sortStudiesByStatus = <T extends Pick<Study, 'status' | 'name'>>(studies: T[]): T[] => {
   return studies.sort((a, b) => {
     const priorityA = getStatusPriority(a.status)
     const priorityB = getStatusPriority(b.status)
