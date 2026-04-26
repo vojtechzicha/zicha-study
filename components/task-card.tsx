@@ -1,61 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { useState, forwardRef } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { CalendarClock, Clock } from "lucide-react"
 import { toggleTaskCompleteAction } from "@/lib/actions/tasks"
-import { TASK_STATE_CONFIG, getTaskState, todayLocalIso, type Task, type TaskState } from "@/lib/constants"
+import { TASK_STATE_CONFIG, getTaskState, todayLocalIso, type Task } from "@/lib/constants"
+import { duePillText, formatCzechDate } from "@/lib/utils/task-format"
 import { cn } from "@/lib/utils"
 
 interface TaskCardProps {
   task: Task
   onEdit: (_task: Task) => void
   onChange: () => void
+  highlighted?: boolean
 }
 
-function formatCzechDate(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("cs-CZ", {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-  })
-}
-
-function duePillText(task: Task, state: TaskState, today: string): string {
-  if (state === "completed") {
-    if (task.completed_at) {
-      const completed = new Date(task.completed_at).toLocaleDateString("cs-CZ", {
-        day: "numeric",
-        month: "numeric",
-      })
-      return `Dokončeno ${completed}`
-    }
-    return "Dokončeno"
-  }
-
-  const deadlineDate = new Date(`${task.deadline}T00:00:00`)
-  const todayDate = new Date(`${today}T00:00:00`)
-  const diffMs = deadlineDate.getTime() - todayDate.getTime()
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
-
-  if (state === "overdue") {
-    const n = Math.abs(diffDays)
-    return `${n} ${czDayWord(n)} po termínu`
-  }
-
-  if (diffDays === 0) return `dnes · ${formatCzechDate(task.deadline)}`
-  if (diffDays === 1) return `zítra · ${formatCzechDate(task.deadline)}`
-  return `za ${diffDays} ${czDayWord(diffDays)} · ${formatCzechDate(task.deadline)}`
-}
-
-function czDayWord(n: number): string {
-  if (n === 1) return "den"
-  if (n >= 2 && n <= 4) return "dny"
-  return "dní"
-}
-
-export function TaskCard({ task, onEdit, onChange }: TaskCardProps) {
+export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(function TaskCard(
+  { task, onEdit, onChange, highlighted = false },
+  ref,
+) {
   const [optimisticCompleted, setOptimisticCompleted] = useState<boolean | null>(null)
   const today = todayLocalIso()
 
@@ -81,6 +45,7 @@ export function TaskCard({ task, onEdit, onChange }: TaskCardProps) {
 
   return (
     <div
+      ref={ref}
       role="button"
       tabIndex={0}
       onClick={() => onEdit(task)}
@@ -95,7 +60,8 @@ export function TaskCard({ task, onEdit, onChange }: TaskCardProps) {
         "hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
         config.cardClass,
-        isCompleted && "opacity-80"
+        isCompleted && "opacity-80",
+        highlighted && "ring-2 ring-primary-500 ring-offset-2 animate-pulse"
       )}
     >
       <div
@@ -163,4 +129,4 @@ export function TaskCard({ task, onEdit, onChange }: TaskCardProps) {
       </div>
     </div>
   )
-}
+})

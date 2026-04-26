@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect, useRef, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ interface TasksAllDialogProps {
   onClose: () => void
   onEdit: (_task: Task) => void
   onChange: () => void
+  highlightedId?: string | null
 }
 
 const GROUP_ORDER: TaskState[] = [
@@ -34,8 +35,23 @@ const GROUP_ORDER: TaskState[] = [
   TASK_STATE.COMPLETED,
 ]
 
-export function TasksAllDialog({ tasks, onClose, onEdit, onChange }: TasksAllDialogProps) {
+export function TasksAllDialog({ tasks, onClose, onEdit, onChange, highlightedId }: TasksAllDialogProps) {
   const [collapsedCompleted, setCollapsedCompleted] = useState(true)
+  const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+
+  const setTaskRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+    if (el) taskRefs.current.set(id, el)
+    else taskRefs.current.delete(id)
+  }, [])
+
+  useEffect(() => {
+    if (!highlightedId) return
+    const t = setTimeout(() => {
+      const node = taskRefs.current.get(highlightedId)
+      if (node) node.scrollIntoView({ block: "center", behavior: "smooth" })
+    }, 120)
+    return () => clearTimeout(t)
+  }, [highlightedId])
 
   const today = todayLocalIso()
 
@@ -108,9 +124,11 @@ export function TasksAllDialog({ tasks, onClose, onEdit, onChange }: TasksAllDia
                       {items.map((task) => (
                         <TaskCard
                           key={task.id}
+                          ref={setTaskRef(task.id)}
                           task={task}
                           onEdit={onEdit}
                           onChange={onChange}
+                          highlighted={highlightedId === task.id}
                         />
                       ))}
                     </div>

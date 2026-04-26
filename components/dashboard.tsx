@@ -16,6 +16,7 @@ import { exportStudiesToExcel } from "@/lib/utils/export-excel"
 import { useToast } from "@/hooks/use-toast"
 import { CacheSettingsDialog } from "@/components/cache-settings-dialog"
 import { TitlePageFooter } from "@/components/title-page-footer"
+import { GlobalTasksButton } from "@/components/global-tasks-button"
 
 interface DashboardProps {
   user: User
@@ -89,6 +90,7 @@ export function Dashboard({ user }: DashboardProps) {
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <GlobalTasksButton />
               <Button
                 variant="ghost"
                 size="sm"

@@ -15,7 +15,9 @@ export default auth((request: NextRequest & { auth?: { user?: unknown } | null }
   }
 
   // --- Route protection ---
-  const isProtected = request.nextUrl.pathname.startsWith("/studies")
+  const isProtected =
+    request.nextUrl.pathname.startsWith("/studies") ||
+    request.nextUrl.pathname.startsWith("/tasks")
   if (isProtected && !request.auth) {
     return NextResponse.redirect(new URL("/", request.url))
   }

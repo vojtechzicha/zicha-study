@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -9,20 +10,20 @@ import { fetchTasks } from "@/lib/actions/tasks"
 import { TaskCard } from "@/components/task-card"
 import { TaskDialog } from "@/components/task-dialog"
 import { TasksAllDialog } from "@/components/tasks-all-dialog"
+import { TaskStateChips } from "@/components/task-state-chips"
 import {
-  TASK_STATE_CONFIG,
   getTaskState,
   todayLocalIso,
   type Task,
   type TaskState,
 } from "@/lib/constants"
-import { cn } from "@/lib/utils"
 
 interface TasksSectionProps {
   studyId: string
 }
 
 const VISIBLE_NON_OVERDUE = 3
+const HIGHLIGHT_DURATION_MS = 1800
 
 export function TasksSection({ studyId }: TasksSectionProps) {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -31,6 +32,13 @@ export function TasksSection({ studyId }: TasksSectionProps) {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showAllDialog, setShowAllDialog] = useState(false)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const handledParamsRef = useRef(false)
+  const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   const loadTasks = useCallback(async () => {
     setLoading(true)
@@ -51,7 +59,7 @@ export function TasksSection({ studyId }: TasksSectionProps) {
 
   const today = todayLocalIso()
 
-  const { counts, visible, hiddenCount } = useMemo(() => {
+  const { counts, visible, hiddenCount, hiddenIds } = useMemo(() => {
     const grouped: Record<TaskState, Task[]> = {
       overdue: [],
       running: [],
@@ -67,7 +75,7 @@ export function TasksSection({ studyId }: TasksSectionProps) {
       (a.start_date || a.deadline).localeCompare(b.start_date || b.deadline)
     )
 
-    const counts = {
+    const counts: Record<TaskState, number> = {
       overdue: grouped.overdue.length,
       running: grouped.running.length,
       upcoming: grouped.upcoming.length,
@@ -82,14 +90,62 @@ export function TasksSection({ studyId }: TasksSectionProps) {
     const hiddenCount =
       Math.max(0, nonOverdue.length - VISIBLE_NON_OVERDUE) + grouped.completed.length
 
-    return { counts, visible, hiddenCount }
+    const visibleIds = new Set(visible.map((t) => t.id))
+    const hiddenIds = new Set(tasks.filter((t) => !visibleIds.has(t.id)).map((t) => t.id))
+
+    return { counts, visible, hiddenCount, hiddenIds }
   }, [tasks, today])
+
+  // Deep-link handling: ?addTask=1 and ?task=<id>
+  useEffect(() => {
+    if (loading || handledParamsRef.current) return
+
+    const addTaskParam = searchParams.get("addTask")
+    const taskParam = searchParams.get("task")
+    let handled = false
+
+    if (addTaskParam === "1") {
+      setShowAddDialog(true)
+      handled = true
+    }
+
+    if (taskParam) {
+      const target = tasks.find((t) => t.id === taskParam)
+      if (target) {
+        if (hiddenIds.has(taskParam)) {
+          setShowAllDialog(true)
+        } else {
+          setTimeout(() => {
+            const node = taskRefs.current.get(taskParam)
+            if (node) node.scrollIntoView({ block: "center", behavior: "smooth" })
+          }, 80)
+        }
+        setHighlightedId(taskParam)
+        setTimeout(() => setHighlightedId(null), HIGHLIGHT_DURATION_MS)
+        handled = true
+      }
+    }
+
+    if (handled) {
+      handledParamsRef.current = true
+      const params = new URLSearchParams(searchParams.toString())
+      params.delete("addTask")
+      params.delete("task")
+      const query = params.toString()
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    }
+  }, [loading, tasks, searchParams, hiddenIds, pathname, router])
 
   const handleSave = () => {
     setEditingTask(null)
     setShowAddDialog(false)
     loadTasks()
   }
+
+  const setTaskRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+    if (el) taskRefs.current.set(id, el)
+    else taskRefs.current.delete(id)
+  }, [])
 
   return (
     <>
@@ -115,32 +171,7 @@ export function TasksSection({ studyId }: TasksSectionProps) {
             </Button>
           </div>
 
-          {tasks.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {(["overdue", "running", "upcoming"] as const).map((state) => {
-                if (counts[state] === 0) return null
-                const config = TASK_STATE_CONFIG[state]
-                return (
-                  <span
-                    key={state}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
-                      config.badgeClass
-                    )}
-                  >
-                    <span className={cn("h-1.5 w-1.5 rounded-full", config.dotClass)} />
-                    {counts[state]} {config.label.toLowerCase()}
-                  </span>
-                )
-              })}
-              {counts.completed > 0 && (
-                <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-gray-500">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                  {counts.completed} dokončeno
-                </span>
-              )}
-            </div>
-          )}
+          {tasks.length > 0 && <TaskStateChips counts={counts} className="mt-4" />}
         </CardHeader>
         <CardContent>
           {error && (
@@ -169,9 +200,11 @@ export function TasksSection({ studyId }: TasksSectionProps) {
               {visible.map((task) => (
                 <TaskCard
                   key={task.id}
+                  ref={setTaskRef(task.id)}
                   task={task}
                   onEdit={setEditingTask}
                   onChange={loadTasks}
+                  highlighted={highlightedId === task.id}
                 />
               ))}
               {hiddenCount > 0 && (
@@ -207,6 +240,7 @@ export function TasksSection({ studyId }: TasksSectionProps) {
       {showAllDialog && (
         <TasksAllDialog
           tasks={tasks}
+          highlightedId={highlightedId}
           onClose={() => setShowAllDialog(false)}
           onEdit={(task) => {
             setShowAllDialog(false)

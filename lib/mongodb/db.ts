@@ -220,6 +220,31 @@ export async function deleteTask(id: string) {
   await c.deleteOne({ _id: id as any })
 }
 
+export async function getAllTasksWithStudyMeta() {
+  const tasksCol = await col("tasks")
+  const tasks = await tasksCol.find({}).sort({ deadline: 1, created_at: 1 }).toArray()
+  if (tasks.length === 0) return [] as Array<{ task: any; study: any }>
+
+  const studyIds = Array.from(new Set(tasks.map((t) => t.study_id).filter((v): v is string => typeof v === "string")))
+  if (studyIds.length === 0) return [] as Array<{ task: any; study: any }>
+
+  const studiesCol = await col("studies")
+  const studies = await studiesCol
+    .find({ _id: { $in: studyIds as any[] }, tasks_enabled: true })
+    .project({ _id: 1, name: 1, logo_url: 1 })
+    .toArray()
+  const studyMap = new Map(studies.map((s) => [String(s._id), s]))
+
+  return tasks
+    .filter((t) => studyMap.has(t.study_id))
+    .map((t) => ({ task: t, study: studyMap.get(t.study_id) }))
+}
+
+export async function getTasksEnabledStudies() {
+  const c = await col("studies")
+  return c.find({ tasks_enabled: true }).sort({ name: 1 }).toArray()
+}
+
 // ─── Materials ──────────────────────────────────────────────────────────────
 
 export async function getMaterialsByStudyId(studyId: string) {
