@@ -1,7 +1,18 @@
 import type { Subject } from './status-utils'
+import {
+  COMPLETION_TYPES,
+  ECTS_GPA_POINTS,
+  GPA_EXCLUDED_GRADES,
+  GPA_GRADE_ALIASES,
+  getCompletionTypeShortCode,
+} from './constants'
 
 // Minimum subject fields needed for grade calculation
-export type GradeCalculationSubject = Pick<Subject, 'completion_type' | 'credits' | 'points' | 'grade'>
+export type GradeCalculationSubject = Pick<Subject, 'completion_type' | 'credits' | 'points' | 'grade'> & {
+  id?: string
+  is_repeat?: boolean
+  repeats_subject_id?: string | null
+}
 
 // Convert letter grade to numeric value
 export function gradeToNumber(grade: string): number | null {
@@ -33,13 +44,64 @@ export function gradeToNumber(grade: string): number | null {
 // Check if subject should be included in average calculation
 export function shouldIncludeInAverage(subject: GradeCalculationSubject): boolean {
   // Skip subjects with "Zápočet" type (credit only)
-  if (subject.completion_type === 'Zápočet (Zp)') return false
+  if (getCompletionTypeShortCode(subject.completion_type) === COMPLETION_TYPES.CREDIT) return false
   
   // Skip if no valuation (no points and no grade)
   if (!subject.points && !subject.grade) return false
   
   // Include if has points or valid grade
   return true
+}
+
+// Convert ECTS grade to US GPA points
+export function gradeToGpaPoints(grade: string): number | null {
+  const normalizedGrade = grade.trim().toUpperCase()
+  if (!normalizedGrade) return null
+
+  if ((GPA_EXCLUDED_GRADES as readonly string[]).includes(normalizedGrade)) {
+    return null
+  }
+
+  const alias = GPA_GRADE_ALIASES[normalizedGrade as keyof typeof GPA_GRADE_ALIASES]
+  const gpaGrade = alias || (normalizedGrade.startsWith('F') ? 'F' : normalizedGrade)
+
+  if (gpaGrade in ECTS_GPA_POINTS) {
+    return ECTS_GPA_POINTS[gpaGrade as keyof typeof ECTS_GPA_POINTS]
+  }
+
+  return null
+}
+
+export function shouldIncludeInGpa(subject: GradeCalculationSubject): boolean {
+  if (subject.credits <= 0) return false
+  if (getCompletionTypeShortCode(subject.completion_type) === COMPLETION_TYPES.CREDIT) return false
+
+  return gradeToGpaPoints(subject.grade || '') !== null
+}
+
+function getGpaSubjectKey(subject: GradeCalculationSubject, index: number): string {
+  if (subject.is_repeat && subject.repeats_subject_id) {
+    return subject.repeats_subject_id
+  }
+
+  return subject.id || `subject-${index}`
+}
+
+function selectGpaAttempt(
+  current: GradeCalculationSubject | undefined,
+  next: GradeCalculationSubject
+): GradeCalculationSubject {
+  if (!current) return next
+
+  if (next.is_repeat && next.repeats_subject_id) {
+    return next
+  }
+
+  if (current.is_repeat && current.repeats_subject_id) {
+    return current
+  }
+
+  return current
 }
 
 export type AverageType = 'grade' | 'points' | 'both' | 'none'
@@ -113,6 +175,34 @@ export function calculateWeightedPointsAverage(subjects: GradeCalculationSubject
   
   if (totalCredits === 0) return null
   return totalWeightedPoints / totalCredits
+}
+
+// Calculate credit-weighted GPA from ECTS grades
+export function calculateGpa(subjects: GradeCalculationSubject[]): number | null {
+  const gpaSubjects = new Map<string, GradeCalculationSubject>()
+
+  subjects.forEach((subject, index) => {
+    if (!shouldIncludeInGpa(subject)) return
+
+    const key = getGpaSubjectKey(subject, index)
+    gpaSubjects.set(key, selectGpaAttempt(gpaSubjects.get(key), subject))
+  })
+
+  if (gpaSubjects.size === 0) return null
+
+  let totalWeightedGpa = 0
+  let totalCredits = 0
+
+  for (const subject of gpaSubjects.values()) {
+    const gpaPoints = gradeToGpaPoints(subject.grade || '')
+    if (gpaPoints === null) continue
+
+    totalWeightedGpa += gpaPoints * subject.credits
+    totalCredits += subject.credits
+  }
+
+  if (totalCredits === 0) return null
+  return totalWeightedGpa / totalCredits
 }
 
 // Main function to calculate average with type detection

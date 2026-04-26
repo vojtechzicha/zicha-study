@@ -4,7 +4,7 @@
  * Centralized utilities for calculating study statistics.
  */
 
-import { calculateAverage, type AverageResult } from '@/lib/grade-utils'
+import { calculateAverage, calculateGpa, type AverageResult } from '@/lib/grade-utils'
 import { isSubjectFailed } from '@/lib/status-utils'
 
 // Subject interface for statistics calculation
@@ -22,6 +22,7 @@ export interface StatisticsSubject {
   credit_completed: boolean
   planned?: boolean
   is_repeat?: boolean
+  repeats_subject_id?: string | null
 }
 
 // Comprehensive study statistics
@@ -51,6 +52,7 @@ export interface StudyStatistics {
 
   // Average
   average: AverageResult
+  gpa: number | null
 }
 
 /**
@@ -98,6 +100,7 @@ export function calculateStudyStatistics(subjects: StatisticsSubject[]): StudySt
   // Calculate weighted average
   const completedSubjects = subjects.filter(s => s.completed && !isSubjectFailed(s))
   const average = calculateAverage(completedSubjects)
+  const gpa = calculateGpa(subjects.filter(s => s.completed && !s.planned))
 
   // Count subjects with credits/exams
   const subjectsWithCredits = subjects.filter(
@@ -127,6 +130,7 @@ export function calculateStudyStatistics(subjects: StatisticsSubject[]): StudySt
     totalHours,
     completedHours,
     average,
+    gpa,
     completionRate: total > 0 ? (completed / total) * 100 : 0,
     creditCompletionRate: subjectsWithCredits.length > 0
       ? (creditsCompleted / subjectsWithCredits.length) * 100
@@ -146,6 +150,7 @@ export interface SimpleStudyStatistics {
   totalCredits: number
   completedCredits: number
   average: AverageResult
+  gpa: number | null
 }
 
 /**
@@ -154,6 +159,7 @@ export interface SimpleStudyStatistics {
 export function calculateSimpleStatistics(subjects: StatisticsSubject[]): SimpleStudyStatistics {
   const completedSubjects = subjects.filter((s) => s.completed && !isSubjectFailed(s))
   const average = calculateAverage(completedSubjects)
+  const gpa = calculateGpa(subjects.filter(s => s.completed && !s.planned))
 
   return {
     total: subjects.length,
@@ -162,7 +168,8 @@ export function calculateSimpleStatistics(subjects: StatisticsSubject[]): Simple
       .filter(s => !s.is_repeat)
       .reduce((sum, s) => sum + s.credits, 0),
     completedCredits: completedSubjects.reduce((sum, s) => sum + s.credits, 0),
-    average
+    average,
+    gpa
   }
 }
 
@@ -174,6 +181,7 @@ export interface SemesterStatistics {
   completedCredits: number
   completionRate: number
   average: AverageResult
+  gpa: number | null
 }
 
 /**
@@ -191,6 +199,7 @@ export function calculateSemesterStatistics(subjects: StatisticsSubject[]): Seme
 
   const completedSemesterSubjects = subjects.filter(s => s.completed && !isSubjectFailed(s))
   const average = calculateAverage(completedSemesterSubjects)
+  const gpa = calculateGpa(subjects.filter(s => s.completed && !s.planned))
 
   return {
     total,
@@ -199,6 +208,7 @@ export function calculateSemesterStatistics(subjects: StatisticsSubject[]): Seme
     completedCredits,
     completionRate: total > 0 ? (completed / total) * 100 : 0,
     average,
+    gpa,
   }
 }
 

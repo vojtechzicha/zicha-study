@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { BookOpen, Target, Clock, Trophy, Calendar, TrendingUp } from "lucide-react"
+import { BookOpen, Target, Clock, Trophy, Calendar, TrendingUp, GraduationCap } from "lucide-react"
 import { calculateStudyStatistics, type StudyStatistics, type StatisticsSubject } from "@/lib/utils/statistics-utils"
 
 interface StudyStatisticsCardsProps {
@@ -26,7 +26,7 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
   return (
     <>
       {/* Main Statistics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${stats.gpa !== null ? "xl:grid-cols-5" : ""} gap-6 mb-8`}>
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
@@ -81,6 +81,19 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
                   <p className="text-xs text-gray-600 mt-1">vážené kredity</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {stats.gpa !== null && (
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">GPA</CardTitle>
+              <GraduationCap className="h-4 w-4 text-primary-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">{stats.gpa.toFixed(2)}</div>
+              <p className="text-xs text-gray-600 mt-1">ECTS přepočet</p>
             </CardContent>
           </Card>
         )}

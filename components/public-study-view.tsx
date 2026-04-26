@@ -33,7 +33,7 @@ import {
   getCreditsAndHoursDisplay,
   getSubjectStateBadgeConfig
 } from "@/lib/status-utils"
-import { calculateAverage } from "@/lib/grade-utils"
+import { calculateAverage, calculateGpa, type AverageResult } from "@/lib/grade-utils"
 import { getSubjectTypeConfig, getStudyFormLabel } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
 import { sortSubjects } from "@/lib/utils/subject-utils"
@@ -95,12 +95,12 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
 
   // Group subjects by semester with averages
   const subjectsBySemester = useMemo(() => {
-    const grouped: { [key: string]: { subjects: Subject[], average: any } } = {}
+    const grouped: { [key: string]: { subjects: Subject[], average: AverageResult, gpa: number | null } } = {}
     const sortedSubjects = sortSubjects(subjects)
 
     sortedSubjects.forEach((subject) => {
       if (!grouped[subject.semester]) {
-        grouped[subject.semester] = { subjects: [], average: { type: 'none', value: null, label: '' } }
+        grouped[subject.semester] = { subjects: [], average: { type: 'none', value: null, label: '' }, gpa: null }
       }
       grouped[subject.semester].subjects.push(subject)
     })
@@ -109,6 +109,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
     Object.keys(grouped).forEach(semester => {
       const completedSemesterSubjects = grouped[semester].subjects.filter(s => s.completed && !isSubjectFailed(s))
       grouped[semester].average = calculateAverage(completedSemesterSubjects)
+      grouped[semester].gpa = calculateGpa(grouped[semester].subjects.filter(s => s.completed && !s.planned))
     })
 
     return grouped
@@ -278,17 +279,23 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                       <BookOpen className="h-5 w-5 text-primary-600" />
                       <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">{semester}</CardTitle>
                     </div>
-                    {semesterData.average.type !== 'none' && (
+                    {(semesterData.average.type !== 'none' || semesterData.gpa !== null) && (
                       <div className="text-xs text-gray-500 mt-1">
                         {semesterData.average.type === 'both' ? (
-                          <div className="flex space-x-4">
+                          <div className="flex flex-wrap gap-x-4 gap-y-1">
                             <span>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : '-'}</span>
                             <span>Známky: {semesterData.average.gradeValue ? semesterData.average.gradeValue.toFixed(2) : '-'}</span>
+                            {semesterData.gpa !== null && <span>GPA: {semesterData.gpa.toFixed(2)}</span>}
+                          </div>
+                        ) : semesterData.average.type !== 'none' ? (
+                          <div className="flex flex-wrap gap-x-4 gap-y-1">
+                            <span>
+                              {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : '-'}
+                            </span>
+                            {semesterData.gpa !== null && <span>GPA: {semesterData.gpa.toFixed(2)}</span>}
                           </div>
                         ) : (
-                          <div>
-                            {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : '-'}
-                          </div>
+                          <div>GPA: {semesterData.gpa?.toFixed(2) ?? '-'}</div>
                         )}
                       </div>
                     )}

@@ -102,6 +102,7 @@ Note: study_note_subjects and study_note_final_exams join tables from PostgreSQL
    - Clear visual feedback for URL availability
    - When disabling public access, clear the public_slug to null
 8. **Footer Attribution**: Use `lib/site-config.ts` for footer owner attribution, profile image path, byline, and footer home-link labels. Do not hardcode deployer-specific attribution in components.
+9. **Commit Attribution**: When Codex creates a commit, use the repo's existing trailer format exactly: `Co-authored-by: codex <codex@openai.com>`. Do not use alternative generated-by wording.
 
 ## Development Notes
 

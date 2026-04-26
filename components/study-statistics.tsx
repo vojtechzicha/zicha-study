@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { BookOpen, Clock, Trophy, Target } from "lucide-react"
+import { BookOpen, Clock, Trophy, Target, GraduationCap } from "lucide-react"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
-import { calculateAverage } from "@/lib/grade-utils"
+import { calculateAverage, calculateGpa } from "@/lib/grade-utils"
 import { isSubjectFailed } from "@/lib/status-utils"
 import { getSubjectTypeOptions, getSubjectTypeConfig } from "@/lib/constants"
 
@@ -163,6 +163,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     // Calculate weighted average using new utility
     const completedFilteredSubjects = filteredSubjects.filter(s => s.completed && !isSubjectFailed(s))
     const average = calculateAverage(completedFilteredSubjects)
+    const gpa = calculateGpa(filteredSubjects.filter(s => s.completed && !s.planned))
 
     return {
       total,
@@ -176,6 +177,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       totalHours,
       completedHours,
       average,
+      gpa,
       completionRate: total > 0 ? (completed / total) * 100 : 0,
       creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
       examCompletionRate: subjectsWithExams.length > 0 ? (examsCompleted / subjectsWithExams.length) * 100 : 0,
@@ -198,6 +200,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       if (total > 0) {
         const completedSemesterSubjects = semesterSubjects.filter(s => s.completed && !isSubjectFailed(s))
         const semesterAverage = calculateAverage(completedSemesterSubjects)
+        const gpa = calculateGpa(semesterSubjects.filter(s => s.completed && !s.planned))
         
         stats[semester] = {
           total,
@@ -206,6 +209,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           completedCredits,
           completionRate: (completed / total) * 100,
           average: semesterAverage,
+          gpa,
         }
       }
     })
@@ -377,7 +381,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
         </Card>
 
         {/* Main Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${stats.gpa !== null ? "xl:grid-cols-5" : ""} gap-6 mb-8`}>
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
@@ -447,6 +451,19 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                     <p className="text-xs text-gray-600 mt-1">vážené kredity</p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {stats.gpa !== null && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">GPA</CardTitle>
+                <GraduationCap className="h-4 w-4 text-primary-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-gray-900">{stats.gpa.toFixed(2)}</div>
+                <p className="text-xs text-gray-600 mt-1">ECTS přepočet</p>
               </CardContent>
             </Card>
           )}
@@ -576,17 +593,23 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                         </span>
                       </div>
                     </div>
-                    {semesterData.average.type !== 'none' && (
+                    {(semesterData.average.type !== 'none' || semesterData.gpa !== null) && (
                       <div className="text-xs text-gray-500 mt-2">
                         {semesterData.average.type === 'both' ? (
                           <div className="space-y-1">
                             <div>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : '-'}</div>
                             <div>Známky: {semesterData.average.gradeValue ? semesterData.average.gradeValue.toFixed(2) : '-'}</div>
+                            {semesterData.gpa !== null && <div>GPA: {semesterData.gpa.toFixed(2)}</div>}
+                          </div>
+                        ) : semesterData.average.type !== 'none' ? (
+                          <div className="space-y-1">
+                            <div>
+                              {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : '-'}
+                            </div>
+                            {semesterData.gpa !== null && <div>GPA: {semesterData.gpa.toFixed(2)}</div>}
                           </div>
                         ) : (
-                          <div>
-                            {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : '-'}
-                          </div>
+                          <div>GPA: {semesterData.gpa.toFixed(2)}</div>
                         )}
                       </div>
                     )}

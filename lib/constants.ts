@@ -81,6 +81,28 @@ export const COMPLETION_TYPES = {
 
 export type CompletionType = (typeof COMPLETION_TYPES)[keyof typeof COMPLETION_TYPES]
 
+// ECTS to US GPA conversion
+export const ECTS_GPA_POINTS = {
+  A: 4.0,
+  B: 3.5,
+  C: 3.0,
+  D: 2.5,
+  E: 2.0,
+  FX: 0.0,
+  F: 0.0,
+} as const
+
+export const GPA_GRADE_ALIASES = {
+  '1': 'A',
+  '1-': 'B',
+  '2': 'C',
+  '2-': 'D',
+  '3': 'E',
+  '0': 'F',
+} as const
+
+export const GPA_EXCLUDED_GRADES = ['Z', 'ZP', 'P', 'W', '-'] as const
+
 // Completion Type Mapping - maps full completion type strings to short codes
 export const COMPLETION_TYPE_MAPPING = {
   // Form values (used when creating new subjects)
