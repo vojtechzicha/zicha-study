@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SubjectState, isFieldVisibleForState, getSubjectStateText, requiresCredit, requiresExam } from "@/lib/status-utils"
@@ -135,6 +135,9 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
         <DialogTitle className="text-2xl font-bold text-gray-900">
           Přidat nový předmět
         </DialogTitle>
+        <DialogDescription className="sr-only">
+          Vyplňte údaje o předmětu, nastavte jeho stav a uložte ho do studia.
+        </DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-6 p-1">
         {error && (

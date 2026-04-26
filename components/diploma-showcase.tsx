@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Cormorant_Garamond } from "next/font/google"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Download, Maximize2, GraduationCap, Award, Calendar } from "lucide-react"
 import { getStudyFormLabel } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
@@ -261,6 +261,9 @@ function DiplomaViewer({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">Diplom – {study.name}</DialogTitle>
+        <DialogDescription className="sr-only">
+          Náhled nahraného diplomu ke studiu {study.name}.
+        </DialogDescription>
 
         <div className={`${cormorant.className} relative z-10 flex items-center justify-between gap-4 border-b border-amber-200/10 bg-gradient-to-b from-[#0f1c3e] to-[#0a1328] px-6 py-4`}>
           <div className="flex items-center gap-3 min-w-0">

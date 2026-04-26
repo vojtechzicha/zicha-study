@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Save, Trash2, CalendarDays } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -246,6 +246,9 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Úprava předmětu {subject.abbreviation}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Upravte údaje předmětu, jeho stav, termíny zkoušek a další nastavení.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 p-1">
               {error && (
