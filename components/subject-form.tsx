@@ -5,13 +5,13 @@ import { fetchSubjectsForRepeatSelection, createSubject } from "@/lib/actions/su
 import { useToast } from "@/hooks/use-toast"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, Save } from "lucide-react"
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SubjectState, isFieldVisibleForState, getSubjectStateText, requiresCredit, requiresExam } from "@/lib/status-utils"
 import { DepartmentAutocomplete } from "@/components/department-autocomplete"
@@ -130,290 +130,279 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={onClose} className="text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Zpět na {study.name}
-          </Button>
+    <>
+      <DialogHeader>
+        <DialogTitle className="text-2xl font-bold text-gray-900">
+          Přidat nový předmět
+        </DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-6 p-1">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Basic Information */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="semester">Semestr *</Label>
+            <Select
+              value={formData.semester}
+              onValueChange={(value) => setFormData({ ...formData, semester: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Vyberte semestr" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1. ročník ZS">1. ročník ZS</SelectItem>
+                <SelectItem value="1. ročník LS">1. ročník LS</SelectItem>
+                <SelectItem value="2. ročník ZS">2. ročník ZS</SelectItem>
+                <SelectItem value="2. ročník LS">2. ročník LS</SelectItem>
+                <SelectItem value="3. ročník ZS">3. ročník ZS</SelectItem>
+                <SelectItem value="3. ročník LS">3. ročník LS</SelectItem>
+                <SelectItem value="4. ročník ZS">4. ročník ZS</SelectItem>
+                <SelectItem value="4. ročník LS">4. ročník LS</SelectItem>
+                <SelectItem value="5. ročník ZS">5. ročník ZS</SelectItem>
+                <SelectItem value="5. ročník LS">5. ročník LS</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="abbreviation">Zkratka</Label>
+            <Input
+              id="abbreviation"
+              value={formData.abbreviation}
+              onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value })}
+              placeholder="např. IZP"
+            />
+          </div>
         </div>
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-900">Přidat nový předmět</CardTitle>
-            <CardDescription>Přidejte předmět do studia {study.name}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+        <div className="space-y-2">
+          <Label htmlFor="name">Název předmětu *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="celý název předmětu"
+            required
+          />
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="semester">Semestr *</Label>
-                  <Select
-                    value={formData.semester}
-                    onValueChange={(value) => setFormData({ ...formData, semester: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vyberte semestr" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1. ročník ZS">1. ročník ZS</SelectItem>
-                      <SelectItem value="1. ročník LS">1. ročník LS</SelectItem>
-                      <SelectItem value="2. ročník ZS">2. ročník ZS</SelectItem>
-                      <SelectItem value="2. ročník LS">2. ročník LS</SelectItem>
-                      <SelectItem value="3. ročník ZS">3. ročník ZS</SelectItem>
-                      <SelectItem value="3. ročník LS">3. ročník LS</SelectItem>
-                      <SelectItem value="4. ročník ZS">4. ročník ZS</SelectItem>
-                      <SelectItem value="4. ročník LS">4. ročník LS</SelectItem>
-                      <SelectItem value="5. ročník ZS">5. ročník ZS</SelectItem>
-                      <SelectItem value="5. ročník LS">5. ročník LS</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="completion_type">Způsob ukončení *</Label>
+            <Select
+              value={formData.completion_type}
+              onValueChange={(value) => setFormData({ ...formData, completion_type: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Vyberte způsob ukončení" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Zápočet (Zp)">Zápočet (Zp)</SelectItem>
+                <SelectItem value="Klasifikovaný zápočet (KZp)">Klasifikovaný zápočet (KZp)</SelectItem>
+                <SelectItem value="Zkouška (Zk)">Zkouška (Zk)</SelectItem>
+                <SelectItem value="Zápočet + Zkouška (Zp+Zk)">Zápočet&nbsp;+&nbsp;Zkouška (Zp+Zk)</SelectItem>
+                <SelectItem value="Ostatní">Ostatní</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="abbreviation">Zkratka</Label>
-                  <Input
-                    id="abbreviation"
-                    value={formData.abbreviation}
-                    onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value })}
-                    placeholder="např. MI1, KMA1-E"
-                  />
-                </div>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="subject_type">Typ předmětu *</Label>
+            <Select
+              value={formData.subject_type}
+              onValueChange={(value) => setFormData({ ...formData, subject_type: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Vyberte typ předmětu" />
+              </SelectTrigger>
+              <SelectContent>
+                {getSubjectTypeOptions().map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Název předmětu *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="např. Mikroekonomie I"
-                  required
-                />
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="credits">Počet kreditů *</Label>
+            <Input
+              id="credits"
+              type="number"
+              value={formData.credits}
+              onChange={(e) => setFormData({ ...formData, credits: Number.parseInt(e.target.value) || 0 })}
+              min="0"
+              max="20"
+              required
+            />
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="completion_type">Typ ukončení *</Label>
-                  <Select
-                    value={formData.completion_type}
-                    onValueChange={(value) => setFormData({ ...formData, completion_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vyberte typ ukončení" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Zápočet (Zp)">Zápočet (Zp)</SelectItem>
-                      <SelectItem value="Klasifikovaný zápočet (KZp)">Klasifikovaný zápočet (KZp)</SelectItem>
-                      <SelectItem value="Zkouška (Zk)">Zkouška (Zk)</SelectItem>
-                      <SelectItem value="Zápočet + Zkouška (Zp+Zk)">Zápočet&nbsp;+&nbsp;Zkouška (Zp+Zk)</SelectItem>
-                      <SelectItem value="Ostatní">Ostatní</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="hours">Počet hodin</Label>
+            <Input
+              id="hours"
+              type="number"
+              value={formData.hours}
+              onChange={(e) => setFormData({ ...formData, hours: Number.parseInt(e.target.value) || 0 })}
+              min="0"
+              max="200"
+              placeholder="volitelné"
+            />
+          </div>
+        </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="subject_type">Typ předmětu *</Label>
-                  <Select
-                    value={formData.subject_type}
-                    onValueChange={(value) => setFormData({ ...formData, subject_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vyberte typ předmětu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getSubjectTypeOptions().map((type) => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {isFieldVisibleForState("points", subjectState) && (
+            <div className="space-y-2">
+              <Label htmlFor="points">Počet bodů</Label>
+              <Input
+                id="points"
+                type="number"
+                value={formData.points}
+                onChange={(e) => setFormData({ ...formData, points: e.target.value })}
+                min="0"
+                max="100"
+                placeholder="volitelné"
+              />
+            </div>
+          )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="credits">Kredity *</Label>
-                  <Input
-                    id="credits"
-                    type="number"
-                    value={formData.credits}
-                    onChange={(e) => setFormData({ ...formData, credits: Number.parseInt(e.target.value) || 0 })}
-                    min="0"
-                    max="20"
-                    required
-                  />
-                </div>
+          {isFieldVisibleForState("grade", subjectState) && (
+            <div className="space-y-2">
+              <Label htmlFor="grade">Známka</Label>
+              <Input
+                id="grade"
+                value={formData.grade}
+                onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                placeholder="např. A, 1, výborně"
+              />
+            </div>
+          )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="hours">Počet hodin</Label>
-                  <Input
-                    id="hours"
-                    type="number"
-                    value={formData.hours}
-                    onChange={(e) => setFormData({ ...formData, hours: Number.parseInt(e.target.value) || 0 })}
-                    min="0"
-                    max="200"
-                    placeholder="volitelné"
-                  />
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="lecturer">Přednášející</Label>
+            <Input
+              id="lecturer"
+              value={formData.lecturer}
+              onChange={(e) => setFormData({ ...formData, lecturer: e.target.value })}
+              placeholder="jméno hlavního přednášejícího"
+            />
+          </div>
+        </div>
 
-                {isFieldVisibleForState("points", subjectState) && (
-                  <div className="space-y-2">
-                    <Label htmlFor="points">Počet bodů</Label>
-                    <Input
-                      id="points"
-                      type="number"
-                      value={formData.points}
-                      onChange={(e) => setFormData({ ...formData, points: e.target.value })}
-                      min="0"
-                      max="100"
-                      placeholder="volitelné"
-                    />
-                  </div>
-                )}
-              </div>
+        <div className="space-y-2">
+          <Label htmlFor="department">Katedra</Label>
+          <DepartmentAutocomplete
+            value={formData.department}
+            onChange={(value) => setFormData({ ...formData, department: value })}
+            departments={departments}
+            placeholder="Vyberte nebo zadejte katedru..."
+          />
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {isFieldVisibleForState("grade", subjectState) && (
-                  <div className="space-y-2">
-                    <Label htmlFor="grade">Známka</Label>
-                    <Input
-                      id="grade"
-                      value={formData.grade}
-                      onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                      placeholder="např. A, 1, výborně"
-                    />
-                  </div>
-                )}
+        {/* Final Date for Completed Subjects */}
+        {isFieldVisibleForState("final_date", subjectState) && (
+          <div className="space-y-2">
+            <Label htmlFor="final_date">Datum ukončení *</Label>
+            <Input
+              id="final_date"
+              type="date"
+              value={formData.final_date}
+              onChange={(e) => setFormData({ ...formData, final_date: e.target.value })}
+              required={subjectState === "completed"}
+            />
+          </div>
+        )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="lecturer">Přednášející</Label>
-                  <Input
-                    id="lecturer"
-                    value={formData.lecturer}
-                    onChange={(e) => setFormData({ ...formData, lecturer: e.target.value })}
-                    placeholder="jméno hlavního přednášejícího"
-                  />
-                </div>
-              </div>
+        {/* Subject State Selector */}
+        <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+          <Label className="text-sm font-medium">Stav předmětu</Label>
+          <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="planned" id="planned" />
+              <Label htmlFor="planned" className="cursor-pointer">{getSubjectStateText("planned")}</Label>
+              <span className="text-xs text-gray-600">- ještě nebyl zahájen</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="active" id="active" />
+              <Label htmlFor="active" className="cursor-pointer">{getSubjectStateText("active")}</Label>
+              <span className="text-xs text-gray-600">- probíhá</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="completed" id="completed" />
+              <Label htmlFor="completed" className="cursor-pointer">{getSubjectStateText("completed")}</Label>
+              <span className="text-xs text-gray-600">- ukončený</span>
+            </div>
+          </RadioGroup>
+        </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="department">Katedra</Label>
-                <DepartmentAutocomplete
-                  value={formData.department}
-                  onChange={(value) => setFormData({ ...formData, department: value })}
-                  departments={departments}
-                  placeholder="Vyberte nebo zadejte katedru..."
-                />
-              </div>
+        {/* Repeat Subject Section */}
+        <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is_repeat"
+              checked={formData.is_repeat}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_repeat: checked as boolean, repeats_subject_id: "" })
+              }
+            />
+            <Label htmlFor="is_repeat" className="cursor-pointer text-sm font-medium">
+              Opakovaný předmět
+            </Label>
+          </div>
+          {formData.is_repeat && (
+            <div className="mt-3 space-y-2">
+              <Label htmlFor="repeats_subject_id">Opakuje předmět *</Label>
+              <Select
+                value={formData.repeats_subject_id}
+                onValueChange={(value) => setFormData({ ...formData, repeats_subject_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte předmět, který opakujete" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSubjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.semester} - {subject.abbreviation ? `${subject.abbreviation} - ` : ''}{subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-600">
+                Opakovaný předmět bude sdílet materiály a studijní zápisy s původním předmětem.
+              </p>
+            </div>
+          )}
+        </div>
 
-              {/* Final Date for Completed Subjects */}
-              {isFieldVisibleForState("final_date", subjectState) && (
-                <div className="space-y-2">
-                  <Label htmlFor="final_date">Datum ukončení *</Label>
-                  <Input
-                    id="final_date"
-                    type="date"
-                    value={formData.final_date}
-                    onChange={(e) => setFormData({ ...formData, final_date: e.target.value })}
-                    required={subjectState === "completed"}
-                  />
-                </div>
-              )}
-
-              {/* Subject State Selector */}
-              <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
-                <Label className="text-sm font-medium">Stav předmětu</Label>
-                <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="planned" id="planned" />
-                    <Label htmlFor="planned" className="cursor-pointer">{getSubjectStateText("planned")}</Label>
-                    <span className="text-xs text-gray-600">- ještě nebyl zahájen</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="active" id="active" />
-                    <Label htmlFor="active" className="cursor-pointer">{getSubjectStateText("active")}</Label>
-                    <span className="text-xs text-gray-600">- probíhá</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="completed" id="completed" />
-                    <Label htmlFor="completed" className="cursor-pointer">{getSubjectStateText("completed")}</Label>
-                    <span className="text-xs text-gray-600">- ukončený</span>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* Repeat Subject Section */}
-              <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="is_repeat"
-                    checked={formData.is_repeat}
-                    onCheckedChange={(checked) => 
-                      setFormData({ ...formData, is_repeat: checked as boolean, repeats_subject_id: "" })
-                    }
-                  />
-                  <Label htmlFor="is_repeat" className="cursor-pointer text-sm font-medium">
-                    Opakovaný předmět
-                  </Label>
-                </div>
-                {formData.is_repeat && (
-                  <div className="mt-3 space-y-2">
-                    <Label htmlFor="repeats_subject_id">Opakuje předmět *</Label>
-                    <Select
-                      value={formData.repeats_subject_id}
-                      onValueChange={(value) => setFormData({ ...formData, repeats_subject_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Vyberte předmět, který opakujete" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSubjects.map((subject) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.semester} - {subject.abbreviation ? `${subject.abbreviation} - ` : ''}{subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-600">
-                      Opakovaný předmět bude sdílet materiály a studijní zápisy s původním předmětem.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
-                  Zrušit
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={
-                    loading ||
-                    !formData.semester ||
-                    !formData.name ||
-                    !formData.completion_type ||
-                    !formData.subject_type ||
-                    (subjectState === "completed" && !formData.final_date) ||
-                    (formData.is_repeat && !formData.repeats_subject_id)
-                  }
-                  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {loading ? "Ukládání..." : "Uložit předmět"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <div className="flex gap-3 pt-4">
+          <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
+            Zrušit
+          </Button>
+          <Button
+            type="submit"
+            disabled={
+              loading ||
+              !formData.semester ||
+              !formData.name ||
+              !formData.completion_type ||
+              !formData.subject_type ||
+              (subjectState === "completed" && !formData.final_date) ||
+              (formData.is_repeat && !formData.repeats_subject_id)
+            }
+            className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {loading ? "Ukládání..." : "Uložit předmět"}
+          </Button>
+        </div>
+      </form>
+    </>
   )
 }

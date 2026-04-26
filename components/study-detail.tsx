@@ -291,7 +291,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
 
       {/* Subject Form Modal */}
       <Dialog open={showSubjectForm} onOpenChange={setShowSubjectForm}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <SubjectForm study={study} onSuccess={handleSubjectAdded} onClose={() => setShowSubjectForm(false)} />
         </DialogContent>
       </Dialog>
