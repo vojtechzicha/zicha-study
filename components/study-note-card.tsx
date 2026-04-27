@@ -31,6 +31,7 @@ import {
 import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
 import { StudyNoteLinkSubjectsDialog } from "@/components/study-note-link-subjects-dialog"
 import { cleanSlugInput } from "@/lib/utils/slug"
+import { getShareUrl } from "@/lib/utils/share-url"
 
 interface StudyNoteCardProps {
   note: StudyNoteWithSubjects
@@ -138,8 +139,8 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
 
   const handleCopyLink = async () => {
     const url = studySlug
-      ? `${window.location.origin}/${studySlug}/${note.public_slug}`
-      : `${window.location.origin}/notes/${note.public_slug}`
+      ? getShareUrl(studySlug, note.public_slug)
+      : getShareUrl("notes", note.public_slug)
     await navigator.clipboard.writeText(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -362,7 +363,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                     </Label>
                     <div className="flex items-center gap-2 mt-2">
                       <code className="flex-1 p-2 bg-white rounded border text-sm">
-                        {window.location.origin}/{studySlug || "study-slug"}/{publicSlug}
+                        {getShareUrl(studySlug || "study-slug", publicSlug)}
                       </code>
                     </div>
                   </div>

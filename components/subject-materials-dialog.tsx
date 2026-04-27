@@ -53,6 +53,7 @@ import { fetchStudyNotesBySubjectId } from "@/lib/actions/study-notes"
 import { AddMaterialDialog } from "@/components/add-material-dialog"
 import type { SubjectMaterial } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
+import { getShareUrl } from "@/lib/utils/share-url"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StudyNotesSection } from "@/components/study-notes-section"
 
@@ -300,7 +301,7 @@ export function SubjectMaterialsDialog({
   const copyPublicUrl = async (material: SubjectMaterial) => {
     if (!study?.public_slug || !material.public_slug) return
 
-    const publicUrl = `${window.location.origin}/${study.public_slug}/${material.public_slug}`
+    const publicUrl = getShareUrl(study.public_slug, material.public_slug)
     await navigator.clipboard.writeText(publicUrl)
     setCopied(material.id)
     setTimeout(() => setCopied(null), 2000)
@@ -623,7 +624,7 @@ export function SubjectMaterialsDialog({
                 </Label>
                 <div className="flex items-center gap-2 mt-2">
                   <code className="flex-1 p-2 bg-white rounded border text-sm">
-                    {window.location.origin}/{study?.public_slug}/{publicSlug}
+                    {getShareUrl(study?.public_slug, publicSlug)}
                   </code>
                 </div>
               </div>

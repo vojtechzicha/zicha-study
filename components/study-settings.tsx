@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { checkSlugAvailability, updateStudy } from "@/lib/actions/studies"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
+import { getShareUrl } from "@/lib/utils/share-url"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -49,7 +50,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   })
   const [showFolderPicker, setShowFolderPicker] = useState(false)
 
-  const publicUrl = `${window.location.origin}/${slug}`
+  const publicUrl = getShareUrl(slug)
 
   useEffect(() => {
     if (!slug) {

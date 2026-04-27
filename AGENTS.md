@@ -102,7 +102,8 @@ Note: study_note_subjects and study_note_final_exams join tables from PostgreSQL
    - Clear visual feedback for URL availability
    - When disabling public access, clear the public_slug to null
 8. **Footer Attribution**: Use `lib/site-config.ts` for footer owner attribution, profile image path, byline, and footer home-link labels. Do not hardcode deployer-specific attribution in components.
-9. **Commit Attribution**: When Codex creates a commit, use the repo's existing trailer format exactly: `Co-authored-by: codex <codex@openai.com>`. Do not use alternative generated-by wording.
+9. **Public Share URLs**: Always build shareable URLs (clipboard copies, preview boxes, exports) via `getShareUrl()` from `lib/utils/share-url.ts`. It honors `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` + `NEXT_PUBLIC_SHARE_BASE_DOMAIN` so production renders `https://<study>.zicha.study/<rest>` while local stays on `${window.location.origin}/<study>/<rest>`. Never concatenate `window.location.origin` manually for share URLs.
+10. **Commit Attribution**: When Codex creates a commit, use the repo's existing trailer format exactly: `Co-authored-by: codex <codex@openai.com>`. Do not use alternative generated-by wording.
 
 ## Development Notes
 

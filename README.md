@@ -57,6 +57,26 @@ zicha-study allows students to track their university studies, manage subjects, 
    pnpm dev
    ```
 
+### Public share URLs
+
+Studies, materials, and study notes can be shared at public URLs. Two
+optional environment variables control how those URLs render in copy
+buttons and preview boxes:
+
+- `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` — when `true`, the study slug is
+  rendered as a subdomain (e.g. `https://newton.zicha.study/mat`).
+  Leave unset/`false` locally so previews stay on
+  `http://localhost:3001/<slug>`.
+- `NEXT_PUBLIC_SHARE_BASE_DOMAIN` — apex domain used for the subdomain
+  form, e.g. `zicha.study`.
+
+The middleware in `middleware.ts` rewrites incoming subdomain requests
+back to path form (and accepts deeper subdomain segments for
+back-compat), so the redirect target is unchanged regardless of how the
+link is presented. Any new code that builds a public URL must go through
+`getShareUrl()` in `lib/utils/share-url.ts` rather than concatenating
+`window.location.origin` manually.
+
 ### Customize footer attribution
 
 Forks and third-party deployments should update the footer attribution before publishing. The visible name, profile image, attribution text, and footer home-link labels are centralized in [`lib/site-config.ts`](lib/site-config.ts).

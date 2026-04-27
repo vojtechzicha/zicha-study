@@ -4,6 +4,7 @@ import { fetchSubjectsByStudyId } from '@/lib/actions/subjects'
 import { fetchFinalExams } from '@/lib/actions/final-exams'
 import { getStudyStatusLabel, getStudyFormLabel, type StudyStatus } from '@/lib/constants'
 import { sortStudiesByStatus } from '@/lib/status-utils'
+import { getShareUrl } from '@/lib/utils/share-url'
 
 // Study type for export
 interface ExportStudy {
@@ -228,7 +229,7 @@ function writeFooter(ws: ExcelJS.Worksheet, startRow: number, publicSlug?: strin
   const footerCell = ws.getCell(r, 1)
   const exportedAt = new Date().toLocaleString('cs-CZ')
   footerCell.value = publicSlug
-    ? `Export: ${exportedAt}  |  ${window.location.origin}/${publicSlug}`
+    ? `Export: ${exportedAt}  |  ${getShareUrl(publicSlug)}`
     : `Export: ${exportedAt}  |  Soukromé studium`
   footerCell.font = { name: 'Arial', size: 8, italic: true, color: { argb: C.SUBTLE } }
   footerCell.alignment = { horizontal: 'right', vertical: 'middle' }
@@ -351,7 +352,7 @@ export async function exportStudiesToExcel() {
     // ── Row 6: URL + metadata ───────────────────────────────────────────
     r = 6
     if (publicSlug) {
-      const url = `${window.location.origin}/${publicSlug}`
+      const url = getShareUrl(publicSlug)
       ws.mergeCells(r, 1, r, NUM_COLS - 4)
       const urlCell = ws.getCell(r, 1)
       urlCell.value = { text: url, hyperlink: url }

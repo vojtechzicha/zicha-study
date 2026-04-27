@@ -33,6 +33,7 @@ import { updateMaterialAction, checkMaterialSlug } from "@/lib/actions/materials
 import { createCacheShareLinkAction } from "@/lib/actions/onedrive-cache"
 import type { Material } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
+import { getShareUrl } from "@/lib/utils/share-url"
 
 interface MaterialsTableProps {
   materials: Material[]
@@ -199,7 +200,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
   const copyPublicUrl = async (material: Material) => {
     if (!studySlug || !material.public_slug) return
 
-    const publicUrl = `${window.location.origin}/${studySlug}/${material.public_slug}`
+    const publicUrl = getShareUrl(studySlug, material.public_slug)
     await navigator.clipboard.writeText(publicUrl)
     setCopied(material.id)
     setTimeout(() => setCopied(null), 2000)
@@ -440,7 +441,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                 <Label className="text-sm font-medium text-primary-900">Veřejná URL adresa:</Label>
                 <div className="flex items-center gap-2 mt-2">
                   <code className="flex-1 p-2 bg-white rounded border text-sm">
-                    {typeof window !== "undefined" ? window.location.origin : ""}/{studySlug}/{publicSlug}
+                    {getShareUrl(studySlug, publicSlug)}
                   </code>
                 </div>
               </div>

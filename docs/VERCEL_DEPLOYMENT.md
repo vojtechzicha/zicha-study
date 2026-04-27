@@ -6,6 +6,39 @@ Before deploying a fork, review `lib/site-config.ts`. Footer attribution and foo
 
 Profile images should live in `public/` and be referenced with an absolute public path such as `/profile.jpg`.
 
+## Public share URLs
+
+Production deployments render share-link previews using the study slug
+as a single subdomain (e.g. `https://newton.zicha.study/mat`). The
+behavior is controlled by two `NEXT_PUBLIC_*` variables that are
+inlined at build time:
+
+| Variable | Production | Preview / Local |
+| --- | --- | --- |
+| `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` | `true` | unset (path form) |
+| `NEXT_PUBLIC_SHARE_BASE_DOMAIN` | `zicha.study` | unset |
+
+Set them once in the Vercel dashboard (or via
+`vercel env add NAME production`). Because they are inlined at build
+time, changing them only takes effect after the next production build.
+
+### DNS / middleware
+
+For the subdomain form to resolve, the apex domain needs a wildcard
+record (`*.zicha.study`) routed to the same Vercel project. Incoming
+requests are caught by `middleware.ts`, which rewrites
+`<slug>.zicha.study/<rest>` to `/<slug>/<rest>` before any route
+matching. The middleware also supports the legacy multi-level form
+(`mat.newton.zicha.study` → `/newton/mat`) for back-compat with older
+copied links.
+
+### Code rule
+
+Components must build public URLs through `getShareUrl()` in
+`lib/utils/share-url.ts` so the path/subdomain switch stays centralized.
+Avoid hand-built `${window.location.origin}/...` strings for shareable
+URLs.
+
 ## Study Notes DOCX Conversion
 
 The study notes feature uses Mammoth.js for converting DOCX files to HTML, which is fully compatible with Vercel's deployment environment.

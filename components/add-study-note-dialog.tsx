@@ -33,6 +33,7 @@ import type { OneDriveFile } from "@/lib/types/materials"
 import type { StudyNoteFormData } from "@/lib/types/study-notes"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
+import { getShareUrl } from "@/lib/utils/share-url"
 
 interface AddStudyNoteDialogProps {
   studyId: string
@@ -382,7 +383,7 @@ export function AddStudyNoteDialog({
                       <p className="text-sm text-green-600">Tato URL je dostupná</p>
                     )}
                     <p className="text-sm text-gray-500">
-                      Zápis bude dostupný na: {typeof window !== 'undefined' ? window.location.origin : ''}/{studySlug || "study-slug"}/{publicSlug || "..."}
+                      Zápis bude dostupný na: {getShareUrl(studySlug || "study-slug", publicSlug || "...")}
                     </p>
                   </div>
                 )}

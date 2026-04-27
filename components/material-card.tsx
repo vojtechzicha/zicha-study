@@ -26,6 +26,7 @@ import { updateMaterialAction, checkMaterialSlug } from "@/lib/actions/materials
 import { createCacheShareLinkAction } from "@/lib/actions/onedrive-cache"
 import type { Material } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
+import { getShareUrl } from "@/lib/utils/share-url"
 
 interface MaterialCardProps {
   material: Material
@@ -180,7 +181,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
   const copyPublicUrl = async () => {
     if (!studySlug || !material.public_slug) return
 
-    const publicUrl = `${window.location.origin}/${studySlug}/${material.public_slug}`
+    const publicUrl = getShareUrl(studySlug, material.public_slug)
     await navigator.clipboard.writeText(publicUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -343,7 +344,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                 <Label className="text-sm font-medium text-primary-900">Veřejná URL adresa:</Label>
                 <div className="flex items-center gap-2 mt-2">
                   <code className="flex-1 p-2 bg-white rounded border text-sm">
-                    {window.location.origin}/{studySlug}/{publicSlug}
+                    {getShareUrl(studySlug, publicSlug)}
                   </code>
                 </div>
               </div>
