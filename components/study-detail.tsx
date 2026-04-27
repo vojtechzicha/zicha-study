@@ -20,6 +20,7 @@ import { ExamSchedulerSection } from "./exam-scheduler-section"
 import { StudyStatisticsCards } from "./study-statistics-cards"
 import { DiplomaShowcase } from "./diploma-showcase"
 import { TasksSection } from "./tasks-section"
+import { TitlePageFooter } from "./title-page-footer"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { useFavicon } from "@/hooks/use-favicon"
 import { useRouter } from "next/navigation"
@@ -288,6 +289,8 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           </CardContent>
         </Card>
       </main>
+
+      <TitlePageFooter />
 
       {/* Subject Form Modal */}
       <Dialog open={showSubjectForm} onOpenChange={setShowSubjectForm}>
