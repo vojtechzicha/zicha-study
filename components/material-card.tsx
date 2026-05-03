@@ -318,7 +318,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
             <div className="space-y-2">
               <Label htmlFor="public-slug">URL adresa *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{window.location.origin}/{studySlug}/</span>
+                <span className="text-sm text-gray-500">{getShareUrl(studySlug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}

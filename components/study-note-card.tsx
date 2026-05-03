@@ -310,7 +310,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                 <div className="space-y-2">
                   <Label htmlFor="slug">URL adresa *</Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">{window.location.origin}/{studySlug || "study-slug"}/</span>
+                    <span className="text-sm text-gray-500">{getShareUrl(studySlug || "study-slug")}/</span>
                     <Input
                       id="slug"
                       value={publicSlug ?? ""}

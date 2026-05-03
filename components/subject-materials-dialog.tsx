@@ -579,7 +579,7 @@ export function SubjectMaterialsDialog({
             <div className="space-y-2">
               <Label htmlFor="public-slug">URL adresa *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{window.location.origin}/{study?.public_slug}/</span>
+                <span className="text-sm text-gray-500">{getShareUrl(study?.public_slug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}

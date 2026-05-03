@@ -413,9 +413,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
             <div className="space-y-2">
               <Label htmlFor="public-slug">URL adresa *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">
-                  {typeof window !== "undefined" ? window.location.origin : ""}/{studySlug}/
-                </span>
+                <span className="text-sm text-gray-500">{getShareUrl(studySlug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}
