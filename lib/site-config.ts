@@ -3,9 +3,9 @@ export const SITE_CONFIG = {
   footerHomeLabel: "zicha.study",
   publicFooterHomeLabel: "Sledování studií",
   footerAttribution: {
-    name: "Vojtěch Zicha",
+    name: "Vojtěch Zicha, LL.B.",
     imageSrc: "/profile.jpg",
-    imageAlt: "Vojtěch Zicha",
+    imageAlt: "Vojtěch Zicha, LL.B.",
     description: "osobní studijní archiv",
   },
 } as const
