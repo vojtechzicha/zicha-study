@@ -79,17 +79,17 @@ export function Dashboard({ user }: DashboardProps) {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
+          <div className="flex justify-between items-center py-3 gap-2">
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Sledování studií</h1>
-                <p className="text-sm text-gray-600">Vítejte, {getUserDisplayName()}</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 whitespace-nowrap">Sledování studií</h1>
+                <p className="text-sm text-gray-600 truncate">Vítejte, {getUserDisplayName()}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 shrink-0">
               <GlobalTasksButton />
               <Button
                 variant="ghost"
