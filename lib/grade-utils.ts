@@ -79,29 +79,15 @@ export function shouldIncludeInGpa(subject: GradeCalculationSubject): boolean {
   return gradeToGpaPoints(subject.grade || '') !== null
 }
 
-function getGpaSubjectKey(subject: GradeCalculationSubject, index: number): string {
-  if (subject.is_repeat && subject.repeats_subject_id) {
-    return subject.repeats_subject_id
-  }
-
-  return subject.id || `subject-${index}`
-}
-
-function selectGpaAttempt(
-  current: GradeCalculationSubject | undefined,
-  next: GradeCalculationSubject
-): GradeCalculationSubject {
-  if (!current) return next
-
-  if (next.is_repeat && next.repeats_subject_id) {
-    return next
-  }
-
-  if (current.is_repeat && current.repeats_subject_id) {
-    return current
-  }
-
-  return current
+// Return only subjects that are not superseded by another subject's repeats_subject_id.
+// Mirrors getCurrentSubjects in statistics-utils so chain handling stays consistent.
+function getCurrentGradeSubjects(subjects: GradeCalculationSubject[]): GradeCalculationSubject[] {
+  const supersededIds = new Set(
+    subjects
+      .map(s => s.repeats_subject_id)
+      .filter((id): id is string => Boolean(id))
+  )
+  return subjects.filter(s => !s.id || !supersededIds.has(s.id))
 }
 
 export type AverageType = 'grade' | 'points' | 'both' | 'none'
@@ -116,7 +102,7 @@ export interface AverageResult {
 
 // Determine which type of average to calculate
 export function getAverageType(subjects: GradeCalculationSubject[]): AverageType {
-  const relevantSubjects = subjects.filter(shouldIncludeInAverage)
+  const relevantSubjects = getCurrentGradeSubjects(subjects).filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return 'none'
   
   // Check if any subject has points
@@ -137,63 +123,55 @@ export function getAverageType(subjects: GradeCalculationSubject[]): AverageType
 
 // Calculate weighted average for grades
 export function calculateWeightedGradeAverage(subjects: GradeCalculationSubject[], includeSubjectsWithPoints: boolean = false): number | null {
-  const relevantSubjects = subjects.filter(shouldIncludeInAverage)
+  const relevantSubjects = getCurrentGradeSubjects(subjects).filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return null
-  
+
   let totalWeightedGrade = 0
   let totalCredits = 0
-  
+
   for (const subject of relevantSubjects) {
     // Skip subjects with points unless we're explicitly including them
     if (!includeSubjectsWithPoints && subject.points && subject.points > 0) continue
-    
+
     const numericGrade = gradeToNumber(subject.grade || '')
     if (numericGrade === null) continue
-    
+
     totalWeightedGrade += numericGrade * subject.credits
     totalCredits += subject.credits
   }
-  
+
   if (totalCredits === 0) return null
   return totalWeightedGrade / totalCredits
 }
 
 // Calculate weighted average for points
 export function calculateWeightedPointsAverage(subjects: GradeCalculationSubject[]): number | null {
-  const relevantSubjects = subjects.filter(shouldIncludeInAverage)
+  const relevantSubjects = getCurrentGradeSubjects(subjects).filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return null
-  
+
   let totalWeightedPoints = 0
   let totalCredits = 0
-  
+
   for (const subject of relevantSubjects) {
     if (!subject.points || subject.points === 0) continue
-    
+
     totalWeightedPoints += subject.points * subject.credits
     totalCredits += subject.credits
   }
-  
+
   if (totalCredits === 0) return null
   return totalWeightedPoints / totalCredits
 }
 
 // Calculate credit-weighted GPA from ECTS grades
 export function calculateGpa(subjects: GradeCalculationSubject[]): number | null {
-  const gpaSubjects = new Map<string, GradeCalculationSubject>()
-
-  subjects.forEach((subject, index) => {
-    if (!shouldIncludeInGpa(subject)) return
-
-    const key = getGpaSubjectKey(subject, index)
-    gpaSubjects.set(key, selectGpaAttempt(gpaSubjects.get(key), subject))
-  })
-
-  if (gpaSubjects.size === 0) return null
+  const gpaSubjects = getCurrentGradeSubjects(subjects).filter(shouldIncludeInGpa)
+  if (gpaSubjects.length === 0) return null
 
   let totalWeightedGpa = 0
   let totalCredits = 0
 
-  for (const subject of gpaSubjects.values()) {
+  for (const subject of gpaSubjects) {
     const gpaPoints = gradeToGpaPoints(subject.grade || '')
     if (gpaPoints === null) continue
 

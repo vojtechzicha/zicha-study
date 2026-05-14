@@ -50,6 +50,7 @@ import {
   checkSubjectMaterialSlug,
 } from "@/lib/actions/materials"
 import { fetchStudyNotesBySubjectId } from "@/lib/actions/study-notes"
+import { fetchRepeatRootId } from "@/lib/actions/subjects"
 import { AddMaterialDialog } from "@/components/add-material-dialog"
 import type { SubjectMaterial } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
@@ -122,6 +123,7 @@ export function SubjectMaterialsDialog({
 }: SubjectMaterialsDialogProps) {
   const [materials, setMaterials] = useState<SubjectMaterial[]>([])
   const [noteCount, setNoteCount] = useState(0)
+  const [rootSubjectId, setRootSubjectId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -134,50 +136,43 @@ export function SubjectMaterialsDialog({
   const [publicLoading, setPublicLoading] = useState(false)
   const [publicError, setPublicError] = useState<string | null>(null)
 
-  const loadMaterials = useCallback(async () => {
-    if (!subject) return
-
+  const loadMaterials = useCallback(async (id: string) => {
     setLoading(true)
     setError(null)
 
     try {
-      // If this is a repeated subject, fetch materials from the original subject
-      const subjectIdToFetch = subject.is_repeat && subject.repeats_subject_id
-        ? subject.repeats_subject_id
-        : subject.id
-
-      const data = await fetchSubjectMaterials(subjectIdToFetch) as SubjectMaterial[]
+      const data = await fetchSubjectMaterials(id) as SubjectMaterial[]
       setMaterials(data || [])
     } catch {
       setError("Nepodařilo se načíst materiály předmětu")
     } finally {
       setLoading(false)
     }
-  }, [subject])
+  }, [])
 
-  const loadNoteCount = useCallback(async () => {
-    if (!subject) return
-
+  const loadNoteCount = useCallback(async (id: string) => {
     try {
-      // If this is a repeated subject, count notes from the original subject
-      const subjectIdToCount = subject.is_repeat && subject.repeats_subject_id
-        ? subject.repeats_subject_id
-        : subject.id
-
-      // Count notes linked to this subject by fetching them and checking length
-      const notes = await fetchStudyNotesBySubjectId(subjectIdToCount)
+      const notes = await fetchStudyNotesBySubjectId(id)
       setNoteCount(notes?.length || 0)
     } catch (err) {
       console.error("Failed to load note count:", err)
       setNoteCount(0)
     }
-  }, [subject])
+  }, [])
 
   useEffect(() => {
-    if (isOpen && subject) {
-      loadMaterials()
-      loadNoteCount()
+    if (!isOpen || !subject) {
+      setRootSubjectId(null)
+      return
     }
+    let cancelled = false
+    fetchRepeatRootId(subject.id).then(rootId => {
+      if (cancelled) return
+      setRootSubjectId(rootId)
+      loadMaterials(rootId)
+      loadNoteCount(rootId)
+    })
+    return () => { cancelled = true }
   }, [isOpen, subject, loadMaterials, loadNoteCount])
 
   const handleDelete = async (materialId: string) => {
@@ -290,7 +285,7 @@ export function SubjectMaterialsDialog({
       })
 
       if (result.error) throw new Error(result.error.message)
-      await loadMaterials()
+      if (rootSubjectId) await loadMaterials(rootSubjectId)
     } catch (err) {
       setPublicError(err instanceof Error ? err.message : "Nepodařilo se aktualizovat publikování materiálu")
     } finally {
@@ -309,7 +304,7 @@ export function SubjectMaterialsDialog({
 
   const handleAddSuccess = () => {
     setShowAddDialog(false)
-    loadMaterials()
+    if (rootSubjectId) loadMaterials(rootSubjectId)
   }
 
   const filteredMaterials = materials.filter((material) => {
@@ -354,10 +349,10 @@ export function SubjectMaterialsDialog({
               </TabsList>
 
               <TabsContent value="notes" className="flex-1 overflow-auto">
-                {subject && (
+                {subject && rootSubjectId && (
                   <StudyNotesSection
                     studyId={subject.study_id}
-                    subjectId={subject.is_repeat && subject.repeats_subject_id ? subject.repeats_subject_id : subject.id}
+                    subjectId={rootSubjectId}
                     studySlug={study?.public_slug}
                     isStudyPublic={study?.is_public}
                   />
@@ -549,10 +544,10 @@ export function SubjectMaterialsDialog({
       </Dialog>
 
       {/* Add Material Dialog */}
-      {subject && (
+      {subject && rootSubjectId && (
         <AddMaterialDialog
           studyId={subject.study_id}
-          subjectId={subject.is_repeat && subject.repeats_subject_id ? subject.repeats_subject_id : subject.id}
+          subjectId={rootSubjectId}
           isOpen={showAddDialog}
           onClose={() => setShowAddDialog(false)}
           onSuccess={handleAddSuccess}

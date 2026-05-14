@@ -89,9 +89,11 @@ export const getStatusPriority = (status: StudyStatus): number => {
 // Subject state types
 export type SubjectState = "planned" | "active" | "completed" | "failed"
 
-// Check if a subject is failed (grade starts with F)
+// Check if a subject is failed (grade starts with F, 4, or -)
 export const isSubjectFailed = (subject: Pick<Subject, 'completed' | 'grade'>): boolean => {
-  return subject.completed && subject.grade?.toUpperCase().startsWith('F') === true
+  if (!subject.completed || !subject.grade) return false
+  const g = subject.grade.toUpperCase()
+  return g.startsWith('F') || g.startsWith('4') || g.startsWith('-')
 }
 
 // Get grade badge configuration with inline styles

@@ -25,6 +25,17 @@ export interface StatisticsSubject {
   repeats_subject_id?: string | null
 }
 
+// A subject is "current" iff no other subject points at it via repeats_subject_id.
+// Superseded subjects (originals that have been repeated) are excluded from statistics.
+export function getCurrentSubjects<T extends { id: string; repeats_subject_id?: string | null }>(subjects: T[]): T[] {
+  const supersededIds = new Set(
+    subjects
+      .map(s => s.repeats_subject_id)
+      .filter((id): id is string => Boolean(id))
+  )
+  return subjects.filter(s => !supersededIds.has(s.id))
+}
+
 // Comprehensive study statistics
 export interface StudyStatistics {
   // Subject counts
@@ -59,64 +70,38 @@ export interface StudyStatistics {
  * Calculate comprehensive study statistics
  */
 export function calculateStudyStatistics(subjects: StatisticsSubject[]): StudyStatistics {
-  const total = subjects.length
-  const completed = subjects.filter((s) => s.completed && !s.planned).length
-  const creditsCompleted = subjects.filter((s) => s.credit_completed && !s.planned).length
+  const current = getCurrentSubjects(subjects)
 
-  // Get unique exam subjects (by abbreviation) to avoid counting repeats
-  const uniqueExamSubjects = subjects
-    .filter((s) => s.completion_type.includes("Zk"))
-    .reduce((acc, subject) => {
-      if (!acc.some(s => s.abbreviation === subject.abbreviation)) {
-        acc.push(subject)
-      }
-      return acc
-    }, [] as StatisticsSubject[])
+  const total = current.length
+  const completed = current.filter((s) => s.completed && !s.planned && !isSubjectFailed(s)).length
 
-  // Count unique subjects that have been successfully completed
-  const uniqueExamsCompleted = uniqueExamSubjects.filter(examSubject => {
-    const allInstances = subjects.filter(
-      s => s.abbreviation === examSubject.abbreviation && s.completion_type.includes("Zk")
-    )
-    return allInstances.some(s => s.exam_completed && !s.planned && s.grade !== 'FN')
-  }).length
+  const examSubjects = current.filter((s) => s.completion_type.includes("Zk"))
+  const examsCompleted = examSubjects.filter(
+    (s) => s.exam_completed && !s.planned && !isSubjectFailed(s)
+  ).length
+  const remainingExams = examSubjects.length - examsCompleted
 
-  const examsCompleted = uniqueExamsCompleted
+  const creditSubjects = current.filter(
+    (s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp")
+  )
+  const creditsCompleted = creditSubjects.filter(
+    (s) => s.credit_completed && !s.planned && !isSubjectFailed(s)
+  ).length
+  const remainingCredits = creditSubjects.length - creditsCompleted
 
-  // Credit and hour calculations
-  const totalCredits = subjects
-    .filter(s => !s.is_repeat)
-    .reduce((sum, s) => sum + s.credits, 0)
-
-  const completedCredits = subjects
+  const totalCredits = current.reduce((sum, s) => sum + s.credits, 0)
+  const completedCredits = current
     .filter((s) => s.completed && !isSubjectFailed(s))
     .reduce((sum, s) => sum + s.credits, 0)
 
-  const totalHours = subjects.reduce((sum, s) => sum + (s.hours || 0), 0)
-  const completedHours = subjects
-    .filter((s) => s.completed)
+  const totalHours = current.reduce((sum, s) => sum + (s.hours || 0), 0)
+  const completedHours = current
+    .filter((s) => s.completed && !isSubjectFailed(s))
     .reduce((sum, s) => sum + (s.hours || 0), 0)
 
-  // Calculate weighted average
-  const completedSubjects = subjects.filter(s => s.completed && !isSubjectFailed(s))
-  const average = calculateAverage(completedSubjects)
-  const gpa = calculateGpa(subjects.filter(s => s.completed && !s.planned))
-
-  // Count subjects with credits/exams
-  const subjectsWithCredits = subjects.filter(
-    (s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp")
-  )
-  const subjectsWithExams = uniqueExamSubjects
-
-  // Remaining counts
-  const remainingCredits = subjects.filter(
-    (s) => (!s.credit_completed || s.planned) &&
-           (s.completion_type.includes("Zp") || s.completion_type.includes("KZp"))
-  ).length
-
-  const remainingExams = subjects.filter(
-    (s) => (!s.exam_completed || s.planned) && s.completion_type.includes("Zk")
-  ).length
+  const passingSubjects = current.filter((s) => s.completed && !isSubjectFailed(s))
+  const average = calculateAverage(passingSubjects)
+  const gpa = calculateGpa(current.filter((s) => s.completed && !s.planned))
 
   return {
     total,
@@ -132,14 +117,14 @@ export function calculateStudyStatistics(subjects: StatisticsSubject[]): StudySt
     average,
     gpa,
     completionRate: total > 0 ? (completed / total) * 100 : 0,
-    creditCompletionRate: subjectsWithCredits.length > 0
-      ? (creditsCompleted / subjectsWithCredits.length) * 100
+    creditCompletionRate: creditSubjects.length > 0
+      ? (creditsCompleted / creditSubjects.length) * 100
       : 0,
-    examCompletionRate: subjectsWithExams.length > 0
-      ? (examsCompleted / subjectsWithExams.length) * 100
+    examCompletionRate: examSubjects.length > 0
+      ? (examsCompleted / examSubjects.length) * 100
       : 0,
-    totalSubjectsWithCredits: subjectsWithCredits.length,
-    totalSubjectsWithExams: subjectsWithExams.length,
+    totalSubjectsWithCredits: creditSubjects.length,
+    totalSubjectsWithExams: examSubjects.length,
   }
 }
 
@@ -157,17 +142,16 @@ export interface SimpleStudyStatistics {
  * Calculate simple study statistics (for study detail view)
  */
 export function calculateSimpleStatistics(subjects: StatisticsSubject[]): SimpleStudyStatistics {
-  const completedSubjects = subjects.filter((s) => s.completed && !isSubjectFailed(s))
-  const average = calculateAverage(completedSubjects)
-  const gpa = calculateGpa(subjects.filter(s => s.completed && !s.planned))
+  const current = getCurrentSubjects(subjects)
+  const passingSubjects = current.filter((s) => s.completed && !isSubjectFailed(s))
+  const average = calculateAverage(passingSubjects)
+  const gpa = calculateGpa(current.filter(s => s.completed && !s.planned))
 
   return {
-    total: subjects.length,
-    completed: subjects.filter((s) => s.completed).length,
-    totalCredits: subjects
-      .filter(s => !s.is_repeat)
-      .reduce((sum, s) => sum + s.credits, 0),
-    completedCredits: completedSubjects.reduce((sum, s) => sum + s.credits, 0),
+    total: current.length,
+    completed: passingSubjects.length,
+    totalCredits: current.reduce((sum, s) => sum + s.credits, 0),
+    completedCredits: passingSubjects.reduce((sum, s) => sum + s.credits, 0),
     average,
     gpa
   }
@@ -185,21 +169,25 @@ export interface SemesterStatistics {
 }
 
 /**
- * Calculate statistics for a specific semester
+ * Calculate statistics for a specific semester.
+ * Pass the FULL subject list so the current-set filter sees the cross-semester chains;
+ * the per-semester filter happens after that.
  */
-export function calculateSemesterStatistics(subjects: StatisticsSubject[]): SemesterStatistics {
-  const total = subjects.length
-  const completed = subjects.filter((s) => s.completed).length
-  const credits = subjects
-    .filter(s => !s.is_repeat)
-    .reduce((sum, s) => sum + s.credits, 0)
-  const completedCredits = subjects
-    .filter((s) => s.completed && !isSubjectFailed(s))
-    .reduce((sum, s) => sum + s.credits, 0)
+export function calculateSemesterStatistics(
+  subjects: StatisticsSubject[],
+  semester?: string,
+): SemesterStatistics {
+  const currentAll = getCurrentSubjects(subjects)
+  const current = semester ? currentAll.filter(s => s.semester === semester) : currentAll
 
-  const completedSemesterSubjects = subjects.filter(s => s.completed && !isSubjectFailed(s))
-  const average = calculateAverage(completedSemesterSubjects)
-  const gpa = calculateGpa(subjects.filter(s => s.completed && !s.planned))
+  const total = current.length
+  const passing = current.filter((s) => s.completed && !isSubjectFailed(s))
+  const completed = passing.length
+  const credits = current.reduce((sum, s) => sum + s.credits, 0)
+  const completedCredits = passing.reduce((sum, s) => sum + s.credits, 0)
+
+  const average = calculateAverage(passing)
+  const gpa = calculateGpa(current.filter(s => s.completed && !s.planned))
 
   return {
     total,
@@ -218,18 +206,12 @@ export function calculateSemesterStatistics(subjects: StatisticsSubject[]): Seme
 export function calculateStatisticsBySemester(
   subjects: StatisticsSubject[]
 ): Record<string, SemesterStatistics> {
-  const grouped: Record<string, StatisticsSubject[]> = {}
-
-  for (const subject of subjects) {
-    if (!grouped[subject.semester]) {
-      grouped[subject.semester] = []
-    }
-    grouped[subject.semester].push(subject)
-  }
+  const current = getCurrentSubjects(subjects)
+  const semesters = [...new Set(current.map(s => s.semester))]
 
   const result: Record<string, SemesterStatistics> = {}
-  for (const [semester, semesterSubjects] of Object.entries(grouped)) {
-    result[semester] = calculateSemesterStatistics(semesterSubjects)
+  for (const semester of semesters) {
+    result[semester] = calculateSemesterStatistics(subjects, semester)
   }
 
   return result

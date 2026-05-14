@@ -115,30 +115,89 @@ export async function getSubjectsByIds(ids: string[]) {
 
 export async function getSubjectsForRepeatSelection(studyId: string, excludeId?: string) {
   const c = await col("subjects")
-  const filter: Filter<any> = { study_id: studyId, is_repeat: false }
+  const filter: Filter<any> = { study_id: studyId }
   if (excludeId) {
     filter._id = { $ne: excludeId }
   }
   return c.find(filter, {
-    projection: { _id: 1, name: 1, abbreviation: 1, semester: 1, subject_type: 1, completed: 1, planned: 1 }
+    projection: { _id: 1, name: 1, abbreviation: 1, semester: 1, subject_type: 1, completed: 1, planned: 1, is_repeat: 1, repeats_subject_id: 1 }
   }).toArray()
+}
+
+// Walk the repeats_subject_id chain to the original (root) subject and return its id.
+// Stops at the first subject with no repeats_subject_id, or breaks safely on a cycle / missing row.
+export async function getRepeatRootId(subjectId: string): Promise<string> {
+  const c = await col("subjects")
+  const visited = new Set<string>()
+  let cursor: string = subjectId
+  while (true) {
+    if (visited.has(cursor)) return cursor
+    visited.add(cursor)
+    const row = await c.findOne(
+      { _id: cursor as any },
+      { projection: { repeats_subject_id: 1 } }
+    ) as { repeats_subject_id?: string | null } | null
+    if (!row || !row.repeats_subject_id) return cursor
+    cursor = row.repeats_subject_id
+  }
+}
+
+// Walks the repeats_subject_id chain starting at startId and throws if it cycles back to selfId.
+async function assertNoRepeatCycle(studyId: string, selfId: string, startId: string) {
+  const c = await col("subjects")
+  const visited = new Set<string>()
+  let cursor: string | null = startId
+  while (cursor) {
+    if (cursor === selfId) {
+      throw new Error("Repeat chain would create a cycle")
+    }
+    if (visited.has(cursor)) {
+      throw new Error("Repeat chain already contains a cycle")
+    }
+    visited.add(cursor)
+    const next = await c.findOne(
+      { _id: cursor as any, study_id: studyId },
+      { projection: { repeats_subject_id: 1 } }
+    ) as { repeats_subject_id?: string | null } | null
+    cursor = next?.repeats_subject_id || null
+  }
 }
 
 export async function createSubject(data: Record<string, any>) {
   const c = await col("subjects")
-  const doc = { _id: newId() as any, ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+  const id = newId()
+  if (data.repeats_subject_id) {
+    await assertNoRepeatCycle(data.study_id, id, data.repeats_subject_id)
+  }
+  const doc = { _id: id as any, ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
   await c.insertOne(doc)
   return doc
 }
 
 export async function updateSubject(id: string, data: Record<string, any>) {
   const c = await col("subjects")
+  if (data.repeats_subject_id) {
+    const existing = await c.findOne(
+      { _id: id as any },
+      { projection: { study_id: 1 } }
+    ) as { study_id?: string } | null
+    if (existing?.study_id) {
+      await assertNoRepeatCycle(existing.study_id, id, data.repeats_subject_id)
+    }
+  }
   await c.updateOne({ _id: id as any }, { $set: { ...data, updated_at: new Date().toISOString() } })
 }
 
 export async function deleteSubject(id: string) {
   const db = await getDb()
-  // Delete exam options for this subject
+  const referenced = await db.collection("subjects").findOne(
+    { repeats_subject_id: id },
+    { projection: { _id: 1, name: 1, abbreviation: 1 } }
+  )
+  if (referenced) {
+    const label = referenced.abbreviation ? `${referenced.abbreviation} – ${referenced.name}` : referenced.name
+    throw new Error(`Předmět nelze smazat, protože jej opakuje "${label}". Nejprve upravte nebo smažte opakování.`)
+  }
   await db.collection("exam_options").deleteMany({ subject_id: id })
   await db.collection("subjects").deleteOne({ _id: id as any })
 }

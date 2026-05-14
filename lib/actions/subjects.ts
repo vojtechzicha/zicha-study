@@ -22,6 +22,10 @@ export async function fetchSubjectsForRepeatSelection(studyId: string, excludeId
   return db.normalizeIds(docs)
 }
 
+export async function fetchRepeatRootId(subjectId: string) {
+  return db.getRepeatRootId(subjectId)
+}
+
 export async function createSubject(data: Record<string, any>) {
   try {
     const doc = await db.createSubject(data)

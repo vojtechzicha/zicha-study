@@ -8,8 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { BookOpen, Clock, Trophy, Target, GraduationCap } from "lucide-react"
 import { StudyHeader } from "./study-header"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
-import { calculateAverage, calculateGpa } from "@/lib/grade-utils"
-import { isSubjectFailed } from "@/lib/status-utils"
+import { calculateStudyStatistics, calculateSemesterStatistics } from "@/lib/utils/statistics-utils"
 import { getSubjectTypeOptions, getSubjectTypeConfig } from "@/lib/constants"
 
 interface Subject {
@@ -120,135 +119,37 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   }, [subjects, semesterFilter, departmentFilter, typeFilter])
 
   // Calculate main statistics
-  const stats = useMemo(() => {
-    const total = filteredSubjects.length
-    const completed = filteredSubjects.filter((s) => s.completed && !s.planned).length
-    const creditsCompleted = filteredSubjects.filter((s) => s.credit_completed && !s.planned).length
-    
-    // First, get unique exam subjects (by abbreviation)
-    const uniqueExamSubjects = filteredSubjects
-      .filter((s) => s.completion_type.includes("Zk"))
-      .reduce((acc, subject) => {
-        // Only keep the first instance of each subject (by abbreviation)
-        if (!acc.some(s => s.abbreviation === subject.abbreviation)) {
-          acc.push(subject)
-        }
-        return acc
-      }, [] as Subject[])
-    
-    // Count unique subjects that have been successfully completed (any instance with passing grade)
-    const uniqueExamsCompleted = uniqueExamSubjects.filter(examSubject => {
-      // Find all instances of this subject
-      const allInstances = filteredSubjects.filter(s => s.abbreviation === examSubject.abbreviation && s.completion_type.includes("Zk"))
-      // Check if any instance has been successfully completed (not failed and not planned)
-      return allInstances.some(s => s.exam_completed && !s.planned && s.grade !== 'FN')
-    }).length
-    
-    const examsCompleted = uniqueExamsCompleted
-
-    const subjectsWithCredits = filteredSubjects.filter((s) => s.completion_type.includes("Zp") || s.completion_type.includes("KZp"))
-    const subjectsWithExams = uniqueExamSubjects
-
-    const remainingCredits = filteredSubjects.filter(
-      (s) => (!s.credit_completed || s.planned) && (s.completion_type.includes("Zp") || s.completion_type.includes("KZp")),
-    ).length
-    const remainingExams = filteredSubjects.filter((s) => ((!s.exam_completed || s.planned) && s.completion_type.includes("Zk"))).length
-
-    const totalCredits = filteredSubjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
-    const completedCredits = filteredSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
-
-    const totalHours = filteredSubjects.reduce((sum, s) => sum + (s.hours || 0), 0)
-    const completedHours = filteredSubjects.filter((s) => s.completed).reduce((sum, s) => sum + (s.hours || 0), 0)
-
-    // Calculate weighted average using new utility
-    const completedFilteredSubjects = filteredSubjects.filter(s => s.completed && !isSubjectFailed(s))
-    const average = calculateAverage(completedFilteredSubjects)
-    const gpa = calculateGpa(filteredSubjects.filter(s => s.completed && !s.planned))
-
-    return {
-      total,
-      completed,
-      creditsCompleted,
-      examsCompleted,
-      remainingCredits,
-      remainingExams,
-      totalCredits,
-      completedCredits,
-      totalHours,
-      completedHours,
-      average,
-      gpa,
-      completionRate: total > 0 ? (completed / total) * 100 : 0,
-      creditCompletionRate: subjectsWithCredits.length > 0 ? (creditsCompleted / subjectsWithCredits.length) * 100 : 0,
-      examCompletionRate: subjectsWithExams.length > 0 ? (examsCompleted / subjectsWithExams.length) * 100 : 0,
-      totalSubjectsWithCredits: subjectsWithCredits.length,
-      totalSubjectsWithExams: subjectsWithExams.length,
-    }
-  }, [filteredSubjects])
+  const stats = useMemo(() => calculateStudyStatistics(filteredSubjects), [filteredSubjects])
 
   // Statistics by semester
   const semesterStats = useMemo(() => {
-    const stats: { [key: string]: any } = {}
-
+    const result: { [key: string]: ReturnType<typeof calculateSemesterStatistics> } = {}
     semesters.forEach((semester) => {
-      const semesterSubjects = filteredSubjects.filter((s) => s.semester === semester)
-      const total = semesterSubjects.length
-      const completed = semesterSubjects.filter((s) => s.completed).length
-      const credits = semesterSubjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
-      const completedCredits = semesterSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
-
-      if (total > 0) {
-        const completedSemesterSubjects = semesterSubjects.filter(s => s.completed && !isSubjectFailed(s))
-        const semesterAverage = calculateAverage(completedSemesterSubjects)
-        const gpa = calculateGpa(semesterSubjects.filter(s => s.completed && !s.planned))
-        
-        stats[semester] = {
-          total,
-          completed,
-          credits,
-          completedCredits,
-          completionRate: (completed / total) * 100,
-          average: semesterAverage,
-          gpa,
-        }
+      const semesterStat = calculateSemesterStatistics(filteredSubjects, semester)
+      if (semesterStat.total > 0) {
+        result[semester] = semesterStat
       }
     })
-
-    return stats
+    return result
   }, [filteredSubjects, semesters])
 
-  // Statistics by year
+  // Statistics by year (aggregated across both semesters of that year)
   const yearStats = useMemo(() => {
-    const stats: { [key: string]: any } = {}
-
+    const result: { [key: string]: ReturnType<typeof calculateSemesterStatistics> } = {}
     years.forEach((year) => {
+      const yearMatch = year.match(/(\d+)\.\s*ročník/i)
+      if (!yearMatch) return
+      const yearNum = yearMatch[1]
       const yearSubjects = filteredSubjects.filter((s) => {
-        const yearMatch = year.match(/(\d+)\.\s*ročník/i)
-        if (yearMatch) {
-          const yearNum = yearMatch[1]
-          const subjectYearMatch = s.semester.match(/(\d+)\.\s*ročník/i)
-          return subjectYearMatch && subjectYearMatch[1] === yearNum
-        }
-        return false
+        const m = s.semester.match(/(\d+)\.\s*ročník/i)
+        return m && m[1] === yearNum
       })
-
-      const total = yearSubjects.length
-      const completed = yearSubjects.filter((s) => s.completed).length
-      const credits = yearSubjects.filter(s => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
-      const completedCredits = yearSubjects.filter((s) => s.completed && !isSubjectFailed(s)).reduce((sum, s) => sum + s.credits, 0)
-
-      if (total > 0) {
-        stats[year] = {
-          total,
-          completed,
-          credits,
-          completedCredits,
-          completionRate: (completed / total) * 100,
-        }
+      const yearStat = calculateSemesterStatistics(yearSubjects)
+      if (yearStat.total > 0) {
+        result[year] = yearStat
       }
     })
-
-    return stats
+    return result
   }, [filteredSubjects, years])
 
   // Statistics by department
@@ -609,7 +510,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                             {semesterData.gpa !== null && <div>GPA: {semesterData.gpa.toFixed(2)}</div>}
                           </div>
                         ) : (
-                          <div>GPA: {semesterData.gpa.toFixed(2)}</div>
+                          <div>GPA: {semesterData.gpa?.toFixed(2) ?? '-'}</div>
                         )}
                       </div>
                     )}
