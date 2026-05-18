@@ -131,7 +131,7 @@ const COLS = [
   { header: 'Zkratka',        width: 12, align: 'left'   as const, wrap: false },
   { header: 'Název předmětu', width: 48, align: 'left'   as const, wrap: true },
   { header: 'Typ',            width: 20, align: 'left'   as const, wrap: false },
-  { header: 'Zakončení',      width: 16, align: 'center' as const, wrap: false },
+  { header: 'Zakončení',      width: 16, align: 'center' as const, wrap: true  },
   { header: 'Kr.',            width: 5,  align: 'center' as const, wrap: false },
   { header: 'Body',           width: 6,  align: 'center' as const, wrap: false },
   { header: 'Hodiny',         width: 7,  align: 'center' as const, wrap: false },
@@ -425,7 +425,7 @@ export async function exportStudiesToExcel() {
             top: bdr('thin', C.ACCENT),
             bottom: bdr('thin', C.ACCENT),
           }
-          ws.getRow(r).height = 22
+          ws.getRow(r).height = 20
           prevSemester = subj.semester
           rowOffset++
           r++
@@ -491,7 +491,7 @@ export async function exportStudiesToExcel() {
           }
         })
 
-        ws.getRow(r).height = 20
+        ws.getRow(r).height = 26
       }
 
       nextRow = 10 + rowOffset
@@ -569,7 +569,7 @@ export async function exportStudiesToExcel() {
           }
         })
 
-        ws.getRow(r).height = 20
+        ws.getRow(r).height = 26
         r++
       }
 

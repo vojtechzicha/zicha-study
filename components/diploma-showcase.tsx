@@ -88,7 +88,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
         />
         {/* Gold sheen sweep on hover */}
         <div
-          className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-amber-200/10 to-transparent transition-transform duration-[1400ms] ease-out group-hover:translate-x-full"
+          className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-amber-200/10 to-transparent transition-transform [transition-duration:1400ms] ease-out group-hover:translate-x-full"
           aria-hidden
         />
 
