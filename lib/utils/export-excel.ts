@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs'
 import { fetchStudies } from '@/lib/actions/studies'
 import { fetchSubjectsByStudyId } from '@/lib/actions/subjects'
 import { fetchFinalExams } from '@/lib/actions/final-exams'
-import { getStudyStatusLabel, getStudyFormLabel, type StudyStatus } from '@/lib/constants'
+import { getStudyStatusLabel, getStudyFormLabel, getGraduationResultLabel, type StudyStatus } from '@/lib/constants'
 import { sortStudiesByStatus } from '@/lib/status-utils'
 import { getShareUrl } from '@/lib/utils/share-url'
 
@@ -15,6 +15,7 @@ interface ExportStudy {
   start_year?: number | string | null
   end_year?: number | string | null
   status: StudyStatus
+  graduation_result?: string | null
   logo_url?: string | null
   is_public?: boolean
   public_slug?: string | null
@@ -322,6 +323,7 @@ export async function exportStudiesToExcel() {
       study.type,
       getStudyFormLabel(study.form || ''),
       `${study.start_year}–${study.end_year || '...'}`,
+      study.graduation_result ? getGraduationResultLabel(study.graduation_result) : null,
     ].filter(Boolean)
 
     ws.mergeCells(r, 1, r, NUM_COLS - 3)

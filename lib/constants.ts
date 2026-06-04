@@ -210,6 +210,27 @@ export const getStudyStatusLabel = (status: string): string => {
   return labels[status as StudyStatus] || status
 }
 
+// Graduation Result (výsledek studia – platí pro dokončená studia)
+// "prospěl" → standardní diplom, "prospěl s vyznamenáním" → červený diplom
+export const GRADUATION_RESULTS = {
+  PASSED: 'prospěl',
+  PASSED_WITH_HONORS: 'prospěl s vyznamenáním',
+} as const
+
+export type GraduationResult = (typeof GRADUATION_RESULTS)[keyof typeof GRADUATION_RESULTS]
+
+export const getGraduationResultOptions = () => Object.values(GRADUATION_RESULTS)
+
+// True when the study was completed with distinction (the "red diploma")
+export const isGraduationWithHonors = (result?: string | null): boolean =>
+  result === GRADUATION_RESULTS.PASSED_WITH_HONORS
+
+// Capitalized label for display (values are stored lowercase, matching the official wording)
+export const getGraduationResultLabel = (result?: string | null): string => {
+  if (!result) return ''
+  return result.charAt(0).toUpperCase() + result.slice(1)
+}
+
 // Material Categories
 export const MATERIAL_CATEGORIES = {
   LECTURE: 'Přednáška',

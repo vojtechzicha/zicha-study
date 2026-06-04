@@ -33,6 +33,7 @@ interface Study {
   start_year: number
   end_year?: number
   status: "active" | "completed" | "paused" | "abandoned"
+  graduation_result?: string | null
   logo_url?: string
   diploma_url?: string | null
   diploma_mime_type?: string

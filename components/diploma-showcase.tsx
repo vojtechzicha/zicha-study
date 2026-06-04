@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Cormorant_Garamond } from "next/font/google"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Download, Maximize2, GraduationCap, Award, Calendar } from "lucide-react"
-import { getStudyFormLabel } from "@/lib/constants"
+import { getStudyFormLabel, isGraduationWithHonors } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
 
 const cormorant = Cormorant_Garamond({
@@ -23,12 +23,31 @@ interface DiplomaShowcaseProps {
     start_year: number
     end_year?: number
     status: string
+    graduation_result?: string | null
     diploma_url?: string | null
     diploma_mime_type?: string
     diploma_uploaded_at?: string
   }
   variant?: "ceremonial" | "compact"
 }
+
+// Color palettes for the two diploma flavours. Gold accents stay on both –
+// the difference is the field/seal: deep navy for a standard diploma, burgundy
+// for the "červený diplom" awarded s vyznamenáním (with distinction).
+const DIPLOMA_THEME = {
+  standard: {
+    bg: "radial-gradient(ellipse at 20% 10%, #1f2d5e 0%, #131e45 35%, #09102a 100%)",
+    seal: "radial-gradient(circle at 35% 30%, #ffe8a8 0%, #e3b860 35%, #9c741d 80%, #5a3c0a 100%)",
+    glow: "radial-gradient(circle, rgba(255,200,100,0.55) 0%, rgba(180,130,50,0.15) 60%, transparent 100%)",
+    eyebrow: "Udělený diplom",
+  },
+  honors: {
+    bg: "radial-gradient(ellipse at 20% 10%, #5e1326 0%, #3d0c1b 35%, #1c0510 100%)",
+    seal: "radial-gradient(circle at 35% 30%, #ffd9a0 0%, #e0a23c 30%, #b91c1c 78%, #7f1029 100%)",
+    glow: "radial-gradient(circle, rgba(248,113,113,0.55) 0%, rgba(180,40,40,0.18) 60%, transparent 100%)",
+    eyebrow: "Diplom s vyznamenáním",
+  },
+} as const
 
 export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowcaseProps) {
   const [open, setOpen] = useState(false)
@@ -41,17 +60,22 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
 
   const romanYear = conferredYear ? toRoman(conferredYear) : null
 
+  const honors = isGraduationWithHonors(study.graduation_result)
+  const theme = honors ? DIPLOMA_THEME.honors : DIPLOMA_THEME.standard
+
   if (variant === "compact") {
     return (
       <>
         <CompactDiplomaCard
           study={study}
+          honors={honors}
           onOpen={() => setOpen(true)}
         />
         <DiplomaViewer
           open={open}
           onOpenChange={setOpen}
           study={study}
+          honors={honors}
           isPdf={isPdf}
           isImage={!!isImage}
           conferredYear={conferredYear}
@@ -71,10 +95,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
         {/* Layered background */}
         <div
           className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at 20% 10%, #1f2d5e 0%, #131e45 35%, #09102a 100%)",
-          }}
+          style={{ background: theme.bg }}
         />
         {/* Parchment grain overlay */}
         <div
@@ -107,14 +128,22 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
           {/* Eyebrow */}
           <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.42em] text-amber-300/80 sm:text-xs">
             <span className="h-px w-10 bg-gradient-to-r from-transparent to-amber-300/60" />
-            <span>Udělený diplom</span>
+            <span>{theme.eyebrow}</span>
             <span className="h-px w-10 bg-gradient-to-l from-transparent to-amber-300/60" />
           </div>
+
+          {/* Honors ribbon (červený diplom) */}
+          {honors && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/50 bg-gradient-to-r from-rose-950/60 via-rose-900/40 to-rose-950/60 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-amber-100 shadow-[0_0_22px_rgba(244,63,94,0.3)] sm:text-xs">
+              <Award className="h-3.5 w-3.5 text-amber-200" />
+              S vyznamenáním
+            </div>
+          )}
 
           {/* Ornamental divider with seal */}
           <div className="relative flex items-center justify-center gap-4">
             <DividerLine side="left" />
-            <WaxSeal />
+            <WaxSeal seal={theme.seal} glow={theme.glow} />
             <DividerLine side="right" />
           </div>
 
@@ -158,6 +187,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
         open={open}
         onOpenChange={setOpen}
         study={study}
+        honors={honors}
         isPdf={isPdf}
         isImage={!!isImage}
         conferredYear={conferredYear}
@@ -168,9 +198,11 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
 
 function CompactDiplomaCard({
   study,
+  honors,
   onOpen,
 }: {
   study: DiplomaShowcaseProps["study"]
+  honors: boolean
   onOpen: () => void
 }) {
   const conferredDate = study.diploma_uploaded_at
@@ -180,29 +212,47 @@ function CompactDiplomaCard({
       : null
 
   return (
-    <div className="group relative mb-8 overflow-hidden rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50 via-white to-amber-50/60 shadow-sm transition-shadow hover:shadow-md">
+    <div
+      className={`group relative mb-8 overflow-hidden rounded-xl border bg-gradient-to-r shadow-sm transition-shadow hover:shadow-md ${
+        honors
+          ? "border-rose-200/70 from-rose-50 via-white to-amber-50/60"
+          : "border-amber-200/60 from-amber-50 via-white to-amber-50/60"
+      }`}
+    >
       {/* Accent bar */}
-      <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600" />
+      <div
+        className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${
+          honors ? "from-rose-500 via-rose-600 to-amber-500" : "from-amber-400 via-amber-500 to-amber-600"
+        }`}
+      />
       {/* Subtle watermark seal */}
       <Award
-        className="pointer-events-none absolute -right-4 -top-4 h-32 w-32 text-amber-200/40"
+        className={`pointer-events-none absolute -right-4 -top-4 h-32 w-32 ${honors ? "text-rose-200/40" : "text-amber-200/40"}`}
         strokeWidth={1}
         aria-hidden
       />
 
       <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6">
         <div className="flex items-start gap-4 min-w-0">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-amber-300/70 bg-gradient-to-br from-amber-100 to-amber-50 shadow-inner">
-            <Award className="h-5 w-5 text-amber-700" />
+          <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border bg-gradient-to-br shadow-inner ${
+            honors ? "border-rose-300/70 from-rose-100 to-amber-50" : "border-amber-300/70 from-amber-100 to-amber-50"
+          }`}>
+            <Award className={`h-5 w-5 ${honors ? "text-rose-700" : "text-amber-700"}`} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+              <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${honors ? "text-rose-700" : "text-amber-700"}`}>
                 Diplom
               </span>
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-800">
-                Dokončeno
-              </span>
+              {honors ? (
+                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-rose-800">
+                  S vyznamenáním
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-800">
+                  Dokončeno
+                </span>
+              )}
             </div>
             <h3 className="mt-1 truncate text-base font-semibold text-gray-900 sm:text-lg">
               {study.name}
@@ -243,6 +293,7 @@ function DiplomaViewer({
   open,
   onOpenChange,
   study,
+  honors,
   isPdf,
   isImage,
   conferredYear,
@@ -250,6 +301,7 @@ function DiplomaViewer({
   open: boolean
   onOpenChange: (_v: boolean) => void
   study: DiplomaShowcaseProps["study"]
+  honors: boolean
   isPdf: boolean
   isImage: boolean
   conferredYear: number | null
@@ -275,6 +327,7 @@ function DiplomaViewer({
               <div className="truncate text-[10px] uppercase tracking-[0.28em] text-amber-200/60 sm:text-xs">
                 {study.type} · {getStudyFormLabel(study.form)}
                 {conferredYear && <> · {conferredYear}</>}
+                {honors && <> · <span className="text-amber-100">s vyznamenáním</span></>}
               </div>
             </div>
           </div>
@@ -337,24 +390,18 @@ function DividerLine({ side }: { side: "left" | "right" }) {
   )
 }
 
-function WaxSeal() {
+function WaxSeal({ seal, glow }: { seal: string; glow: string }) {
   return (
     <div className="relative flex h-14 w-14 items-center justify-center">
       {/* Outer glow */}
       <div
         className="absolute inset-0 rounded-full blur-md"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(255,200,100,0.55) 0%, rgba(180,130,50,0.15) 60%, transparent 100%)",
-        }}
+        style={{ background: glow }}
       />
       {/* Seal disc */}
       <div
         className="relative flex h-12 w-12 items-center justify-center rounded-full shadow-[inset_0_2px_4px_rgba(255,255,255,0.35),inset_0_-2px_5px_rgba(60,30,0,0.5),0_4px_10px_rgba(0,0,0,0.4)]"
-        style={{
-          background:
-            "radial-gradient(circle at 35% 30%, #ffe8a8 0%, #e3b860 35%, #9c741d 80%, #5a3c0a 100%)",
-        }}
+        style={{ background: seal }}
       >
         {/* Engraved ring */}
         <div className="absolute inset-1 rounded-full border border-amber-900/50" />
