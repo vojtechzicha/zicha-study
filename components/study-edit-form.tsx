@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { updateStudy, deleteStudyAction } from "@/lib/actions/studies"
 import { uploadLogo, removeLogo as removeLogoAction } from "@/lib/actions/logos"
 import { uploadDiploma, removeDiploma as removeDiplomaAction } from "@/lib/actions/diplomas"
-import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, type StudyStatus } from "@/lib/constants"
+import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, getGraduationResultOptions, getGraduationResultLabel, STUDY_STATUS, type StudyStatus } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -34,6 +34,7 @@ interface Study {
   start_year: number
   end_year?: number
   status: StudyStatus
+  graduation_result?: string | null
   logo_url?: string
   diploma_url?: string | null
   diploma_mime_type?: string
@@ -63,6 +64,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     start_year: study.start_year,
     end_year: study.end_year || "",
     status: study.status,
+    graduation_result: study.graduation_result || "",
     final_exams_enabled: study.final_exams_enabled || false,
     exam_scheduler_enabled: study.exam_scheduler_enabled || false,
     tasks_enabled: study.tasks_enabled || false,
@@ -173,6 +175,9 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
       await updateStudy(study.id, {
         ...formData,
         end_year: formData.end_year || null,
+        // Graduation result only applies to completed studies; clear it otherwise
+        graduation_result:
+          formData.status === STUDY_STATUS.COMPLETED ? formData.graduation_result || null : null,
         logo_url: logoUrl,
         // Store as null if empty, otherwise as time string
         earliest_arrival_time: formData.earliest_arrival_time || null,
@@ -353,6 +358,32 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Graduation result – only relevant once the study is completed */}
+                {formData.status === STUDY_STATUS.COMPLETED && (
+                  <div className="space-y-2">
+                    <Label htmlFor="graduation_result">Výsledek studia</Label>
+                    <Select
+                      value={formData.graduation_result || "none"}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, graduation_result: value === "none" ? "" : value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vyberte výsledek" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Neuvedeno</SelectItem>
+                        {getGraduationResultOptions().map((result) => (
+                          <SelectItem key={result} value={result}>{getGraduationResultLabel(result)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                      „S vyznamenáním“ zobrazí diplom v slavnostním červeném provedení.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Diploma Upload */}
