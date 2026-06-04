@@ -116,14 +116,15 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
   const handleDiplomaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      const diplomaNoun = getStudyTerminology(formData.type).diplomaNoun
       if (file.size > 10 * 1024 * 1024) {
-        setError("Diplom musí být menší než 10MB")
+        setError(`${diplomaNoun} musí být menší než 10 MB`)
         return
       }
       const isPdf = file.type === "application/pdf"
       const isImage = file.type.startsWith("image/")
       if (!isPdf && !isImage) {
-        setError("Diplom musí být PDF nebo obrázek")
+        setError(`${diplomaNoun} musí být PDF nebo obrázek`)
         return
       }
       setDiplomaFile(file)
@@ -381,7 +382,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-gray-500">
-                      „S vyznamenáním“ zobrazí diplom v slavnostním červeném provedení.
+                      „S vyznamenáním“ zobrazí {getStudyTerminology(formData.type).diplomaNoun.toLowerCase()} v slavnostním červeném provedení.
                     </p>
                   </div>
                 )}
@@ -391,7 +392,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Award className="h-4 w-4 text-amber-600" />
-                  <Label>Diplom</Label>
+                  <Label>{getStudyTerminology(formData.type).diplomaNoun}</Label>
                   {formData.status !== "completed" && (
                     <span className="text-xs text-gray-500">
                       (zobrazí se po dokončení studia)
@@ -405,7 +406,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={diplomaUrl}
-                          alt="Diplom preview"
+                          alt={`${getStudyTerminology(formData.type).diplomaNoun} – náhled`}
                           className="w-20 h-20 object-cover border border-amber-200 rounded shadow-sm"
                         />
                       ) : (

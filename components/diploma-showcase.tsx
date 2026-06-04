@@ -5,6 +5,7 @@ import { Cormorant_Garamond } from "next/font/google"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Download, Maximize2, GraduationCap, Award, Calendar, Sparkles } from "lucide-react"
 import { getStudyFormLabel, isGraduationWithHonors } from "@/lib/constants"
+import { getStudyTerminology } from "@/lib/study-kind"
 import { formatDateCzech } from "@/lib/utils"
 
 const cormorant = Cormorant_Garamond({
@@ -57,6 +58,7 @@ const DIPLOMA_THEME = {
 
 export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowcaseProps) {
   const [open, setOpen] = useState(false)
+  const term = getStudyTerminology(study.type)
 
   if (study.status !== "completed" || !study.diploma_url) return null
 
@@ -97,7 +99,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
         type="button"
         onClick={() => setOpen(true)}
         className="group relative block w-full overflow-hidden rounded-2xl text-left shadow-[0_25px_50px_-12px_rgba(10,20,50,0.45)] transition-transform duration-500 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
-        aria-label="Zobrazit diplom"
+        aria-label={`Zobrazit ${term.diplomaNoun.toLowerCase()}`}
       >
         {/* Layered background */}
         <div
@@ -135,7 +137,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
           {/* Eyebrow */}
           <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.42em] text-amber-300/80 sm:text-xs">
             <span className="h-px w-10 bg-gradient-to-r from-transparent to-amber-300/60" />
-            <span>Udělený diplom</span>
+            <span>{term.diplomaConferred}</span>
             <span className="h-px w-10 bg-gradient-to-l from-transparent to-amber-300/60" />
           </div>
 
@@ -185,7 +187,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
           {/* CTA */}
           <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-amber-200/5 px-5 py-2 text-[11px] font-medium uppercase tracking-[0.26em] text-amber-100 backdrop-blur-sm transition-all duration-300 group-hover:border-amber-200/80 group-hover:bg-amber-200/10 group-hover:text-amber-50 sm:text-xs">
             <Maximize2 className="h-3 w-3" />
-            Otevřít diplom
+            Otevřít {term.diplomaNoun.toLowerCase()}
           </div>
         </div>
       </button>
@@ -213,6 +215,7 @@ function CompactDiplomaCard({
   honors: boolean
   onOpen: () => void
 }) {
+  const term = getStudyTerminology(study.type)
   const conferredDate = study.diploma_uploaded_at
     ? formatDateCzech(study.diploma_uploaded_at)
     : study.end_year
@@ -242,7 +245,7 @@ function CompactDiplomaCard({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-                Diplom
+                {term.diplomaNoun}
               </span>
               {honors ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white shadow-sm">
@@ -309,15 +312,16 @@ function DiplomaViewer({
   isImage: boolean
   conferredYear: number | null
 }) {
+  const term = getStudyTerminology(study.type)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={`max-w-[95vw] h-[92vh] p-0 border-0 ${theme.viewerContent} overflow-hidden sm:rounded-xl`}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogTitle className="sr-only">Diplom – {study.name}</DialogTitle>
+        <DialogTitle className="sr-only">{term.diplomaNoun} – {study.name}</DialogTitle>
         <DialogDescription className="sr-only">
-          Náhled nahraného diplomu ke studiu {study.name}.
+          Náhled nahraného {term.diplomaGenitive} ke studiu {study.name}.
         </DialogDescription>
 
         <div className={`${cormorant.className} relative z-10 flex items-center justify-between gap-4 border-b border-amber-200/10 bg-gradient-to-b ${theme.viewerHeader} px-6 py-4`}>
@@ -352,17 +356,17 @@ function DiplomaViewer({
               <iframe
                 src={`${study.diploma_url}#toolbar=0&navpanes=0&view=FitH`}
                 className="h-[80vh] w-full max-w-5xl rounded-lg border border-amber-200/10 bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
-                title={`Diplom ${study.name}`}
+                title={`${term.diplomaNoun} ${study.name}`}
               />
             ) : isImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={study.diploma_url!}
-                alt={`Diplom ${study.name}`}
+                alt={`${term.diplomaNoun} ${study.name}`}
                 className="max-h-[80vh] w-auto max-w-full rounded-lg border border-amber-200/10 bg-white object-contain shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
               />
             ) : (
-              <div className="text-amber-100/80">Neznámý formát diplomu.</div>
+              <div className="text-amber-100/80">Neznámý formát {term.diplomaGenitive}.</div>
             )}
           </div>
         </div>
