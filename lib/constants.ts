@@ -30,6 +30,7 @@ export const RESERVED_ROUTES: readonly string[] = RESERVED_ROUTES_TUPLE
 
 // Study Types
 export const STUDY_TYPES = {
+  HIGH_SCHOOL: 'Střední škola',
   BACHELOR: 'Bakalářské',
   MASTER: 'Magisterské',
   DOCTORAL: 'Doktorské',
