@@ -16,13 +16,16 @@ interface StudyNoteOverviewCardProps {
   studySlug?: string
   showPublicBadge?: boolean
   showSubjectNames?: boolean
+  /** Tag shown next to final-exam links (e.g. "SZZ" / "Maturita"). */
+  finalExamBadge?: string
 }
 
-export function StudyNoteOverviewCard({ 
-  note, 
+export function StudyNoteOverviewCard({
+  note,
   studySlug,
   showPublicBadge = true,
-  showSubjectNames = true
+  showSubjectNames = true,
+  finalExamBadge = "SZZ"
 }: StudyNoteOverviewCardProps) {
   const handleCardClick = () => {
     if (studySlug && note.public_slug) {
@@ -75,7 +78,7 @@ export function StudyNoteOverviewCard({
                 {note.subjects.slice(0, 2).map(subject => (
                   <Badge key={subject.id} variant="outline" className="text-xs py-0 px-1.5">
                     {subject.name}
-                    {subject.is_final_exam && <span className="ml-0.5 text-gray-500">(SZZ)</span>}
+                    {subject.is_final_exam && <span className="ml-0.5 text-gray-500">({finalExamBadge})</span>}
                   </Badge>
                 ))}
                 {note.subjects.length > 2 && (

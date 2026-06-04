@@ -10,11 +10,13 @@ import { fetchStudyNotes } from "@/lib/actions/study-notes"
 import { fetchSubjectsByIds } from "@/lib/actions/subjects"
 import { fetchFinalExamsByIds } from "@/lib/actions/final-exams"
 import { StudyNoteOverviewCard } from "@/components/study-note-overview-card"
+import { getStudyTerminology } from "@/lib/study-kind"
 import type { StudyNoteWithSubjects, StudyNoteSubject } from "@/lib/types/study-notes"
 
 interface Study {
   id: string
   name: string
+  type?: string
   is_public?: boolean
   public_slug?: string
 }
@@ -59,6 +61,7 @@ interface RawStudyNoteFromMongo {
 }
 
 export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverviewSectionProps) {
+  const finalExamBadge = getStudyTerminology(study?.type).finalExamNoteBadge
   const [studyNotes, setStudyNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
   const [showAll, setShowAll] = useState(false)
@@ -274,6 +277,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
                   key={note.id}
                   note={note}
                   studySlug={study?.public_slug}
+                  finalExamBadge={finalExamBadge}
                 />
               ))}
             </div>
@@ -298,6 +302,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
                   key={note.id}
                   note={note}
                   studySlug={study?.public_slug}
+                  finalExamBadge={finalExamBadge}
                 />
               ))}
             </div>

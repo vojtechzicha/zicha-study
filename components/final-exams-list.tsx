@@ -268,6 +268,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                               studySlug={studySlug}
                               isStudyPublic={isPublic}
                               onUpdate={loadFinalExams}
+                              finalExamBadge={t.finalExamNoteBadge}
                             />
                           </div>
                         </CollapsibleContent>
@@ -403,6 +404,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                 studySlug={studySlug}
                                 isStudyPublic={isPublic}
                                 onUpdate={loadFinalExams}
+                                finalExamBadge={t.finalExamNoteBadge}
                               />
                             </div>
                           </TableCell>
