@@ -58,6 +58,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    // Diploma/logo uploads are sent to Server Actions as binary; the default
+    // 1 MB body limit is too small for PDF scans. Kept under Vercel's ~4.5 MB
+    // platform request cap.
+    serverActions: {
+      bodySizeLimit: "4mb",
+    },
+  },
 }
 
 export default nextConfig
