@@ -54,6 +54,12 @@ export interface StudyTerminology {
   finalExamNoteBadge: string
   /** Grade options offered when grading a final-exam subject. */
   finalExamGrades: string[]
+  /** Name of the graduation document: "Diplom" / "Vysvědčení". */
+  diplomaNoun: string
+  /** Genitive form for phrases like "Náhled nahraného …": "diplomu" / "vysvědčení". */
+  diplomaGenitive: string
+  /** "Conferred" heading: "Udělený diplom" / "Udělené vysvědčení". */
+  diplomaConferred: string
 }
 
 const UNIVERSITY_TERMINOLOGY: StudyTerminology = {
@@ -72,6 +78,9 @@ const UNIVERSITY_TERMINOLOGY: StudyTerminology = {
   finalExamToggleDescription: 'Zobrazit sekci pro státní závěrečné zkoušky v tomto studiu',
   finalExamNoteBadge: 'SZZ',
   finalExamGrades: ['A', 'B', 'C', 'D', 'E', 'F', 'N'],
+  diplomaNoun: 'Diplom',
+  diplomaGenitive: 'diplomu',
+  diplomaConferred: 'Udělený diplom',
 }
 
 const HIGH_SCHOOL_TERMINOLOGY: StudyTerminology = {
@@ -90,6 +99,9 @@ const HIGH_SCHOOL_TERMINOLOGY: StudyTerminology = {
   finalExamToggleDescription: 'Zobrazit sekci maturitní zkoušky v tomto studiu',
   finalExamNoteBadge: 'Maturita',
   finalExamGrades: ['1', '2', '3', '4', '5'],
+  diplomaNoun: 'Vysvědčení',
+  diplomaGenitive: 'vysvědčení',
+  diplomaConferred: 'Udělené vysvědčení',
 }
 
 const TERMINOLOGY_BY_KIND: Record<StudyKind, StudyTerminology> = {
