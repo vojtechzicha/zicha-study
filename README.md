@@ -1,21 +1,32 @@
 # zicha-study
 
-A web application for tracking university studies, subjects, and academic progress.
+A web application for tracking university and high-school studies, subjects, and academic progress.
 
 ## Overview
 
-zicha-study allows students to track their university studies, manage subjects, monitor academic progress, and share their study plans publicly. It also supports study notes (DOCX files served via OneDrive), exam scheduling, and detailed statistics.
+zicha-study allows students to track their studies, manage subjects, monitor academic progress, and share their study plans publicly. It also supports study notes (DOCX files served via OneDrive), exam scheduling, and detailed statistics.
 
 **Features:**
 
-- Create and manage multiple university studies
-- Track subjects with grades, credits, and completion status
+- Create and manage multiple studies, both **university** and **high-school** (Střední škola) programs
+- Track university subjects with grades, credits, and completion status
+- Track high-school subjects across multiple years, with a grade per pololetí and a study-wide average
 - View detailed statistics and analytics
 - Share study plans publicly via unique URLs
 - Upload and display study notes from OneDrive (DOCX to HTML)
 - Exam scheduling with conflict detection
+- Final exams — Státní závěrečná zkouška (university) and Maturitní zkouška (high school)
 - Dynamic theming based on study logos
 - Responsive design with dark/light mode support
+
+### Study kinds
+
+The app supports two kinds of study, resolved from the study `type`:
+
+- **University** (`Bakalářské`, `Magisterské`, …) — subjects are scoped to a semester, graded on the ECTS scale, and the average is **credit-weighted**.
+- **High school** (`Střední škola`) — a subject spans the whole study and carries a grade per **pololetí** (half-year) on the Czech **1–5** scale (where 5 = nedostatečný / fail). The study average is a plain **unweighted** arithmetic mean. Grades are displayed as a subjects × pololetí matrix on both the admin and public pages.
+
+Kind-specific behavior is dispatched through component registries (see `components/subjects/`) and a terminology config (`lib/study-kind.ts`) rather than scattered conditionals; high-school grading logic lives in `lib/highschool/grades.ts`.
 
 ## Tech Stack
 

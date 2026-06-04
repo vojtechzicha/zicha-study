@@ -5,6 +5,7 @@ import { updateStudy, deleteStudyAction } from "@/lib/actions/studies"
 import { uploadLogo, removeLogo as removeLogoAction } from "@/lib/actions/logos"
 import { uploadDiploma, removeDiploma as removeDiplomaAction } from "@/lib/actions/diplomas"
 import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, getGraduationResultOptions, getGraduationResultLabel, STUDY_STATUS, type StudyStatus } from "@/lib/constants"
+import { getStudyTerminology } from "@/lib/study-kind"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -464,10 +465,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
                   <div className="space-y-0.5">
                     <Label htmlFor="final-exams" className="text-base font-medium">
-                      Státní závěrečné zkoušky
+                      {getStudyTerminology(formData.type).finalExamToggleLabel}
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Zobrazit sekci pro státní závěrečné zkoušky v tomto studiu
+                      {getStudyTerminology(formData.type).finalExamToggleDescription}
                     </p>
                   </div>
                   <Switch

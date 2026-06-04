@@ -41,9 +41,11 @@ interface StudyNoteCardProps {
   isStudyPublic?: boolean
   currentSubjectId?: string
   isFinalExam?: boolean
+  /** Tag shown next to final-exam links (e.g. "SZZ" / "Maturita"). */
+  finalExamBadge?: string
 }
 
-export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic: _isStudyPublic, currentSubjectId }: StudyNoteCardProps) {
+export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic: _isStudyPublic, currentSubjectId, finalExamBadge = "SZZ" }: StudyNoteCardProps) {
   const [showPublicDialog, setShowPublicDialog] = useState(false)
   const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [isPublic, setIsPublic] = useState(note.is_public)
@@ -194,7 +196,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                           .map(item => (
                             <Badge key={item.id} variant="outline" className="text-xs py-0 px-2">
                               {item.name}
-                              {item.is_final_exam && <span className="ml-1 text-gray-500">(SZZ)</span>}
+                              {item.is_final_exam && <span className="ml-1 text-gray-500">({finalExamBadge})</span>}
                             </Badge>
                           ))
                       } else {
@@ -202,7 +204,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                         return primaryItem ? (
                           <Badge variant="outline" className="text-xs py-0 px-2">
                             {primaryItem.name}
-                            {primaryItem.is_final_exam && <span className="ml-1 text-gray-500">(SZZ)</span>}
+                            {primaryItem.is_final_exam && <span className="ml-1 text-gray-500">({finalExamBadge})</span>}
                           </Badge>
                         ) : null
                       }

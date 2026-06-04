@@ -22,17 +22,20 @@ import {
 } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { FinalExam } from "@/lib/constants"
+import { getStudyTerminology, type StudyTerminology } from "@/lib/study-kind"
 
 interface FinalExamDialogProps {
   studyId: string
   exam?: FinalExam | null
+  /** Kind-specific copy (SZZ vs Maturita). Defaults to university wording. */
+  terminology?: StudyTerminology
   onClose: () => void
   onSave: () => void
 }
 
-const GRADES = ["A", "B", "C", "D", "E", "F", "N"]
-
-export function FinalExamDialog({ studyId, exam, onClose, onSave }: FinalExamDialogProps) {
+export function FinalExamDialog({ studyId, exam, terminology, onClose, onSave }: FinalExamDialogProps) {
+  const t = terminology ?? getStudyTerminology(undefined)
+  const GRADES = t.finalExamGrades
   const [formData, setFormData] = useState({
     shortcut: exam?.shortcut || "",
     name: exam?.name || "",
@@ -83,12 +86,10 @@ export function FinalExamDialog({ studyId, exam, onClose, onSave }: FinalExamDia
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
-              {exam ? "Upravit předmět SZZ" : "Přidat předmět SZZ"}
+              {exam ? t.finalExamDialogEditTitle : t.finalExamDialogAddTitle}
             </DialogTitle>
             <DialogDescription>
-              {exam 
-                ? "Upravte informace o předmětu státní závěrečné zkoušky" 
-                : "Vyplňte informace o novém předmětu státní závěrečné zkoušky"}
+              {exam ? t.finalExamDialogEditDescription : t.finalExamDialogAddDescription}
             </DialogDescription>
           </DialogHeader>
 
@@ -106,7 +107,7 @@ export function FinalExamDialog({ studyId, exam, onClose, onSave }: FinalExamDia
                   id="shortcut"
                   value={formData.shortcut}
                   onChange={(e) => setFormData({ ...formData, shortcut: e.target.value })}
-                  placeholder="SZZ1"
+                  placeholder={t.finalExamShortcutPlaceholder}
                 />
               </div>
               <div className="col-span-3">
@@ -115,7 +116,7 @@ export function FinalExamDialog({ studyId, exam, onClose, onSave }: FinalExamDia
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="např. Obhajoba diplomové práce"
+                  placeholder={t.finalExamNamePlaceholder}
                   required
                 />
               </div>

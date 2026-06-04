@@ -13,6 +13,7 @@ import type { FinalExam } from "@/lib/constants"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getGradeBadgeConfig, getSubjectStateBadgeConfig, SubjectState } from "@/lib/status-utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { getStudyTerminology, type StudyTerminology } from "@/lib/study-kind"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,10 +30,13 @@ interface FinalExamsListProps {
   studyId: string
   isPublic?: boolean
   studySlug?: string
+  /** Kind-specific copy (SZZ vs Maturita). Defaults to university wording. */
+  terminology?: StudyTerminology
   onUpdate?: () => void
 }
 
-export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate }: FinalExamsListProps) {
+export function FinalExamsList({ studyId, isPublic = false, studySlug, terminology, onUpdate }: FinalExamsListProps) {
+  const t = terminology ?? getStudyTerminology(undefined)
   const [finalExams, setFinalExams] = useState<FinalExam[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -89,7 +93,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
     return (
       <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
         <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">Načítání státních zkoušek...</p>
+          <p className="text-center text-muted-foreground">{t.finalExamLoadingText}</p>
         </CardContent>
       </Card>
     )
@@ -117,7 +121,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-primary-600" />
-              <CardTitle className="text-xl font-bold text-gray-900">Státní závěrečné zkoušky</CardTitle>
+              <CardTitle className="text-xl font-bold text-gray-900">{t.finalExamsSectionTitle}</CardTitle>
             </div>
             {!isPublic && (
               <Button
@@ -126,7 +130,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Přidat předmět SZZ
+                {t.finalExamAddButton}
               </Button>
             )}
           </div>
@@ -135,9 +139,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
           {finalExams.length === 0 ? (
             <div className="text-center py-12">
               <GraduationCap className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-              <p className="text-muted-foreground">
-                Zatím nejsou přidány žádné předměty státní závěrečné zkoušky
-              </p>
+              <p className="text-muted-foreground">{t.finalExamEmptyText}</p>
             </div>
           ) : (
             <>
@@ -212,7 +214,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Smazat předmět SZZ?</AlertDialogTitle>
+                                  <AlertDialogTitle>{t.finalExamDeleteTitle}</AlertDialogTitle>
                                   <AlertDialogDescription>
                                     Opravdu chcete smazat předmět &quot;{exam.name}&quot;? Tato akce je nevratná.
                                   </AlertDialogDescription>
@@ -266,6 +268,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
                               studySlug={studySlug}
                               isStudyPublic={isPublic}
                               onUpdate={loadFinalExams}
+                              finalExamBadge={t.finalExamNoteBadge}
                             />
                           </div>
                         </CollapsibleContent>
@@ -371,7 +374,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Smazat předmět SZZ?</AlertDialogTitle>
+                                    <AlertDialogTitle>{t.finalExamDeleteTitle}</AlertDialogTitle>
                                     <AlertDialogDescription>
                                       Opravdu chcete smazat předmět &quot;{exam.name}&quot;? Tato akce je nevratná.
                                     </AlertDialogDescription>
@@ -401,6 +404,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
                                 studySlug={studySlug}
                                 isStudyPublic={isPublic}
                                 onUpdate={loadFinalExams}
+                                finalExamBadge={t.finalExamNoteBadge}
                               />
                             </div>
                           </TableCell>
@@ -419,6 +423,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
       {showAddDialog && (
         <FinalExamDialog
           studyId={studyId}
+          terminology={t}
           onClose={() => setShowAddDialog(false)}
           onSave={handleSave}
         />
@@ -428,6 +433,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, onUpdate 
         <FinalExamDialog
           studyId={studyId}
           exam={editingExam}
+          terminology={t}
           onClose={() => setEditingExam(null)}
           onSave={handleSave}
         />

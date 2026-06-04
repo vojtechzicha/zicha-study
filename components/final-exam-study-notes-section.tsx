@@ -14,9 +14,11 @@ interface FinalExamStudyNotesSectionProps {
   studySlug?: string
   isStudyPublic?: boolean
   onUpdate?: () => void
+  /** Tag shown next to final-exam links (e.g. "SZZ" / "Maturita"). */
+  finalExamBadge?: string
 }
 
-export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, isStudyPublic, onUpdate }: FinalExamStudyNotesSectionProps) {
+export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, isStudyPublic, onUpdate, finalExamBadge = "SZZ" }: FinalExamStudyNotesSectionProps) {
   const [notes, setNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -112,6 +114,7 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
               isStudyPublic={isStudyPublic}
               currentSubjectId={finalExamId}
               isFinalExam={true}
+              finalExamBadge={finalExamBadge}
             />
           ))}
         </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react"
 import { useSession } from "next-auth/react"
 import { fetchStudy } from "@/lib/actions/studies"
 import { fetchSubjectsByStudyId } from "@/lib/actions/subjects"
-import { StudyStatistics } from "@/components/study-statistics"
+import { StudyStatisticsView } from "@/components/subjects/study-statistics-view"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useFavicon } from "@/hooks/use-favicon"
@@ -12,7 +12,10 @@ import { useFavicon } from "@/hooks/use-favicon"
 interface Study {
   id: string
   name: string
+  type: string
   logo_url?: string
+  start_year: number
+  end_year?: number | null
 }
 
 interface Subject {
@@ -101,10 +104,9 @@ export default function StudyStatisticsPage({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <StudyStatistics
+    <StudyStatisticsView
+      study={study}
       subjects={subjects}
-      studyName={study.name}
-      studyLogoUrl={study.logo_url}
       onBack={handleBack}
     />
   )

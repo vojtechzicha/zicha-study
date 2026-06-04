@@ -5,6 +5,15 @@ import { fetchFinalExams } from '@/lib/actions/final-exams'
 import { getStudyStatusLabel, getStudyFormLabel, getGraduationResultLabel, type StudyStatus } from '@/lib/constants'
 import { sortStudiesByStatus } from '@/lib/status-utils'
 import { getShareUrl } from '@/lib/utils/share-url'
+import { STUDY_KIND, resolveStudyKind, getStudyTerminology } from '@/lib/study-kind'
+import {
+  derivePeriods,
+  getGrade,
+  subjectAverage,
+  periodAverage,
+  overallAverage,
+  type HighSchoolSubjectLike,
+} from '@/lib/highschool/grades'
 
 // Study type for export
 interface ExportStudy {
@@ -156,8 +165,8 @@ function getGradeColor(grade: string): string {
   if (['B', '2'].includes(grade)) return C.BLUE
   if (['C', '3'].includes(grade)) return C.WARNING
   if (['D', '4'].includes(grade)) return C.AMBER
-  if (['E', '5'].includes(grade)) return C.AMBER
-  if (['F', 'FN'].includes(grade)) return C.DANGER
+  if (['E'].includes(grade)) return C.AMBER
+  if (['F', 'FN', '5'].includes(grade)) return C.DANGER
   return C.DARK_TEXT
 }
 
@@ -219,14 +228,14 @@ function getUniqueWorksheetName(study: ExportStudy, usedNames: Set<string>): str
 
 // ── Shared row helpers ──────────────────────────────────────────────────────
 
-function writeFooter(ws: ExcelJS.Worksheet, startRow: number, publicSlug?: string | null): number {
+function writeFooter(ws: ExcelJS.Worksheet, startRow: number, numCols: number, publicSlug?: string | null): number {
   let r = startRow
   ws.getRow(r).height = 8
   r++
-  for (let c = 1; c <= NUM_COLS; c++) ws.getCell(r, c).fill = solidFill(C.DARK)
+  for (let c = 1; c <= numCols; c++) ws.getCell(r, c).fill = solidFill(C.DARK)
   ws.getRow(r).height = 4
   r++
-  ws.mergeCells(r, 1, r, NUM_COLS)
+  ws.mergeCells(r, 1, r, numCols)
   const footerCell = ws.getCell(r, 1)
   const exportedAt = new Date().toLocaleString('cs-CZ')
   footerCell.value = publicSlug
@@ -235,6 +244,300 @@ function writeFooter(ws: ExcelJS.Worksheet, startRow: number, publicSlug?: strin
   footerCell.font = { name: 'Arial', size: 8, italic: true, color: { argb: C.SUBTLE } }
   footerCell.alignment = { horizontal: 'right', vertical: 'middle' }
   return r
+}
+
+// ── High-school sheet (subjects × pololetí matrix) ──────────────────────────
+
+interface HighSchoolSheetCtx {
+  ws: ExcelJS.Worksheet
+  study: ExportStudy
+  subjects: ExportSubject[]
+  finalExams: ExportFinalExam[]
+  publicSlug?: string | null
+  logoImageId?: number
+}
+
+function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, logoImageId }: HighSchoolSheetCtx) {
+  const hsSubjects = subjects as unknown as HighSchoolSubjectLike[]
+  const periods = derivePeriods(
+    {
+      start_year: Number(study.start_year) || new Date().getFullYear(),
+      end_year: study.end_year != null ? Number(study.end_year) : null,
+    },
+    hsSubjects,
+  )
+  const sorted = [...hsSubjects].sort((a, b) => a.name.localeCompare(b.name, 'cs'))
+  const term = getStudyTerminology(study.type)
+
+  // Column layout: Předmět | <pololetí…> | Ø | Vyučující
+  const SUBJECT_COL = 1
+  const FIRST_PERIOD_COL = 2
+  const AVG_COL = FIRST_PERIOD_COL + periods.length
+  const TEACHER_COL = AVG_COL + 1
+  const numCols = TEACHER_COL
+
+  ws.getColumn(SUBJECT_COL).width = 34
+  periods.forEach((_, i) => { ws.getColumn(FIRST_PERIOD_COL + i).width = 7 })
+  ws.getColumn(AVG_COL).width = 8
+  ws.getColumn(TEACHER_COL).width = 28
+
+  const hasLogo = logoImageId !== undefined
+
+  // ── Row 1: Dark accent bar ──
+  let r = 1
+  for (let c = 1; c <= numCols; c++) ws.getCell(r, c).fill = solidFill(C.DARK)
+  ws.getRow(r).height = 6
+
+  // ── Row 2: Study name ──
+  r = 2
+  ws.mergeCells(r, 1, r, numCols)
+  const nameCell = ws.getCell(r, 1)
+  nameCell.value = study.name
+  nameCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: C.DARK_TEXT } }
+  nameCell.alignment = { horizontal: 'left', vertical: 'middle', indent: hasLogo ? 5 : 0 }
+  ws.getRow(r).height = 32
+  if (hasLogo && logoImageId !== undefined) {
+    ws.addImage(logoImageId, { tl: { col: 0.1, row: 0.8 }, ext: { width: 44, height: 44 } })
+  }
+
+  // ── Row 3: Subtitle + status badge ──
+  r = 3
+  const subtitleParts = [
+    study.type,
+    getStudyFormLabel(study.form || ''),
+    `${study.start_year}–${study.end_year || '...'}`,
+    study.graduation_result ? getGraduationResultLabel(study.graduation_result) : null,
+  ].filter(Boolean)
+  const statusSpan = Math.min(2, numCols - 1)
+  ws.mergeCells(r, 1, r, numCols - statusSpan)
+  const subtitleCell = ws.getCell(r, 1)
+  subtitleCell.value = subtitleParts.join('  •  ')
+  subtitleCell.font = { name: 'Arial', size: 10, color: { argb: C.SUBTLE } }
+  subtitleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: hasLogo ? 7 : 0 }
+  ws.mergeCells(r, numCols - statusSpan + 1, r, numCols)
+  const statusCell = ws.getCell(r, numCols - statusSpan + 1)
+  statusCell.value = getStudyStatusLabel(study.status)
+  statusCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: C.WHITE } }
+  statusCell.fill = solidFill(STATUS_COLORS[study.status] || C.SUBTLE)
+  statusCell.alignment = { horizontal: 'center', vertical: 'middle' }
+  ws.getRow(r).height = 24
+
+  // ── Row 4: Accent divider ──
+  r = 4
+  for (let c = 1; c <= numCols; c++) ws.getCell(r, c).border = { bottom: bdr('medium', C.ACCENT) }
+  ws.getRow(r).height = 8
+
+  // ── Row 5: Spacer ──
+  r = 5
+  ws.getRow(r).height = 6
+
+  // ── Row 6: URL ──
+  r = 6
+  if (publicSlug) {
+    const url = getShareUrl(publicSlug)
+    ws.mergeCells(r, 1, r, numCols)
+    const urlCell = ws.getCell(r, 1)
+    urlCell.value = { text: url, hyperlink: url }
+    urlCell.font = { name: 'Arial', size: 9, color: { argb: C.ACCENT }, underline: true }
+    urlCell.alignment = { horizontal: 'left', vertical: 'middle' }
+  }
+  ws.getRow(r).height = 20
+
+  // ── Row 7: Summary (study average) ──
+  r = 7
+  const avg = overallAverage(hsSubjects)
+  ws.mergeCells(r, 1, r, numCols)
+  const statsCell = ws.getCell(r, 1)
+  statsCell.value = `${sorted.length} předmětů  •  studijní průměr ${avg !== null ? avg.toFixed(2) : '–'}`
+  statsCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
+  statsCell.fill = solidFill(C.LIGHT_ACCENT)
+  statsCell.alignment = { horizontal: 'center', vertical: 'middle' }
+  statsCell.border = { top: bdr('thin', C.ACCENT), bottom: bdr('thin', C.ACCENT) }
+  ws.getRow(r).height = 24
+
+  // ── Row 8: Spacer ──
+  r = 8
+  ws.getRow(r).height = 8
+
+  // ── Row 9: Table header ──
+  r = 9
+  const darkBdr = bdr('thin', C.DARK)
+  const headerCells: { col: number; text: string; align: 'left' | 'center' }[] = [
+    { col: SUBJECT_COL, text: 'Předmět', align: 'left' },
+    ...periods.map((p, i) => ({ col: FIRST_PERIOD_COL + i, text: p.shortLabel, align: 'center' as const })),
+    { col: AVG_COL, text: 'Ø', align: 'center' },
+    { col: TEACHER_COL, text: 'Vyučující', align: 'left' },
+  ]
+  headerCells.forEach(({ col, text, align }) => {
+    const cell = ws.getCell(r, col)
+    cell.value = text
+    cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.WHITE } }
+    cell.fill = solidFill(C.DARK)
+    cell.alignment = { horizontal: align, vertical: 'middle', wrapText: true }
+    cell.border = { top: darkBdr, bottom: darkBdr, left: darkBdr, right: darkBdr }
+  })
+  ws.getRow(r).height = 24
+
+  // ── Subject rows ──
+  let nextRow = 10
+  if (sorted.length > 0) {
+    sorted.forEach((subj, i) => {
+      const row = 10 + i
+      const bg = i % 2 === 1 ? C.LIGHT_GRAY : C.WHITE
+
+      const nameC = ws.getCell(row, SUBJECT_COL)
+      nameC.value = subj.abbreviation ? `${subj.abbreviation} – ${subj.name}` : subj.name
+      nameC.font = { name: 'Arial', size: 9, color: { argb: C.DARK_TEXT } }
+      nameC.fill = solidFill(bg)
+      nameC.border = cellBorders
+      nameC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true }
+
+      periods.forEach((p, pi) => {
+        const cell = ws.getCell(row, FIRST_PERIOD_COL + pi)
+        const g = getGrade(subj, p.year, p.half)
+        cell.value = g || ''
+        cell.fill = solidFill(bg)
+        cell.border = cellBorders
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        cell.font = g
+          ? { name: 'Arial', size: 9, bold: true, color: { argb: getGradeColor(g) } }
+          : { name: 'Arial', size: 9, color: { argb: C.DARK_TEXT } }
+      })
+
+      const avgC = ws.getCell(row, AVG_COL)
+      const sAvg = subjectAverage(subj)
+      avgC.value = sAvg !== null ? Number(sAvg.toFixed(2)) : ''
+      avgC.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.DARK_TEXT } }
+      avgC.fill = solidFill(bg)
+      avgC.border = cellBorders
+      avgC.alignment = { horizontal: 'center', vertical: 'middle' }
+
+      const tC = ws.getCell(row, TEACHER_COL)
+      tC.value = subj.lecturer || ''
+      tC.font = { name: 'Arial', size: 9, color: { argb: C.DARK_TEXT } }
+      tC.fill = solidFill(bg)
+      tC.border = cellBorders
+      tC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true }
+
+      ws.getRow(row).height = 24
+    })
+
+    nextRow = 10 + sorted.length
+
+    // Period-average row
+    const avgRow = nextRow
+    const labelC = ws.getCell(avgRow, SUBJECT_COL)
+    labelC.value = 'Průměr pololetí'
+    labelC.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
+    labelC.fill = solidFill(C.LIGHT_ACCENT)
+    labelC.border = cellBorders
+    labelC.alignment = { horizontal: 'left', vertical: 'middle' }
+    periods.forEach((p, pi) => {
+      const cell = ws.getCell(avgRow, FIRST_PERIOD_COL + pi)
+      const pa = periodAverage(hsSubjects, p.year, p.half)
+      cell.value = pa !== null ? Number(pa.toFixed(2)) : ''
+      cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
+      cell.fill = solidFill(C.LIGHT_ACCENT)
+      cell.border = cellBorders
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+    })
+    const ovC = ws.getCell(avgRow, AVG_COL)
+    ovC.value = avg !== null ? Number(avg.toFixed(2)) : ''
+    ovC.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
+    ovC.fill = solidFill(C.LIGHT_ACCENT)
+    ovC.border = cellBorders
+    ovC.alignment = { horizontal: 'center', vertical: 'middle' }
+    const trailC = ws.getCell(avgRow, TEACHER_COL)
+    trailC.fill = solidFill(C.LIGHT_ACCENT)
+    trailC.border = cellBorders
+    ws.getRow(avgRow).height = 22
+    nextRow = avgRow + 1
+  } else {
+    ws.mergeCells(nextRow, 1, nextRow, numCols)
+    const emptyCell = ws.getCell(nextRow, 1)
+    emptyCell.value = 'Pro toto studium nebyly nalezeny žádné předměty.'
+    emptyCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: C.SUBTLE } }
+    emptyCell.alignment = { horizontal: 'center', vertical: 'middle' }
+    ws.getRow(nextRow).height = 30
+    nextRow++
+  }
+
+  // ── Maturita (final exams) section ──
+  if (finalExams.length > 0) {
+    const GRADE_COL = FIRST_PERIOD_COL
+    const DATE_COL = FIRST_PERIOD_COL + 1
+
+    r = nextRow
+    ws.getRow(r).height = 12
+    r++
+
+    ws.mergeCells(r, 1, r, numCols)
+    const titleCell = ws.getCell(r, 1)
+    titleCell.value = `  ${term.finalExamsSectionTitle}`
+    titleCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: C.WHITE } }
+    titleCell.fill = solidFill(C.SZZ_HEADER)
+    titleCell.alignment = { horizontal: 'left', vertical: 'middle' }
+    ws.getRow(r).height = 26
+    r++
+
+    const subHeaders: Record<number, string> = {
+      [SUBJECT_COL]: 'Předmět',
+      [GRADE_COL]: 'Hodnocení',
+      [DATE_COL]: 'Datum',
+      [TEACHER_COL]: 'Zkoušející',
+    }
+    for (let c = 1; c <= numCols; c++) {
+      const cell = ws.getCell(r, c)
+      cell.value = subHeaders[c] || ''
+      cell.font = { name: 'Arial', size: 8, bold: true, color: { argb: C.DARK_TEXT } }
+      cell.fill = solidFill(C.LIGHT_ACCENT)
+      cell.border = { bottom: bdr('thin', C.ACCENT) }
+      cell.alignment = { horizontal: c === SUBJECT_COL || c === TEACHER_COL ? 'left' : 'center', vertical: 'middle' }
+    }
+    ws.getRow(r).height = 22
+    r++
+
+    finalExams.forEach((exam, i) => {
+      const bg = i % 2 === 1 ? C.LIGHT_GRAY : C.WHITE
+      for (let c = 1; c <= numCols; c++) {
+        const cell = ws.getCell(r, c)
+        cell.fill = solidFill(bg)
+        cell.border = cellBorders
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      }
+      const nameC = ws.getCell(r, SUBJECT_COL)
+      nameC.value = exam.shortcut ? `${exam.shortcut} – ${exam.name}` : exam.name
+      nameC.font = { name: 'Arial', size: 9, color: { argb: C.DARK_TEXT } }
+      nameC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true }
+
+      const gC = ws.getCell(r, GRADE_COL)
+      gC.value = exam.grade || ''
+      gC.font = exam.grade
+        ? { name: 'Arial', size: 9, bold: true, color: { argb: getGradeColor(exam.grade) } }
+        : { name: 'Arial', size: 9, color: { argb: C.DARK_TEXT } }
+
+      const dC = ws.getCell(r, DATE_COL)
+      dC.value = exam.exam_date ? new Date(exam.exam_date).toLocaleDateString('cs-CZ') : ''
+      dC.font = { name: 'Arial', size: 9, color: { argb: C.DARK_TEXT } }
+
+      const tC = ws.getCell(r, TEACHER_COL)
+      tC.value = exam.examiner || ''
+      tC.font = { name: 'Arial', size: 9, color: { argb: C.DARK_TEXT } }
+      tC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true }
+
+      ws.getRow(r).height = 26
+      r++
+    })
+    nextRow = r
+  }
+
+  // ── Footer + sheet settings ──
+  writeFooter(ws, nextRow, numCols, publicSlug)
+  ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 9, topLeftCell: 'B10', activeCell: 'B10' }]
+  ws.pageSetup.orientation = 'landscape'
+  ws.pageSetup.fitToPage = true
+  ws.pageSetup.fitToWidth = 1
+  ws.pageSetup.fitToHeight = 0
 }
 
 // ── Main Export Function ────────────────────────────────────────────────────
@@ -268,19 +571,10 @@ export async function exportStudiesToExcel() {
       // Final exams not available, continue without
     }
 
-    // Sort subjects: semester order (ZS before LS), then alphabetically
-    subjects.sort((a, b) => {
-      const sc = compareSemesters(a.semester, b.semester)
-      return sc !== 0 ? sc : a.name.localeCompare(b.name)
-    })
-
     const publicSlug = study.is_public ? study.public_slug : null
     const ws = workbook.addWorksheet(getUniqueWorksheetName(study, usedWorksheetNames))
 
-    // Set column widths
-    COLS.forEach((col, i) => { ws.getColumn(i + 1).width = col.width })
-
-    // Fetch logo image if available
+    // Fetch logo image if available (shared across study kinds)
     let logoImageId: number | undefined
     if (study.logo_url) {
       const logoData = await fetchLogoBuffer(study.logo_url)
@@ -291,6 +585,22 @@ export async function exportStudiesToExcel() {
         })
       }
     }
+
+    // High-school studies use a grade-matrix layout (subjects × pololetí)
+    // instead of the semester/credit table.
+    if (resolveStudyKind(study.type) === STUDY_KIND.HIGH_SCHOOL) {
+      buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, logoImageId })
+      continue
+    }
+
+    // Sort subjects: semester order (ZS before LS), then alphabetically
+    subjects.sort((a, b) => {
+      const sc = compareSemesters(a.semester, b.semester)
+      return sc !== 0 ? sc : a.name.localeCompare(b.name)
+    })
+
+    // Set column widths
+    COLS.forEach((col, i) => { ws.getColumn(i + 1).width = col.width })
 
     let r: number
 
@@ -517,7 +827,7 @@ export async function exportStudiesToExcel() {
       // SZZ section header
       ws.mergeCells(r, 1, r, NUM_COLS)
       const szzTitleCell = ws.getCell(r, 1)
-      szzTitleCell.value = '  Státní závěrečné zkoušky'
+      szzTitleCell.value = `  ${getStudyTerminology(study.type).finalExamsSectionTitle}`
       szzTitleCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: C.WHITE } }
       szzTitleCell.fill = solidFill(C.SZZ_HEADER)
       szzTitleCell.alignment = { horizontal: 'left', vertical: 'middle' }
@@ -579,7 +889,7 @@ export async function exportStudiesToExcel() {
     }
 
     // ── Footer ────────────────────────────────────────────────────────────
-    writeFooter(ws, nextRow, publicSlug)
+    writeFooter(ws, nextRow, NUM_COLS, publicSlug)
 
     // ── Sheet settings ────────────────────────────────────────────────────
     ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 9, topLeftCell: 'A10', activeCell: 'A10' }]
