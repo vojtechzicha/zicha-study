@@ -39,7 +39,6 @@ const DIPLOMA_THEME = {
     bg: "radial-gradient(ellipse at 20% 10%, #1f2d5e 0%, #131e45 35%, #09102a 100%)",
     seal: "radial-gradient(circle at 35% 30%, #ffe8a8 0%, #e3b860 35%, #9c741d 80%, #5a3c0a 100%)",
     glow: "radial-gradient(circle, rgba(255,200,100,0.55) 0%, rgba(180,130,50,0.15) 60%, transparent 100%)",
-    eyebrow: "Udělený diplom",
     // Full-screen viewer (modal) – navy field, gold accents
     viewerContent: "bg-[#0a1328]",
     viewerHeader: "from-[#0f1c3e] to-[#0a1328]",
@@ -49,7 +48,6 @@ const DIPLOMA_THEME = {
     bg: "radial-gradient(ellipse at 20% 10%, #5e1326 0%, #3d0c1b 35%, #1c0510 100%)",
     seal: "radial-gradient(circle at 35% 30%, #ffd9a0 0%, #e0a23c 30%, #b91c1c 78%, #7f1029 100%)",
     glow: "radial-gradient(circle, rgba(248,113,113,0.55) 0%, rgba(180,40,40,0.18) 60%, transparent 100%)",
-    eyebrow: "Diplom s vyznamenáním",
     // Full-screen viewer (modal) – burgundy field, gold accents (matches the showcase)
     viewerContent: "bg-[#1c0510]",
     viewerHeader: "from-[#3d0c1b] to-[#1c0510]",
@@ -137,7 +135,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
           {/* Eyebrow */}
           <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.42em] text-amber-300/80 sm:text-xs">
             <span className="h-px w-10 bg-gradient-to-r from-transparent to-amber-300/60" />
-            <span>{theme.eyebrow}</span>
+            <span>Udělený diplom</span>
             <span className="h-px w-10 bg-gradient-to-l from-transparent to-amber-300/60" />
           </div>
 
