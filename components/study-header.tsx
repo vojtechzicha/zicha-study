@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { StudyLogo } from "./study-logo"
 import { getStatusColor, getStatusText, StudyStatus } from "@/lib/status-utils"
-import { getGraduationResultLabel, isGraduationWithHonors } from "@/lib/constants"
+import { getGraduationResultLabel } from "@/lib/constants"
 
 interface Study {
   id: string
@@ -60,15 +60,7 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
                       {study.graduation_result && (
                         <>
                           <span className="hidden sm:inline">•</span>
-                          <span
-                            className={
-                              isGraduationWithHonors(study.graduation_result)
-                                ? "text-rose-600"
-                                : "text-gray-500"
-                            }
-                          >
-                            {getGraduationResultLabel(study.graduation_result)}
-                          </span>
+                          <span>{getGraduationResultLabel(study.graduation_result)}</span>
                         </>
                       )}
                       {study.is_public && (

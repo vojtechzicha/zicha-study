@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Cormorant_Garamond } from "next/font/google"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { Download, Maximize2, GraduationCap, Award, Calendar } from "lucide-react"
+import { Download, Maximize2, GraduationCap, Award, Calendar, Sparkles } from "lucide-react"
 import { getStudyFormLabel, isGraduationWithHonors } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
 
@@ -40,12 +40,20 @@ const DIPLOMA_THEME = {
     seal: "radial-gradient(circle at 35% 30%, #ffe8a8 0%, #e3b860 35%, #9c741d 80%, #5a3c0a 100%)",
     glow: "radial-gradient(circle, rgba(255,200,100,0.55) 0%, rgba(180,130,50,0.15) 60%, transparent 100%)",
     eyebrow: "Udělený diplom",
+    // Full-screen viewer (modal) – navy field, gold accents
+    viewerContent: "bg-[#0a1328]",
+    viewerHeader: "from-[#0f1c3e] to-[#0a1328]",
+    viewerBody: "bg-[radial-gradient(ellipse_at_center,_#132144_0%,_#070d20_100%)]",
   },
   honors: {
     bg: "radial-gradient(ellipse at 20% 10%, #5e1326 0%, #3d0c1b 35%, #1c0510 100%)",
     seal: "radial-gradient(circle at 35% 30%, #ffd9a0 0%, #e0a23c 30%, #b91c1c 78%, #7f1029 100%)",
     glow: "radial-gradient(circle, rgba(248,113,113,0.55) 0%, rgba(180,40,40,0.18) 60%, transparent 100%)",
     eyebrow: "Diplom s vyznamenáním",
+    // Full-screen viewer (modal) – burgundy field, gold accents (matches the showcase)
+    viewerContent: "bg-[#1c0510]",
+    viewerHeader: "from-[#3d0c1b] to-[#1c0510]",
+    viewerBody: "bg-[radial-gradient(ellipse_at_center,_#3d0c1b_0%,_#150208_100%)]",
   },
 } as const
 
@@ -76,6 +84,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
           onOpenChange={setOpen}
           study={study}
           honors={honors}
+          theme={theme}
           isPdf={isPdf}
           isImage={!!isImage}
           conferredYear={conferredYear}
@@ -188,6 +197,7 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
         onOpenChange={setOpen}
         study={study}
         honors={honors}
+        theme={theme}
         isPdf={isPdf}
         isImage={!!isImage}
         conferredYear={conferredYear}
@@ -213,39 +223,32 @@ function CompactDiplomaCard({
 
   return (
     <div
-      className={`group relative mb-8 overflow-hidden rounded-xl border bg-gradient-to-r shadow-sm transition-shadow hover:shadow-md ${
-        honors
-          ? "border-rose-200/70 from-rose-50 via-white to-amber-50/60"
-          : "border-amber-200/60 from-amber-50 via-white to-amber-50/60"
+      className={`group relative mb-8 overflow-hidden rounded-xl border bg-gradient-to-r from-amber-50 via-white to-amber-50/60 shadow-sm transition-shadow hover:shadow-md ${
+        honors ? "border-amber-300/70 ring-1 ring-amber-300/40" : "border-amber-200/60"
       }`}
     >
-      {/* Accent bar */}
-      <div
-        className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${
-          honors ? "from-rose-500 via-rose-600 to-amber-500" : "from-amber-400 via-amber-500 to-amber-600"
-        }`}
-      />
+      {/* Accent bar – gold for both; honors is celebrated via the badge, not red */}
+      <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600" />
       {/* Subtle watermark seal */}
       <Award
-        className={`pointer-events-none absolute -right-4 -top-4 h-32 w-32 ${honors ? "text-rose-200/40" : "text-amber-200/40"}`}
+        className="pointer-events-none absolute -right-4 -top-4 h-32 w-32 text-amber-200/40"
         strokeWidth={1}
         aria-hidden
       />
 
       <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6">
         <div className="flex items-start gap-4 min-w-0">
-          <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border bg-gradient-to-br shadow-inner ${
-            honors ? "border-rose-300/70 from-rose-100 to-amber-50" : "border-amber-300/70 from-amber-100 to-amber-50"
-          }`}>
-            <Award className={`h-5 w-5 ${honors ? "text-rose-700" : "text-amber-700"}`} />
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-amber-300/70 bg-gradient-to-br from-amber-100 to-amber-50 shadow-inner">
+            <Award className="h-5 w-5 text-amber-700" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${honors ? "text-rose-700" : "text-amber-700"}`}>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
                 Diplom
               </span>
               {honors ? (
-                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-rose-800">
+                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white shadow-sm">
+                  <Sparkles className="h-2.5 w-2.5" />
                   S vyznamenáním
                 </span>
               ) : (
@@ -294,6 +297,7 @@ function DiplomaViewer({
   onOpenChange,
   study,
   honors,
+  theme,
   isPdf,
   isImage,
   conferredYear,
@@ -302,6 +306,7 @@ function DiplomaViewer({
   onOpenChange: (_v: boolean) => void
   study: DiplomaShowcaseProps["study"]
   honors: boolean
+  theme: (typeof DIPLOMA_THEME)[keyof typeof DIPLOMA_THEME]
   isPdf: boolean
   isImage: boolean
   conferredYear: number | null
@@ -309,7 +314,7 @@ function DiplomaViewer({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[95vw] h-[92vh] p-0 border-0 bg-[#0a1328] overflow-hidden sm:rounded-xl"
+        className={`max-w-[95vw] h-[92vh] p-0 border-0 ${theme.viewerContent} overflow-hidden sm:rounded-xl`}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">Diplom – {study.name}</DialogTitle>
@@ -317,7 +322,7 @@ function DiplomaViewer({
           Náhled nahraného diplomu ke studiu {study.name}.
         </DialogDescription>
 
-        <div className={`${cormorant.className} relative z-10 flex items-center justify-between gap-4 border-b border-amber-200/10 bg-gradient-to-b from-[#0f1c3e] to-[#0a1328] px-6 py-4`}>
+        <div className={`${cormorant.className} relative z-10 flex items-center justify-between gap-4 border-b border-amber-200/10 bg-gradient-to-b ${theme.viewerHeader} px-6 py-4`}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-amber-300/40 bg-amber-300/10">
               <GraduationCap className="h-4 w-4 text-amber-200" />
@@ -343,7 +348,7 @@ function DiplomaViewer({
           </div>
         </div>
 
-        <div className="relative flex-1 overflow-auto bg-[radial-gradient(ellipse_at_center,_#132144_0%,_#070d20_100%)]">
+        <div className={`relative flex-1 overflow-auto ${theme.viewerBody}`}>
           <div className="flex min-h-full items-center justify-center p-4 sm:p-8">
             {isPdf ? (
               <iframe
