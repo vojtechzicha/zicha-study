@@ -3,7 +3,9 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link } from "lucide-react"
+import { BookOpen, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link, Pencil, FileText } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { NOTE_TYPES, getNoteType } from "@/lib/constants"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +48,8 @@ interface StudyNoteCardProps {
 }
 
 export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic: _isStudyPublic, currentSubjectId, finalExamBadge = "SZZ" }: StudyNoteCardProps) {
+  const router = useRouter()
+  const isMarkdown = getNoteType(note) === NOTE_TYPES.MARKDOWN
   const [showPublicDialog, setShowPublicDialog] = useState(false)
   const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [isPublic, setIsPublic] = useState(note.is_public)
@@ -84,8 +88,16 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
     }
   }
 
+  const openEditor = () => {
+    router.push(`/studies/${note.study_id}/notes/${note.id}`)
+  }
+
   const handleCardClick = () => {
-    handleDisplayNote()
+    if (isMarkdown) {
+      openEditor()
+    } else {
+      handleDisplayNote()
+    }
   }
 
   const checkSlugAvailability = async (slug: string) => {
@@ -123,7 +135,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
   }
 
   const handleDelete = async () => {
-    if (!confirm("Opravdu chcete smazat tuto studijní poznámku?")) return
+    if (!confirm("Opravdu chcete smazat tento studijní zápis?")) return
 
     setLoading(true)
     try {
@@ -161,7 +173,11 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
-              <BookOpen className="h-8 w-8 text-indigo-600" />
+              {isMarkdown ? (
+                <FileText className="h-8 w-8 text-primary-600" />
+              ) : (
+                <BookOpen className="h-8 w-8 text-indigo-600" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-base mb-1 truncate">{note.name}</h3>
@@ -225,14 +241,31 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDisplayNote(); }}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Zobrazit zápis
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenInOneDrive(); }}>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Otevřít DOCX v OneDrive
-                </DropdownMenuItem>
+                {isMarkdown ? (
+                  <>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditor(); }}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Otevřít editor
+                    </DropdownMenuItem>
+                    {note.is_public && note.public_slug && (
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDisplayNote(); }}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Zobrazit veřejně
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDisplayNote(); }}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Zobrazit zápis
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenInOneDrive(); }}>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Otevřít DOCX v OneDrive
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowPublicDialog(true); }}>
                   <Globe className="h-4 w-4 mr-2" />

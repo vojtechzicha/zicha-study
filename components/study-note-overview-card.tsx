@@ -1,8 +1,10 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { BookOpen, Globe, Calendar } from "lucide-react"
+import { BookOpen, Globe, Calendar, FileText } from "lucide-react"
+import { NOTE_TYPES, getNoteType, getNoteEffectiveDate } from "@/lib/constants"
 import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
 import {
   Tooltip,
@@ -18,6 +20,8 @@ interface StudyNoteOverviewCardProps {
   showSubjectNames?: boolean
   /** Tag shown next to final-exam links (e.g. "SZZ" / "Maturita"). */
   finalExamBadge?: string
+  /** Logged-in study view: open the editor for Markdown notes instead of the public page. */
+  ownerView?: boolean
 }
 
 export function StudyNoteOverviewCard({
@@ -25,9 +29,19 @@ export function StudyNoteOverviewCard({
   studySlug,
   showPublicBadge = true,
   showSubjectNames = true,
-  finalExamBadge = "SZZ"
+  finalExamBadge = "SZZ",
+  ownerView = false
 }: StudyNoteOverviewCardProps) {
+  const router = useRouter()
+  const isMarkdown = getNoteType(note) === NOTE_TYPES.MARKDOWN
+
   const handleCardClick = () => {
+    // In the logged-in study view, Markdown notes open the in-app editor;
+    // everything else (and the public page) opens the public note URL.
+    if (ownerView && isMarkdown) {
+      router.push(`/studies/${note.study_id}/notes/${note.id}`)
+      return
+    }
     if (studySlug && note.public_slug) {
       window.open(`/${studySlug}/${note.public_slug}`, '_blank', 'noopener,noreferrer')
     }
@@ -47,7 +61,11 @@ export function StudyNoteOverviewCard({
       <CardContent className="p-4 h-full flex flex-col">
         <div className="flex items-start gap-3 flex-1">
           <div className="flex-shrink-0">
-            <BookOpen className="h-8 w-8 text-indigo-600" />
+            {isMarkdown ? (
+              <FileText className="h-8 w-8 text-primary-600" />
+            ) : (
+              <BookOpen className="h-8 w-8 text-indigo-600" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             {/* Name with tooltip - always show tooltip on hover */}
@@ -64,11 +82,11 @@ export function StudyNoteOverviewCard({
               </Tooltip>
             </TooltipProvider>
 
-            {/* OneDrive last modified date */}
+            {/* Last change (OneDrive for Word notes, content edit for Markdown) */}
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
               <Calendar className="h-3 w-3" />
               <span>
-                {formatDate(note.last_modified_onedrive ?? null)}
+                {formatDate(getNoteEffectiveDate(note))}
               </span>
             </div>
 

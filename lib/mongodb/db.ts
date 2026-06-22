@@ -64,6 +64,9 @@ export async function deleteStudy(id: string) {
       await db.collection("study_notes_media").deleteMany({ cache_id: { $in: cacheIds } })
     }
     await db.collection("study_notes_cache").deleteMany({ study_note_id: { $in: noteIds } })
+    // Markdown note versions and inline media
+    await db.collection("study_note_versions").deleteMany({ note_id: { $in: noteIds } })
+    await db.collection("markdown_note_media").deleteMany({ note_id: { $in: noteIds } })
   }
 
   await db.collection("study_notes").deleteMany({ study_id: id })
@@ -457,6 +460,9 @@ export async function deleteStudyNote(id: string) {
     await db.collection("study_notes_media").deleteMany({ cache_id: cache._id })
     await db.collection("study_notes_cache").deleteOne({ _id: cache._id })
   }
+  // Markdown note versions and inline media
+  await db.collection("study_note_versions").deleteMany({ note_id: id })
+  await db.collection("markdown_note_media").deleteMany({ note_id: id })
   await db.collection("study_notes").deleteOne({ _id: id as any })
 }
 
@@ -614,6 +620,107 @@ export async function insertMedia(cacheId: string, filePath: string, fileData: B
 export async function getMediaFile(cacheId: string, filePath: string) {
   const c = await col("study_notes_media")
   return c.findOne({ cache_id: cacheId, file_path: filePath })
+}
+
+// ─── Markdown Notes: Content ────────────────────────────────────────────────
+
+// Returns just the editor content payload for a note.
+export async function getMarkdownNoteContent(noteId: string) {
+  const c = await col("study_notes")
+  return c.findOne(
+    { _id: noteId as any },
+    { projection: { content_json: 1, content_updated_at: 1 } }
+  )
+}
+
+// Autosaved working copy of the note's content. Stored as a JSON *string* so
+// MongoDB never inspects the document's inner field names — arbitrary pasted /
+// rich content can contain keys that violate BSON field-name rules (dots, $) or
+// nesting limits when stored as a nested document.
+export async function saveMarkdownNoteContent(noteId: string, contentJson: Record<string, any> | string) {
+  const c = await col("study_notes")
+  const serialized = typeof contentJson === "string" ? contentJson : JSON.stringify(contentJson)
+  await c.updateOne(
+    { _id: noteId as any },
+    {
+      $set: {
+        content_json: serialized,
+        content_updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    }
+  )
+}
+
+// ─── Markdown Notes: Versions (newest MARKDOWN_NOTE_MAX_VERSIONS retained) ───
+
+export async function createMarkdownNoteVersion(
+  noteId: string,
+  contentJson: Record<string, any> | string,
+  createdBy: { email?: string | null; name?: string | null },
+  maxVersions: number
+) {
+  const c = await col("study_note_versions")
+  const doc = {
+    _id: newId() as any,
+    note_id: noteId,
+    // Stored as a JSON string (see saveMarkdownNoteContent for rationale).
+    content_json: typeof contentJson === "string" ? contentJson : JSON.stringify(contentJson),
+    created_by_email: createdBy.email || null,
+    created_by_name: createdBy.name || null,
+    created_at: new Date().toISOString(),
+  }
+  await c.insertOne(doc)
+
+  // Prune to the newest `maxVersions` snapshots for this note.
+  const stale = await c
+    .find({ note_id: noteId }, { projection: { _id: 1 } })
+    .sort({ created_at: -1 })
+    .skip(maxVersions)
+    .toArray()
+  if (stale.length > 0) {
+    await c.deleteMany({ _id: { $in: stale.map((d) => d._id) } })
+  }
+  return doc
+}
+
+export async function getMarkdownNoteVersions(noteId: string) {
+  const c = await col("study_note_versions")
+  return c
+    .find({ note_id: noteId }, { projection: { content_json: 0 } })
+    .sort({ created_at: -1 })
+    .toArray()
+}
+
+export async function getMarkdownNoteVersionById(versionId: string) {
+  const c = await col("study_note_versions")
+  return c.findOne({ _id: versionId as any })
+}
+
+// ─── Markdown Notes: Inline media (images stored as Binary) ──────────────────
+
+export async function insertMarkdownNoteMedia(
+  noteId: string,
+  fileData: Buffer,
+  mimeType: string,
+  originalName: string
+) {
+  const c = await col("markdown_note_media")
+  const id = newId()
+  await c.insertOne({
+    _id: id as any,
+    note_id: noteId,
+    file_data: new Binary(fileData),
+    mime_type: mimeType,
+    original_name: originalName,
+    created_at: new Date().toISOString(),
+  })
+  return id
+}
+
+export async function getMarkdownNoteMedia(noteId: string, mediaId: string) {
+  const c = await col("markdown_note_media")
+  return c.findOne({ _id: mediaId as any, note_id: noteId })
 }
 
 // ─── Exam Options ───────────────────────────────────────────────────────────

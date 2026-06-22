@@ -6,6 +6,10 @@ export interface StudyNote {
   study_id: string
   user_id: string
 
+  // Discriminator: 'word' (OneDrive DOCX, legacy) | 'markdown' (in-app editor).
+  // Absent on legacy rows → treated as 'word'. See getNoteType() in lib/constants.
+  note_type?: string | null
+
   // OneDrive metadata
   name: string
   file_name: string
@@ -39,6 +43,8 @@ export interface StudyNote {
   created_at: string
   updated_at?: string
   last_modified_onedrive?: string | null
+  // Markdown notes: timestamp of the last content edit (autosave/version).
+  content_updated_at?: string | null
 }
 
 export interface StudyNoteFormData {

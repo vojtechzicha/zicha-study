@@ -11,6 +11,7 @@ import { fetchSubjectsByIds } from "@/lib/actions/subjects"
 import { fetchFinalExamsByIds } from "@/lib/actions/final-exams"
 import { StudyNoteOverviewCard } from "@/components/study-note-overview-card"
 import { getStudyTerminology } from "@/lib/study-kind"
+import { getNoteEffectiveDate } from "@/lib/constants"
 import type { StudyNoteWithSubjects, StudyNoteSubject } from "@/lib/types/study-notes"
 
 interface Study {
@@ -219,7 +220,8 @@ export function StudyNotesDisplaySection({
     }
   }, [isPublicView, loadStudyNotes])
 
-  // Filter notes based on search query
+  // Filter notes based on search query, then sort by last change (newest first)
+  // using an effective date so Markdown notes interleave with Word notes.
   const filteredNotes = studyNotes.filter(note => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -228,6 +230,13 @@ export function StudyNotesDisplaySection({
       note.description?.toLowerCase().includes(query) ||
       (showSubjectNames && note.subjects?.filter(Boolean).some(s => s.name.toLowerCase().includes(query)))
     )
+  }).sort((a, b) => {
+    // Compare as timestamps — fields may be ISO strings or Date objects.
+    const da = getNoteEffectiveDate(a)
+    const db = getNoteEffectiveDate(b)
+    const ta = da ? new Date(da).getTime() : 0
+    const tb = db ? new Date(db).getTime() : 0
+    return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta)
   })
 
   // Show only first 8 study notes in preview mode
@@ -309,6 +318,7 @@ export function StudyNotesDisplaySection({
                   showPublicBadge={showPublicBadge}
                   showSubjectNames={showSubjectNames}
                   finalExamBadge={finalExamBadge}
+                  ownerView={!isPublicView}
                 />
               ))}
             </div>
@@ -336,6 +346,7 @@ export function StudyNotesDisplaySection({
                   showPublicBadge={showPublicBadge}
                   showSubjectNames={showSubjectNames}
                   finalExamBadge={finalExamBadge}
+                  ownerView={!isPublicView}
                 />
               ))}
             </div>
