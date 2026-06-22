@@ -42,6 +42,20 @@ export type NoteType = (typeof NOTE_TYPES)[keyof typeof NOTE_TYPES]
 export const getNoteType = (note: { note_type?: string | null } | null | undefined): NoteType =>
   note?.note_type === NOTE_TYPES.MARKDOWN ? NOTE_TYPES.MARKDOWN : NOTE_TYPES.WORD
 
+// Effective "last change" timestamp for a note, regardless of type.
+// Word notes track changes via OneDrive; Markdown notes via content edits.
+export const getNoteEffectiveDate = (note: {
+  last_modified_onedrive?: string | null
+  content_updated_at?: string | null
+  updated_at?: string | null
+  created_at?: string | null
+}): string | null =>
+  note.last_modified_onedrive ||
+  note.content_updated_at ||
+  note.updated_at ||
+  note.created_at ||
+  null
+
 // Maximum number of historical versions retained per Markdown note.
 export const MARKDOWN_NOTE_MAX_VERSIONS = 50
 

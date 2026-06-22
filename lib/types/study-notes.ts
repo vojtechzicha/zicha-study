@@ -43,6 +43,8 @@ export interface StudyNote {
   created_at: string
   updated_at?: string
   last_modified_onedrive?: string | null
+  // Markdown notes: timestamp of the last content edit (autosave/version).
+  content_updated_at?: string | null
 }
 
 export interface StudyNoteFormData {
