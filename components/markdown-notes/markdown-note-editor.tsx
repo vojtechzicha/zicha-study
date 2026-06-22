@@ -20,6 +20,7 @@ import {
   uploadMarkdownImage,
 } from "@/lib/actions/markdown-notes"
 import { updateStudyNoteAction } from "@/lib/actions/study-notes"
+import { looksLikeMarkdown, markdownToEditorHtml } from "@/components/markdown-notes/markdown-import"
 import type { MarkdownNoteEditorData, NoteContentJSON } from "@/lib/types/markdown-notes"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
@@ -71,6 +72,15 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
         if (image) {
           event.preventDefault()
           void insertImageFromFile(image)
+          return true
+        }
+        // Convert pasted Markdown (plain text only, no rich HTML on the clipboard)
+        // into formatted content so headings/lists/etc. apply instead of staying literal.
+        const text = event.clipboardData?.getData("text/plain") ?? ""
+        const html = event.clipboardData?.getData("text/html") ?? ""
+        if (text && !html && looksLikeMarkdown(text)) {
+          event.preventDefault()
+          editorRef.current?.chain().focus().insertContent(markdownToEditorHtml(text)).run()
           return true
         }
         return false

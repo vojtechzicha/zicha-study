@@ -179,6 +179,9 @@ importers:
       mammoth:
         specifier: ^1.11.0
         version: 1.11.0
+      marked:
+        specifier: ^18.0.5
+        version: 18.0.5
       mathml-to-latex:
         specifier: ^1.5.0
         version: 1.5.0
@@ -3569,6 +3572,11 @@ packages:
 
   marcheur@0.9.0:
     resolution: {integrity: sha512-TRiYnT/9/m0fpff469GAfjlQdUFxf9lFfuylGflBHOJiYwAk1ryMjWmCh4J2QS2Ez3/Ck5icrd1OYNQz4CMTBA==}
+
+  marked@18.0.5:
+    resolution: {integrity: sha512-S6GcvALHg6K4ohtu4E7x0a1AqhAjp6cV8KhLSyN9qVapnzJkusVBxZRcIU9AeYsbe6P1hKDusSbEOzGyyuce6w==}
+    engines: {node: '>= 20'}
+    hasBin: true
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -8110,6 +8118,8 @@ snapshots:
   marcheur@0.9.0:
     dependencies:
       dom-node-types: 1.0.1
+
+  marked@18.0.5: {}
 
   math-intrinsics@1.1.0: {}
 

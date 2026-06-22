@@ -8,9 +8,10 @@ import { Separator } from "@/components/ui/separator"
 import {
   Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, Heading4,
   Type, List, ListOrdered, ListChecks, Quote, Minus, Link2, Table as TableIcon,
-  Image as ImageIcon, Pencil, Sigma, Undo2, Redo2, Loader2,
+  Image as ImageIcon, Pencil, Sigma, Undo2, Redo2, Loader2, ClipboardPaste,
 } from "lucide-react"
 import { uploadMarkdownImage } from "@/lib/actions/markdown-notes"
+import { markdownToEditorHtml } from "@/components/markdown-notes/markdown-import"
 
 interface EditorToolbarProps {
   editor: Editor
@@ -72,6 +73,17 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
       return
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
+  }
+
+  const pasteMarkdown = async () => {
+    let md = ""
+    try {
+      md = await navigator.clipboard.readText()
+    } catch {
+      md = window.prompt("Vložte Markdown text:") || ""
+    }
+    if (!md.trim()) return
+    editor.chain().focus().insertContent(markdownToEditorHtml(md)).run()
   }
 
   const addInlineMath = () => {
@@ -180,6 +192,13 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
       <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => editor.chain().focus().insertDoodle().run()} aria-label="Prázdné kreslení">
         <Pencil className="h-4 w-4" />
         <span className="ml-0.5 text-[10px]">+</span>
+      </Button>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      <Button type="button" size="sm" variant="ghost" className="h-8 gap-1 px-2" onClick={pasteMarkdown} aria-label="Vložit Markdown">
+        <ClipboardPaste className="h-4 w-4" />
+        <span className="text-xs">MD</span>
       </Button>
 
       <Separator orientation="vertical" className="mx-1 h-6" />
