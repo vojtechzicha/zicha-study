@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Toggle } from "@/components/ui/toggle"
 import { Separator } from "@/components/ui/separator"
 import {
-  Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
-  List, ListOrdered, ListChecks, Quote, Minus, Link2, Table as TableIcon,
+  Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, Heading4,
+  Type, List, ListOrdered, ListChecks, Quote, Minus, Link2, Table as TableIcon,
   Image as ImageIcon, Pencil, Sigma, Undo2, Redo2, Loader2,
 } from "lucide-react"
 import { uploadMarkdownImage } from "@/lib/actions/markdown-notes"
@@ -101,14 +101,23 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
 
       <Separator orientation="vertical" className="mx-1 h-6" />
 
-      {[1, 2, 3].map((lvl) => {
-        const Icon = lvl === 1 ? Heading1 : lvl === 2 ? Heading2 : Heading3
+      <Toggle
+        size="sm"
+        pressed={editor.isActive("title")}
+        onPressedChange={() => editor.chain().focus().toggleTitle().run()}
+        aria-label="Titulek"
+      >
+        <Type className="h-4 w-4" />
+      </Toggle>
+
+      {[1, 2, 3, 4].map((lvl) => {
+        const Icon = lvl === 1 ? Heading1 : lvl === 2 ? Heading2 : lvl === 3 ? Heading3 : Heading4
         return (
           <Toggle
             key={lvl}
             size="sm"
             pressed={editor.isActive("heading", { level: lvl })}
-            onPressedChange={() => editor.chain().focus().toggleHeading({ level: lvl as 1 | 2 | 3 }).run()}
+            onPressedChange={() => editor.chain().focus().toggleHeading({ level: lvl as 1 | 2 | 3 | 4 }).run()}
             aria-label={`Nadpis ${lvl}`}
           >
             <Icon className="h-4 w-4" />

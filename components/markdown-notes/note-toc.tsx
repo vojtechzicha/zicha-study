@@ -23,7 +23,10 @@ export function NoteToc({ editor, onNavigate }: NoteTocProps) {
     if (!editor) return
     const items: Heading[] = []
     editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === "heading") {
+      if (node.type.name === "title") {
+        // The document Title sits at the top of the outline.
+        items.push({ level: 0, text: node.textContent || "(bez názvu)", pos })
+      } else if (node.type.name === "heading") {
         items.push({
           level: node.attrs.level as number,
           text: node.textContent || "(bez názvu)",
@@ -72,8 +75,8 @@ export function NoteToc({ editor, onNavigate }: NoteTocProps) {
               <button
                 type="button"
                 onClick={() => goTo(h.pos)}
-                className="block w-full truncate rounded px-2 py-1 text-left text-gray-700 hover:bg-primary-50 hover:text-primary-700"
-                style={{ paddingLeft: `${(h.level - 1) * 12 + 8}px` }}
+                className={`block w-full truncate rounded px-2 py-1 text-left hover:bg-primary-50 hover:text-primary-700 ${h.level === 0 ? "font-semibold text-gray-900" : "text-gray-700"}`}
+                style={{ paddingLeft: `${Math.max(0, h.level - 1) * 12 + 8}px` }}
                 title={h.text}
               >
                 {h.text}
