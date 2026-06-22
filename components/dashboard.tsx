@@ -75,7 +75,8 @@ export function Dashboard({ user }: DashboardProps) {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
+    <div className="min-h-screen bg-gradient-to-br from-fuchsia-500 via-pink-500 to-yellow-400">
+      {/* TEMP: bright background to smoke-test preview-deployment auth. DO NOT MERGE. */}
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
