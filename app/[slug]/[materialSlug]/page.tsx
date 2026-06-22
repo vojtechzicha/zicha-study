@@ -358,7 +358,7 @@ export async function generateMetadata({ params }: PageProps) {
 
     return {
       title: `${(note as any).name} - ${(primarySubject as any)?.abbreviation || subjectNames}`,
-      description: (note as any).description || `Studijní poznámka k předmětům: ${allSubjects.map(s => s.name).join(", ")}`,
+      description: (note as any).description || `Studijní zápis k předmětům: ${allSubjects.map(s => s.name).join(", ")}`,
     }
   }
 

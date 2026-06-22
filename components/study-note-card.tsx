@@ -135,7 +135,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
   }
 
   const handleDelete = async () => {
-    if (!confirm("Opravdu chcete smazat tuto studijní poznámku?")) return
+    if (!confirm("Opravdu chcete smazat tento studijní zápis?")) return
 
     setLoading(true)
     try {

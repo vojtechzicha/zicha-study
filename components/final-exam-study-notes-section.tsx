@@ -110,15 +110,24 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
         <div className="text-center py-8 text-gray-500">
           <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p className="text-sm">Zatím nebyly přidány žádné studijní zápisy</p>
-          <Button
-            onClick={() => setShowAddMarkdown(true)}
-            variant="outline"
-            size="sm"
-            className="mt-4"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Přidat první zápis
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="mt-4">
+                <Plus className="h-4 w-4 mr-1" />
+                Přidat první zápis
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              <DropdownMenuItem onClick={() => setShowAddMarkdown(true)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Markdown zápis
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowAddDialog(true)}>
+                <FileType className="h-4 w-4 mr-2" />
+                Word zápis (OneDrive)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ) : (
         <div className="grid gap-3">
