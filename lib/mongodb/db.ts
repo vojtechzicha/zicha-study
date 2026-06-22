@@ -633,14 +633,18 @@ export async function getMarkdownNoteContent(noteId: string) {
   )
 }
 
-// Autosaved working copy of the note's content.
-export async function saveMarkdownNoteContent(noteId: string, contentJson: Record<string, any>) {
+// Autosaved working copy of the note's content. Stored as a JSON *string* so
+// MongoDB never inspects the document's inner field names — arbitrary pasted /
+// rich content can contain keys that violate BSON field-name rules (dots, $) or
+// nesting limits when stored as a nested document.
+export async function saveMarkdownNoteContent(noteId: string, contentJson: Record<string, any> | string) {
   const c = await col("study_notes")
+  const serialized = typeof contentJson === "string" ? contentJson : JSON.stringify(contentJson)
   await c.updateOne(
     { _id: noteId as any },
     {
       $set: {
-        content_json: contentJson,
+        content_json: serialized,
         content_updated_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -652,7 +656,7 @@ export async function saveMarkdownNoteContent(noteId: string, contentJson: Recor
 
 export async function createMarkdownNoteVersion(
   noteId: string,
-  contentJson: Record<string, any>,
+  contentJson: Record<string, any> | string,
   createdBy: { email?: string | null; name?: string | null },
   maxVersions: number
 ) {
@@ -660,7 +664,8 @@ export async function createMarkdownNoteVersion(
   const doc = {
     _id: newId() as any,
     note_id: noteId,
-    content_json: contentJson,
+    // Stored as a JSON string (see saveMarkdownNoteContent for rationale).
+    content_json: typeof contentJson === "string" ? contentJson : JSON.stringify(contentJson),
     created_by_email: createdBy.email || null,
     created_by_name: createdBy.name || null,
     created_at: new Date().toISOString(),

@@ -3,7 +3,7 @@ import { ArrowLeft, BookOpen } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { PublicPageFooter } from "@/components/public-page-footer"
 import { MarkdownNoteRenderer } from "@/components/markdown-notes/markdown-note-renderer"
-import type { NoteContentJSON } from "@/lib/types/markdown-notes"
+import { coerceNoteContent, type NoteContentJSON } from "@/lib/types/markdown-notes"
 
 interface PublicSubject {
   id: string
@@ -56,7 +56,7 @@ export function MarkdownNotePublicView({ note, study, studySlug, subjects }: Mar
         </div>
 
         <article className="rounded-xl border-0 bg-white p-6 shadow-xl md:p-8">
-          <MarkdownNoteRenderer content={note.content_json ?? null} />
+          <MarkdownNoteRenderer content={coerceNoteContent(note.content_json)} />
         </article>
 
         <PublicPageFooter studyName={study.name} studySlug={study.public_slug} />

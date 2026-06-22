@@ -41,7 +41,7 @@ export async function createMarkdownNote(input: CreateMarkdownNoteInput) {
       file_extension: "md",
       is_public: !!input.isPublic,
       public_slug: input.isPublic ? input.publicSlug ?? null : null,
-      content_json: EMPTY_DOC,
+      content_json: JSON.stringify(EMPTY_DOC),
       content_updated_at: new Date().toISOString(),
     })
     return { data: db.normalizeId(doc), error: null }
@@ -65,6 +65,7 @@ export async function saveMarkdownContent(noteId: string, contentJson: NoteConte
     await db.saveMarkdownNoteContent(noteId, contentJson)
     return { error: null, savedAt: new Date().toISOString() }
   } catch (err: any) {
+    console.error("saveMarkdownContent failed:", err)
     return { error: { message: err?.message || "Unknown error" }, savedAt: null }
   }
 }

@@ -28,6 +28,22 @@ export type NoteContentJSON = {
   [key: string]: unknown
 }
 
+// Note content is stored as a JSON string (Mongo-safe), but legacy rows may hold
+// a nested object. This normalises either form to an object the editor accepts.
+export function coerceNoteContent(value: unknown): NoteContentJSON | null {
+  if (value == null) return null
+  if (typeof value === "string") {
+    if (!value.trim()) return null
+    try {
+      return JSON.parse(value) as NoteContentJSON
+    } catch {
+      return null
+    }
+  }
+  if (typeof value === "object") return value as NoteContentJSON
+  return null
+}
+
 // A stored snapshot of a Markdown note's content (newest 50 retained per note).
 export interface MarkdownNoteVersion {
   id: string

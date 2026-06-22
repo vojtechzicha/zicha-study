@@ -21,7 +21,7 @@ import {
 } from "@/lib/actions/markdown-notes"
 import { updateStudyNoteAction } from "@/lib/actions/study-notes"
 import { looksLikeMarkdown, markdownToEditorHtml } from "@/components/markdown-notes/markdown-import"
-import type { MarkdownNoteEditorData, NoteContentJSON } from "@/lib/types/markdown-notes"
+import { coerceNoteContent, type MarkdownNoteEditorData, type NoteContentJSON } from "@/lib/types/markdown-notes"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
@@ -63,7 +63,7 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
   const editor = useEditor({
     immediatelyRender: false,
     extensions: getNoteExtensions(),
-    content: (note.content_json ?? { type: "doc", content: [{ type: "paragraph" }] }) as Content,
+    content: (coerceNoteContent(note.content_json) ?? { type: "doc", content: [{ type: "paragraph" }] }) as Content,
     editorProps: {
       attributes: { class: "tiptap-note prose prose-slate max-w-none min-h-[60vh] px-4 py-6 focus:outline-none" },
       handlePaste: (_view, event) => {
@@ -111,7 +111,12 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
       const ed = editorRef.current
       if (!ed) return
       const res = await saveMarkdownContent(noteId, ed.getJSON() as NoteContentJSON)
-      setSaveStatus(res.error ? "error" : "saved")
+      if (res.error) {
+        console.error("Markdown note autosave failed:", res.error.message)
+        setSaveStatus("error")
+      } else {
+        setSaveStatus("saved")
+      }
     }, 1200)
   }, [noteId])
 
