@@ -35,7 +35,7 @@ read/write live data — keep that in mind when testing destructive changes.
 | `AUTH_MICROSOFT_ENTRA_ID_ID` | ✅ | ✅ (same value) | Same Azure app for both. |
 | `AUTH_MICROSOFT_ENTRA_ID_SECRET` | ✅ | ✅ (same value) | |
 | `ALLOWED_EMAILS` | ✅ | ✅ (same value) | |
-| `AUTH_REDIRECT_PROXY_URL` | ✅ `https://zicha.study/api/auth` | ✅ `https://zicha.study/api/auth` | Enables OAuth on dynamic preview URLs. |
+| `AUTH_REDIRECT_PROXY_URL` | ✅ `https://www.zicha.study/api/auth` | ✅ `https://www.zicha.study/api/auth` | Enables OAuth on dynamic preview URLs. Must be the canonical origin (`www`) — see caution below. |
 | `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` | `true` | leave **unset** | Previews use path-form share URLs. |
 | `NEXT_PUBLIC_SHARE_BASE_DOMAIN` | `zicha.study` | leave **unset** | |
 
@@ -50,20 +50,31 @@ Instead the app uses the Auth.js **redirect proxy** (`redirectProxyUrl` in
 
 1. A user signs in on a preview deployment. Auth.js stores the preview's URL in
    the OAuth `state` and sends Microsoft the **production** callback URL.
-2. Microsoft redirects back to `https://zicha.study/api/auth/callback/microsoft-entra-id`
-   — the only URI that needs to be registered in Azure (production already has
-   it).
-3. Production verifies the `state` with the shared `AUTH_SECRET` and forwards
-   the authenticated session back to the originating preview URL.
+2. Microsoft redirects back to `https://www.zicha.study/api/auth/callback/microsoft-entra-id`.
+3. Production recognizes itself as the proxy, verifies the `state` with the
+   shared `AUTH_SECRET`, and forwards the authenticated session back to the
+   originating preview URL.
 
 Requirements for this to work:
 
-- `AUTH_REDIRECT_PROXY_URL` set to `https://zicha.study/api/auth` on **both**
-  Production and Preview.
+- `AUTH_REDIRECT_PROXY_URL` set to `https://www.zicha.study/api/auth` on **both**
+  Production and Preview, and production redeployed so it picks up the value
+  (Vercel applies env vars only to new builds). Production is the deployment
+  that receives the callback and does the forwarding, so it must have the var.
 - **The same `AUTH_SECRET`** across Production and Preview.
-- **No new Azure redirect URIs are needed.** Only the existing production
-  callback `https://zicha.study/api/auth/callback/microsoft-entra-id` must be
-  present in the Entra app registration.
+- The Entra app registration must list the redirect URI
+  `https://www.zicha.study/api/auth/callback/microsoft-entra-id`.
+
+> **Caution — canonical origin / no redirects.** Auth.js treats the current
+> deployment as "the proxy" only when `new URL(AUTH_REDIRECT_PROXY_URL).origin`
+> **exactly equals** the incoming request origin (`@auth/core` `init.js`). The
+> apex `zicha.study` 307-redirects to `www.zicha.study`, so if the proxy URL or
+> the Azure redirect URI uses the apex, Microsoft's callback lands on `www`
+> after a redirect, the origins no longer match, the proxy step is skipped, and
+> sign-in fails with `?error=Configuration` on
+> `https://www.zicha.study/api/auth/error`. Always use the canonical `www`
+> origin (the one that answers with 200 and no redirect) in both the env var
+> and the Azure redirect URI.
 
 ### Middleware note
 
