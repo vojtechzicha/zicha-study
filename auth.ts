@@ -21,6 +21,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  // Preview deployments (e.g. Vercel per-PR builds) get dynamic *.vercel.app
+  // hostnames that cannot all be pre-registered as OAuth redirect URIs in the
+  // Microsoft Entra app. When AUTH_REDIRECT_PROXY_URL is set, Auth.js sends the
+  // OAuth callback to the stable production URL (the only one registered in
+  // Azure) and then forwards the authenticated session back to the originating
+  // preview URL. Set this env var to "https://zicha.study/api/auth" on BOTH the
+  // Production and Preview environments, and share the same AUTH_SECRET across
+  // them. Leave it unset locally. See docs/VERCEL_DEPLOYMENT.md.
+  redirectProxyUrl: process.env.AUTH_REDIRECT_PROXY_URL,
   session: {
     strategy: "jwt",
   },

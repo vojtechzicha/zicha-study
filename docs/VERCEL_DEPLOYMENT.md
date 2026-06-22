@@ -6,6 +6,71 @@ Before deploying a fork, review `lib/site-config.ts`. Footer attribution and foo
 
 Profile images should live in `public/` and be referenced with an absolute public path such as `/profile.jpg`.
 
+## Preview deployments (per-PR)
+
+Every pull request gets its own preview deployment so changes can be reviewed
+in a running app before they reach `main`/production. This relies on Vercel's
+native Git integration — no GitHub Action is required.
+
+### One-time Vercel setup
+
+1. In the Vercel project, **Settings → Git**, connect the GitHub repository and
+   keep "Preview Deployments" enabled (on by default). Vercel then builds every
+   push to a non-production branch and comments the preview URL on the PR.
+2. Production builds from the production branch (`main`); all other branches
+   build as Preview.
+
+### Environment variables by environment
+
+Set these in **Settings → Environment Variables** and scope each one to the
+right environment(s). Preview deployments intentionally point at the **same
+MongoDB database** as production (this is a single-user app), so a preview can
+read/write live data — keep that in mind when testing destructive changes.
+
+| Variable | Production | Preview | Notes |
+| --- | --- | --- | --- |
+| `MONGODB_URI` | ✅ | ✅ (same value) | Shared database, per request. |
+| `MONGODB_DB` | ✅ | ✅ (same value) | |
+| `AUTH_SECRET` | ✅ | ✅ (**same value**) | Must be identical — the proxy signs/verifies state with it. |
+| `AUTH_MICROSOFT_ENTRA_ID_ID` | ✅ | ✅ (same value) | Same Azure app for both. |
+| `AUTH_MICROSOFT_ENTRA_ID_SECRET` | ✅ | ✅ (same value) | |
+| `ALLOWED_EMAILS` | ✅ | ✅ (same value) | |
+| `AUTH_REDIRECT_PROXY_URL` | ✅ `https://zicha.study/api/auth` | ✅ `https://zicha.study/api/auth` | Enables OAuth on dynamic preview URLs. |
+| `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` | `true` | leave **unset** | Previews use path-form share URLs. |
+| `NEXT_PUBLIC_SHARE_BASE_DOMAIN` | `zicha.study` | leave **unset** | |
+
+### Authentication on previews (how it works)
+
+Microsoft Entra ID only accepts pre-registered OAuth **redirect URIs**, but
+preview deployments get dynamic hostnames like
+`zicha-study-git-<branch>-<scope>.vercel.app`. Registering each is impractical.
+
+Instead the app uses the Auth.js **redirect proxy** (`redirectProxyUrl` in
+`auth.ts`, fed by `AUTH_REDIRECT_PROXY_URL`):
+
+1. A user signs in on a preview deployment. Auth.js stores the preview's URL in
+   the OAuth `state` and sends Microsoft the **production** callback URL.
+2. Microsoft redirects back to `https://zicha.study/api/auth/callback/microsoft-entra-id`
+   — the only URI that needs to be registered in Azure (production already has
+   it).
+3. Production verifies the `state` with the shared `AUTH_SECRET` and forwards
+   the authenticated session back to the originating preview URL.
+
+Requirements for this to work:
+
+- `AUTH_REDIRECT_PROXY_URL` set to `https://zicha.study/api/auth` on **both**
+  Production and Preview.
+- **The same `AUTH_SECRET`** across Production and Preview.
+- **No new Azure redirect URIs are needed.** Only the existing production
+  callback `https://zicha.study/api/auth/callback/microsoft-entra-id` must be
+  present in the Entra app registration.
+
+### Middleware note
+
+`middleware.ts` only rewrites genuine `*.zicha.study` study subdomains. Preview
+hosts (`*.vercel.app`) and `localhost` are explicitly excluded, so a preview
+deployment serves its own pages instead of 308-redirecting to production.
+
 ## Public share URLs
 
 Production deployments render share-link previews using the study slug

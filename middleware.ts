@@ -5,9 +5,13 @@ export default auth((request: NextRequest & { auth?: { user?: unknown } | null }
   const host = request.headers.get("host")
   const mainDomain = "zicha.study"
 
-  // --- Subdomain routing (unchanged) ---
-  if (host && host !== mainDomain && host !== `www.${mainDomain}` && !host.includes("localhost")) {
-    const subdomain = host.replace(`.${mainDomain}`, "")
+  // --- Subdomain routing ---
+  // Only rewrite genuine study subdomains (e.g. "newton.zicha.study"). This must
+  // exclude the apex, "www", and any non-production host such as Vercel preview
+  // deployments (*.vercel.app) and localhost — otherwise every preview request
+  // would be treated as a subdomain and 308-redirected to production.
+  if (host && host.endsWith(`.${mainDomain}`) && host !== `www.${mainDomain}`) {
+    const subdomain = host.slice(0, host.length - mainDomain.length - 1)
     const newPath = subdomain.split(".").reverse().join("/")
     const originalPath = request.nextUrl.pathname
     const url = new URL(`/${newPath}${originalPath}`, `https://${mainDomain}`)
