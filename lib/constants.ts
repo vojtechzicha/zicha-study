@@ -28,6 +28,23 @@ export type ReservedRoute = (typeof RESERVED_ROUTES_TUPLE)[number]
 // Export as readonly string[] for .includes() compatibility
 export const RESERVED_ROUTES: readonly string[] = RESERVED_ROUTES_TUPLE
 
+// Study Note Types
+// 'word'     → legacy notes backed by a OneDrive DOCX file (Mammoth → HTML)
+// 'markdown' → native Markdown notes edited in the in-app WYSIWYG editor
+export const NOTE_TYPES = {
+  WORD: 'word',
+  MARKDOWN: 'markdown',
+} as const
+
+export type NoteType = (typeof NOTE_TYPES)[keyof typeof NOTE_TYPES]
+
+// Notes without an explicit note_type are legacy OneDrive Word notes.
+export const getNoteType = (note: { note_type?: string | null } | null | undefined): NoteType =>
+  note?.note_type === NOTE_TYPES.MARKDOWN ? NOTE_TYPES.MARKDOWN : NOTE_TYPES.WORD
+
+// Maximum number of historical versions retained per Markdown note.
+export const MARKDOWN_NOTE_MAX_VERSIONS = 50
+
 // Study Types
 export const STUDY_TYPES = {
   HIGH_SCHOOL: 'Střední škola',

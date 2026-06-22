@@ -6,6 +6,10 @@ export interface StudyNote {
   study_id: string
   user_id: string
 
+  // Discriminator: 'word' (OneDrive DOCX, legacy) | 'markdown' (in-app editor).
+  // Absent on legacy rows → treated as 'word'. See getNoteType() in lib/constants.
+  note_type?: string | null
+
   // OneDrive metadata
   name: string
   file_name: string

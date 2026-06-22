@@ -3,6 +3,7 @@ import * as db from "@/lib/mongodb/db"
 import { auth } from "@/auth"
 import { checkFileExists } from "@/lib/utils/onedrive-cache"
 import { redirect, notFound } from "next/navigation"
+import { NOTE_TYPES, getNoteType } from "@/lib/constants"
 import { Loader2, FileText, ArrowLeft, Globe, AlertCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -84,6 +85,19 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
         }
       })
       .filter(Boolean) as { id: string; name: string; abbreviation: string | null; is_primary: boolean }[]
+
+    // Markdown notes render in-app content (no OneDrive document).
+    if (getNoteType(studyNote as { note_type?: string | null }) === NOTE_TYPES.MARKDOWN) {
+      const { MarkdownNotePublicView } = await import("@/components/markdown-notes/markdown-note-public-view")
+      return (
+        <MarkdownNotePublicView
+          note={studyNote as never}
+          study={study as unknown as { name: string; public_slug?: string | null }}
+          studySlug={slug}
+          subjects={allSubjects}
+        />
+      )
+    }
 
     // Resolve OneDrive URLs: prefer original, fall back to cache copy
     let effectiveWebUrl = studyNote.onedrive_web_url

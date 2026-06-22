@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, BookOpen } from "lucide-react"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Plus, BookOpen, FileText, FileType } from "lucide-react"
 import { fetchStudyNotesBySubjectId } from "@/lib/actions/study-notes"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
+import { AddMarkdownNoteDialog } from "@/components/markdown-notes/add-markdown-note-dialog"
 import type { StudyNoteWithSubjects, StudyNoteSubject } from "@/lib/types/study-notes"
 
 interface LinkedSubjectEntry {
@@ -44,6 +48,7 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
   const [notes, setNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showAddMarkdown, setShowAddMarkdown] = useState(false)
 
   const loadNotes = useCallback(async () => {
     setLoading(true)
@@ -99,14 +104,27 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
           <h3 className="font-semibold">Studijní zápisy</h3>
           <span className="text-sm text-gray-500">({notes.length})</span>
         </div>
-        <Button
-          onClick={() => setShowAddDialog(true)}
-          size="sm"
-          className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Přidat zápis
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Přidat zápis
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setShowAddMarkdown(true)}>
+              <FileText className="h-4 w-4 mr-2" />
+              Markdown zápis
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowAddDialog(true)}>
+              <FileType className="h-4 w-4 mr-2" />
+              Word zápis (OneDrive)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {notes.length === 0 ? (
@@ -114,7 +132,7 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
           <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p className="text-sm">Zatím nebyly přidány žádné studijní zápisy</p>
           <Button
-            onClick={() => setShowAddDialog(true)}
+            onClick={() => setShowAddMarkdown(true)}
             variant="outline"
             size="sm"
             className="mt-4"
@@ -145,6 +163,15 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
         studySlug={studySlug}
         isOpen={showAddDialog}
         onClose={() => setShowAddDialog(false)}
+        onSuccess={loadNotes}
+      />
+
+      <AddMarkdownNoteDialog
+        studyId={studyId}
+        subjectId={subjectId}
+        studySlug={studySlug}
+        isOpen={showAddMarkdown}
+        onClose={() => setShowAddMarkdown(false)}
         onSuccess={loadNotes}
       />
     </div>
