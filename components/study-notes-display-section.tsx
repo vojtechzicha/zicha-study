@@ -230,7 +230,14 @@ export function StudyNotesDisplaySection({
       note.description?.toLowerCase().includes(query) ||
       (showSubjectNames && note.subjects?.filter(Boolean).some(s => s.name.toLowerCase().includes(query)))
     )
-  }).sort((a, b) => (getNoteEffectiveDate(b) || "").localeCompare(getNoteEffectiveDate(a) || ""))
+  }).sort((a, b) => {
+    // Compare as timestamps — fields may be ISO strings or Date objects.
+    const da = getNoteEffectiveDate(a)
+    const db = getNoteEffectiveDate(b)
+    const ta = da ? new Date(da).getTime() : 0
+    const tb = db ? new Date(db).getTime() : 0
+    return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta)
+  })
 
   // Show only first 8 study notes in preview mode
   const displayedNotes = showAll ? filteredNotes : filteredNotes.slice(0, 8)
