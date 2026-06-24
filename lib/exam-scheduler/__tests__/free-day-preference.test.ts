@@ -65,6 +65,18 @@ describe("free-day (weekend) preference", () => {
     expect(result.selectedExams[0].id).toBe("fri");
     expect(result.breakdown.ptoDays).toBe(1); // working-day in-person exam
     expect(result.totalCost).toBe(400); // money only — the 100 penalty is NOT added
+
+    // The exam item is flagged as requiring PTO for the UI badge
+    const examItem = result.items.find((i) => i.type === "exam");
+    expect(examItem?.requiresPto).toBe(true);
+  });
+
+  it("does not flag exam items as PTO when the preference is off", () => {
+    const exams = [exam("fri", FRIDAY, "10:00")];
+    const result = generateSchedule([subject], exams, BASE_CONFIG);
+
+    const examItem = result.items.find((i) => i.type === "exam");
+    expect(examItem?.requiresPto).toBeFalsy();
   });
 
   it("balances: switches to the free-day term when the PTO cost outweighs travel", () => {

@@ -12,7 +12,8 @@ import {
   MapPin,
   Wallet,
   BedDouble,
-  TrendingUp
+  TrendingUp,
+  Palmtree
 } from "lucide-react"
 import type { ScheduleResult, ScheduleItem } from "@/lib/exam-scheduler"
 
@@ -188,6 +189,12 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
                                 Online
                               </Badge>
                             )}
+                            {item.requiresPto && (
+                              <Badge variant="secondary" className="bg-amber-200 text-amber-800">
+                                <Palmtree className="h-3 w-3 mr-1" />
+                                Dovolená
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 text-sm mt-1">
                             <Clock className="h-3 w-3" />
@@ -254,6 +261,12 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
           <div className="w-4 h-4 rounded bg-purple-100 border border-purple-200"></div>
           <span>Ubytování</span>
         </div>
+        {result.breakdown.ptoDays > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-amber-200 border border-amber-300"></div>
+            <span>Dovolená (zkouška v pracovní den)</span>
+          </div>
+        )}
       </div>
     </div>
   )

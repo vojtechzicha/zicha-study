@@ -200,6 +200,15 @@ function buildScheduleItems(
   const offlineDays = days.filter((d) => d.hasOfflineExam);
   const items: ScheduleItem[] = [];
 
+  // Whether an in-person exam on a given date requires a PTO day
+  const preferFreeDay = !!config.preferFreeDayExams;
+  const workingDays =
+    config.workingDays && config.workingDays.length > 0
+      ? config.workingDays
+      : DEFAULT_WORKING_DAYS;
+  const requiresPto = (exam: ExamWithSubject, date: string) =>
+    preferFreeDay && !exam.isOnline && isWorkingDay(date, workingDays);
+
   // If no offline exams, just add online exam items
   if (offlineDays.length === 0) {
     for (const day of days) {
@@ -215,6 +224,7 @@ function buildScheduleItems(
           exam,
           description: `${formatDate(day.date)} - ${exam.startTime} - ${exam.endTime} - [${exam.subject.shortcut}] ${exam.subject.name}${exam.isOnline ? " (online)" : ""}`,
           cost: 0,
+          requiresPto: requiresPto(exam, day.date),
         });
       }
     }
@@ -317,6 +327,7 @@ function buildScheduleItems(
         exam,
         description: `${formatDate(day.date)} - ${exam.startTime} - ${exam.endTime} - [${exam.subject.shortcut}] ${exam.subject.name}${exam.isOnline ? " (online)" : ""}`,
         cost: 0,
+        requiresPto: requiresPto(exam, day.date),
       });
     }
   }

@@ -107,6 +107,9 @@ export interface ScheduleItem {
   exam?: ExamWithSubject;
   description: string;
   cost: number;
+  // True for an in-person exam item that falls on a working day and therefore
+  // requires a PTO day (only set when preferFreeDayExams is enabled).
+  requiresPto?: boolean;
 }
 
 export interface ScheduleResult {
