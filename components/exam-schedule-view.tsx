@@ -12,7 +12,8 @@ import {
   MapPin,
   Wallet,
   BedDouble,
-  TrendingUp
+  TrendingUp,
+  Palmtree
 } from "lucide-react"
 import type { ScheduleResult, ScheduleItem } from "@/lib/exam-scheduler"
 
@@ -140,6 +141,14 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
               <p className="text-sm text-gray-600">zkoušek</p>
             </div>
           </div>
+          {result.breakdown.ptoDays > 0 && (
+            <p className="mt-4 text-sm text-gray-600">
+              Prezenční zkoušky v pracovní dny (vyžadují dovolenou):{" "}
+              <span className="font-semibold text-gray-800">
+                {result.breakdown.ptoDays}
+              </span>
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -178,6 +187,12 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
                               <Badge variant="secondary" className="bg-green-200 text-green-800">
                                 <Monitor className="h-3 w-3 mr-1" />
                                 Online
+                              </Badge>
+                            )}
+                            {item.requiresPto && (
+                              <Badge variant="secondary" className="bg-amber-200 text-amber-800">
+                                <Palmtree className="h-3 w-3 mr-1" />
+                                Dovolená
                               </Badge>
                             )}
                           </div>
@@ -246,6 +261,12 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
           <div className="w-4 h-4 rounded bg-purple-100 border border-purple-200"></div>
           <span>Ubytování</span>
         </div>
+        {result.breakdown.ptoDays > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-amber-200 border border-amber-300"></div>
+            <span>Dovolená (zkouška v pracovní den)</span>
+          </div>
+        )}
       </div>
     </div>
   )

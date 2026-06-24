@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { updateStudy, deleteStudyAction } from "@/lib/actions/studies"
 import { uploadLogo, removeLogo as removeLogoAction } from "@/lib/actions/logos"
 import { uploadDiploma, removeDiploma as removeDiplomaAction } from "@/lib/actions/diplomas"
-import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, getGraduationResultOptions, getGraduationResultLabel, STUDY_STATUS, type StudyStatus } from "@/lib/constants"
+import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, getGraduationResultOptions, getGraduationResultLabel, STUDY_STATUS, EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS, WEEKDAY_OPTIONS, type StudyStatus } from "@/lib/constants"
 import { getStudyTerminology } from "@/lib/study-kind"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -47,6 +47,9 @@ interface Study {
   transit_cost_one_way?: number
   accommodation_cost_per_night?: number
   earliest_arrival_time?: string | null
+  prefer_free_day_exams?: boolean
+  pto_day_cost?: number
+  working_days?: number[]
   is_url?: string
   created_at: string
 }
@@ -72,6 +75,12 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     transit_duration_hours: study.transit_duration_hours || 4,
     transit_cost_one_way: study.transit_cost_one_way || 200,
     accommodation_cost_per_night: study.accommodation_cost_per_night || 2000,
+    prefer_free_day_exams: study.prefer_free_day_exams || false,
+    pto_day_cost: study.pto_day_cost ?? EXAM_SCHEDULER_DEFAULTS.PTO_DAY_COST,
+    working_days:
+      study.working_days && study.working_days.length > 0
+        ? study.working_days
+        : [...DEFAULT_WORKING_DAYS],
     // Convert HH:MM:SS to HH:MM for display, empty string if null
     earliest_arrival_time: study.earliest_arrival_time
       ? study.earliest_arrival_time.substring(0, 5)
@@ -586,6 +595,80 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                         />
                         <p className="text-xs text-gray-500">Cena za noc u školy</p>
                       </div>
+                    </div>
+
+                    {/* Free-day (weekend) preference */}
+                    <div className="pt-2 border-t border-primary-100 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 pr-4">
+                          <Label htmlFor="prefer-free-day" className="text-sm font-medium">
+                            Upřednostnit volné dny
+                          </Label>
+                          <p className="text-xs text-gray-500">
+                            Prezenční zkoušky v pracovní dny vyžadují dovolenou. Plánovač je penalizuje a dá přednost termínům ve volných dnech (např. o víkendu), pokud se to vyplatí.
+                          </p>
+                        </div>
+                        <Switch
+                          id="prefer-free-day"
+                          checked={formData.prefer_free_day_exams}
+                          onCheckedChange={(checked) =>
+                            setFormData({ ...formData, prefer_free_day_exams: checked })
+                          }
+                        />
+                      </div>
+
+                      {formData.prefer_free_day_exams && (
+                        <div className="space-y-4">
+                          <div className="space-y-2 max-w-xs">
+                            <Label htmlFor="pto_day_cost">Cena dne dovolené (Kč)</Label>
+                            <Input
+                              id="pto_day_cost"
+                              type="number"
+                              min="0"
+                              step="100"
+                              value={formData.pto_day_cost}
+                              onChange={(e) => setFormData({
+                                ...formData,
+                                pto_day_cost: parseInt(e.target.value) || 0
+                              })}
+                            />
+                            <p className="text-xs text-gray-500">
+                              Kolik vás stojí jeden den dovolené. Vyšší hodnota = silnější preference volných dní.
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Pracovní dny</Label>
+                            <div className="flex flex-wrap gap-2">
+                              {WEEKDAY_OPTIONS.map((day) => {
+                                const selected = formData.working_days.includes(day.value)
+                                return (
+                                  <button
+                                    key={day.value}
+                                    type="button"
+                                    onClick={() => {
+                                      const next = selected
+                                        ? formData.working_days.filter((d) => d !== day.value)
+                                        : [...formData.working_days, day.value]
+                                      setFormData({ ...formData, working_days: next })
+                                    }}
+                                    className={`w-11 h-10 rounded-md border text-sm font-medium transition-colors ${
+                                      selected
+                                        ? "bg-primary-600 text-white border-primary-600 hover:bg-primary-700"
+                                        : "bg-white text-gray-600 border-gray-300 hover:bg-primary-50"
+                                    }`}
+                                  >
+                                    {day.label}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              Dny, kdy pracujete. Zkoušky v ostatní (volné) dny nejsou penalizovány.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

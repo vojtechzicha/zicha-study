@@ -33,6 +33,9 @@ export interface TrackerStudy {
   transit_cost_one_way: number;
   accommodation_cost_per_night: number;
   earliest_arrival_time?: string | null; // HH:MM:SS or HH:MM format, null means compute from transit_duration
+  prefer_free_day_exams?: boolean;
+  pto_day_cost?: number;
+  working_days?: number[];
 }
 
 /**
@@ -99,6 +102,12 @@ export function createSchedulerConfigFromStudy(
     earliestArrivalTime: study.earliest_arrival_time
       ? study.earliest_arrival_time.substring(0, 5)
       : undefined,
+    preferFreeDayExams: study.prefer_free_day_exams ?? false,
+    ptoDayCost: study.pto_day_cost ?? 5500,
+    workingDays:
+      study.working_days && study.working_days.length > 0
+        ? study.working_days
+        : [1, 2, 3, 4, 5],
   };
 }
 

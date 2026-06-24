@@ -6,6 +6,13 @@ export interface SchedulerConfig {
   // Optional: direct earliest arrival time (HH:MM format)
   // If provided, overrides the computed arrival from travelDurationHours
   earliestArrivalTime?: string;
+  // When true, in-person exams that fall on a working day are penalized by
+  // ptoDayCost so the optimizer prefers free-day (e.g. weekend) terms.
+  preferFreeDayExams?: boolean;
+  // Virtual cost (CZK) of taking one PTO/vacation day for a working-day in-person exam.
+  ptoDayCost?: number;
+  // Days of week treated as working days. 0 = Sunday ... 6 = Saturday.
+  workingDays?: number[];
 }
 
 // Default constants (used if no config provided)
@@ -14,6 +21,9 @@ export const DEFAULT_CONFIG: SchedulerConfig = {
   travelDurationHours: 4,
   accommodationCostPerNight: 2000, // CZK
   // earliestArrivalTime: undefined - will be computed from travelDurationHours
+  preferFreeDayExams: false,
+  ptoDayCost: 5500, // CZK per PTO day
+  workingDays: [1, 2, 3, 4, 5], // Mon-Fri
 };
 
 // Computed time thresholds based on travel duration
@@ -97,6 +107,9 @@ export interface ScheduleItem {
   exam?: ExamWithSubject;
   description: string;
   cost: number;
+  // True for an in-person exam item that falls on a working day and therefore
+  // requires a PTO day (only set when preferFreeDayExams is enabled).
+  requiresPto?: boolean;
 }
 
 export interface ScheduleResult {
@@ -109,6 +122,8 @@ export interface ScheduleResult {
     accommodationCost: number;
     travelTrips: number;
     accommodationNights: number;
+    // Number of working days that require PTO for an in-person exam.
+    ptoDays: number;
   };
   error?: string;
 }
