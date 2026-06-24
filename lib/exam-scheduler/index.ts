@@ -32,5 +32,5 @@ export type {
 } from "./adapters";
 
 // Utilities (for testing and advanced use)
-export { calculateCost, buildScheduleDays } from "./cost-calculator";
+export { calculateCost, calculatePtoPenalty, calculateScheduleScore, buildScheduleDays } from "./cost-calculator";
 export { hasConflict, canAddExam, isValidCombination } from "./conflict-detector";

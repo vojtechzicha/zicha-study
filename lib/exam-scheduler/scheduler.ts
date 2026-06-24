@@ -9,8 +9,18 @@ import {
   DEFAULT_CONFIG,
 } from "./types";
 import { canAddExam } from "./conflict-detector";
-import { calculateCost, buildScheduleDays, computeEndTime, buildTripSegments } from "./cost-calculator";
-import { formatDate, compareDate, getNextDay } from "./utils";
+import {
+  calculateCost,
+  calculateScheduleScore,
+  calculatePtoPenalty,
+  buildScheduleDays,
+  computeEndTime,
+  buildTripSegments,
+} from "./cost-calculator";
+import { formatDate, compareDate, getNextDay, isWorkingDay } from "./utils";
+
+// Days of week treated as working days when none are configured (Mon-Fri).
+const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 
 interface SubjectExams {
   subject: Subject;
@@ -61,10 +71,32 @@ function groupExamsBySubject(
 }
 
 /**
- * Sort exams by preference (earlier first, online preferred)
+ * Sort exams by preference (earlier first, online preferred).
+ * When preferFreeDayExams is on, PTO-free options (online, or in-person on a
+ * non-working day) are explored first. This only affects exploration order and
+ * tie-breaking; the chosen optimum is still decided by the schedule score.
  */
-function sortExamsByPreference(exams: ExamWithSubject[]): ExamWithSubject[] {
+function sortExamsByPreference(
+  exams: ExamWithSubject[],
+  config: SchedulerConfig
+): ExamWithSubject[] {
+  const preferFreeDay = !!config.preferFreeDayExams;
+  const workingDays =
+    config.workingDays && config.workingDays.length > 0
+      ? config.workingDays
+      : DEFAULT_WORKING_DAYS;
+
+  const needsPto = (e: ExamWithSubject) =>
+    !e.isOnline && isWorkingDay(e.date, workingDays);
+
   return [...exams].sort((a, b) => {
+    // When preferring free days, explore PTO-free options first
+    if (preferFreeDay) {
+      const aPto = needsPto(a);
+      const bPto = needsPto(b);
+      if (aPto !== bPto) return aPto ? 1 : -1;
+    }
+
     // First by date
     const dateCompare = compareDate(a.date, b.date);
     if (dateCompare !== 0) return dateCompare;
@@ -121,7 +153,7 @@ function findOptimalSchedule(
     }
 
     const { exams } = sortedSubjects[subjectIndex];
-    const sortedExams = sortExamsByPreference(exams);
+    const sortedExams = sortExamsByPreference(exams, config);
 
     for (const exam of sortedExams) {
       // Check if this exam conflicts with current schedule
@@ -129,9 +161,9 @@ function findOptimalSchedule(
         continue;
       }
 
-      // Calculate new cost with this exam added
+      // Calculate new score with this exam added (money + PTO penalty)
       const newExams = [...currentExams, exam];
-      const { totalCost: newCost } = calculateCost(newExams, config);
+      const newCost = calculateScheduleScore(newExams, config);
 
       // Pruning: skip if already worse than best
       if (newCost >= bestCost) {
@@ -337,6 +369,7 @@ export function generateSchedule(
         accommodationCost: 0,
         travelTrips: 0,
         accommodationNights: 0,
+        ptoDays: 0,
       },
       error: `Následující předměty nemají žádné termíny zkoušek: ${names}`,
     };
@@ -354,6 +387,7 @@ export function generateSchedule(
         accommodationCost: 0,
         travelTrips: 0,
         accommodationNights: 0,
+        ptoDays: 0,
       },
     };
   }
@@ -376,26 +410,31 @@ export function generateSchedule(
         accommodationCost: 0,
         travelTrips: 0,
         accommodationNights: 0,
+        ptoDays: 0,
       },
       error:
         "Nebyl nalezen platný rozvrh. Zkontrolujte, zda nejsou termíny v konfliktu.",
     };
   }
 
-  const { exams: selectedExams, cost } = result;
+  const { exams: selectedExams } = result;
   const items = buildScheduleItems(selectedExams, fullConfig);
   const breakdown = calculateCost(selectedExams, fullConfig);
+  const { ptoDays } = calculatePtoPenalty(selectedExams, fullConfig);
 
   return {
     success: true,
     items,
     selectedExams,
-    totalCost: cost,
+    // User-facing total is the real monetary cost, not the optimization score
+    // (which may include the virtual PTO penalty).
+    totalCost: breakdown.totalCost,
     breakdown: {
       travelCost: breakdown.travelCost,
       accommodationCost: breakdown.accommodationCost,
       travelTrips: breakdown.travelTrips,
       accommodationNights: breakdown.accommodationNights,
+      ptoDays,
     },
   };
 }

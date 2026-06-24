@@ -140,6 +140,14 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
               <p className="text-sm text-gray-600">zkoušek</p>
             </div>
           </div>
+          {result.breakdown.ptoDays > 0 && (
+            <p className="mt-4 text-sm text-gray-600">
+              Prezenční zkoušky v pracovní dny (vyžadují dovolenou):{" "}
+              <span className="font-semibold text-gray-800">
+                {result.breakdown.ptoDays}
+              </span>
+            </p>
+          )}
         </CardContent>
       </Card>
 

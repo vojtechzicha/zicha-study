@@ -312,6 +312,9 @@ export interface StudyWithFinalExams {
   transit_duration_hours: number
   transit_cost_one_way: number
   accommodation_cost_per_night: number
+  prefer_free_day_exams?: boolean
+  pto_day_cost?: number
+  working_days?: number[]
   is_url?: string
   created_at: string
   updated_at: string
@@ -323,7 +326,27 @@ export const EXAM_SCHEDULER_DEFAULTS = {
   TRANSIT_COST_ONE_WAY: 200,
   ACCOMMODATION_COST_PER_NIGHT: 2000,
   DEFAULT_EXAM_DURATION_MINUTES: 120,
+  // Cost of a single PTO/vacation day, used to penalize in-person exams that
+  // fall on a working day when "prefer free-day exams" is enabled.
+  PTO_DAY_COST: 5500,
+  // Whether the free-day preference is on by default for new studies.
+  PREFER_FREE_DAY_EXAMS: false,
 } as const
+
+// Days of week considered "working days" by default (Mon–Fri).
+// Convention: 0 = Sunday, 1 = Monday, ... 6 = Saturday (matches JS getUTCDay()).
+export const DEFAULT_WORKING_DAYS: number[] = [1, 2, 3, 4, 5]
+
+// Weekday options for UI pickers (ordered Mon-first, Czech short labels)
+export const WEEKDAY_OPTIONS = [
+  { value: 1, label: 'Po' },
+  { value: 2, label: 'Út' },
+  { value: 3, label: 'St' },
+  { value: 4, label: 'Čt' },
+  { value: 5, label: 'Pá' },
+  { value: 6, label: 'So' },
+  { value: 0, label: 'Ne' },
+] as const
 
 // Exam duration options for UI
 export const EXAM_DURATION_OPTIONS = [

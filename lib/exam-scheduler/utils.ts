@@ -85,6 +85,22 @@ export function compareDate(a: string, b: string): number {
 }
 
 /**
+ * Get the day of week for a date string.
+ * Returns 0 = Sunday ... 6 = Saturday (matches JS getUTCDay()).
+ * Uses noon UTC to avoid timezone/DST issues, consistent with the other helpers.
+ */
+export function getDayOfWeek(dateStr: string): number {
+  return new Date(`${dateStr}T12:00:00Z`).getUTCDay();
+}
+
+/**
+ * Check whether a date falls on one of the configured working days.
+ */
+export function isWorkingDay(dateStr: string, workingDays: number[]): boolean {
+  return workingDays.includes(getDayOfWeek(dateStr));
+}
+
+/**
  * Calculate number of days between two date strings (exclusive)
  * Returns the number of nights you'd need to stay if traveling from dateA to dateB
  * For example: daysBetween("2025-01-10", "2025-01-12") = 2 (nights of Jan 10 and Jan 11)

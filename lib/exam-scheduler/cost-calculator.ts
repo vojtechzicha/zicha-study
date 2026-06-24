@@ -14,7 +14,11 @@ import {
   getNextDay,
   compareDate,
   daysBetween,
+  isWorkingDay,
 } from "./utils";
+
+// Days of week treated as working days when none are configured (Mon-Fri).
+const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 
 /**
  * Compute end time for an exam
@@ -257,6 +261,57 @@ export function calculateCost(
     travelTrips,
     accommodationNights: allNights.size,
   };
+}
+
+/**
+ * Count the PTO days a schedule requires and the resulting virtual penalty.
+ *
+ * A "PTO day" is a day with at least one in-person (offline) exam that falls on
+ * a configured working day. Online-only days never count. Each such day is
+ * charged config.ptoDayCost. When preferFreeDayExams is off (or no cost set),
+ * the penalty is always zero, so behavior is unchanged.
+ *
+ * The penalty is additive per exam day, which keeps the total optimization
+ * score monotonic non-decreasing as exams are added — preserving the validity
+ * of the branch-and-bound pruning in the scheduler.
+ */
+export function calculatePtoPenalty(
+  exams: ExamWithSubject[],
+  config: SchedulerConfig
+): { penalty: number; ptoDays: number } {
+  if (!config.preferFreeDayExams || !config.ptoDayCost) {
+    return { penalty: 0, ptoDays: 0 };
+  }
+
+  const workingDays =
+    config.workingDays && config.workingDays.length > 0
+      ? config.workingDays
+      : DEFAULT_WORKING_DAYS;
+
+  const days = buildScheduleDays(exams, config);
+  let ptoDays = 0;
+  for (const day of days) {
+    if (day.hasOfflineExam && isWorkingDay(day.date, workingDays)) {
+      ptoDays++;
+    }
+  }
+
+  return { penalty: ptoDays * config.ptoDayCost, ptoDays };
+}
+
+/**
+ * Optimization score used by the scheduler: real monetary cost plus the
+ * virtual PTO penalty. This is what the backtracking minimizes; the
+ * user-facing total cost remains the pure money value from calculateCost().
+ */
+export function calculateScheduleScore(
+  exams: ExamWithSubject[],
+  config: SchedulerConfig
+): number {
+  return (
+    calculateCost(exams, config).totalCost +
+    calculatePtoPenalty(exams, config).penalty
+  );
 }
 
 /**
