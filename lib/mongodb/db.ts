@@ -850,7 +850,7 @@ export async function getGlobalExamSchedulingData() {
 
   const studiesCol = await col("studies")
   const studies = await studiesCol
-    .find({ exam_scheduler_enabled: true })
+    .find({ exam_scheduler_enabled: true, status: "active" })
     .project({
       _id: 1, name: 1, logo_url: 1,
       transit_duration_hours: 1, transit_cost_one_way: 1, accommodation_cost_per_night: 1,
@@ -903,7 +903,7 @@ export async function getUpcomingLockedExamTerms(fromDate: string) {
 
   const db = await getDb()
   const [studies, subjects, periods] = await Promise.all([
-    db.collection("studies").find({ _id: { $in: studyIds as any[] }, exam_scheduler_enabled: true }).project({ _id: 1, name: 1, logo_url: 1 }).toArray(),
+    db.collection("studies").find({ _id: { $in: studyIds as any[] }, exam_scheduler_enabled: true, status: "active" }).project({ _id: 1, name: 1, logo_url: 1 }).toArray(),
     db.collection("subjects").find({ _id: { $in: subjectIds as any[] } }).project({ _id: 1, name: 1, abbreviation: 1 }).toArray(),
     db.collection("exam_periods").find({ _id: { $in: periodIds as any[] } }).project({ _id: 1, name: 1 }).toArray(),
   ])

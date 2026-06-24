@@ -175,7 +175,8 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
         )}
 
         {/* Exam Scheduler Section (read-only summary; editing lives in the global planner) */}
-        {currentStudy.exam_scheduler_enabled && (
+        {/* Only active studies participate in the scheduler. */}
+        {currentStudy.exam_scheduler_enabled && currentStudy.status === "active" && (
           <div className="mb-8">
             <StudyExamPeriodsSummary
               studyId={currentStudy.id}

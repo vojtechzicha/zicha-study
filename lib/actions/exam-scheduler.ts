@@ -14,7 +14,10 @@ export async function fetchSchedulerStudies() {
     id: s.id,
     name: s.name,
     logo_url: s.logo_url ?? null,
-    exam_scheduler_enabled: !!s.exam_scheduler_enabled,
+    status: s.status ?? null,
+    // The scheduler only applies to active studies; treat anything else as
+    // disabled regardless of the stored flag.
+    exam_scheduler_enabled: !!s.exam_scheduler_enabled && s.status === "active",
     transit_duration_hours: s.transit_duration_hours ?? EXAM_SCHEDULER_DEFAULTS.TRANSIT_DURATION_HOURS,
     transit_cost_one_way: s.transit_cost_one_way ?? EXAM_SCHEDULER_DEFAULTS.TRANSIT_COST_ONE_WAY,
     accommodation_cost_per_night: s.accommodation_cost_per_night ?? EXAM_SCHEDULER_DEFAULTS.ACCOMMODATION_COST_PER_NIGHT,
@@ -27,6 +30,14 @@ export async function fetchSchedulerStudies() {
 
 export async function updateStudySchedulerSettingsAction(studyId: string, settings: Record<string, any>) {
   try {
+    // The scheduler may only be enabled on active studies. Guard server-side so
+    // a non-active study can never be opted in, even if the client tries.
+    if (settings.exam_scheduler_enabled === true) {
+      const study = await db.getStudyById(studyId)
+      if (!study || (study as any).status !== "active") {
+        return { error: { message: "Plánovač zkoušek lze zapnout pouze u aktivního studia." } }
+      }
+    }
     await db.updateStudy(studyId, settings)
     return { error: null }
   } catch (err: any) {

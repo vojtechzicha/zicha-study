@@ -292,7 +292,10 @@ export function GlobalExamScheduler() {
     )
   }
 
-  const noStudiesAtAll = allStudies.length === 0
+  // The planner only applies to active studies — list every active study here
+  // (enabled or not); non-active studies are hidden entirely.
+  const activeStudies = allStudies.filter((s) => s.status === "active")
+  const noActiveStudies = activeStudies.length === 0
   const hasEnabled = studies.length > 0
 
   return (
@@ -324,16 +327,12 @@ export function GlobalExamScheduler() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {noStudiesAtAll ? (
+        {noActiveStudies ? (
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="py-12 text-center">
               <CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-              <p className="text-sm font-medium text-gray-900">Zatím nemáte žádná studia</p>
-              <p className="mt-1 text-sm text-gray-500 mb-4">Nejprve si vytvořte studium.</p>
-              <Button onClick={() => router.push("/studies/new")} className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800">
-                <Plus className="h-4 w-4 mr-2" />
-                Nové studium
-              </Button>
+              <p className="text-sm font-medium text-gray-900">Žádná aktivní studia</p>
+              <p className="mt-1 text-sm text-gray-500">Plánovač zkoušek je dostupný pouze pro aktivní studia.</p>
             </CardContent>
           </Card>
         ) : (
@@ -347,7 +346,7 @@ export function GlobalExamScheduler() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {allStudies.map((s) => (
+                {activeStudies.map((s) => (
                   <div key={s.id} className="flex items-center gap-3 border rounded-lg p-3">
                     <StudyLogo logoUrl={s.logo_url} studyName={s.name} size="sm" className="flex-shrink-0" />
                     <div className="min-w-0 flex-1">

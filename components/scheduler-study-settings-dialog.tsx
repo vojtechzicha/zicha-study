@@ -15,6 +15,7 @@ export interface SchedulerStudy {
   id: string
   name: string
   logo_url?: string | null
+  status?: string | null
   exam_scheduler_enabled: boolean
   transit_duration_hours: number
   transit_cost_one_way: number
@@ -35,6 +36,7 @@ interface SchedulerStudySettingsDialogProps {
 export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSaved }: SchedulerStudySettingsDialogProps) {
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
+  const isActive = study.status === "active"
   const [form, setForm] = useState({
     exam_scheduler_enabled: study.exam_scheduler_enabled,
     transit_duration_hours: study.transit_duration_hours,
@@ -82,15 +84,20 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
           <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
             <div className="space-y-0.5">
               <Label className="text-base font-medium">Plánovač zkoušek</Label>
-              <p className="text-sm text-muted-foreground">Zahrnout toto studium do plánovače zkoušek</p>
+              <p className="text-sm text-muted-foreground">
+                {isActive
+                  ? "Zahrnout toto studium do plánovače zkoušek"
+                  : "Plánovač lze zapnout pouze u aktivního studia"}
+              </p>
             </div>
             <Switch
-              checked={form.exam_scheduler_enabled}
+              checked={form.exam_scheduler_enabled && isActive}
+              disabled={!isActive}
               onCheckedChange={(c) => setForm({ ...form, exam_scheduler_enabled: c })}
             />
           </div>
 
-          {form.exam_scheduler_enabled && (
+          {form.exam_scheduler_enabled && isActive && (
             <div className="p-4 border rounded-lg bg-primary-50/30 space-y-4">
               <p className="text-sm font-medium text-gray-700">Doprava a ubytování</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
