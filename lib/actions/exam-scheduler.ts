@@ -1,7 +1,38 @@
 "use server"
 
 import * as db from "@/lib/mongodb/db"
-import { EXAM_SCHEDULER_DEFAULTS } from "@/lib/constants"
+import { EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS } from "@/lib/constants"
+
+// ─── Studies management (enable + configure from the scheduler page) ─────────
+
+// ALL studies with their scheduler config, so the planner page can enable and
+// configure studies without visiting each study's settings.
+export async function fetchSchedulerStudies() {
+  const docs = await db.getStudies()
+  const studies = db.normalizeIds(docs as any[])
+  return studies.map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    logo_url: s.logo_url ?? null,
+    exam_scheduler_enabled: !!s.exam_scheduler_enabled,
+    transit_duration_hours: s.transit_duration_hours ?? EXAM_SCHEDULER_DEFAULTS.TRANSIT_DURATION_HOURS,
+    transit_cost_one_way: s.transit_cost_one_way ?? EXAM_SCHEDULER_DEFAULTS.TRANSIT_COST_ONE_WAY,
+    accommodation_cost_per_night: s.accommodation_cost_per_night ?? EXAM_SCHEDULER_DEFAULTS.ACCOMMODATION_COST_PER_NIGHT,
+    earliest_arrival_time: s.earliest_arrival_time ?? null,
+    prefer_free_day_exams: s.prefer_free_day_exams ?? false,
+    pto_day_cost: s.pto_day_cost ?? EXAM_SCHEDULER_DEFAULTS.PTO_DAY_COST,
+    working_days: s.working_days && s.working_days.length > 0 ? s.working_days : DEFAULT_WORKING_DAYS,
+  }))
+}
+
+export async function updateStudySchedulerSettingsAction(studyId: string, settings: Record<string, any>) {
+  try {
+    await db.updateStudy(studyId, settings)
+    return { error: null }
+  } catch (err: any) {
+    return { error: { message: err?.message || "Unknown error" } }
+  }
+}
 
 // ─── Global scheduling data ──────────────────────────────────────────────────
 

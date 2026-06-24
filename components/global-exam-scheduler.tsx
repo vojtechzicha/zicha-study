@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ import {
   Lock,
   RefreshCw,
   Clock3,
+  Settings2,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { StudyLogo } from "@/components/study-logo"
@@ -43,7 +45,10 @@ import {
   fetchInterStudyBreakMinutes,
   saveInterStudyBreakMinutesAction,
   deleteExamPeriodAction,
+  fetchSchedulerStudies,
+  updateStudySchedulerSettingsAction,
 } from "@/lib/actions/exam-scheduler"
+import { SchedulerStudySettingsDialog, type SchedulerStudy } from "@/components/scheduler-study-settings-dialog"
 import {
   generateGlobalSchedule,
   type GlobalRequirement,
@@ -116,6 +121,9 @@ export function GlobalExamScheduler() {
 
   const [loading, setLoading] = useState(true)
   const [studies, setStudies] = useState<StudyData[]>([])
+  const [allStudies, setAllStudies] = useState<SchedulerStudy[]>([])
+  const [settingsStudy, setSettingsStudy] = useState<SchedulerStudy | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
   const [periods, setPeriods] = useState<PeriodData[]>([])
   const [terms, setTerms] = useState<TermData[]>([])
   const [subjects, setSubjects] = useState<SubjectData[]>([])
@@ -131,12 +139,17 @@ export function GlobalExamScheduler() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [data, brk] = await Promise.all([fetchGlobalExamSchedulingData(), fetchInterStudyBreakMinutes()])
+      const [data, brk, all] = await Promise.all([
+        fetchGlobalExamSchedulingData(),
+        fetchInterStudyBreakMinutes(),
+        fetchSchedulerStudies(),
+      ])
       setStudies(data.studies as StudyData[])
       setPeriods(data.periods as PeriodData[])
       setTerms(data.terms as TermData[])
       setSubjects(data.subjects as SubjectData[])
       setBreakMinutes(brk)
+      setAllStudies(all as SchedulerStudy[])
     } finally {
       setLoading(false)
     }
@@ -216,6 +229,21 @@ export function GlobalExamScheduler() {
     setEditorOpen(true)
   }
 
+  const toggleStudyEnabled = async (study: SchedulerStudy, enabled: boolean) => {
+    setTogglingId(study.id)
+    try {
+      const res = await updateStudySchedulerSettingsAction(study.id, { exam_scheduler_enabled: enabled })
+      if (res.error) {
+        toast({ title: "Nepodařilo se uložit", description: res.error.message, variant: "destructive" })
+        return
+      }
+      setComparison(null)
+      await load()
+    } finally {
+      setTogglingId(null)
+    }
+  }
+
   const confirmDelete = async () => {
     if (!deleteTarget) return
     const res = await deleteExamPeriodAction(deleteTarget.id)
@@ -264,7 +292,8 @@ export function GlobalExamScheduler() {
     )
   }
 
-  const noStudies = studies.length === 0
+  const noStudiesAtAll = allStudies.length === 0
+  const hasEnabled = studies.length > 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
@@ -284,7 +313,7 @@ export function GlobalExamScheduler() {
                 <p className="text-sm text-gray-600">Optimální rozvrh napříč všemi studii</p>
               </div>
             </div>
-            {!noStudies && (
+            {hasEnabled && (
               <Button onClick={openNewPeriod} className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 flex-shrink-0">
                 <Plus className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Nové období</span>
@@ -295,16 +324,71 @@ export function GlobalExamScheduler() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {noStudies ? (
+        {noStudiesAtAll ? (
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="py-12 text-center">
               <CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-              <p className="text-sm font-medium text-gray-900">Žádné studium nemá zapnutý plánovač zkoušek</p>
-              <p className="mt-1 text-sm text-gray-500">Zapněte plánovač v nastavení studia.</p>
+              <p className="text-sm font-medium text-gray-900">Zatím nemáte žádná studia</p>
+              <p className="mt-1 text-sm text-gray-500 mb-4">Nejprve si vytvořte studium.</p>
+              <Button onClick={() => router.push("/studies/new")} className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800">
+                <Plus className="h-4 w-4 mr-2" />
+                Nové studium
+              </Button>
             </CardContent>
           </Card>
         ) : (
           <>
+            {/* Studies management: enable + configure directly from the planner */}
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Settings2 className="h-5 w-5 text-primary-600" />
+                  Studia v plánovači
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {allStudies.map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 border rounded-lg p-3">
+                    <StudyLogo logoUrl={s.logo_url} studyName={s.name} size="sm" className="flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 truncate">{s.name}</p>
+                      {s.exam_scheduler_enabled ? (
+                        <p className="text-xs text-gray-500">
+                          Cesta {s.transit_duration_hours} h / {s.transit_cost_one_way} Kč · ubytování {s.accommodation_cost_per_night} Kč/noc
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-400">Nezahrnuto do plánovače</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSettingsStudy(s)}
+                      className="h-8 text-primary-700 hover:bg-primary-50"
+                    >
+                      <Settings2 className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Nastavení</span>
+                    </Button>
+                    <Switch
+                      checked={s.exam_scheduler_enabled}
+                      disabled={togglingId === s.id}
+                      onCheckedChange={(checked) => toggleStudyEnabled(s, checked)}
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {!hasEnabled ? (
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardContent className="py-10 text-center">
+                  <CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                  <p className="text-sm font-medium text-gray-900">Žádné studium není zahrnuto do plánovače</p>
+                  <p className="mt-1 text-sm text-gray-500">Zapněte přepínač u studia výše a nastavte dopravu a ubytování.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
             {/* Settings + run */}
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="py-4 flex flex-wrap items-center gap-4 justify-between">
@@ -428,11 +512,25 @@ export function GlobalExamScheduler() {
 
             {/* Schedule result */}
             {comparison && <GlobalExamScheduleView comparison={comparison} />}
+              </>
+            )}
           </>
         )}
       </main>
 
       <TitlePageFooter />
+
+      {settingsStudy && (
+        <SchedulerStudySettingsDialog
+          open={!!settingsStudy}
+          onOpenChange={(o) => !o && setSettingsStudy(null)}
+          study={settingsStudy}
+          onSaved={() => {
+            setComparison(null)
+            load()
+          }}
+        />
+      )}
 
       {editorOpen && (
         <ExamPeriodEditor
