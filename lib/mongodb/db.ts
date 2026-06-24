@@ -81,6 +81,10 @@ export async function deleteStudy(id: string) {
     await db.collection("exam_options").deleteMany({ subject_id: { $in: subjectIds } })
   }
 
+  // Delete exam periods and terms for this study
+  await db.collection("exam_terms").deleteMany({ study_id: id })
+  await db.collection("exam_periods").deleteMany({ study_id: id })
+
   await db.collection("studies").deleteOne({ _id: id as any })
 }
 
@@ -202,6 +206,7 @@ export async function deleteSubject(id: string) {
     throw new Error(`Předmět nelze smazat, protože jej opakuje "${label}". Nejprve upravte nebo smažte opakování.`)
   }
   await db.collection("exam_options").deleteMany({ subject_id: id })
+  await db.collection("exam_terms").deleteMany({ subject_id: id })
   await db.collection("subjects").deleteOne({ _id: id as any })
 }
 
@@ -745,6 +750,244 @@ export async function insertExamOptions(options: Record<string, any>[]) {
   const c = await col("exam_options")
   const docs = options.map((opt) => ({ _id: newId() as any, ...opt, created_at: new Date().toISOString() }))
   await c.insertMany(docs)
+}
+
+// ─── Exam Periods (global exam scheduler) ────────────────────────────────────
+
+export async function getExamPeriods() {
+  const c = await col("exam_periods")
+  return c.find({}).sort({ start_date: 1, name: 1 }).toArray()
+}
+
+export async function getExamPeriodsByStudyId(studyId: string) {
+  const c = await col("exam_periods")
+  return c.find({ study_id: studyId }).sort({ start_date: 1, name: 1 }).toArray()
+}
+
+export async function getExamPeriodById(id: string) {
+  const c = await col("exam_periods")
+  return c.findOne({ _id: id as any })
+}
+
+export async function createExamPeriod(data: Record<string, any>) {
+  const c = await col("exam_periods")
+  const doc = { _id: newId() as any, ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+  await c.insertOne(doc)
+  return doc
+}
+
+export async function updateExamPeriod(id: string, data: Record<string, any>) {
+  const c = await col("exam_periods")
+  await c.updateOne({ _id: id as any }, { $set: { ...data, updated_at: new Date().toISOString() } })
+}
+
+export async function deleteExamPeriod(id: string) {
+  const db = await getDb()
+  await db.collection("exam_terms").deleteMany({ period_id: id })
+  await db.collection("exam_periods").deleteOne({ _id: id as any })
+}
+
+// ─── Exam Terms (candidate slots inside a period) ────────────────────────────
+
+export async function getExamTermsByPeriodId(periodId: string) {
+  const c = await col("exam_terms")
+  return c.find({ period_id: periodId }).sort({ date: 1, start_time: 1 }).toArray()
+}
+
+export async function getExamTermsByPeriodIds(periodIds: string[]) {
+  if (periodIds.length === 0) return []
+  const c = await col("exam_terms")
+  return c.find({ period_id: { $in: periodIds } }).sort({ date: 1, start_time: 1 }).toArray()
+}
+
+export async function getExamTermById(id: string) {
+  const c = await col("exam_terms")
+  return c.findOne({ _id: id as any })
+}
+
+export async function createExamTerm(data: Record<string, any>) {
+  const c = await col("exam_terms")
+  const doc = {
+    _id: newId() as any,
+    locked: false,
+    note: null,
+    ...data,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+  await c.insertOne(doc)
+  return doc
+}
+
+export async function updateExamTerm(id: string, data: Record<string, any>) {
+  const c = await col("exam_terms")
+  await c.updateOne({ _id: id as any }, { $set: { ...data, updated_at: new Date().toISOString() } })
+}
+
+export async function deleteExamTerm(id: string) {
+  const c = await col("exam_terms")
+  await c.deleteOne({ _id: id as any })
+}
+
+export async function deleteExamTermsByPeriodAndSubject(periodId: string, subjectId: string) {
+  const c = await col("exam_terms")
+  await c.deleteMany({ period_id: periodId, subject_id: subjectId })
+}
+
+export async function setExamTermLocked(id: string, locked: boolean) {
+  const c = await col("exam_terms")
+  await c.updateOne({ _id: id as any }, { $set: { locked, updated_at: new Date().toISOString() } })
+}
+
+/**
+ * Aggregate everything the global scheduler needs: studies that have the exam
+ * scheduler enabled (with their transit/accommodation/PTO config), all their
+ * periods, all terms within those periods, and the subjects those terms refer
+ * to (for names/abbreviations). Returns raw docs; the action layer normalizes.
+ */
+export async function getGlobalExamSchedulingData() {
+  await migrateExamOptionsToPeriods()
+
+  const studiesCol = await col("studies")
+  const studies = await studiesCol
+    .find({ exam_scheduler_enabled: true })
+    .project({
+      _id: 1, name: 1, logo_url: 1,
+      transit_duration_hours: 1, transit_cost_one_way: 1, accommodation_cost_per_night: 1,
+      earliest_arrival_time: 1, prefer_free_day_exams: 1, pto_day_cost: 1, working_days: 1,
+    })
+    .toArray()
+
+  const studyIds = studies.map((s) => String(s._id))
+  if (studyIds.length === 0) {
+    return { studies: [] as any[], periods: [] as any[], terms: [] as any[], subjects: [] as any[] }
+  }
+
+  const periodsCol = await col("exam_periods")
+  const periods = await periodsCol
+    .find({ study_id: { $in: studyIds } })
+    .sort({ start_date: 1, name: 1 })
+    .toArray()
+
+  const periodIds = periods.map((p) => String(p._id))
+  const termsCol = await col("exam_terms")
+  const terms = periodIds.length > 0
+    ? await termsCol.find({ period_id: { $in: periodIds } }).sort({ date: 1, start_time: 1 }).toArray()
+    : []
+
+  const subjectsCol = await col("subjects")
+  const subjects = await subjectsCol
+    .find({ study_id: { $in: studyIds } })
+    .project({ _id: 1, study_id: 1, name: 1, abbreviation: 1, semester: 1 })
+    .toArray()
+
+  return { studies, periods, terms, subjects }
+}
+
+/**
+ * Upcoming locked exam terms (across all scheduler-enabled studies), with study
+ * + subject + period metadata, for the homepage / tasks view. Only locked terms
+ * are concrete commitments; candidate terms are not yet scheduled.
+ */
+export async function getUpcomingLockedExamTerms(fromDate: string) {
+  const termsCol = await col("exam_terms")
+  const terms = await termsCol
+    .find({ locked: true, date: { $gte: fromDate } })
+    .sort({ date: 1, start_time: 1 })
+    .toArray()
+  if (terms.length === 0) return [] as Array<{ term: any; study: any; subject: any; period: any }>
+
+  const studyIds = Array.from(new Set(terms.map((t) => t.study_id).filter((v): v is string => typeof v === "string")))
+  const subjectIds = Array.from(new Set(terms.map((t) => t.subject_id).filter((v): v is string => typeof v === "string")))
+  const periodIds = Array.from(new Set(terms.map((t) => t.period_id).filter((v): v is string => typeof v === "string")))
+
+  const db = await getDb()
+  const [studies, subjects, periods] = await Promise.all([
+    db.collection("studies").find({ _id: { $in: studyIds as any[] }, exam_scheduler_enabled: true }).project({ _id: 1, name: 1, logo_url: 1 }).toArray(),
+    db.collection("subjects").find({ _id: { $in: subjectIds as any[] } }).project({ _id: 1, name: 1, abbreviation: 1 }).toArray(),
+    db.collection("exam_periods").find({ _id: { $in: periodIds as any[] } }).project({ _id: 1, name: 1 }).toArray(),
+  ])
+
+  const studyMap = new Map(studies.map((s) => [String(s._id), s]))
+  const subjectMap = new Map(subjects.map((s) => [String(s._id), s]))
+  const periodMap = new Map(periods.map((p) => [String(p._id), p]))
+
+  return terms
+    .filter((t) => studyMap.has(t.study_id))
+    .map((t) => ({
+      term: t,
+      study: studyMap.get(t.study_id),
+      subject: subjectMap.get(t.subject_id) || null,
+      period: periodMap.get(t.period_id) || null,
+    }))
+}
+
+/**
+ * One-time, idempotent migration of legacy per-subject exam_options into the
+ * new period/term model. Creates a single "Zkouškové období" per study spanning
+ * the min..max option date and converts each option into a term. The original
+ * exam_options are left untouched. Guarded by app_settings.exam_periods_migrated.
+ */
+export async function migrateExamOptionsToPeriods() {
+  const settings = await getAppSettings()
+  if (settings?.exam_periods_migrated) return
+
+  const db = await getDb()
+  const options = await db.collection("exam_options").find({}).toArray()
+
+  if (options.length > 0) {
+    const subjectIds = Array.from(new Set(options.map((o) => o.subject_id).filter((v): v is string => typeof v === "string")))
+    const subjects = await db.collection("subjects")
+      .find({ _id: { $in: subjectIds as any[] } })
+      .project({ _id: 1, study_id: 1 })
+      .toArray()
+    const subjectToStudy = new Map(subjects.map((s) => [String(s._id), String(s.study_id)]))
+
+    // Group options by study.
+    const byStudy = new Map<string, any[]>()
+    for (const opt of options) {
+      const studyId = subjectToStudy.get(opt.subject_id)
+      if (!studyId) continue // orphaned option (subject deleted)
+      const list = byStudy.get(studyId) || []
+      list.push(opt)
+      byStudy.set(studyId, list)
+    }
+
+    const now = new Date().toISOString()
+    for (const [studyId, studyOptions] of byStudy) {
+      const dates = studyOptions.map((o) => String(o.date)).filter(Boolean).sort()
+      if (dates.length === 0) continue
+      const periodId = newId()
+      await db.collection("exam_periods").insertOne({
+        _id: periodId as any,
+        study_id: studyId,
+        name: "Zkouškové období",
+        start_date: dates[0],
+        due_date: dates[dates.length - 1],
+        created_at: now,
+        updated_at: now,
+      })
+      const termDocs = studyOptions.map((o) => ({
+        _id: newId() as any,
+        period_id: periodId,
+        study_id: studyId,
+        subject_id: o.subject_id,
+        date: o.date,
+        start_time: o.start_time,
+        duration_minutes: o.duration_minutes,
+        is_online: !!o.is_online,
+        note: o.note ?? null,
+        locked: false,
+        created_at: now,
+        updated_at: now,
+      }))
+      if (termDocs.length > 0) {
+        await db.collection("exam_terms").insertMany(termDocs)
+      }
+    }
+  }
+
+  await upsertAppSettings({ exam_periods_migrated: true })
 }
 
 // ─── Logos (stored as Binary in studies collection) ─────────────────────────

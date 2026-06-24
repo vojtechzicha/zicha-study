@@ -8,7 +8,7 @@ import { StudyHeader } from "./study-header"
 import { MaterialsSection } from "./materials-section"
 import { StudyNotesDisplaySection } from "./study-notes-display-section"
 import { FinalExamsList } from "./final-exams-list"
-import { ExamSchedulerSection } from "./exam-scheduler-section"
+import { StudyExamPeriodsSummary } from "./study-exam-periods-summary"
 import { StudyStatsCards } from "./subjects/study-stats"
 import { StudySubjectsAdmin } from "./subjects/study-subjects-section"
 import { DiplomaShowcase } from "./diploma-showcase"
@@ -174,20 +174,12 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           </div>
         )}
 
-        {/* Exam Scheduler Section */}
+        {/* Exam Scheduler Section (read-only summary; editing lives in the global planner) */}
         {currentStudy.exam_scheduler_enabled && (
           <div className="mb-8">
-            <ExamSchedulerSection
-              study={{
-                id: currentStudy.id,
-                name: currentStudy.name,
-                exam_scheduler_enabled: currentStudy.exam_scheduler_enabled,
-                transit_duration_hours: currentStudy.transit_duration_hours || 4,
-                transit_cost_one_way: currentStudy.transit_cost_one_way || 200,
-                accommodation_cost_per_night: currentStudy.accommodation_cost_per_night || 2000,
-                earliest_arrival_time: currentStudy.earliest_arrival_time,
-              }}
-              subjects={subjects}
+            <StudyExamPeriodsSummary
+              studyId={currentStudy.id}
+              subjects={subjects.map((s: any) => ({ id: s.id, name: s.name, abbreviation: s.abbreviation }))}
               refreshTrigger={examSchedulerRefreshTrigger}
             />
           </div>

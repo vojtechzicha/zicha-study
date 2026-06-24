@@ -331,7 +331,43 @@ export const EXAM_SCHEDULER_DEFAULTS = {
   PTO_DAY_COST: 5500,
   // Whether the free-day preference is on by default for new studies.
   PREFER_FREE_DAY_EXAMS: false,
+  // Minimum break (minutes) inserted on top of both studies' transit time when
+  // two in-person exams of different studies fall on the same day. Stored once
+  // globally in app_settings.inter_study_break_minutes.
+  INTER_STUDY_BREAK_MINUTES: 60,
 } as const
+
+// ─── Exam Periods & Terms (global exam scheduler) ────────────────────────────
+
+// A period defines, for a single study, a date window in which one term must be
+// chosen for each of its subjects. Periods may overlap (e.g. credits + orals).
+export interface ExamPeriod {
+  id: string
+  study_id: string
+  name: string
+  start_date: string // YYYY-MM-DD
+  due_date: string // YYYY-MM-DD
+  created_at: string
+  updated_at: string
+}
+
+// A candidate exam slot for one subject inside one period. The scheduler picks
+// exactly one term per (period, subject) requirement. A locked term is forced
+// into the official ("forced") schedule even when a cheaper option exists.
+export interface ExamTerm {
+  id: string
+  period_id: string
+  study_id: string
+  subject_id: string
+  date: string // YYYY-MM-DD
+  start_time: string // HH:MM or HH:MM:SS
+  duration_minutes: number
+  is_online: boolean
+  note: string | null
+  locked: boolean
+  created_at: string
+  updated_at: string
+}
 
 // Days of week considered "working days" by default (Mon–Fri).
 // Convention: 0 = Sunday, 1 = Monday, ... 6 = Saturday (matches JS getUTCDay()).

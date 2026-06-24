@@ -188,7 +188,7 @@ function findOptimalSchedule(
  * Build schedule items from selected exams for display
  * Uses trip segments: each segment represents a contiguous stay in the city
  */
-function buildScheduleItems(
+export function buildScheduleItems(
   exams: ExamWithSubject[],
   config: SchedulerConfig
 ): ScheduleItem[] {

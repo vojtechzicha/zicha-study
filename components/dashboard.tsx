@@ -7,7 +7,7 @@ import { fetchStudies } from "@/lib/actions/studies"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet, HardDrive } from "lucide-react"
+import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet, HardDrive, CalendarDays } from "lucide-react"
 import { StudyLogo } from "@/components/study-logo"
 import { useRouter } from "next/navigation"
 import { Study, getStatusColor, getStatusText, sortStudiesByStatus } from "@/lib/status-utils"
@@ -91,6 +91,15 @@ export function Dashboard({ user }: DashboardProps) {
             </div>
             <div className="flex items-center space-x-2 shrink-0">
               <GlobalTasksButton />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/exam-scheduler")}
+                title="Plánovač zkoušek"
+                aria-label="Otevřít plánovač zkoušek"
+              >
+                <CalendarDays className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
