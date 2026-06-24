@@ -110,6 +110,10 @@ export interface ScheduleItem {
   // True for an in-person exam item that falls on a working day and therefore
   // requires a PTO day (only set when preferFreeDayExams is enabled).
   requiresPto?: boolean;
+  // Study attribution, set by the global (multi-study) scheduler so the UI can
+  // label which study each item belongs to. Undefined in single-study output.
+  studyId?: string;
+  studyName?: string;
 }
 
 export interface ScheduleResult {

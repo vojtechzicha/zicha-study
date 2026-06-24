@@ -520,12 +520,15 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       Plánovač zkoušek
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Automatický plánovač optimálních termínů zkoušek
+                      {formData.status === STUDY_STATUS.ACTIVE
+                        ? "Automatický plánovač optimálních termínů zkoušek"
+                        : "Plánovač lze zapnout pouze u aktivního studia"}
                     </p>
                   </div>
                   <Switch
                     id="exam-scheduler"
-                    checked={formData.exam_scheduler_enabled}
+                    checked={formData.exam_scheduler_enabled && formData.status === STUDY_STATUS.ACTIVE}
+                    disabled={formData.status !== STUDY_STATUS.ACTIVE}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, exam_scheduler_enabled: checked })
                     }
@@ -533,7 +536,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </div>
 
                 {/* Scheduler Configuration - only show when enabled */}
-                {formData.exam_scheduler_enabled && (
+                {formData.exam_scheduler_enabled && formData.status === STUDY_STATUS.ACTIVE && (
                   <div className="p-4 border rounded-lg bg-primary-50/30 space-y-4">
                     <p className="text-sm font-medium text-gray-700">Nastavení plánovače</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

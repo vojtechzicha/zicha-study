@@ -1,5 +1,17 @@
 // Main algorithm export
-export { generateSchedule } from "./scheduler";
+export { generateSchedule, buildScheduleItems } from "./scheduler";
+
+// Global (multi-study) scheduler
+export { generateGlobalSchedule } from "./global-scheduler";
+export type {
+  GlobalStudyConfig,
+  GlobalTerm,
+  GlobalRequirement,
+  GlobalScheduleResult,
+  GlobalScheduleComparison,
+  PerStudyBreakdown,
+  UnschedulableRequirement,
+} from "./global-scheduler";
 
 // Types
 export type {

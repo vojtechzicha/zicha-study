@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, ChevronDown, ListChecks, Plus, Loader2 } from "lucide-react"
 import { fetchAllTasks, fetchTasksEnabledStudies } from "@/lib/actions/tasks"
+import { fetchUpcomingLockedExamTerms } from "@/lib/actions/exam-scheduler"
 import { GlobalTaskRow } from "@/components/global-task-row"
 import { TaskStateChips } from "@/components/task-state-chips"
 import { StudyLogo } from "@/components/study-logo"
+import { UpcomingExamTerms, type UpcomingExamTerm } from "@/components/upcoming-exam-terms"
 import { TitlePageFooter } from "@/components/title-page-footer"
 import {
   TASK_STATE,
@@ -45,6 +47,7 @@ export default function TasksPage() {
   const { status } = useSession()
   const [items, setItems] = useState<TaskWithStudy[]>([])
   const [studies, setStudies] = useState<EnabledStudy[]>([])
+  const [examTerms, setExamTerms] = useState<UpcomingExamTerm[]>([])
   const [loading, setLoading] = useState(true)
   const [collapsedCompleted, setCollapsedCompleted] = useState(true)
 
@@ -53,12 +56,14 @@ export default function TasksPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [tasksData, studiesData] = await Promise.all([
+      const [tasksData, studiesData, examTermsData] = await Promise.all([
         fetchAllTasks(),
         fetchTasksEnabledStudies(),
+        fetchUpcomingLockedExamTerms(todayLocalIso()),
       ])
       setItems(tasksData as TaskWithStudy[])
       setStudies(studiesData as EnabledStudy[])
+      setExamTerms(examTermsData as UpcomingExamTerm[])
     } finally {
       setLoading(false)
     }
@@ -229,6 +234,13 @@ export default function TasksPage() {
             )}
           </CardContent>
         </Card>
+
+        {examTerms.length > 0 && (
+          <UpcomingExamTerms
+            terms={examTerms}
+            onTermClick={(studyId) => router.push(`/studies/${studyId}`)}
+          />
+        )}
 
         <section>
           <div className="mb-4 flex items-center justify-between">
