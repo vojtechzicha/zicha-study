@@ -85,11 +85,11 @@ export function Dashboard({ user }: DashboardProps) {
                 <GraduationCap className="h-6 w-6 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl font-bold text-gray-900 whitespace-nowrap">Sledování studií</h1>
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">Sledování studií</h1>
                 <p className="text-sm text-gray-600 truncate">Vítejte, {getUserDisplayName()}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2 shrink-0">
+            <div className="flex items-center space-x-0.5 sm:space-x-2 shrink-0 [&_button]:px-2 sm:[&_button]:px-3">
               <GlobalTasksButton />
               <Button
                 variant="ghost"
