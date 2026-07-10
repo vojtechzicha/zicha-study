@@ -6,6 +6,7 @@ import { getStudyStatusLabel, getStudyFormLabel, getGraduationResultLabel, type 
 import { sortStudiesByStatus } from '@/lib/status-utils'
 import { getShareUrl } from '@/lib/utils/share-url'
 import { STUDY_KIND, resolveStudyKind, getStudyTerminology } from '@/lib/study-kind'
+import { calculateStudyStatistics, type StatisticsSubject } from '@/lib/utils/statistics-utils'
 import {
   derivePeriods,
   getGrade,
@@ -33,6 +34,7 @@ interface ExportStudy {
 
 // Subject type for export
 interface ExportSubject {
+  id: string
   semester: string
   abbreviation: string | null
   name: string
@@ -49,6 +51,8 @@ interface ExportSubject {
   final_date?: string
   lecturer?: string
   department?: string
+  is_repeat?: boolean
+  repeats_subject_id?: string | null
 }
 
 // Final exam type for export
@@ -681,16 +685,13 @@ export async function exportStudiesToExcel() {
 
     // ── Row 7: Summary statistics bar ───────────────────────────────────
     r = 7
-    const totalSubjects = subjects.length
-    const completedCount = subjects.filter(s => s.completed).length
-    const totalCredits = subjects.reduce((sum, s) => sum + (s.credits || 0), 0)
-    const completedCredits = subjects
-      .filter(s => s.completed)
-      .reduce((sum, s) => sum + (s.credits || 0), 0)
+    // Same semantics as the web app (calculateStudyStatistics): superseded
+    // repeat attempts and failed subjects don't count toward earned credits.
+    const stats = calculateStudyStatistics(subjects as unknown as StatisticsSubject[])
 
     ws.mergeCells(r, 1, r, NUM_COLS)
     const statsCell = ws.getCell(r, 1)
-    statsCell.value = `${totalSubjects} předmětů  \u2022  ${completedCount} dokončeno  \u2022  ${completedCredits}/${totalCredits} kreditů`
+    statsCell.value = `${stats.total} předmětů  \u2022  ${stats.completed} dokončeno  \u2022  ${stats.completedCredits}/${stats.totalCredits} kreditů`
     statsCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
     statsCell.fill = solidFill(C.LIGHT_ACCENT)
     statsCell.alignment = { horizontal: 'center', vertical: 'middle' }
