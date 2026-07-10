@@ -878,7 +878,7 @@ export async function getGlobalExamSchedulingData() {
   const subjectsCol = await col("subjects")
   const subjects = await subjectsCol
     .find({ study_id: { $in: studyIds } })
-    .project({ _id: 1, study_id: 1, name: 1, abbreviation: 1, semester: 1 })
+    .project({ _id: 1, study_id: 1, name: 1, abbreviation: 1, semester: 1, subject_type: 1, completed: 1, planned: 1 })
     .toArray()
 
   return { studies, periods, terms, subjects }

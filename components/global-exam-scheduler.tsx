@@ -94,6 +94,9 @@ interface SubjectData {
   name: string
   abbreviation: string | null
   semester?: string
+  subject_type?: string
+  completed?: boolean
+  planned?: boolean
 }
 
 function formatDateShort(dateStr: string): string {
