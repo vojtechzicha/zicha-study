@@ -127,7 +127,8 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
   const subjectMap = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects])
 
   const usedSubjectIds = new Set(groups.map((g) => g.subjectId))
-  const availableSubjects = studySubjects.filter((s) => !usedSubjectIds.has(s.id))
+  // Completed subjects (passed or failed) no longer need exam terms, so hide them.
+  const availableSubjects = studySubjects.filter((s) => !usedSubjectIds.has(s.id) && !s.completed)
 
   // Group available subjects by semester (in study order) and sort each group
   // the same way as the subject table on the study detail page.
