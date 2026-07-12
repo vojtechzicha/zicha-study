@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2, Calendar, Clock, Monitor, Lock, Loader2 } from "lucide-react"
 import { EXAM_DURATION_OPTIONS, EXAM_SCHEDULER_DEFAULTS } from "@/lib/constants"
+import { sortSubjects, getUniqueSemestersSorted } from "@/lib/utils/subject-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
   createExamPeriodAction,
@@ -30,6 +31,9 @@ export interface EditorSubject {
   name: string
   abbreviation: string | null
   semester?: string
+  subject_type?: string
+  completed?: boolean
+  planned?: boolean
 }
 
 export interface EditorPeriod {
@@ -123,7 +127,24 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
   const subjectMap = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects])
 
   const usedSubjectIds = new Set(groups.map((g) => g.subjectId))
-  const availableSubjects = studySubjects.filter((s) => !usedSubjectIds.has(s.id))
+  // Completed subjects (passed or failed) no longer need exam terms, so hide them.
+  const availableSubjects = studySubjects.filter((s) => !usedSubjectIds.has(s.id) && !s.completed)
+
+  // Group available subjects by semester (in study order) and sort each group
+  // the same way as the subject table on the study detail page.
+  const availableSubjectGroups = useMemo(() => {
+    const normalized = availableSubjects.map((s) => ({
+      ...s,
+      semester: s.semester || "",
+      subject_type: s.subject_type || "",
+      completed: !!s.completed,
+    }))
+    return getUniqueSemestersSorted(normalized).map((semester) => ({
+      semester,
+      subjects: sortSubjects(normalized.filter((s) => s.semester === semester)),
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studySubjects, groups])
 
   const addSubjectGroup = (subjectId: string) => {
     if (!subjectId) return
@@ -312,10 +333,15 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                     <SelectValue placeholder="+ Přidat předmět" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableSubjects.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.abbreviation ? `${s.abbreviation} – ${s.name}` : s.name}
-                      </SelectItem>
+                    {availableSubjectGroups.map((grp) => (
+                      <SelectGroup key={grp.semester || "none"}>
+                        <SelectLabel>{grp.semester || "Bez semestru"}</SelectLabel>
+                        {grp.subjects.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.abbreviation ? `${s.abbreviation} – ${s.name}` : s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>
