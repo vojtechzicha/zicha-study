@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CalendarDays, Lock, ExternalLink, Loader2 } from "lucide-react"
+import { CalendarDays, Lock, ExternalLink, Loader2, AlertTriangle } from "lucide-react"
 import { fetchStudyExamPeriods } from "@/lib/actions/exam-scheduler"
 
 interface SummarySubject {
@@ -25,6 +25,7 @@ interface PeriodRow {
   name: string
   start_date: string
   due_date: string
+  subject_ids?: string[]
 }
 interface TermRow {
   id: string
@@ -48,7 +49,12 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
     setLoading(true)
     try {
       const data = await fetchStudyExamPeriods(studyId)
-      setPeriods(data.periods as PeriodRow[])
+      // Order by start date, never by creation order.
+      setPeriods(
+        (data.periods as PeriodRow[]).slice().sort(
+          (a, b) => a.start_date.localeCompare(b.start_date) || a.name.localeCompare(b.name, "cs")
+        )
+      )
       setTerms(data.terms as TermRow[])
     } finally {
       setLoading(false)
@@ -97,7 +103,9 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
         ) : (
           <div className="space-y-3">
             {periods.map((p) => {
-              const subjectIds = Array.from(new Set(terms.filter((t) => t.period_id === p.id).map((t) => t.subject_id)))
+              const subjectIds = Array.from(
+                new Set([...(p.subject_ids || []), ...terms.filter((t) => t.period_id === p.id).map((t) => t.subject_id)])
+              )
               return (
                 <div key={p.id} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -114,6 +122,20 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
                         const subj = subjectMap.get(sid)
                         const grpTerms = terms.filter((t) => t.period_id === p.id && t.subject_id === sid)
                         const hasLock = grpTerms.some((t) => t.locked)
+                        if (grpTerms.length === 0) {
+                          return (
+                            <Badge
+                              key={sid}
+                              variant="secondary"
+                              className="bg-amber-100 text-amber-800 font-normal"
+                              title="Předmět zatím nemá žádné termíny a není zahrnut do rozvrhu"
+                            >
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              {subj?.abbreviation || subj?.name || "?"}
+                              <span className="ml-1 text-amber-600">(bez termínů)</span>
+                            </Badge>
+                          )
+                        }
                         return (
                           <Badge key={sid} variant="secondary" className="bg-primary-100 text-primary-700 font-normal">
                             {hasLock && <Lock className="h-3 w-3 mr-1" />}

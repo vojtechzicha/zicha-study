@@ -42,6 +42,7 @@ export interface EditorPeriod {
   name: string
   start_date: string
   due_date: string
+  subject_ids?: string[]
 }
 
 export interface EditorTerm {
@@ -104,9 +105,13 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
   const [dueDate, setDueDate] = useState(period?.due_date || "")
   const [saving, setSaving] = useState(false)
 
-  // Group existing terms by subject into editable drafts.
+  // Group existing terms by subject into editable drafts. Subjects stored on
+  // the period without any terms yet get an empty group so they survive edits.
   const initialGroups: SubjectGroup[] = useMemo(() => {
     const map = new Map<string, TermDraft[]>()
+    for (const sid of period?.subject_ids || []) {
+      map.set(sid, [])
+    }
     for (const t of terms) {
       const list = map.get(t.subject_id) || []
       list.push(toDraft(t))
@@ -209,10 +214,12 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
     }
     setSaving(true)
     try {
-      // 1. Upsert period.
+      // 1. Upsert period. subject_ids keeps subjects that have no terms yet
+      // as members of the period, so they don't silently disappear.
+      const subjectIds = groups.map((g) => g.subjectId)
       let periodId = period?.id
       if (isNew) {
-        const res = await createExamPeriodAction({ study_id: studyId, name: name.trim(), start_date: startDate, due_date: dueDate })
+        const res = await createExamPeriodAction({ study_id: studyId, name: name.trim(), start_date: startDate, due_date: dueDate, subject_ids: subjectIds })
         if (res.error || !res.data) {
           toast({ title: "Nepodařilo se vytvořit období", description: res.error?.message, variant: "destructive" })
           setSaving(false)
@@ -220,7 +227,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
         }
         periodId = res.data.id
       } else {
-        await updateExamPeriodAction(period!.id, { name: name.trim(), start_date: startDate, due_date: dueDate })
+        await updateExamPeriodAction(period!.id, { name: name.trim(), start_date: startDate, due_date: dueDate, subject_ids: subjectIds })
       }
       if (!periodId) {
         setSaving(false)
@@ -374,7 +381,9 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                     </div>
 
                     {grp.terms.length === 0 ? (
-                      <p className="text-xs text-gray-500 italic">Žádné termíny</p>
+                      <p className="text-xs text-amber-600 italic">
+                        Zatím žádné termíny – předmět se uloží, ale do rozvrhu se zahrne až po přidání termínů.
+                      </p>
                     ) : (
                       grp.terms.map((term, index) => (
                         <div key={term.id || index} className="p-3 border rounded-lg bg-white space-y-3">
