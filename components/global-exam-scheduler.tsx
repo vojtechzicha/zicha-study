@@ -28,6 +28,7 @@ import {
   RefreshCw,
   Clock3,
   Settings2,
+  AlertTriangle,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { StudyLogo } from "@/components/study-logo"
@@ -75,6 +76,7 @@ interface PeriodData {
   name: string
   start_date: string
   due_date: string
+  subject_ids?: string[]
 }
 interface TermData {
   id: string
@@ -265,13 +267,17 @@ export function GlobalExamScheduler() {
     [editingPeriod, terms]
   )
 
-  // Group periods by study for display.
+  // Group periods by study for display, ordered by start date (never by
+  // creation order).
   const periodsByStudy = useMemo(() => {
     const map = new Map<string, PeriodData[]>()
     for (const p of periods) {
       const list = map.get(p.study_id) || []
       list.push(p)
       map.set(p.study_id, list)
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.start_date.localeCompare(b.start_date) || a.name.localeCompare(b.name, "cs"))
     }
     return map
   }, [periods])
@@ -286,6 +292,18 @@ export function GlobalExamScheduler() {
     }
     return map
   }, [terms])
+
+  // (period, subject) members without any candidate term — they can't be
+  // scheduled yet, so the generated plan is incomplete and will change.
+  const subjectsWithoutTermsCount = useMemo(() => {
+    let count = 0
+    for (const p of periods) {
+      for (const sid of p.subject_ids || []) {
+        if (!termsByPeriodSubject.has(`${p.id}:${sid}`)) count++
+      }
+    }
+    return count
+  }, [periods, termsByPeriodSubject])
 
   if (loading) {
     return (
@@ -420,6 +438,16 @@ export function GlobalExamScheduler() {
                   {computing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                   {comparison ? "Přegenerovat rozvrh" : "Vygenerovat rozvrh"}
                 </Button>
+                {subjectsWithoutTermsCount > 0 && (
+                  <p className="w-full flex items-center gap-1.5 text-xs text-amber-700">
+                    <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                    {subjectsWithoutTermsCount === 1
+                      ? "1 předmět zatím nemá žádné termíny a není zahrnut do rozvrhu – plán se ještě změní."
+                      : subjectsWithoutTermsCount <= 4
+                        ? `${subjectsWithoutTermsCount} předměty zatím nemají žádné termíny a nejsou zahrnuty do rozvrhu – plán se ještě změní.`
+                        : `${subjectsWithoutTermsCount} předmětů zatím nemá žádné termíny a není zahrnuto do rozvrhu – plán se ještě změní.`}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -439,7 +467,10 @@ export function GlobalExamScheduler() {
                     <CardContent className="space-y-3">
                       {studyPeriods.map((p) => {
                         const periodSubjectIds = Array.from(
-                          new Set(terms.filter((t) => t.period_id === p.id).map((t) => t.subject_id))
+                          new Set([
+                            ...(p.subject_ids || []),
+                            ...terms.filter((t) => t.period_id === p.id).map((t) => t.subject_id),
+                          ])
                         )
                         return (
                           <div key={p.id} className="border rounded-lg p-3">
@@ -473,6 +504,20 @@ export function GlobalExamScheduler() {
                                   const subj = subjectMap.get(sid)
                                   const grpTerms = termsByPeriodSubject.get(`${p.id}:${sid}`) || []
                                   const hasLock = grpTerms.some((t) => t.locked)
+                                  if (grpTerms.length === 0) {
+                                    return (
+                                      <Badge
+                                        key={sid}
+                                        variant="secondary"
+                                        className="bg-amber-100 text-amber-800 font-normal"
+                                        title="Předmět zatím nemá žádné termíny a není zahrnut do rozvrhu"
+                                      >
+                                        <AlertTriangle className="h-3 w-3 mr-1" />
+                                        {subj?.abbreviation || subj?.name || "?"}
+                                        <span className="ml-1 text-amber-600">(bez termínů)</span>
+                                      </Badge>
+                                    )
+                                  }
                                   return (
                                     <Badge
                                       key={sid}
