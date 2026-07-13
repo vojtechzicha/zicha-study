@@ -162,6 +162,11 @@ export const getCzechCreditsWord = (credits: number): string => {
   return credits === 1 ? 'kredit' : credits >= 2 && credits <= 4 ? 'kredity' : 'kreditů'
 }
 
+// Get Czech plural form for subjects
+export const getCzechSubjectsWord = (count: number): string => {
+  return count === 1 ? 'předmět' : count >= 2 && count <= 4 ? 'předměty' : 'předmětů'
+}
+
 // Get credits and hours display data
 export const getCreditsAndHoursDisplay = (credits: number, hours?: number) => {
   const hasCredits = credits !== undefined && credits !== null

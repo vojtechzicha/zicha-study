@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { Fragment, useState, useRef, useEffect } from "react"
 import { updateSubject } from "@/lib/actions/subjects"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -40,11 +40,13 @@ import {
   getCompletionBadgeConfig,
   getGradeBadgeConfig,
   getCzechPointsWord,
+  getCzechCreditsWord,
+  getCzechSubjectsWord,
   getCreditsAndHoursDisplay
 } from "@/lib/status-utils"
 import { getSubjectTypeConfig } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
-import { sortSubjects } from "@/lib/utils/subject-utils"
+import { groupSubjectsForDisplay, getSemesterHeadingLabel } from "@/lib/utils/subject-utils"
 
 interface Subject {
   id: string
@@ -105,12 +107,13 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Filter subjects based on selected filter
-  const filteredSubjects = filter === "active" 
+  const filteredSubjects = filter === "active"
     ? subjects.filter(s => !s.completed && !s.planned)
     : subjects
-    
-  const sortedSubjects = sortSubjects(filteredSubjects)
-  
+
+  // Group subjects by semester so each semester renders once under its own divider row
+  const semesterGroups = groupSubjectsForDisplay(hideFilters ? subjects : filteredSubjects)
+
   // Check if any subject has department or lecturer info
   const hasDetailInfo = subjects.some(s => s.department || s.lecturer)
 
@@ -120,7 +123,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
       setShowLeftIndicator(scrollLeft > 0)
       setShowRightIndicator(scrollLeft < scrollWidth - clientWidth - 1)
-      
+
       // Hide scroll hint after user has scrolled
       if (scrollLeft > 0) {
         setShowScrollHint(false)
@@ -134,12 +137,12 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       checkScroll()
       container.addEventListener('scroll', checkScroll)
       window.addEventListener('resize', checkScroll)
-      
+
       // Hide scroll hint after 5 seconds
       const timer = setTimeout(() => {
         setShowScrollHint(false)
       }, 5000)
-      
+
       return () => {
         container.removeEventListener('scroll', checkScroll)
         window.removeEventListener('resize', checkScroll)
@@ -163,7 +166,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
     // If changing to completed, we need to set a final_date and mark credit/exam as completed
     if (newState === "completed") {
       updates.final_date = new Date().toISOString().split('T')[0] // Today's date
-      
+
       // Automatically mark credit and exam as completed if required by completion type
       if (requiresCredit(subject.completion_type)) {
         updates.credit_completed = true
@@ -256,14 +259,14 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       {/* Filter Buttons - only show when not hidden */}
       {!hideFilters && (
         <div className="flex gap-2 p-4 border-b">
-          <Button 
+          <Button
             variant={filter === "all" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("all")}
           >
             Všechny ({subjects.length})
           </Button>
-          <Button 
+          <Button
             variant={filter === "active" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("active")}
@@ -272,19 +275,19 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           </Button>
         </div>
       )}
-      
+
       {/* Mobile Card View */}
       <div className="lg:hidden">
         <div className="p-4">
           <SubjectTableMobile subjects={hideFilters ? subjects : filteredSubjects} loading={loading} onUpdate={onUpdate} study={study} examSchedulerEnabled={examSchedulerEnabled || study?.exam_scheduler_enabled} />
         </div>
       </div>
-      
+
       {/* Desktop Table View */}
       <div className="hidden lg:block relative">
         {/* Scroll indicators - only show when scrolling is possible */}
         {showLeftIndicator && (
-          <div className="absolute left-[370px] top-0 bottom-0 w-16 flex items-center pointer-events-none z-30">
+          <div className="absolute left-[250px] top-0 bottom-0 w-16 flex items-center pointer-events-none z-30">
             <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent" />
             <ChevronLeft className="relative ml-2 h-5 w-5 text-gray-400" />
           </div>
@@ -295,7 +298,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
             <ChevronRight className="relative mr-2 h-5 w-5 text-gray-400" />
           </div>
         )}
-        
+
         {/* Scroll hint that appears briefly */}
         {showScrollHint && showRightIndicator && (
           <div className="absolute right-[116px] top-1/2 -translate-y-1/2 animate-pulse pointer-events-none z-40">
@@ -305,9 +308,9 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
             </div>
           </div>
         )}
-        
-        <div 
-          className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400" 
+
+        <div
+          className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
           ref={scrollContainerRef}
           style={{
             scrollbarWidth: 'thin',
@@ -317,8 +320,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 z-10 bg-white w-[120px]">Semestr</TableHead>
-              <TableHead className="sticky left-[120px] z-20 bg-white min-w-[250px]">Předmět</TableHead>
+              <TableHead className="sticky left-0 z-20 bg-white min-w-[250px]">Předmět</TableHead>
               {hasDetailInfo && <TableHead className="w-[200px]">Detail</TableHead>}
               <TableHead>Typ</TableHead>
               <TableHead>Ukončení</TableHead>
@@ -335,10 +337,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
             // Skeleton loading rows
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={`skeleton-${index}`}>
-                <TableCell className="sticky left-0 z-10 bg-white">
-                  <Skeleton className="h-4 w-16" />
-                </TableCell>
-                <TableCell className="sticky left-[120px] z-20 bg-white min-w-[250px]">
+                <TableCell className="sticky left-0 z-20 bg-white min-w-[250px]">
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-48" />
@@ -367,287 +366,306 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                 </TableCell>
               </TableRow>
             ))
-          ) : (hideFilters ? subjects : sortedSubjects).length === 0 ? (
+          ) : semesterGroups.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={hasDetailInfo ? 11 : 10} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={hasDetailInfo ? 10 : 9} className="text-center py-8 text-gray-500">
                 Žádné předměty nenalezeny.
               </TableCell>
             </TableRow>
           ) : (
-            (hideFilters ? sortSubjects(subjects) : sortedSubjects).map((subject) => {
-              const subjectState = getSubjectStatus(subject)
-              const availableActions = getAvailableActions(subjectState, subject.completion_type)
+            semesterGroups.map((group) => {
+              const totalCredits = group.subjects.reduce((sum, s) => sum + (s.credits || 0), 0)
 
               return (
-                <TableRow 
-                  key={subject.id}
-                  className={isSubjectFailed(subject) ? "group bg-red-50 hover:bg-red-100" : "group"}
-                >
-                  {/* Semester */}
-                  <TableCell className={`font-medium whitespace-nowrap sticky left-0 z-10 ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>{subject.semester}</TableCell>
-
-                  {/* Subject */}
-                  <TableCell className={`sticky left-[120px] z-20 min-w-[250px] ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
-                    <div>
-                      <div className="font-medium flex items-center gap-2">
-                        {subject.abbreviation || subject.name}
-                        {subject.is_repeat && (
-                          <Badge variant="secondary" className="text-xs">
-                            Opakovaný
-                          </Badge>
-                        )}
+                <Fragment key={group.semester}>
+                  {/* Semester divider row */}
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={hasDetailInfo ? 10 : 9} className="bg-primary-50 border-y border-primary-200 p-0">
+                      {/* Sticky wrapper keeps the label visible while the table scrolls horizontally */}
+                      <div className="sticky left-0 w-fit max-w-full flex items-baseline gap-3 px-4 py-2 whitespace-nowrap">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-primary-700">
+                          {getSemesterHeadingLabel(group.semester)}
+                        </span>
+                        <span className="text-xs text-primary-600">
+                          {group.subjects.length} {getCzechSubjectsWord(group.subjects.length)} · {totalCredits} {getCzechCreditsWord(totalCredits)}
+                        </span>
                       </div>
-                      {subject.abbreviation && (
-                        <div className="text-sm text-gray-600">{subject.name}</div>
-                      )}
-                    </div>
-                  </TableCell>
-
-                  {/* Detail - Department and Lecturer */}
-                  {hasDetailInfo && (
-                    <TableCell className={`text-xs text-gray-600 max-w-[200px] overflow-hidden pl-6 ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
-                      {(subject.department || subject.lecturer) ? (
-                        <TooltipProvider>
-                          <div className="space-y-0.5">
-                            {subject.department && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="truncate cursor-help">
-                                    {subject.department}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{subject.department}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                            {subject.lecturer && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="truncate text-gray-500 cursor-help">
-                                    {subject.lecturer}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{subject.lecturer}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </TooltipProvider>
-                      ) : (
-                        "-"
-                      )}
                     </TableCell>
-                  )}
+                  </TableRow>
+                  {group.subjects.map((subject) => {
+                    const subjectState = getSubjectStatus(subject)
+                    const availableActions = getAvailableActions(subjectState, subject.completion_type)
 
-                  {/* Type */}
-                  <TableCell>
-                    {getSubjectTypeBadge(subject.subject_type)}
-                  </TableCell>
-
-                  {/* Completion Type */}
-                  <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>
-
-                  {/* Credits and Hours Combined */}
-                  <TableCell className="whitespace-nowrap">
-                    {(() => {
-                      const display = getCreditsAndHoursDisplay(subject.credits, subject.hours)
-                      
-                      if (display.type === 'none') return "-"
-                      
-                      if (display.type === 'both') {
-                        return (
-                          <span>
-                            <span className="font-medium">{display.credits}</span>
-                            <span className="text-gray-500 text-sm ml-1">({display.hours} {display.hoursText})</span>
-                          </span>
-                        )
-                      }
-                      
-                      if (display.type === 'credits') {
-                        return <span className="font-medium">{display.credits}</span>
-                      }
-                      
-                      if (display.type === 'hours') {
-                        return <span className="text-gray-500">{display.hours} {display.hoursText}</span>
-                      }
-                    })()}
-                  </TableCell>
-
-                  {/* Grade and Points Combined */}
-                  <TableCell className="whitespace-nowrap">
-                    {(() => {
-                      const hasGrade = isFieldVisibleForState("grade", subjectState) && subject.grade
-                      const hasPoints = isFieldVisibleForState("points", subjectState) && subject.points
-                      
-                      if (!hasGrade && !hasPoints) return "-"
-                      
-                      
-                      if (hasGrade && hasPoints) {
-                        const gradeConfig = getGradeBadgeConfig(subject.grade!, subject)
-                        return (
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
-                              {subject.grade}
-                            </span>
-                            <span className="text-sm text-gray-600">({subject.points} {getCzechPointsWord(subject.points!)})</span>
+                    return (
+                      <TableRow
+                        key={subject.id}
+                        className={isSubjectFailed(subject) ? "group bg-red-50 hover:bg-red-100" : "group"}
+                      >
+                        {/* Subject */}
+                        <TableCell className={`sticky left-0 z-20 min-w-[250px] ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                          <div>
+                            <div className="font-medium flex items-center gap-2">
+                              {subject.abbreviation || subject.name}
+                              {subject.is_repeat && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Opakovaný
+                                </Badge>
+                              )}
+                            </div>
+                            {subject.abbreviation && (
+                              <div className="text-sm text-gray-600">{subject.name}</div>
+                            )}
                           </div>
-                        )
-                      }
+                        </TableCell>
 
-                      if (hasGrade) {
-                        const gradeConfig = getGradeBadgeConfig(subject.grade!, subject)
-                        return (
-                          <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
-                            {subject.grade}
-                          </span>
-                        )
-                      }
+                        {/* Detail - Department and Lecturer */}
+                        {hasDetailInfo && (
+                          <TableCell className={`text-xs text-gray-600 max-w-[200px] overflow-hidden pl-6 ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                            {(subject.department || subject.lecturer) ? (
+                              <TooltipProvider>
+                                <div className="space-y-0.5">
+                                  {subject.department && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="truncate cursor-help">
+                                          {subject.department}
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{subject.department}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                  {subject.lecturer && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="truncate text-gray-500 cursor-help">
+                                          {subject.lecturer}
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{subject.lecturer}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </TooltipProvider>
+                            ) : (
+                              "-"
+                            )}
+                          </TableCell>
+                        )}
 
-                      if (hasPoints) {
-                        return <span className="text-sm text-gray-600">{subject.points} {getCzechPointsWord(subject.points!)}</span>
-                      }
-                    })()}
-                  </TableCell>
+                        {/* Type */}
+                        <TableCell>
+                          {getSubjectTypeBadge(subject.subject_type)}
+                        </TableCell>
 
-                  {/* Final Date */}
-                  <TableCell className="whitespace-nowrap">
-                    {isFieldVisibleForState("final_date", subjectState) ? (formatDateCzech(subject.final_date) || "-") : "-"}
-                  </TableCell>
+                        {/* Completion Type */}
+                        <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>
 
-                  {/* Credit Completion */}
-                  <TableCell>
-                    {requiresCredit(subject.completion_type) ? (
-                      availableActions.includes("toggleCredit") ? (
-                        <Checkbox
-                          key={`${subject.id}-credit-${subject.credit_completed}`}
-                          checked={subject.credit_completed}
-                          onCheckedChange={(checked) => {
-                            // Only allow checking if not already completed
-                            if (checked && !subject.credit_completed) {
-                              handleCheckboxChange(subject, "credit_completed", checked as boolean)
+                        {/* Credits and Hours Combined */}
+                        <TableCell className="whitespace-nowrap">
+                          {(() => {
+                            const display = getCreditsAndHoursDisplay(subject.credits, subject.hours)
+
+                            if (display.type === 'none') return "-"
+
+                            if (display.type === 'both') {
+                              return (
+                                <span>
+                                  <span className="font-medium">{display.credits}</span>
+                                  <span className="text-gray-500 text-sm ml-1">({display.hours} {display.hoursText})</span>
+                                </span>
+                              )
                             }
-                          }}
-                          disabled={actionLoading[`${subject.id}_credit_completed`] || subject.credit_completed}
-                          className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          style={subject.credit_completed ? {
-                            backgroundColor: 'hsl(var(--primary-600))',
-                            borderColor: 'hsl(var(--primary-600))',
-                            color: 'white'
-                          } : {}}
-                        />
-                      ) : (
-                        subject.credit_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600" />) : "-"
-                      )
-                    ) : (
-                      <span className="text-gray-400">N/A</span>
-                    )}
-                  </TableCell>
 
-                  {/* Exam Completion */}
-                  <TableCell>
-                    {requiresExam(subject.completion_type) ? (
-                      availableActions.includes("toggleExam") ? (
-                        <Checkbox
-                          key={`${subject.id}-exam-${subject.exam_completed}`}
-                          checked={subject.exam_completed}
-                          onCheckedChange={(checked) => {
-                            // Only allow checking if not already completed
-                            if (checked && !subject.exam_completed) {
-                              handleCheckboxChange(subject, "exam_completed", checked as boolean)
+                            if (display.type === 'credits') {
+                              return <span className="font-medium">{display.credits}</span>
                             }
-                          }}
-                          disabled={actionLoading[`${subject.id}_exam_completed`] || subject.exam_completed}
-                          className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          style={subject.exam_completed ? {
-                            backgroundColor: 'hsl(var(--primary-600))',
-                            borderColor: 'hsl(var(--primary-600))',
-                            color: 'white'
-                          } : {}}
-                        />
-                      ) : (
-                        subject.exam_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600" />) : "-"
-                      )
-                    ) : (
-                      <span className="text-gray-400">N/A</span>
-                    )}
-                  </TableCell>
 
-                  {/* Actions */}
-                  <TableCell className={`sticky right-0 z-10 text-right ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
-                    <div className="flex gap-1 justify-end">
-                      {/* Make Active */}
-                      {availableActions.includes("makeActive") && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleStateChange(subject.id, "active")}
-                          disabled={actionLoading[subject.id]}
-                          title="Aktivovat předmět"
-                        >
-                          <Play className="h-4 w-4" />
-                        </Button>
-                      )}
+                            if (display.type === 'hours') {
+                              return <span className="text-gray-500">{display.hours} {display.hoursText}</span>
+                            }
+                          })()}
+                        </TableCell>
 
-                      {/* Mark Completed */}
-                      {availableActions.includes("markCompleted") && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+                        {/* Grade and Points Combined */}
+                        <TableCell className="whitespace-nowrap">
+                          {(() => {
+                            const hasGrade = isFieldVisibleForState("grade", subjectState) && subject.grade
+                            const hasPoints = isFieldVisibleForState("points", subjectState) && subject.points
+
+                            if (!hasGrade && !hasPoints) return "-"
+
+
+                            if (hasGrade && hasPoints) {
+                              const gradeConfig = getGradeBadgeConfig(subject.grade!, subject)
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
+                                    {subject.grade}
+                                  </span>
+                                  <span className="text-sm text-gray-600">({subject.points} {getCzechPointsWord(subject.points!)})</span>
+                                </div>
+                              )
+                            }
+
+                            if (hasGrade) {
+                              const gradeConfig = getGradeBadgeConfig(subject.grade!, subject)
+                              return (
+                                <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
+                                  {subject.grade}
+                                </span>
+                              )
+                            }
+
+                            if (hasPoints) {
+                              return <span className="text-sm text-gray-600">{subject.points} {getCzechPointsWord(subject.points!)}</span>
+                            }
+                          })()}
+                        </TableCell>
+
+                        {/* Final Date */}
+                        <TableCell className="whitespace-nowrap">
+                          {isFieldVisibleForState("final_date", subjectState) ? (formatDateCzech(subject.final_date) || "-") : "-"}
+                        </TableCell>
+
+                        {/* Credit Completion */}
+                        <TableCell>
+                          {requiresCredit(subject.completion_type) ? (
+                            availableActions.includes("toggleCredit") ? (
+                              <Checkbox
+                                key={`${subject.id}-credit-${subject.credit_completed}`}
+                                checked={subject.credit_completed}
+                                onCheckedChange={(checked) => {
+                                  // Only allow checking if not already completed
+                                  if (checked && !subject.credit_completed) {
+                                    handleCheckboxChange(subject, "credit_completed", checked as boolean)
+                                  }
+                                }}
+                                disabled={actionLoading[`${subject.id}_credit_completed`] || subject.credit_completed}
+                                className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                style={subject.credit_completed ? {
+                                  backgroundColor: 'hsl(var(--primary-600))',
+                                  borderColor: 'hsl(var(--primary-600))',
+                                  color: 'white'
+                                } : {}}
+                              />
+                            ) : (
+                              subject.credit_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600" />) : "-"
+                            )
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </TableCell>
+
+                        {/* Exam Completion */}
+                        <TableCell>
+                          {requiresExam(subject.completion_type) ? (
+                            availableActions.includes("toggleExam") ? (
+                              <Checkbox
+                                key={`${subject.id}-exam-${subject.exam_completed}`}
+                                checked={subject.exam_completed}
+                                onCheckedChange={(checked) => {
+                                  // Only allow checking if not already completed
+                                  if (checked && !subject.exam_completed) {
+                                    handleCheckboxChange(subject, "exam_completed", checked as boolean)
+                                  }
+                                }}
+                                disabled={actionLoading[`${subject.id}_exam_completed`] || subject.exam_completed}
+                                className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                style={subject.exam_completed ? {
+                                  backgroundColor: 'hsl(var(--primary-600))',
+                                  borderColor: 'hsl(var(--primary-600))',
+                                  color: 'white'
+                                } : {}}
+                              />
+                            ) : (
+                              subject.exam_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600" />) : "-"
+                            )
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell className={`sticky right-0 z-10 text-right ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                          <div className="flex gap-1 justify-end">
+                            {/* Make Active */}
+                            {availableActions.includes("makeActive") && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleStateChange(subject.id, "active")}
+                                disabled={actionLoading[subject.id]}
+                                title="Aktivovat předmět"
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {/* Mark Completed */}
+                            {availableActions.includes("markCompleted") && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={actionLoading[subject.id]}
+                                    title="Označit jako dokončený"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Označit předmět jako dokončený?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Předmět &quot;{subject.name}&quot; bude označen jako dokončený s dnešním datem.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleStateChange(subject.id, "completed")}
+                                      className="bg-primary-600 hover:bg-primary-700 text-white"
+                                    >
+                                      Označit jako dokončený
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+
+                            {/* Materials */}
                             <Button
                               variant="ghost"
                               size="sm"
-                              disabled={actionLoading[subject.id]}
-                              title="Označit jako dokončený"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={() => handleMaterialsClick(subject)}
+                              title="Materiály předmětu"
                             >
-                              <CheckCircle className="h-4 w-4" />
+                              <FolderOpen className="h-4 w-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Označit předmět jako dokončený?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Předmět &quot;{subject.name}&quot; bude označen jako dokončený s dnešním datem.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Zrušit</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleStateChange(subject.id, "completed")}
-                                className="bg-primary-600 hover:bg-primary-700 text-white"
+
+                            {/* Edit */}
+                            {availableActions.includes("edit") && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditClick(subject)}
+                                title="Upravit předmět"
                               >
-                                Označit jako dokončený
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-
-                      {/* Materials */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleMaterialsClick(subject)}
-                        title="Materiály předmětu"
-                      >
-                        <FolderOpen className="h-4 w-4" />
-                      </Button>
-
-                      {/* Edit */}
-                      {availableActions.includes("edit") && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditClick(subject)}
-                          title="Upravit předmět"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </Fragment>
               )
             })
           )}
@@ -655,7 +673,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         </Table>
         </div>
       </div>
-      
+
       {/* Edit Modal */}
       {editingSubject && (
         <SubjectEditForm
@@ -666,7 +684,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           examSchedulerEnabled={examSchedulerEnabled || study?.exam_scheduler_enabled}
         />
       )}
-      
+
       {/* Completion Modal */}
       {completionModalSubject && (
         <SubjectCompletionModal
