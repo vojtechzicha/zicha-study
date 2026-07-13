@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { BookOpen, Target, Clock, Trophy, Calendar, TrendingUp, GraduationCap } from "lucide-react"
@@ -9,13 +9,15 @@ import { calculateStudyStatistics, type StudyStatistics, type StatisticsSubject 
 interface StudyStatisticsCardsProps {
   subjects: StatisticsSubject[]
   variant?: "full" | "simple"
+  /** Extra card appended to the stats grid (e.g. the collapsed tasks card) */
+  tasksSlot?: ReactNode
 }
 
-export function StudyStatisticsCards({ subjects, variant = "full" }: StudyStatisticsCardsProps) {
+export function StudyStatisticsCards({ subjects, variant = "full", tasksSlot }: StudyStatisticsCardsProps) {
   const stats = useMemo(() => calculateStudyStatistics(subjects), [subjects])
 
   if (variant === "simple") {
-    return <SimpleStatisticsCards stats={stats} />
+    return <SimpleStatisticsCards stats={stats} tasksSlot={tasksSlot} />
   }
 
   return <FullStatisticsCards stats={stats} />
@@ -170,9 +172,11 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
 }
 
 // Simple statistics display for study detail view
-function SimpleStatisticsCards({ stats }: { stats: StudyStatistics }) {
+function SimpleStatisticsCards({ stats, tasksSlot }: { stats: StudyStatistics; tasksSlot?: ReactNode }) {
+  const cardCount = 3 + (stats.average.type !== 'none' ? 1 : 0) + (tasksSlot ? 1 : 0)
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${cardCount >= 5 ? "xl:grid-cols-5" : ""} gap-6 mb-8`}>
       <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
@@ -241,6 +245,8 @@ function SimpleStatisticsCards({ stats }: { stats: StudyStatistics }) {
           </CardContent>
         </Card>
       )}
+
+      {tasksSlot}
     </div>
   )
 }

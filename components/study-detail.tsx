@@ -1,7 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { fetchSubjectsByStudyId } from "@/lib/actions/subjects"
+import { fetchTasks } from "@/lib/actions/tasks"
+import { groupTasksForDisplay } from "@/lib/utils/task-utils"
+import { todayLocalIso, type Task } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { BarChart3, Edit, Settings } from "lucide-react"
 import { StudyHeader } from "./study-header"
@@ -79,6 +82,9 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
   const [loading, setLoading] = useState(true)
   const [currentStudy] = useState<Study>(study)
   const [examSchedulerRefreshTrigger, setExamSchedulerRefreshTrigger] = useState(0)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasksLoading, setTasksLoading] = useState(true)
+  const [tasksError, setTasksError] = useState<string | null>(null)
   const router = useRouter()
   
   // Extract and apply theme colors from logo
@@ -106,6 +112,35 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
     // Trigger exam scheduler to reload exam options
     setExamSchedulerRefreshTrigger(prev => prev + 1)
   }
+
+  // Tasks are loaded here (not in TasksSection) so this component can decide
+  // whether the section renders wide or collapses into the stats card row
+  const loadTasks = useCallback(async () => {
+    setTasksError(null)
+    try {
+      const data = (await fetchTasks(study.id)) as Task[]
+      setTasks(data || [])
+    } catch {
+      setTasksError("Nepodařilo se načíst úkoly")
+    } finally {
+      setTasksLoading(false)
+    }
+  }, [study.id])
+
+  useEffect(() => {
+    if (currentStudy.tasks_enabled) {
+      loadTasks()
+    } else {
+      setTasksLoading(false)
+    }
+  }, [loadTasks, currentStudy.tasks_enabled])
+
+  const today = todayLocalIso()
+  const taskGroups = useMemo(() => groupTasksForDisplay(tasks, today), [tasks, today])
+  const tasksReady = Boolean(currentStudy.tasks_enabled) && !tasksLoading
+  // Collapse into the stats row when nothing would be listed inline
+  // (no overdue/running/upcoming task); keep the wide view otherwise
+  const tasksCompact = tasksReady && !tasksError && taskGroups.visible.length === 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
@@ -135,13 +170,22 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
         {/* Diploma Showcase (only renders when study is completed and diploma uploaded) */}
         <DiplomaShowcase study={currentStudy} variant="compact" />
 
-        {/* Statistics Cards */}
-        <StudyStatsCards study={currentStudy} subjects={subjects} variant="simple" />
+        {/* Statistics Cards (with the collapsed tasks card when nothing is due) */}
+        <StudyStatsCards
+          study={currentStudy}
+          subjects={subjects}
+          variant="simple"
+          tasksSlot={
+            tasksCompact ? (
+              <TasksSection studyId={study.id} tasks={tasks} error={tasksError} onReload={loadTasks} compact />
+            ) : undefined
+          }
+        />
 
-        {/* Tasks Section */}
-        {currentStudy.tasks_enabled && (
+        {/* Tasks Section (wide view whenever at least one task is listed) */}
+        {tasksReady && !tasksCompact && (
           <div className="mb-8">
-            <TasksSection studyId={study.id} />
+            <TasksSection studyId={study.id} tasks={tasks} error={tasksError} onReload={loadTasks} />
           </div>
         )}
 

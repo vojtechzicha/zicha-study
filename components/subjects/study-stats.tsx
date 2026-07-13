@@ -7,7 +7,7 @@
  * branch on study type.
  */
 
-import type { ComponentType } from "react"
+import type { ComponentType, ReactNode } from "react"
 import { STUDY_KIND, resolveStudyKind, type StudyKind } from "@/lib/study-kind"
 import { StudyStatisticsCards } from "@/components/study-statistics-cards"
 import { HighSchoolStatsCards } from "./highschool-stats-cards"
@@ -16,11 +16,14 @@ interface StudyStatsCardsProps {
   study: { type: string }
   subjects: any[]
   variant?: "full" | "simple"
+  /** Extra card appended to the stats grid (e.g. the collapsed tasks card) */
+  tasksSlot?: ReactNode
 }
 
 interface KindStatsProps {
   subjects: any[]
   variant?: "full" | "simple"
+  tasksSlot?: ReactNode
 }
 
 const STATS_VIEWS: Record<StudyKind, ComponentType<KindStatsProps>> = {
@@ -28,7 +31,7 @@ const STATS_VIEWS: Record<StudyKind, ComponentType<KindStatsProps>> = {
   [STUDY_KIND.HIGH_SCHOOL]: HighSchoolStatsCards,
 }
 
-export function StudyStatsCards({ study, subjects, variant = "full" }: StudyStatsCardsProps) {
+export function StudyStatsCards({ study, subjects, variant = "full", tasksSlot }: StudyStatsCardsProps) {
   const View = STATS_VIEWS[resolveStudyKind(study.type)]
-  return <View subjects={subjects} variant={variant} />
+  return <View subjects={subjects} variant={variant} tasksSlot={tasksSlot} />
 }
