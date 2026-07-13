@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, TrendingUp, CheckCircle } from "lucide-react"
 import {
@@ -12,9 +12,11 @@ import {
 interface HighSchoolStatsCardsProps {
   subjects: HighSchoolSubjectLike[]
   variant?: "full" | "simple"
+  /** Extra card appended to the stats grid (e.g. the collapsed tasks card) */
+  tasksSlot?: ReactNode
 }
 
-export function HighSchoolStatsCards({ subjects, variant = "full" }: HighSchoolStatsCardsProps) {
+export function HighSchoolStatsCards({ subjects, variant = "full", tasksSlot }: HighSchoolStatsCardsProps) {
   const stats = useMemo(() => {
     const average = overallAverage(subjects)
     const totalGrades = subjects.reduce((sum, s) => sum + (s.grades?.length ?? 0), 0)
@@ -64,6 +66,8 @@ export function HighSchoolStatsCards({ subjects, variant = "full" }: HighSchoolS
           </CardContent>
         </Card>
       )}
+
+      {tasksSlot}
     </div>
   )
 }

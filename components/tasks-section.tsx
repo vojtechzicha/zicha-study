@@ -6,146 +6,162 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, ListChecks, ChevronRight, AlertCircle } from "lucide-react"
-import { fetchTasks } from "@/lib/actions/tasks"
 import { TaskCard } from "@/components/task-card"
 import { TaskDialog } from "@/components/task-dialog"
 import { TasksAllDialog } from "@/components/tasks-all-dialog"
 import { TaskStateChips } from "@/components/task-state-chips"
-import {
-  getTaskState,
-  todayLocalIso,
-  type Task,
-  type TaskState,
-} from "@/lib/constants"
+import { todayLocalIso, type Task } from "@/lib/constants"
+import { groupTasksForDisplay, getCompletedTasksLabel } from "@/lib/utils/task-utils"
 
 interface TasksSectionProps {
   studyId: string
+  tasks: Task[]
+  error: string | null
+  onReload: () => void
+  /** Render as a small stat-style card (used when no task is visible inline) */
+  compact?: boolean
 }
 
-const VISIBLE_NON_OVERDUE = 3
 const HIGHLIGHT_DURATION_MS = 1800
 
-export function TasksSection({ studyId }: TasksSectionProps) {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [showAllDialog, setShowAllDialog] = useState(false)
-  const [highlightedId, setHighlightedId] = useState<string | null>(null)
-  const handledParamsRef = useRef(false)
-  const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-
+export function TasksSection({ studyId, tasks, error, onReload, compact = false }: TasksSectionProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const loadTasks = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = (await fetchTasks(studyId)) as Task[]
-      setTasks(data || [])
-    } catch {
-      setError("Nepodařilo se načíst úkoly")
-    } finally {
-      setLoading(false)
-    }
-  }, [studyId])
-
-  useEffect(() => {
-    loadTasks()
-  }, [loadTasks])
-
   const today = todayLocalIso()
 
-  const { counts, visible, hiddenCount, hiddenIds } = useMemo(() => {
-    const grouped: Record<TaskState, Task[]> = {
-      overdue: [],
-      running: [],
-      upcoming: [],
-      completed: [],
-    }
-    for (const t of tasks) {
-      grouped[getTaskState(t, today)].push(t)
-    }
-    grouped.overdue.sort((a, b) => a.deadline.localeCompare(b.deadline))
-    grouped.running.sort((a, b) => a.deadline.localeCompare(b.deadline))
-    grouped.upcoming.sort((a, b) =>
-      (a.start_date || a.deadline).localeCompare(b.start_date || b.deadline)
-    )
+  const { counts, visible, hiddenCount, hiddenIds } = useMemo(
+    () => groupTasksForDisplay(tasks, today),
+    [tasks, today]
+  )
 
-    const counts: Record<TaskState, number> = {
-      overdue: grouped.overdue.length,
-      running: grouped.running.length,
-      upcoming: grouped.upcoming.length,
-      completed: grouped.completed.length,
-    }
-
-    const nonOverdue = [...grouped.running, ...grouped.upcoming]
-    const visible: Task[] = [
-      ...grouped.overdue,
-      ...nonOverdue.slice(0, VISIBLE_NON_OVERDUE),
-    ]
-    const hiddenCount =
-      Math.max(0, nonOverdue.length - VISIBLE_NON_OVERDUE) + grouped.completed.length
-
-    const visibleIds = new Set(visible.map((t) => t.id))
-    const hiddenIds = new Set(tasks.filter((t) => !visibleIds.has(t.id)).map((t) => t.id))
-
-    return { counts, visible, hiddenCount, hiddenIds }
-  }, [tasks, today])
-
-  // Deep-link handling: ?addTask=1 and ?task=<id>
-  useEffect(() => {
-    if (loading || handledParamsRef.current) return
-
-    const addTaskParam = searchParams.get("addTask")
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  // Deep links (?addTask=1 and ?task=<id>) are resolved during the initial
+  // render — the parent only mounts this section once tasks are loaded
+  const [showAddDialog, setShowAddDialog] = useState(() => searchParams.get("addTask") === "1")
+  const [highlightedId, setHighlightedId] = useState<string | null>(() => {
     const taskParam = searchParams.get("task")
-    let handled = false
+    return taskParam && tasks.some((t) => t.id === taskParam) ? taskParam : null
+  })
+  const [showAllDialog, setShowAllDialog] = useState(
+    () => highlightedId !== null && hiddenIds.has(highlightedId)
+  )
+  const handledParamsRef = useRef(false)
+  const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
-    if (addTaskParam === "1") {
-      setShowAddDialog(true)
-      handled = true
-    }
+  // Deep-link follow-up: scroll to the highlighted task, fade the highlight,
+  // and remove the handled params from the URL
+  useEffect(() => {
+    if (handledParamsRef.current) return
+    if (!searchParams.get("addTask") && !searchParams.get("task")) return
+    handledParamsRef.current = true
 
-    if (taskParam) {
-      const target = tasks.find((t) => t.id === taskParam)
-      if (target) {
-        if (hiddenIds.has(taskParam)) {
-          setShowAllDialog(true)
-        } else {
-          setTimeout(() => {
-            const node = taskRefs.current.get(taskParam)
-            if (node) node.scrollIntoView({ block: "center", behavior: "smooth" })
-          }, 80)
-        }
-        setHighlightedId(taskParam)
-        setTimeout(() => setHighlightedId(null), HIGHLIGHT_DURATION_MS)
-        handled = true
+    if (highlightedId) {
+      if (!hiddenIds.has(highlightedId)) {
+        setTimeout(() => {
+          const node = taskRefs.current.get(highlightedId)
+          if (node) node.scrollIntoView({ block: "center", behavior: "smooth" })
+        }, 80)
       }
+      setTimeout(() => setHighlightedId(null), HIGHLIGHT_DURATION_MS)
     }
 
-    if (handled) {
-      handledParamsRef.current = true
-      const params = new URLSearchParams(searchParams.toString())
-      params.delete("addTask")
-      params.delete("task")
-      const query = params.toString()
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
-    }
-  }, [loading, tasks, searchParams, hiddenIds, pathname, router])
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("addTask")
+    params.delete("task")
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }, [searchParams, highlightedId, hiddenIds, pathname, router])
 
   const handleSave = () => {
     setEditingTask(null)
     setShowAddDialog(false)
-    loadTasks()
+    onReload()
   }
 
   const setTaskRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     if (el) taskRefs.current.set(id, el)
     else taskRefs.current.delete(id)
   }, [])
+
+  const dialogs = (
+    <>
+      {(showAddDialog || editingTask) && (
+        <TaskDialog
+          studyId={studyId}
+          task={editingTask}
+          onClose={() => {
+            setShowAddDialog(false)
+            setEditingTask(null)
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {showAllDialog && (
+        <TasksAllDialog
+          tasks={tasks}
+          highlightedId={highlightedId}
+          onClose={() => setShowAllDialog(false)}
+          onEdit={(task) => {
+            setShowAllDialog(false)
+            setEditingTask(task)
+          }}
+          onChange={onReload}
+        />
+      )}
+    </>
+  )
+
+  // Compact stat-style card shown in the statistics row when no task is
+  // visible inline (nothing overdue, running, or upcoming)
+  if (compact) {
+    return (
+      <>
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Úkoly</CardTitle>
+            <ListChecks className="h-4 w-4 text-primary-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">
+              {counts.completed > 0 ? "Vše hotovo" : "Žádné úkoly"}
+            </div>
+            <p className="text-xs text-gray-600 mt-1">
+              {counts.completed > 0
+                ? getCompletedTasksLabel(counts.completed)
+                : "Zatím žádné deadliny k vyřízení"}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAddDialog(true)}
+                className="h-7 px-2 text-xs text-gray-700"
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Přidat úkol
+              </Button>
+              {tasks.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAllDialog(true)}
+                  className="h-7 px-2 text-xs text-gray-600"
+                >
+                  Zobrazit vše ({tasks.length})
+                  <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {dialogs}
+      </>
+    )
+  }
 
   return (
     <>
@@ -181,13 +197,7 @@ export function TasksSection({ studyId }: TasksSectionProps) {
             </Alert>
           )}
 
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 animate-pulse rounded-xl bg-primary-100/60" />
-              ))}
-            </div>
-          ) : tasks.length === 0 ? (
+          {tasks.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/50 px-6 py-10 text-center">
               <ListChecks className="mx-auto mb-3 h-10 w-10 text-gray-400" />
               <p className="text-sm font-medium text-gray-900">Zatím žádné úkoly</p>
@@ -203,7 +213,7 @@ export function TasksSection({ studyId }: TasksSectionProps) {
                   ref={setTaskRef(task.id)}
                   task={task}
                   onEdit={setEditingTask}
-                  onChange={loadTasks}
+                  onChange={onReload}
                   highlighted={highlightedId === task.id}
                 />
               ))}
@@ -225,30 +235,7 @@ export function TasksSection({ studyId }: TasksSectionProps) {
         </CardContent>
       </Card>
 
-      {(showAddDialog || editingTask) && (
-        <TaskDialog
-          studyId={studyId}
-          task={editingTask}
-          onClose={() => {
-            setShowAddDialog(false)
-            setEditingTask(null)
-          }}
-          onSave={handleSave}
-        />
-      )}
-
-      {showAllDialog && (
-        <TasksAllDialog
-          tasks={tasks}
-          highlightedId={highlightedId}
-          onClose={() => setShowAllDialog(false)}
-          onEdit={(task) => {
-            setShowAllDialog(false)
-            setEditingTask(task)
-          }}
-          onChange={loadTasks}
-        />
-      )}
+      {dialogs}
     </>
   )
 }
