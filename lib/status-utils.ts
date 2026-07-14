@@ -428,14 +428,45 @@ export const getSubjectStateBadgeConfig = (state: SubjectState, subject?: Pick<S
   }
 }
 
-// Actions available based on subject state
-export const getAvailableActions = (state: SubjectState, completionType: string = ""): string[] => {
+// Whether new subjects may be started (planned → active) given the study status.
+// Only a running study can have subjects newly started; a paused, not-yet-started
+// (planned/intended) or finished (completed/abandoned) study cannot.
+export const canStartSubjectsInStudy = (studyStatus?: string): boolean =>
+  studyStatus === undefined || studyStatus === STUDY_STATUS.ACTIVE
+
+// Whether progress on already-started subjects may be recorded (markCompleted,
+// toggleCredit, toggleExam). Allowed while the study runs, and also while it is
+// paused — results of subjects started before the pause may still arrive.
+export const canRecordSubjectProgressInStudy = (studyStatus?: string): boolean =>
+  studyStatus === undefined ||
+  studyStatus === STUDY_STATUS.ACTIVE ||
+  studyStatus === STUDY_STATUS.PAUSED
+
+// Actions available based on subject state and the study's own status.
+//
+//   study status       | start subject | record progress (complete/credit/exam)
+//   -------------------|---------------|---------------------------------------
+//   active             | yes           | yes
+//   paused             | no            | yes
+//   planned / intended | no            | no
+//   completed          | no            | no
+//   abandoned          | no            | no
+//
+// Edit/delete stay available in every combination so records can be corrected.
+// An undefined studyStatus (caller without study context) keeps the permissive
+// historical behavior.
+export const getAvailableActions = (
+  state: SubjectState,
+  completionType: string = "",
+  studyStatus?: string
+): string[] => {
   const baseActions = ["edit", "delete"]
-  
+
   switch (state) {
     case "planned":
-      return ["makeActive", ...baseActions]
+      return canStartSubjectsInStudy(studyStatus) ? ["makeActive", ...baseActions] : baseActions
     case "active":
+      if (!canRecordSubjectProgressInStudy(studyStatus)) return baseActions
       const activeActions = ["markCompleted"]
       if (requiresCredit(completionType)) activeActions.push("toggleCredit")
       if (requiresExam(completionType)) activeActions.push("toggleExam")

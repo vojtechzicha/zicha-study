@@ -75,6 +75,7 @@ interface Subject {
 interface Study {
   id: string
   name: string
+  status?: string
   is_public?: boolean
   public_slug?: string
   exam_scheduler_enabled?: boolean
@@ -394,7 +395,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                   </TableRow>
                   {group.subjects.map((subject) => {
                     const subjectState = getSubjectStatus(subject)
-                    const availableActions = getAvailableActions(subjectState, subject.completion_type)
+                    const availableActions = getAvailableActions(subjectState, subject.completion_type, study?.status)
 
                     return (
                       <TableRow
