@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import path from 'path'
 import os from 'os'
-import { marked } from 'marked'
+import { Marked } from 'marked'
 import { load } from 'cheerio'
 import { findFileByPath, downloadFromOneDrive } from '@/lib/utils/onedrive-cache'
 import { addHeadingIdsAndBuildToc, applyStudyNoteTemplate } from '@/lib/utils/study-note-html'
@@ -31,6 +31,20 @@ export interface ObsidianConversionResult {
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'avif'])
 const MAX_IMAGES_PER_NOTE = 50
+
+// Raw HTML in the vault Markdown is escaped, not passed through: converted
+// notes are rendered via dangerouslySetInnerHTML (and publicly shared), so
+// passthrough would allow script injection from note content. Only HTML this
+// converter generates itself (image embeds, callouts, math spans) is trusted.
+const markedRenderer = new Marked({
+  gfm: true,
+  breaks: false,
+  renderer: {
+    html(token: { text: string }) {
+      return escapeHtmlText(token.text)
+    },
+  },
+})
 
 interface MediaContext {
   mediaDir: string
@@ -111,8 +125,12 @@ export async function convertObsidianToHtml(
   )
 
   // 5. Obsidian image embeds ![[file.png]] / ![[file.png|300]] — resolve from
-  // the vault and emit <img> pointing at the local media dir (marked passes raw
-  // HTML through). Non-image embeds and failures degrade to plain text.
+  // the vault and emit <img> pointing at the local media dir. The <img> HTML is
+  // injected as a placeholder token and restored after marked runs, because raw
+  // HTML in the source Markdown is escaped (see markedRenderer) and only this
+  // self-generated markup may bypass that. Non-image embeds and failures
+  // degrade to plain text.
+  const imgSnippets: string[] = []
   const embedRegex = /!\[\[([^\][|]+?)(?:\|([^\][]*))?\]\]/g
   const embeds = [...text.matchAll(embedRegex)]
   const embedReplacements = new Map<string, string>()
@@ -133,7 +151,8 @@ export async function convertObsidianToHtml(
     }
     const altText = escapeHtmlAttribute(path.basename(target, path.extname(target)))
     const width = alias && /^\d+$/.test(alias) ? ` width="${alias}"` : ''
-    embedReplacements.set(full, `<img src="${mediaSrc}" alt="${altText}"${width}>`)
+    imgSnippets.push(`<img src="${mediaSrc}" alt="${altText}"${width}>`)
+    embedReplacements.set(full, `OBSIMG${imgSnippets.length - 1}X`)
   }
   text = text.replace(embedRegex, (full) => embedReplacements.get(full) ?? full)
 
@@ -143,10 +162,11 @@ export async function convertObsidianToHtml(
     (_m, target: string, alias?: string) => (alias?.trim() || target.trim())
   )
 
-  // 7. Restore code and convert markdown → HTML (same marked call as the
-  // in-app markdown paste import)
+  // 7. Restore code and convert markdown → HTML (gfm, raw HTML escaped),
+  // then restore the trusted self-generated <img> tags
   text = text.replace(/OBSCODE(\d+)X/g, (m, index: string) => codeSnippets[Number(index)] ?? m)
-  const bodyHtml = marked.parse(text, { gfm: true, breaks: false }) as string
+  let bodyHtml = markedRenderer.parse(text) as string
+  bodyHtml = bodyHtml.replace(/OBSIMG(\d+)X/g, (m, index: string) => imgSnippets[Number(index)] ?? m)
 
   // 8. Cheerio post-pass: relative images, callouts, heading ids + TOC
   const $ = load(bodyHtml)

@@ -61,6 +61,35 @@ const generateUniqueSlug = () => {
   return `note-${timestamp}-${random}`
 }
 
+// Obsidian vaults live outside the study's materials folder, so the picker
+// remembers the last vault folder across studies (localStorage, client-only)
+const OBSIDIAN_FOLDER_STORAGE_KEY = "obsidian-vault-last-folder"
+
+const loadLastObsidianFolder = (): { path: string; name: string } | null => {
+  try {
+    const raw = localStorage.getItem(OBSIDIAN_FOLDER_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (typeof parsed?.path === "string" && typeof parsed?.name === "string") {
+      return parsed
+    }
+  } catch {
+    // Ignore corrupt storage
+  }
+  return null
+}
+
+const saveLastObsidianFolder = (parentPath: string | null | undefined) => {
+  if (!parentPath) return
+  const name = parentPath.split("/").pop()
+  if (!name || name.endsWith(":")) return
+  try {
+    localStorage.setItem(OBSIDIAN_FOLDER_STORAGE_KEY, JSON.stringify({ path: parentPath, name }))
+  } catch {
+    // Storage unavailable — remembering the folder is best-effort
+  }
+}
+
 export function AddStudyNoteDialog({
   studyId,
   subjectId,
@@ -112,6 +141,10 @@ export function AddStudyNoteDialog({
   const handleFileSelected = (file: OneDriveFile) => {
     setSelectedFile(file)
     setShowFilePicker(false)
+
+    if (isObsidian) {
+      saveLastObsidianFolder(file.parentReference?.path)
+    }
 
     // Pre-fill the name with the file name without extension
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
@@ -290,12 +323,26 @@ export function AddStudyNoteDialog({
           )}
 
           {showFilePicker ? (
-            <OneDriveFilePicker
-              onFileSelected={handleFileSelected}
-              initialPath={studyMaterialSettingsData.materials_root_folder_path || "/drive/root:"}
-              initialPathName={studyMaterialSettingsData.materials_root_folder_name || "OneDrive"}
-              fileExtensions={allowedExtensions.map((ext) => `.${ext}`)}
-            />
+            (() => {
+              // Obsidian vaults live outside the study folder: start at the
+              // last used vault folder (or the drive root), not the study's
+              // materials root. The picker always offers a root breadcrumb.
+              const lastVaultFolder = isObsidian ? loadLastObsidianFolder() : null
+              const initialPath = isObsidian
+                ? lastVaultFolder?.path || "/drive/root:"
+                : studyMaterialSettingsData.materials_root_folder_path || "/drive/root:"
+              const initialPathName = isObsidian
+                ? lastVaultFolder?.name || "OneDrive"
+                : studyMaterialSettingsData.materials_root_folder_name || "OneDrive"
+              return (
+                <OneDriveFilePicker
+                  onFileSelected={handleFileSelected}
+                  initialPath={initialPath}
+                  initialPathName={initialPathName}
+                  fileExtensions={allowedExtensions.map((ext) => `.${ext}`)}
+                />
+              )
+            })()
           ) : !selectedFile ? (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <p className="text-sm text-gray-600 mb-4">

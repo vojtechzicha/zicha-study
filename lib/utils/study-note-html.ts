@@ -11,6 +11,10 @@ export interface TocEntry {
   id: string
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 // Assign slugified ids to h1–h3 headings in place and return the nested TOC HTML.
 export function addHeadingIdsAndBuildToc($: CheerioAPI): string {
   const tocEntries: TocEntry[] = []
@@ -39,7 +43,7 @@ function buildTocHtml(entries: TocEntry[]): string {
   let html = '<ul>'
   // Start level should be the minimum level found, not hardcoded to 1
   let lastLevel = Math.min(...entries.map(e => e.level))
-  html += `<li><a href="#${entries[0].id}">${entries[0].text}</a></li>`
+  html += `<li><a href="#${entries[0].id}">${escapeHtml(entries[0].text)}</a></li>`
 
   for (let i = 1; i < entries.length; i++) {
     const entry = entries[i]
@@ -48,7 +52,7 @@ function buildTocHtml(entries: TocEntry[]): string {
     } else if (entry.level < lastLevel) {
       html += '</ul>'.repeat(lastLevel - entry.level)
     }
-    html += `<li><a href="#${entry.id}">${entry.text}</a></li>`
+    html += `<li><a href="#${entry.id}">${escapeHtml(entry.text)}</a></li>`
     lastLevel = entry.level
   }
 
@@ -69,10 +73,13 @@ export async function applyStudyNoteTemplate(options: {
   const templatePath = path.join(process.cwd(), 'lib/utils/study-note-template.html')
   let finalHtml = await fs.readFile(templatePath, 'utf-8')
 
+  // Function replacers throughout: string replacements would interpret "$&"
+  // and similar patterns inside the injected content.
+
   // Handle TOC conditional
   if (tocHtml) {
     // Replace the TOC placeholder and remove the conditional markers
-    finalHtml = finalHtml.replace('$toc$', tocHtml)
+    finalHtml = finalHtml.replace('$toc$', () => tocHtml)
     finalHtml = finalHtml.replace(/\$if\(toc\)\$([\s\S]*?)\$endif\$/g, '$1')
   } else {
     // Remove the entire TOC section when no TOC
@@ -82,7 +89,7 @@ export async function applyStudyNoteTemplate(options: {
   // Handle title conditional
   if (title) {
     // Replace the title placeholder and remove the conditional markers
-    finalHtml = finalHtml.replace('$title$', title)
+    finalHtml = finalHtml.replace('$title$', () => escapeHtml(title))
     finalHtml = finalHtml.replace(/\$if\(title\)\$([\s\S]*?)\$endif\$/g, '$1')
   } else {
     // Remove the entire title section when no title
@@ -94,7 +101,7 @@ export async function applyStudyNoteTemplate(options: {
   finalHtml = finalHtml.replace(/\$(?!body\$)[a-zA-Z]+\$/g, '')
 
   // Inject the main content
-  finalHtml = finalHtml.replace('$body$', bodyHtml)
+  finalHtml = finalHtml.replace('$body$', () => bodyHtml)
 
   return finalHtml
 }
