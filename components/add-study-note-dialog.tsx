@@ -34,12 +34,15 @@ import type { StudyNoteFormData } from "@/lib/types/study-notes"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { getShareUrl } from "@/lib/utils/share-url"
+import { NOTE_TYPES } from "@/lib/constants"
 
 interface AddStudyNoteDialogProps {
   studyId: string
   subjectId: string
   isFinalExam?: boolean
   studySlug?: string
+  /** 'word' = OneDrive DOCX (default, legacy), 'obsidian' = OneDrive Markdown (.md). */
+  noteKind?: "word" | "obsidian"
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
@@ -63,10 +66,14 @@ export function AddStudyNoteDialog({
   subjectId,
   isFinalExam = false,
   studySlug,
+  noteKind = "word",
   isOpen,
   onClose,
   onSuccess,
 }: AddStudyNoteDialogProps) {
+  const isObsidian = noteKind === "obsidian"
+  const allowedExtensions = isObsidian ? ["md"] : ["docx", "doc"]
+  const fileFormatLabel = isObsidian ? "Markdown (.md)" : "DOCX"
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<OneDriveFile | null>(null)
@@ -161,18 +168,23 @@ export function AddStudyNoteDialog({
     try {
       const fileExtension = selectedFile.name.split(".").pop()
 
-      // Check if file is DOCX
-      if (!fileExtension || !['docx', 'doc'].includes(fileExtension.toLowerCase())) {
-        throw new Error("Studijní zápisy musí být ve formátu DOCX")
+      // Check the file format matches the note kind
+      if (!fileExtension || !allowedExtensions.includes(fileExtension.toLowerCase())) {
+        throw new Error(
+          isObsidian
+            ? "Obsidian zápisy musí být ve formátu Markdown (.md)"
+            : "Studijní zápisy musí být ve formátu DOCX"
+        )
       }
 
       const noteData = {
         study_id: studyId,
         name: formData.name.trim(),
+        ...(isObsidian ? { note_type: NOTE_TYPES.OBSIDIAN } : {}),
         file_name: selectedFile.name,
         file_extension: `.${fileExtension}`,
         file_size: selectedFile.size || null,
-        mime_type: selectedFile.file?.mimeType || null,
+        mime_type: selectedFile.file?.mimeType || (isObsidian ? "text/markdown" : null),
         onedrive_id: selectedFile.id,
         onedrive_web_url: selectedFile.webUrl,
         onedrive_download_url: selectedFile["@microsoft.graph.downloadUrl"] || null,
@@ -259,10 +271,12 @@ export function AddStudyNoteDialog({
           </DialogTitle>
           <DialogDescription>
             {showFilePicker
-              ? "Vyberte DOCX soubor se studijními zápisy"
+              ? isObsidian
+                ? "Vyberte Markdown soubor z vašeho Obsidian vaultu"
+                : "Vyberte DOCX soubor se studijními zápisy"
               : isFinalExam
-                ? "Přidejte studijní zápis ke státní zkoušce (pouze DOCX formát)"
-                : "Přidejte studijní zápis k předmětu (pouze DOCX formát)"
+                ? `Přidejte studijní zápis ke státní zkoušce (pouze ${fileFormatLabel} formát)`
+                : `Přidejte studijní zápis k předmětu (pouze ${fileFormatLabel} formát)`
             }
           </DialogDescription>
         </DialogHeader>
@@ -280,12 +294,14 @@ export function AddStudyNoteDialog({
               onFileSelected={handleFileSelected}
               initialPath={studyMaterialSettingsData.materials_root_folder_path || "/drive/root:"}
               initialPathName={studyMaterialSettingsData.materials_root_folder_name || "OneDrive"}
-              fileExtensions={[".docx", ".doc"]}
+              fileExtensions={allowedExtensions.map((ext) => `.${ext}`)}
             />
           ) : !selectedFile ? (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <p className="text-sm text-gray-600 mb-4">
-                Vyberte DOCX soubor z vašeho OneDrive
+                {isObsidian
+                  ? "Vyberte Markdown soubor z vašeho OneDrive (Obsidian vault)"
+                  : "Vyberte DOCX soubor z vašeho OneDrive"}
               </p>
               <Button
                 onClick={handleOpenFilePicker}

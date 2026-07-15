@@ -491,6 +491,72 @@
   font-style: italic;
 }
 
+/* Obsidian callouts (> [!note], > [!warning], ...) */
+.study-note-content .callout {
+  --callout-color: hsl(var(--primary-600, 217, 91%, 45%));
+  --callout-bg: hsl(var(--primary-50, 217, 91%, 97%));
+  border-left: 4px solid var(--callout-color);
+  background-color: var(--callout-bg);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.study-note-content .callout-title {
+  color: var(--callout-color);
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+}
+
+.study-note-content .callout-content > :last-child {
+  margin-bottom: 0;
+}
+
+.study-note-content .callout-content > p {
+  margin-bottom: 0.5rem;
+}
+
+.study-note-content .callout.callout-warning,
+.study-note-content .callout.callout-caution,
+.study-note-content .callout.callout-attention {
+  --callout-color: #b45309;
+  --callout-bg: #fffbeb;
+}
+
+.study-note-content .callout.callout-danger,
+.study-note-content .callout.callout-error,
+.study-note-content .callout.callout-bug,
+.study-note-content .callout.callout-fail,
+.study-note-content .callout.callout-failure,
+.study-note-content .callout.callout-missing {
+  --callout-color: #b91c1c;
+  --callout-bg: #fef2f2;
+}
+
+.study-note-content .callout.callout-tip,
+.study-note-content .callout.callout-hint,
+.study-note-content .callout.callout-important,
+.study-note-content .callout.callout-success,
+.study-note-content .callout.callout-check,
+.study-note-content .callout.callout-done {
+  --callout-color: #15803d;
+  --callout-bg: #f0fdf4;
+}
+
+.study-note-content .callout.callout-question,
+.study-note-content .callout.callout-help,
+.study-note-content .callout.callout-faq {
+  --callout-color: #6d28d9;
+  --callout-bg: #f5f3ff;
+}
+
+.study-note-content .callout.callout-quote,
+.study-note-content .callout.callout-cite,
+.study-note-content .callout.callout-example {
+  --callout-color: #4b5563;
+  --callout-bg: #f9fafb;
+}
+
 /* Images */
 .study-note-content img {
   max-width: 100%;
@@ -662,6 +728,7 @@
   
   .study-note-content pre,
   .study-note-content blockquote,
+  .study-note-content .callout,
   .study-note-content table {
     page-break-inside: avoid;
   }

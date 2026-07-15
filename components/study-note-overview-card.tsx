@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { BookOpen, Globe, Calendar, FileText } from "lucide-react"
+import { BookOpen, Globe, Calendar, FileText, NotebookPen } from "lucide-react"
 import { NOTE_TYPES, getNoteType, getNoteEffectiveDate } from "@/lib/constants"
 import type { StudyNoteWithSubjects } from "@/lib/types/study-notes"
 import {
@@ -34,6 +34,7 @@ export function StudyNoteOverviewCard({
 }: StudyNoteOverviewCardProps) {
   const router = useRouter()
   const isMarkdown = getNoteType(note) === NOTE_TYPES.MARKDOWN
+  const isObsidian = getNoteType(note) === NOTE_TYPES.OBSIDIAN
 
   const handleCardClick = () => {
     // In the logged-in study view, Markdown notes open the in-app editor;
@@ -63,6 +64,8 @@ export function StudyNoteOverviewCard({
           <div className="flex-shrink-0">
             {isMarkdown ? (
               <FileText className="h-8 w-8 text-primary-600" />
+            ) : isObsidian ? (
+              <NotebookPen className="h-8 w-8 text-primary-600" />
             ) : (
               <BookOpen className="h-8 w-8 text-indigo-600" />
             )}

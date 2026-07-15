@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, BookOpen, FileText, FileType } from "lucide-react"
+import { Plus, BookOpen, FileText, FileType, NotebookPen } from "lucide-react"
 import { fetchStudyNotesByFinalExamId } from "@/lib/actions/study-notes"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
@@ -25,7 +25,8 @@ interface FinalExamStudyNotesSectionProps {
 export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, isStudyPublic, onUpdate, finalExamBadge = "SZZ" }: FinalExamStudyNotesSectionProps) {
   const [notes, setNotes] = useState<StudyNoteWithSubjects[]>([])
   const [loading, setLoading] = useState(true)
-  const [showAddDialog, setShowAddDialog] = useState(false)
+  // Which OneDrive-backed note dialog is open ('word' DOCX or 'obsidian' .md)
+  const [addOneDriveKind, setAddOneDriveKind] = useState<"word" | "obsidian" | null>(null)
   const [showAddMarkdown, setShowAddMarkdown] = useState(false)
 
   const loadNotes = useCallback(async () => {
@@ -98,9 +99,13 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
               <FileText className="h-4 w-4 mr-2" />
               Markdown zápis
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowAddDialog(true)}>
+            <DropdownMenuItem onClick={() => setAddOneDriveKind("word")}>
               <FileType className="h-4 w-4 mr-2" />
               Word zápis (OneDrive)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setAddOneDriveKind("obsidian")}>
+              <NotebookPen className="h-4 w-4 mr-2" />
+              Obsidian zápis (OneDrive)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -122,9 +127,13 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
                 <FileText className="h-4 w-4 mr-2" />
                 Markdown zápis
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowAddDialog(true)}>
+              <DropdownMenuItem onClick={() => setAddOneDriveKind("word")}>
                 <FileType className="h-4 w-4 mr-2" />
                 Word zápis (OneDrive)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setAddOneDriveKind("obsidian")}>
+                <NotebookPen className="h-4 w-4 mr-2" />
+                Obsidian zápis (OneDrive)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -152,8 +161,9 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
         subjectId={finalExamId}
         isFinalExam={true}
         studySlug={studySlug}
-        isOpen={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
+        noteKind={addOneDriveKind ?? "word"}
+        isOpen={addOneDriveKind !== null}
+        onClose={() => setAddOneDriveKind(null)}
         onSuccess={() => {
           loadNotes()
           onUpdate?.()

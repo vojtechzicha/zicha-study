@@ -31,16 +31,23 @@ export const RESERVED_ROUTES: readonly string[] = RESERVED_ROUTES_TUPLE
 // Study Note Types
 // 'word'     → legacy notes backed by a OneDrive DOCX file (Mammoth → HTML)
 // 'markdown' → native Markdown notes edited in the in-app WYSIWYG editor
+// 'obsidian' → read-only Markdown notes backed by a OneDrive .md file
+//              (Obsidian vault is the source of truth; converted → HTML)
 export const NOTE_TYPES = {
   WORD: 'word',
   MARKDOWN: 'markdown',
+  OBSIDIAN: 'obsidian',
 } as const
 
 export type NoteType = (typeof NOTE_TYPES)[keyof typeof NOTE_TYPES]
 
 // Notes without an explicit note_type are legacy OneDrive Word notes.
 export const getNoteType = (note: { note_type?: string | null } | null | undefined): NoteType =>
-  note?.note_type === NOTE_TYPES.MARKDOWN ? NOTE_TYPES.MARKDOWN : NOTE_TYPES.WORD
+  note?.note_type === NOTE_TYPES.MARKDOWN
+    ? NOTE_TYPES.MARKDOWN
+    : note?.note_type === NOTE_TYPES.OBSIDIAN
+      ? NOTE_TYPES.OBSIDIAN
+      : NOTE_TYPES.WORD
 
 // Effective "last change" timestamp for a note, regardless of type.
 // Word notes track changes via OneDrive; Markdown notes via content edits.

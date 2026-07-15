@@ -4,6 +4,9 @@ import * as db from '@/lib/mongodb/db'
 import { getOneDriveToken } from '@/lib/utils/onedrive'
 import { downloadFromOneDrive, updateCacheFromOriginal } from '@/lib/utils/onedrive-cache'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate-limit'
+import { NOTE_TYPES, getNoteType } from '@/lib/constants'
+import { convertObsidianToHtml } from '@/lib/utils/obsidian-convert'
+import { addHeadingIdsAndBuildToc, applyStudyNoteTemplate } from '@/lib/utils/study-note-html'
 import fs from 'fs/promises'
 import path from 'path'
 import crypto from 'crypto'
@@ -145,8 +148,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
       .update(`${noteId}-${onedriveLastModified?.toISOString() || 'unknown'}-${Date.now()}`)
       .digest('hex')
 
-    // Convert the document
-    const result = await convertDocxToHtmlWithMammoth(Buffer.from(fileBuffer), cacheKey)
+    // Convert the document (OneDrive DOCX via Mammoth, or Obsidian vault Markdown)
+    const result =
+      getNoteType(note as { note_type?: string | null }) === NOTE_TYPES.OBSIDIAN
+        ? await convertObsidianToHtml(Buffer.from(fileBuffer), {
+            cacheKey,
+            parentPath: (note.parent_path as string | null) || null,
+            fallbackTitle: (note.name as string) || '',
+          })
+        : await convertDocxToHtmlWithMammoth(Buffer.from(fileBuffer), cacheKey)
 
     // Store in database using upsert
     await db.upsertStudyNotesCache(noteId, {
@@ -501,80 +511,14 @@ async function convertDocxToHtmlWithMammoth(fileBuffer: Buffer, cacheKey: string
     }
   }
 
-  const tocEntries: { level: number; text: string; id: string }[] = []
-
-  $('h1, h2, h3').each((_, el) => {
-    const element = $(el)
-    const text = element.text()
-    if (!text) return // Skip empty headings
-
-    const level = parseInt(el.tagName.substring(1), 10)
-    const id = text
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s-]/gu, '')
-      .trim()
-      .replace(/\s+/g, '-')
-    element.attr('id', id)
-
-    tocEntries.push({ level, text, id })
-  })
-
-  const buildTocHtml = (entries: typeof tocEntries) => {
-    if (entries.length === 0) return ''
-    let html = '<ul>'
-    // Start level should be the minimum level found, not hardcoded to 1
-    let lastLevel = Math.min(...entries.map(e => e.level))
-    html += `<li><a href="#${entries[0].id}">${entries[0].text}</a></li>`
-
-    for (let i = 1; i < entries.length; i++) {
-      const entry = entries[i]
-      if (entry.level > lastLevel) {
-        html += '<ul>'.repeat(entry.level - lastLevel)
-      } else if (entry.level < lastLevel) {
-        html += '</ul>'.repeat(lastLevel - entry.level)
-      }
-      html += `<li><a href="#${entry.id}">${entry.text}</a></li>`
-      lastLevel = entry.level
-    }
-
-    const minLevel = Math.min(...entries.map(e => e.level))
-    html += '</ul>'.repeat(lastLevel - minLevel + 1)
-    return html
-  }
-
-  const tocHtml = buildTocHtml(tocEntries)
+  const tocHtml = addHeadingIdsAndBuildToc($)
 
   // Apply the custom template
-  const templatePath = path.join(process.cwd(), 'lib/utils/study-note-template.html')
-  let finalHtml = await fs.readFile(templatePath, 'utf-8')
-
-  // Handle TOC conditional
-  if (tocHtml) {
-    // Replace the TOC placeholder and remove the conditional markers
-    finalHtml = finalHtml.replace('$toc$', tocHtml)
-    // Remove $if(toc)$ and corresponding $endif$ when TOC exists
-    finalHtml = finalHtml.replace(/\$if\(toc\)\$([\s\S]*?)\$endif\$/g, '$1')
-  } else {
-    // Remove the entire TOC section when no TOC
-    finalHtml = finalHtml.replace(/\$if\(toc\)\$([\s\S]*?)\$endif\$/g, '')
-  }
-
-  // Handle title conditional
-  if (title) {
-    // Replace the title placeholder and remove the conditional markers
-    finalHtml = finalHtml.replace('$title$', title)
-    // Remove $if(title)$ and corresponding $endif$ when title exists
-    finalHtml = finalHtml.replace(/\$if\(title\)\$([\s\S]*?)\$endif\$/g, '$1')
-  } else {
-    // Remove the entire title section when no title
-    finalHtml = finalHtml.replace(/\$if\(title\)\$([\s\S]*?)\$endif\$/g, '')
-  }
-
-  // Inject the main content
-  finalHtml = finalHtml.replace('$body$', $.html())
-
-  // Clean up any remaining unreplaced placeholders
-  finalHtml = finalHtml.replace(/\$[a-zA-Z]+\$/g, '')
+  const finalHtml = await applyStudyNoteTemplate({
+    bodyHtml: $.html(),
+    tocHtml,
+    title,
+  })
 
   return {
     html: finalHtml,
