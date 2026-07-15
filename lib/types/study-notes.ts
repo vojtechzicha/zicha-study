@@ -6,7 +6,8 @@ export interface StudyNote {
   study_id: string
   user_id: string
 
-  // Discriminator: 'word' (OneDrive DOCX, legacy) | 'markdown' (in-app editor).
+  // Discriminator: 'word' (OneDrive DOCX, legacy) | 'markdown' (in-app editor)
+  // | 'obsidian' (OneDrive .md file, read-only mirror of an Obsidian vault).
   // Absent on legacy rows → treated as 'word'. See getNoteType() in lib/constants.
   note_type?: string | null
 

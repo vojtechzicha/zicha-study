@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link, Pencil, FileText } from "lucide-react"
+import { BookOpen, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check, Eye, Link, Pencil, FileText, NotebookPen } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { NOTE_TYPES, getNoteType } from "@/lib/constants"
 import {
@@ -50,6 +50,7 @@ interface StudyNoteCardProps {
 export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPublic: _isStudyPublic, currentSubjectId, finalExamBadge = "SZZ" }: StudyNoteCardProps) {
   const router = useRouter()
   const isMarkdown = getNoteType(note) === NOTE_TYPES.MARKDOWN
+  const isObsidian = getNoteType(note) === NOTE_TYPES.OBSIDIAN
   const [showPublicDialog, setShowPublicDialog] = useState(false)
   const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [isPublic, setIsPublic] = useState(note.is_public)
@@ -175,6 +176,8 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
             <div className="flex-shrink-0">
               {isMarkdown ? (
                 <FileText className="h-8 w-8 text-primary-600" />
+              ) : isObsidian ? (
+                <NotebookPen className="h-8 w-8 text-primary-600" />
               ) : (
                 <BookOpen className="h-8 w-8 text-indigo-600" />
               )}
@@ -262,7 +265,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenInOneDrive(); }}>
                       <ExternalLink className="h-4 w-4 mr-2" />
-                      Otevřít DOCX v OneDrive
+                      {isObsidian ? "Otevřít MD v OneDrive" : "Otevřít DOCX v OneDrive"}
                     </DropdownMenuItem>
                   </>
                 )}

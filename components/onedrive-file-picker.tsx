@@ -33,9 +33,17 @@ export function OneDriveFilePicker({
   const [error, setError] = useState<string | null>(null)
   const [availableFiles, setAvailableFiles] = useState<OneDriveFile[]>([])
   const [currentPath, setCurrentPath] = useState<string>(initialPath)
-  const [pathHistory, setPathHistory] = useState<Array<{name: string, path: string}>>([
-    {name: initialPathName, path: initialPath}
-  ])
+  // Always keep the drive root as the first breadcrumb so the user can
+  // navigate above the initial folder (e.g. an Obsidian vault outside the
+  // study's materials folder)
+  const [pathHistory, setPathHistory] = useState<Array<{name: string, path: string}>>(
+    initialPath === "/drive/root:"
+      ? [{ name: initialPathName, path: initialPath }]
+      : [
+          { name: "OneDrive", path: "/drive/root:" },
+          { name: initialPathName, path: initialPath },
+        ]
+  )
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
 
@@ -138,6 +146,7 @@ export function OneDriveFilePicker({
     const ext = fileName.split(".").pop()?.toLowerCase()
     if (ext === "pdf") return <FileText className="h-6 w-6 text-red-600" />
     if (ext === "docx" || ext === "doc") return <FileText className="h-6 w-6 text-primary" />
+    if (ext === "md") return <FileText className="h-6 w-6 text-primary" />
     if (ext === "xlsx" || ext === "xls") return <FileText className="h-6 w-6 text-green-600" />
     return <File className="h-6 w-6 text-gray-600" />
   }

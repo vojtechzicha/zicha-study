@@ -34,12 +34,15 @@ import type { StudyNoteFormData } from "@/lib/types/study-notes"
 import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { getShareUrl } from "@/lib/utils/share-url"
+import { NOTE_TYPES } from "@/lib/constants"
 
 interface AddStudyNoteDialogProps {
   studyId: string
   subjectId: string
   isFinalExam?: boolean
   studySlug?: string
+  /** 'word' = OneDrive DOCX (default, legacy), 'obsidian' = OneDrive Markdown (.md). */
+  noteKind?: "word" | "obsidian"
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
@@ -58,15 +61,48 @@ const generateUniqueSlug = () => {
   return `note-${timestamp}-${random}`
 }
 
+// Obsidian vaults live outside the study's materials folder, so the picker
+// remembers the last vault folder across studies (localStorage, client-only)
+const OBSIDIAN_FOLDER_STORAGE_KEY = "obsidian-vault-last-folder"
+
+const loadLastObsidianFolder = (): { path: string; name: string } | null => {
+  try {
+    const raw = localStorage.getItem(OBSIDIAN_FOLDER_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (typeof parsed?.path === "string" && typeof parsed?.name === "string") {
+      return parsed
+    }
+  } catch {
+    // Ignore corrupt storage
+  }
+  return null
+}
+
+const saveLastObsidianFolder = (parentPath: string | null | undefined) => {
+  if (!parentPath) return
+  const name = parentPath.split("/").pop()
+  if (!name || name.endsWith(":")) return
+  try {
+    localStorage.setItem(OBSIDIAN_FOLDER_STORAGE_KEY, JSON.stringify({ path: parentPath, name }))
+  } catch {
+    // Storage unavailable — remembering the folder is best-effort
+  }
+}
+
 export function AddStudyNoteDialog({
   studyId,
   subjectId,
   isFinalExam = false,
   studySlug,
+  noteKind = "word",
   isOpen,
   onClose,
   onSuccess,
 }: AddStudyNoteDialogProps) {
+  const isObsidian = noteKind === "obsidian"
+  const allowedExtensions = isObsidian ? ["md"] : ["docx", "doc"]
+  const fileFormatLabel = isObsidian ? "Markdown (.md)" : "DOCX"
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<OneDriveFile | null>(null)
@@ -105,6 +141,10 @@ export function AddStudyNoteDialog({
   const handleFileSelected = (file: OneDriveFile) => {
     setSelectedFile(file)
     setShowFilePicker(false)
+
+    if (isObsidian) {
+      saveLastObsidianFolder(file.parentReference?.path)
+    }
 
     // Pre-fill the name with the file name without extension
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
@@ -161,18 +201,23 @@ export function AddStudyNoteDialog({
     try {
       const fileExtension = selectedFile.name.split(".").pop()
 
-      // Check if file is DOCX
-      if (!fileExtension || !['docx', 'doc'].includes(fileExtension.toLowerCase())) {
-        throw new Error("Studijní zápisy musí být ve formátu DOCX")
+      // Check the file format matches the note kind
+      if (!fileExtension || !allowedExtensions.includes(fileExtension.toLowerCase())) {
+        throw new Error(
+          isObsidian
+            ? "Obsidian zápisy musí být ve formátu Markdown (.md)"
+            : "Studijní zápisy musí být ve formátu DOCX"
+        )
       }
 
       const noteData = {
         study_id: studyId,
         name: formData.name.trim(),
+        ...(isObsidian ? { note_type: NOTE_TYPES.OBSIDIAN } : {}),
         file_name: selectedFile.name,
         file_extension: `.${fileExtension}`,
         file_size: selectedFile.size || null,
-        mime_type: selectedFile.file?.mimeType || null,
+        mime_type: selectedFile.file?.mimeType || (isObsidian ? "text/markdown" : null),
         onedrive_id: selectedFile.id,
         onedrive_web_url: selectedFile.webUrl,
         onedrive_download_url: selectedFile["@microsoft.graph.downloadUrl"] || null,
@@ -259,10 +304,12 @@ export function AddStudyNoteDialog({
           </DialogTitle>
           <DialogDescription>
             {showFilePicker
-              ? "Vyberte DOCX soubor se studijními zápisy"
+              ? isObsidian
+                ? "Vyberte Markdown soubor z vašeho Obsidian vaultu"
+                : "Vyberte DOCX soubor se studijními zápisy"
               : isFinalExam
-                ? "Přidejte studijní zápis ke státní zkoušce (pouze DOCX formát)"
-                : "Přidejte studijní zápis k předmětu (pouze DOCX formát)"
+                ? `Přidejte studijní zápis ke státní zkoušce (pouze ${fileFormatLabel} formát)`
+                : `Přidejte studijní zápis k předmětu (pouze ${fileFormatLabel} formát)`
             }
           </DialogDescription>
         </DialogHeader>
@@ -276,16 +323,32 @@ export function AddStudyNoteDialog({
           )}
 
           {showFilePicker ? (
-            <OneDriveFilePicker
-              onFileSelected={handleFileSelected}
-              initialPath={studyMaterialSettingsData.materials_root_folder_path || "/drive/root:"}
-              initialPathName={studyMaterialSettingsData.materials_root_folder_name || "OneDrive"}
-              fileExtensions={[".docx", ".doc"]}
-            />
+            (() => {
+              // Obsidian vaults live outside the study folder: start at the
+              // last used vault folder (or the drive root), not the study's
+              // materials root. The picker always offers a root breadcrumb.
+              const lastVaultFolder = isObsidian ? loadLastObsidianFolder() : null
+              const initialPath = isObsidian
+                ? lastVaultFolder?.path || "/drive/root:"
+                : studyMaterialSettingsData.materials_root_folder_path || "/drive/root:"
+              const initialPathName = isObsidian
+                ? lastVaultFolder?.name || "OneDrive"
+                : studyMaterialSettingsData.materials_root_folder_name || "OneDrive"
+              return (
+                <OneDriveFilePicker
+                  onFileSelected={handleFileSelected}
+                  initialPath={initialPath}
+                  initialPathName={initialPathName}
+                  fileExtensions={allowedExtensions.map((ext) => `.${ext}`)}
+                />
+              )
+            })()
           ) : !selectedFile ? (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <p className="text-sm text-gray-600 mb-4">
-                Vyberte DOCX soubor z vašeho OneDrive
+                {isObsidian
+                  ? "Vyberte Markdown soubor z vašeho OneDrive (Obsidian vault)"
+                  : "Vyberte DOCX soubor z vašeho OneDrive"}
               </p>
               <Button
                 onClick={handleOpenFilePicker}

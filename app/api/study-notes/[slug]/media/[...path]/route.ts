@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@/auth"
 import * as db from "@/lib/mongodb/db"
 
 export async function GET(
@@ -15,8 +16,16 @@ export async function GET(
   }
 
   try {
-    // Get the study note by public slug and study_id
-    const note = await db.getPublicStudyNoteBySlug(slug, studyId || undefined)
+    // Get the study note by public slug and study_id; private notes are only
+    // served to an authenticated session (mirrors the convert route's auth)
+    let note = await db.getPublicStudyNoteBySlug(slug, studyId || undefined)
+
+    if (!note) {
+      const session = await auth()
+      if (session?.accessToken) {
+        note = await db.getStudyNoteBySlug(slug, studyId || undefined)
+      }
+    }
 
     if (!note) {
       return NextResponse.json({ error: "Study note not found" }, { status: 404 })
