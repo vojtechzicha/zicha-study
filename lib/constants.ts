@@ -272,13 +272,12 @@ export const getGraduationResultLabel = (result?: string | null): string => {
 
 // Material Categories
 export const MATERIAL_CATEGORIES = {
-  LECTURE: 'Přednáška',
-  EXERCISE: 'Cvičení',
-  ASSIGNMENT: 'Úkol',
-  EXAM: 'Zkouška',
-  PROJECT: 'Projekt',
-  NOTES: 'Zápisy',
-  LITERATURE: 'Literatura',
+  SYLLABUS: 'Sylabus',
+  STUDY_MATERIALS: 'Studijní materiály',
+  MY_WORK: 'Moje práce',
+  EVALUATION: 'Hodnocení',
+  THESIS: 'Závěrečná práce',
+  DOCUMENTS: 'Dokumenty',
   OTHER: 'Ostatní',
 } as const
 
