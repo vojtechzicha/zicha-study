@@ -18,6 +18,7 @@ zicha-study allows students to track their studies, manage subjects, monitor aca
 - Final exams — Státní závěrečná zkouška (university) and Maturitní zkouška (high school)
 - Dynamic theming based on study logos
 - Responsive design with dark/light mode support
+- Post-deploy refresh hint: every build bakes in the commit SHA, and each tab compares its own against `GET /api/version` when it regains focus (plus a slow background interval). After a deploy, stale tabs show a toast asking to refresh, so a long-lived tab does not keep calling Server Actions from an old bundle.
 
 ### Study kinds
 
