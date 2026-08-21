@@ -10,7 +10,19 @@ export default auth((request: NextRequest & { auth?: { user?: unknown } | null }
   // exclude the apex, "www", and any non-production host such as Vercel preview
   // deployments (*.vercel.app) and localhost — otherwise every preview request
   // would be treated as a subdomain and 308-redirected to production.
-  if (host && host.endsWith(`.${mainDomain}`) && host !== `www.${mainDomain}`) {
+  //
+  // API routes are exempt: they are host-independent (there is no per-study
+  // /api namespace, so prefixing the study path onto them would 404), and a
+  // fetch() issued from a subdomain-hosted tab must get an answer from its own
+  // origin — following the redirect cross-origin fails. /api/version in
+  // particular has to respond on any host so the post-deploy refresh hint
+  // works everywhere.
+  if (
+    host &&
+    host.endsWith(`.${mainDomain}`) &&
+    host !== `www.${mainDomain}` &&
+    !request.nextUrl.pathname.startsWith("/api/")
+  ) {
     const subdomain = host.slice(0, host.length - mainDomain.length - 1)
     const newPath = subdomain.split(".").reverse().join("/")
     const originalPath = request.nextUrl.pathname
