@@ -62,12 +62,12 @@ export function NoteToc({ editor, onNavigate }: NoteTocProps) {
 
   return (
     <nav className="text-sm">
-      <div className="flex items-center gap-2 px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <div className="flex items-center gap-2 px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         <ListTree className="h-4 w-4" />
         Obsah
       </div>
       {headings.length === 0 ? (
-        <p className="px-2 text-xs text-gray-400">Přidejte nadpisy pro automatický obsah.</p>
+        <p className="px-2 text-xs text-muted-foreground/70">Přidejte nadpisy pro automatický obsah.</p>
       ) : (
         <ul className="space-y-0.5">
           {headings.map((h, i) => (
@@ -75,7 +75,7 @@ export function NoteToc({ editor, onNavigate }: NoteTocProps) {
               <button
                 type="button"
                 onClick={() => goTo(h.pos)}
-                className={`block w-full truncate rounded px-2 py-1 text-left hover:bg-primary-50 hover:text-primary-700 ${h.level === 0 ? "font-semibold text-gray-900" : "text-gray-700"}`}
+                className={`block w-full truncate rounded px-2 py-1 text-left hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-primary-900/40 dark:hover:text-primary-300 ${h.level === 0 ? "font-semibold text-foreground" : "text-foreground/80"}`}
                 style={{ paddingLeft: `${Math.max(0, h.level - 1) * 12 + 8}px` }}
                 title={h.text}
               >

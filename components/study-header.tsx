@@ -37,19 +37,19 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
   const displayLogoUrl = logoUrl || study?.logo_url
 
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
+    <header className="bg-card/80 backdrop-blur-sm border-b border-border/40 sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center min-h-16 py-3 gap-3">
           <div className="flex items-center space-x-4 flex-1 min-w-0">
-            <Button variant="ghost" onClick={onBack} className="text-gray-600 hover:text-gray-900 flex-shrink-0">
+            <Button variant="ghost" onClick={onBack} className="text-muted-foreground hover:text-foreground flex-shrink-0">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zpět
             </Button>
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <StudyLogo logoUrl={displayLogoUrl} studyName={displayTitle} size="lg" className="flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight break-words hyphens-auto overflow-wrap-anywhere whitespace-normal">{displayTitle}</h1>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600 mt-1">
+                <h1 className="text-lg sm:text-xl font-bold text-foreground leading-tight break-words hyphens-auto overflow-wrap-anywhere whitespace-normal">{displayTitle}</h1>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground mt-1">
                   {study ? (
                     <>
                       <span>{study.type}</span>
@@ -66,7 +66,7 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
                       {study.is_public && (
                         <>
                           <span className="hidden sm:inline">•</span>
-                          <Badge variant="outline" className="bg-primary-50 text-primary-700 border-primary-200">
+                          <Badge variant="outline" className="bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-950 dark:text-primary-300 dark:border-primary-800">
                             Veřejné
                           </Badge>
                         </>
@@ -78,7 +78,7 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
                             href={study.is_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 transition-colors"
+                            className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
                           >
                             <span className="hidden sm:inline">IS</span>
                             <ExternalLink className="h-3 w-3" />

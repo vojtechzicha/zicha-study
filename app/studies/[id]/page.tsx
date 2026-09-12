@@ -61,7 +61,7 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -69,10 +69,10 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
 
   if (notFound || !study) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Studium nenalezeno</h1>
-          <p className="text-gray-600">Požadované studium neexistuje nebo k němu nemáte přístup.</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Studium nenalezeno</h1>
+          <p className="text-muted-foreground">Požadované studium neexistuje nebo k němu nemáte přístup.</p>
         </div>
       </div>
     )

@@ -356,16 +356,16 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
             </div>
 
             {groups.length === 0 ? (
-              <p className="text-sm text-gray-500 italic">
+              <p className="text-sm text-muted-foreground italic">
                 Zatím žádné předměty. Přidejte předmět a jeho možné termíny – plánovač vybere jeden pro každý předmět.
               </p>
             ) : (
               groups.map((grp) => {
                 const subj = subjectMap.get(grp.subjectId)
                 return (
-                  <div key={grp.subjectId} className="border rounded-lg p-3 bg-gray-50/50 space-y-3">
+                  <div key={grp.subjectId} className="border rounded-lg p-3 bg-muted/30 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-800">
+                      <span className="font-medium text-foreground">
                         {subj ? (subj.abbreviation ? `[${subj.abbreviation}] ${subj.name}` : subj.name) : "Neznámý předmět"}
                       </span>
                       <Button
@@ -373,7 +373,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                         variant="ghost"
                         size="sm"
                         onClick={() => removeSubjectGroup(grp.subjectId)}
-                        className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        className="h-8 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Odebrat
@@ -381,12 +381,12 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                     </div>
 
                     {grp.terms.length === 0 ? (
-                      <p className="text-xs text-amber-600 italic">
+                      <p className="text-xs text-amber-600 dark:text-amber-400 italic">
                         Zatím žádné termíny – předmět se uloží, ale do rozvrhu se zahrne až po přidání termínů.
                       </p>
                     ) : (
                       grp.terms.map((term, index) => (
-                        <div key={term.id || index} className="p-3 border rounded-lg bg-white space-y-3">
+                        <div key={term.id || index} className="p-3 border rounded-lg bg-card space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div className="space-y-1">
                               <Label className="text-xs flex items-center gap-1">
@@ -435,7 +435,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                                 <Monitor className="h-3 w-3" />
                                 Forma
                               </Label>
-                              <div className="flex items-center h-9 px-2 border rounded-md bg-white">
+                              <div className="flex items-center h-9 px-2 border rounded-md bg-card">
                                 <Checkbox
                                   id={`online-${grp.subjectId}-${index}`}
                                   checked={term.is_online}
@@ -455,7 +455,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               placeholder="volitelná poznámka"
                               className="h-9 flex-1 min-w-[8rem]"
                             />
-                            <div className="flex items-center h-9 px-2 border rounded-md bg-white">
+                            <div className="flex items-center h-9 px-2 border rounded-md bg-card">
                               <Checkbox
                                 id={`lock-${grp.subjectId}-${index}`}
                                 checked={term.locked}
@@ -472,7 +472,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               variant="ghost"
                               size="sm"
                               onClick={() => removeTerm(grp.subjectId, index)}
-                              className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              className="h-9 w-9 p-0 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

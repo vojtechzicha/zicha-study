@@ -56,16 +56,16 @@ export default function MarkdownNoteEditorPage({
   if (status === "loading" || loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600 dark:text-primary-400" />
       </div>
     )
   }
 
   if (error || !note) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 text-gray-600">
+      <div className="flex h-screen flex-col items-center justify-center gap-4 text-muted-foreground">
         <p>{error ?? "Zápis nenalezen"}</p>
-        <button className="text-primary-600 underline" onClick={() => router.push(`/studies/${id}`)}>
+        <button className="text-primary-600 underline dark:text-primary-400" onClick={() => router.push(`/studies/${id}`)}>
           Zpět na studium
         </button>
       </div>

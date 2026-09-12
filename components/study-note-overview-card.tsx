@@ -63,11 +63,11 @@ export function StudyNoteOverviewCard({
         <div className="flex items-start gap-3 flex-1">
           <div className="flex-shrink-0">
             {isMarkdown ? (
-              <FileText className="h-8 w-8 text-primary-600" />
+              <FileText className="h-8 w-8 text-primary-600 dark:text-primary-400" />
             ) : isObsidian ? (
-              <NotebookPen className="h-8 w-8 text-primary-600" />
+              <NotebookPen className="h-8 w-8 text-primary-600 dark:text-primary-400" />
             ) : (
-              <BookOpen className="h-8 w-8 text-indigo-600" />
+              <BookOpen className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -86,7 +86,7 @@ export function StudyNoteOverviewCard({
             </TooltipProvider>
 
             {/* Last change (OneDrive for Word notes, content edit for Markdown) */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
               <Calendar className="h-3 w-3" />
               <span>
                 {formatDate(getNoteEffectiveDate(note))}
@@ -99,11 +99,11 @@ export function StudyNoteOverviewCard({
                 {note.subjects.slice(0, 2).map(subject => (
                   <Badge key={subject.id} variant="outline" className="text-xs py-0 px-1.5">
                     {subject.name}
-                    {subject.is_final_exam && <span className="ml-0.5 text-gray-500">({finalExamBadge})</span>}
+                    {subject.is_final_exam && <span className="ml-0.5 text-muted-foreground">({finalExamBadge})</span>}
                   </Badge>
                 ))}
                 {note.subjects.length > 2 && (
-                  <Badge variant="outline" className="text-xs py-0 px-1.5 text-gray-500">
+                  <Badge variant="outline" className="text-xs py-0 px-1.5 text-muted-foreground">
                     +{note.subjects.length - 2}
                   </Badge>
                 )}

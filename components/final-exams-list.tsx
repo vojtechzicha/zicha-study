@@ -91,7 +91,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
 
   if (loading) {
     return (
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardContent className="p-6">
           <p className="text-center text-muted-foreground">{t.finalExamLoadingText}</p>
         </CardContent>
@@ -116,12 +116,12 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
 
   return (
     <>
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-primary-600" />
-              <CardTitle className="text-xl font-bold text-gray-900">{t.finalExamsSectionTitle}</CardTitle>
+              <GraduationCap className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+              <CardTitle className="text-xl font-bold text-foreground">{t.finalExamsSectionTitle}</CardTitle>
             </div>
             {!isPublic && (
               <Button
@@ -138,7 +138,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
         <CardContent className="p-0">
           {finalExams.length === 0 ? (
             <div className="text-center py-12">
-              <GraduationCap className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+              <GraduationCap className="mx-auto h-12 w-12 text-muted-foreground/70 mb-3" />
               <p className="text-muted-foreground">{t.finalExamEmptyText}</p>
             </div>
           ) : (
@@ -147,7 +147,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
               <div className="md:hidden p-4 space-y-3">
                 {finalExams.map((exam) => (
                   <Collapsible key={exam.id} open={expandedExamId === exam.id} onOpenChange={(open) => setExpandedExamId(open ? exam.id : null)}>
-                    <div className="group relative rounded-lg border p-4 hover:bg-primary-50/50 transition-colors">
+                    <div className="group relative rounded-lg border p-4 hover:bg-primary-50/50 dark:hover:bg-primary-900/40 transition-colors">
                       <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-3">
@@ -207,7 +207,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -243,7 +243,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-gray-600 hover:text-gray-800 w-full justify-start"
+                              className="text-muted-foreground hover:text-foreground w-full justify-start"
                             >
                               {expandedExamId === exam.id ? (
                                 <>
@@ -295,21 +295,21 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                   <TableBody>
                     {finalExams.map((exam) => (
                       <React.Fragment key={exam.id}>
-                        <TableRow className="hover:bg-primary-50">
+                        <TableRow className="hover:bg-primary-50 dark:hover:bg-primary-900/40">
                           <TableCell className="font-mono text-sm">
                           {exam.shortcut ? (
                             <Badge variant="outline" className="font-mono">
                               {exam.shortcut}
                             </Badge>
                           ) : (
-                            <span className="text-gray-400">–</span>
+                            <span className="text-muted-foreground/70">–</span>
                           )}
                         </TableCell>
                         <TableCell className="text-sm">
                           <div>
                             <div>{exam.name}</div>
                             {(exam.examiner || exam.examination_committee_head) && (
-                              <div className="text-xs text-gray-500 mt-0.5">
+                              <div className="text-xs text-muted-foreground mt-0.5">
                                 {[exam.examiner, exam.examination_committee_head && `Předseda: ${exam.examination_committee_head}`].filter(Boolean).join(' • ')}
                               </div>
                             )}
@@ -324,10 +324,10 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                               </span>
                             )
                           })() : (
-                            <span className="text-gray-400">–</span>
+                            <span className="text-muted-foreground/70">–</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-center">{exam.exam_date ? formatDateCzech(exam.exam_date) : <span className="text-gray-400">-</span>}</TableCell>
+                        <TableCell className="text-center">{exam.exam_date ? formatDateCzech(exam.exam_date) : <span className="text-muted-foreground/70">-</span>}</TableCell>
                         {isPublic && (
                           <TableCell className="text-center">
                             {(() => {
@@ -367,7 +367,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -396,7 +396,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                       </TableRow>
                       {!isPublic && expandedExamId === exam.id && (
                         <TableRow>
-                          <TableCell colSpan={isPublic ? 5 : 5} className="bg-gray-50 p-0">
+                          <TableCell colSpan={isPublic ? 5 : 5} className="bg-muted/50 p-0">
                             <div className="p-6">
                               <FinalExamStudyNotesSection
                                 studyId={studyId}

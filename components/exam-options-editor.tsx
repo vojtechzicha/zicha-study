@@ -54,23 +54,23 @@ export function ExamOptionsEditor({ options, onChange, disabled }: ExamOptionsEd
   return (
     <div className="space-y-3">
       {options.length === 0 ? (
-        <p className="text-sm text-gray-500 italic">Zatím nejsou přidány žádné termíny zkoušek.</p>
+        <p className="text-sm text-muted-foreground italic">Zatím nejsou přidány žádné termíny zkoušek.</p>
       ) : (
         <div className="space-y-3">
           {options.map((option, index) => (
             <div
               key={option.id || index}
-              className="p-3 border rounded-lg bg-white space-y-3"
+              className="p-3 border rounded-lg bg-card space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Termín {index + 1}</span>
+                <span className="text-sm font-medium text-foreground/80">Termín {index + 1}</span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => removeOption(index)}
                   disabled={disabled}
-                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="h-8 w-8 p-0 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -130,7 +130,7 @@ export function ExamOptionsEditor({ options, onChange, disabled }: ExamOptionsEd
                     <Monitor className="h-3 w-3" />
                     Forma
                   </Label>
-                  <div className="flex items-center h-9 px-2 border rounded-md bg-white">
+                  <div className="flex items-center h-9 px-2 border rounded-md bg-card">
                     <Checkbox
                       id={`online-${index}`}
                       checked={option.is_online}

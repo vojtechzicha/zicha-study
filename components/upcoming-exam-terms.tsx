@@ -39,41 +39,41 @@ export function UpcomingExamTerms({ terms, onTermClick }: UpcomingExamTermsProps
   return (
     <section>
       <div className="mb-4 flex items-center gap-2">
-        <CalendarDays className="h-5 w-5 text-primary-600" />
-        <h2 className="text-lg font-bold text-gray-900">Nadcházející zkoušky</h2>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{terms.length}</span>
+        <CalendarDays className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+        <h2 className="text-lg font-bold text-foreground">Nadcházející zkoušky</h2>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{terms.length}</span>
       </div>
       <div className="space-y-2">
         {terms.map(({ term, study, subject, period }) => (
           <Card
             key={term.id}
             onClick={() => study && onTermClick?.(study.id)}
-            className="bg-white/80 backdrop-blur-sm border-0 shadow hover:shadow-md transition-all duration-200 cursor-pointer"
+            className="bg-card/80 backdrop-blur-sm border-0 shadow hover:shadow-md transition-all duration-200 cursor-pointer"
           >
             <CardContent className="flex items-center gap-3 p-3">
               {study && <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="sm" className="flex-shrink-0" />}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-gray-900 truncate">
+                  <span className="font-medium text-foreground truncate">
                     {subject ? (subject.abbreviation ? `[${subject.abbreviation}] ${subject.name}` : subject.name) : "Zkouška"}
                   </span>
-                  <Badge variant="secondary" className="bg-primary-100 text-primary-700">
+                  <Badge variant="secondary" className="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300">
                     <Lock className="h-3 w-3 mr-1" />
                     {study?.name}
                   </Badge>
                   {term.is_online && (
-                    <Badge variant="secondary" className="bg-green-200 text-green-800">
+                    <Badge variant="secondary" className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200">
                       <Monitor className="h-3 w-3 mr-1" />
                       Online
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                   <Clock className="h-3 w-3" />
                   <span>
                     {formatDate(term.date)} · {(term.start_time || "").substring(0, 5)}
                   </span>
-                  {period && <span className="text-gray-400">• {period.name}</span>}
+                  {period && <span className="text-muted-foreground/70">• {period.name}</span>}
                 </div>
               </div>
             </CardContent>

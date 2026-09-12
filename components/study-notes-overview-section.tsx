@@ -212,18 +212,18 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
   const displayedNotes = showAll ? filteredNotes : filteredNotes.slice(0, 8)
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+    <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
       <CardHeader>
         <div className="flex justify-between items-start gap-4">
           <div className="flex-1">
-            <CardTitle className="text-xl font-bold text-gray-900">Studijní zápisy</CardTitle>
-            <p className="text-sm text-gray-600 mt-1">
+            <CardTitle className="text-xl font-bold text-foreground">Studijní zápisy</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
               Všechny studijní zápisy napříč předměty
             </p>
           </div>
           {studyNotes.length > 0 && (
             <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
               <Input
                 type="text"
                 placeholder="Hledat zápisy..."
@@ -246,26 +246,26 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="h-32 bg-primary-100 rounded-lg animate-pulse" />
+              <div key={i} className="h-32 bg-primary-100 dark:bg-primary-900/40 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : studyNotes.length === 0 ? (
           <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <FileText className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
               Zatím nejsou přidány žádné studijní zápisy
             </h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Studijní zápisy můžete přidat v jednotlivých předmětech
             </p>
           </div>
         ) : filteredNotes.length === 0 ? (
           <div className="text-center py-12">
-            <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <Search className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
               Žádné zápisy neodpovídají vyhledávání
             </h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Zkuste změnit vyhledávací dotaz
             </p>
           </div>
@@ -286,7 +286,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
                 <Button
                   variant="outline"
                   onClick={() => setShowAll(true)}
-                  className="text-gray-700"
+                  className="text-foreground/80"
                 >
                   Zobrazit všechny zápisy ({filteredNotes.length})
                   <ChevronRight className="ml-2 h-4 w-4" />
@@ -310,7 +310,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
               <Button
                 variant="outline"
                 onClick={() => setShowAll(false)}
-                className="text-gray-700"
+                className="text-foreground/80"
               >
                 Zobrazit méně
                 <ChevronDown className="ml-2 h-4 w-4" />

@@ -243,7 +243,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-900">
+          <DialogTitle className="text-2xl font-bold text-foreground">
             Úprava předmětu {subject.abbreviation}
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -422,12 +422,12 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
 
               {/* Exam Options Section - only show when exam scheduler is enabled */}
               {examSchedulerEnabled && (
-                <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+                <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                   <div className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-primary-600" />
+                    <CalendarDays className="h-4 w-4 text-primary-600 dark:text-primary-400" />
                     <Label className="text-sm font-medium">Termíny zkoušek</Label>
                   </div>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-muted-foreground">
                     Přidejte možné termíny zkoušek pro automatický plánovač.
                   </p>
                   <ExamOptionsEditor
@@ -453,30 +453,30 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
               )}
 
               {/* Subject State Selector */}
-              <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+              <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                 <Label className="text-sm font-medium">Stav předmětu</Label>
                 <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="planned" id="planned" />
                     <Label htmlFor="planned" className="cursor-pointer">{getSubjectStateText("planned")}</Label>
-                    <span className="text-xs text-gray-600">- ještě nebyl zahájen</span>
+                    <span className="text-xs text-muted-foreground">- ještě nebyl zahájen</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="active" id="active" />
                     <Label htmlFor="active" className="cursor-pointer">{getSubjectStateText("active")}</Label>
-                    <span className="text-xs text-gray-600">- probíhá</span>
+                    <span className="text-xs text-muted-foreground">- probíhá</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="completed" id="completed" />
                     <Label htmlFor="completed" className="cursor-pointer">{getSubjectStateText("completed")}</Label>
-                    <span className="text-xs text-gray-600">- ukončený</span>
+                    <span className="text-xs text-muted-foreground">- ukončený</span>
                   </div>
                 </RadioGroup>
               </div>
 
               {/* Credit and Exam Completion Toggles */}
               {subjectState === "active" && (
-                <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+                <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                   <Label className="text-sm font-medium">Průběžné plnění</Label>
                   <div className="space-y-3">
                     {requiresCredit(formData.completion_type) && (
@@ -489,8 +489,8 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                           }
                           className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           style={formData.credit_completed ? {
-                            backgroundColor: 'var(--primary-600)',
-                            borderColor: 'var(--primary-600)',
+                            backgroundColor: 'hsl(var(--primary-600))',
+                            borderColor: 'hsl(var(--primary-600))',
                             color: 'white'
                           } : {}}
                         />
@@ -509,8 +509,8 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                           }
                           className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           style={formData.exam_completed ? {
-                            backgroundColor: 'var(--primary-600)',
-                            borderColor: 'var(--primary-600)',
+                            backgroundColor: 'hsl(var(--primary-600))',
+                            borderColor: 'hsl(var(--primary-600))',
                             color: 'white'
                           } : {}}
                         />
@@ -524,7 +524,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
               )}
 
               {/* Repeat Subject Section */}
-              <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+              <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="is_repeat"
@@ -555,7 +555,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-muted-foreground">
                       Opakovaný předmět bude sdílet materiály a studijní zápisy s původním předmětem.
                     </p>
                   </div>

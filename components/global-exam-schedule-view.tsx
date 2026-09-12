@@ -60,13 +60,13 @@ function getItemColor(type: ScheduleItem["type"], isOnline?: boolean) {
   switch (type) {
     case "travel_to":
     case "travel_from":
-      return "bg-orange-100 text-orange-700 border-orange-200"
+      return "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
     case "accommodation":
-      return "bg-purple-100 text-purple-700 border-purple-200"
+      return "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
     case "exam":
       return isOnline
-        ? "bg-green-100 text-green-700 border-green-200"
-        : "bg-primary-100 text-primary-700 border-primary-200"
+        ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+        : "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800"
   }
 }
 
@@ -83,9 +83,9 @@ function groupItemsByDate(items: ScheduleItem[]): Map<string, ScheduleItem[]> {
 function ResultBody({ result }: { result: GlobalScheduleResult }) {
   if (result.error) {
     return (
-      <Card className="border-red-200 bg-red-50">
+      <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40">
         <CardContent className="pt-6">
-          <p className="text-red-700">{result.error}</p>
+          <p className="text-red-700 dark:text-red-300">{result.error}</p>
         </CardContent>
       </Card>
     )
@@ -100,33 +100,33 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-primary-600" />
+            <Wallet className="h-5 w-5 text-primary-600 dark:text-primary-400" />
             Náklady celkem
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-primary-50 rounded-lg">
-              <p className="text-2xl font-bold text-primary-700">{formatCurrency(result.totalCost)}</p>
-              <p className="text-sm text-gray-600">Celkem</p>
+            <div className="text-center p-3 bg-primary-50 dark:bg-primary-950 rounded-lg">
+              <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{formatCurrency(result.totalCost)}</p>
+              <p className="text-sm text-muted-foreground">Celkem</p>
             </div>
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <p className="text-xl font-semibold text-orange-700">{formatCurrency(result.breakdown.travelCost)}</p>
-              <p className="text-sm text-gray-600">{result.breakdown.travelTrips} cest</p>
+            <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/40 rounded-lg">
+              <p className="text-xl font-semibold text-orange-700 dark:text-orange-300">{formatCurrency(result.breakdown.travelCost)}</p>
+              <p className="text-sm text-muted-foreground">{result.breakdown.travelTrips} cest</p>
             </div>
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <p className="text-xl font-semibold text-purple-700">{formatCurrency(result.breakdown.accommodationCost)}</p>
-              <p className="text-sm text-gray-600">{result.breakdown.accommodationNights} nocí</p>
+            <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/40 rounded-lg">
+              <p className="text-xl font-semibold text-purple-700 dark:text-purple-300">{formatCurrency(result.breakdown.accommodationCost)}</p>
+              <p className="text-sm text-muted-foreground">{result.breakdown.accommodationNights} nocí</p>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <p className="text-xl font-semibold text-green-700">{result.breakdown.examCount}</p>
-              <p className="text-sm text-gray-600">zkoušek</p>
+            <div className="text-center p-3 bg-green-50 dark:bg-green-950/40 rounded-lg">
+              <p className="text-xl font-semibold text-green-700 dark:text-green-300">{result.breakdown.examCount}</p>
+              <p className="text-sm text-muted-foreground">zkoušek</p>
             </div>
           </div>
           {result.breakdown.ptoDays > 0 && (
-            <p className="mt-4 text-sm text-gray-600">
+            <p className="mt-4 text-sm text-muted-foreground">
               Prezenční zkoušky v pracovní dny (vyžadují dovolenou):{" "}
-              <span className="font-semibold text-gray-800">{result.breakdown.ptoDays}</span>
+              <span className="font-semibold text-foreground">{result.breakdown.ptoDays}</span>
             </p>
           )}
 
@@ -135,8 +135,8 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
             <div className="mt-4 space-y-2">
               {result.perStudy.map((s) => (
                 <div key={s.studyId} className="flex items-center justify-between text-sm border-t pt-2">
-                  <span className="font-medium text-gray-700">{s.studyName}</span>
-                  <span className="text-gray-600">
+                  <span className="font-medium text-foreground/80">{s.studyName}</span>
+                  <span className="text-muted-foreground">
                     {formatCurrency(s.totalCost)} · {s.examCount} zk. · {s.travelTrips} cest · {s.accommodationNights} nocí
                   </span>
                 </div>
@@ -148,12 +148,12 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
 
       {/* Unschedulable warnings */}
       {result.unschedulable.length > 0 && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800 rounded-lg">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-yellow-800">Nezařazené požadavky</p>
-              <ul className="text-sm text-yellow-700 mt-1 list-disc list-inside">
+              <p className="font-medium text-yellow-800 dark:text-yellow-200">Nezařazené požadavky</p>
+              <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-1 list-disc list-inside">
                 {result.unschedulable.map((u) => (
                   <li key={u.requirementId}>
                     {u.periodName} – {u.subjectName}: {u.reason}
@@ -166,7 +166,7 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
       )}
 
       {result.truncated && (
-        <p className="text-sm text-amber-700">
+        <p className="text-sm text-amber-700 dark:text-amber-300">
           Prohledávání bylo zastaveno na limitu – zobrazené řešení je nejlepší nalezené, nemusí však být zcela optimální.
         </p>
       )}
@@ -176,14 +176,14 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary-600" />
+              <TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />
               Rozvrh
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {sortedDates.map((date) => (
               <div key={date} className="border rounded-lg overflow-hidden">
-                <div className="bg-gray-100 px-4 py-2 font-medium text-gray-700 flex items-center gap-2">
+                <div className="bg-muted px-4 py-2 font-medium text-foreground/80 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   {formatDate(date)}
                 </div>
@@ -202,18 +202,18 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
                                 [{item.exam.subject.shortcut}] {item.exam.subject.name}
                               </span>
                               {item.studyName && (
-                                <Badge variant="outline" className="border-gray-300 text-gray-600">
+                                <Badge variant="outline" className="border-border text-muted-foreground">
                                   {item.studyName}
                                 </Badge>
                               )}
                               {item.exam.isOnline && (
-                                <Badge variant="secondary" className="bg-green-200 text-green-800">
+                                <Badge variant="secondary" className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200">
                                   <Monitor className="h-3 w-3 mr-1" />
                                   Online
                                 </Badge>
                               )}
                               {item.requiresPto && (
-                                <Badge variant="secondary" className="bg-amber-200 text-amber-800">
+                                <Badge variant="secondary" className="bg-amber-200 dark:bg-amber-800/50 text-amber-800 dark:text-amber-200">
                                   <Palmtree className="h-3 w-3 mr-1" />
                                   Dovolená
                                 </Badge>
@@ -224,7 +224,7 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
                               <span>
                                 {item.startTime} - {item.endTime}
                               </span>
-                              {item.exam.note && <span className="text-gray-500">• {item.exam.note}</span>}
+                              {item.exam.note && <span className="text-muted-foreground">• {item.exam.note}</span>}
                             </div>
                           </div>
                         ) : item.type === "travel_to" ? (
@@ -276,15 +276,15 @@ export function GlobalExamScheduleView({ comparison }: GlobalExamScheduleViewPro
     <div className="space-y-4">
       {/* Optimal-vs-forced banner */}
       {showComparison && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-medium text-blue-900">
+              <p className="font-medium text-blue-900 dark:text-blue-200">
                 Bez zamčených termínů by šel rozvrh levněji
                 {savingsCost > 0 ? ` o ${formatCurrency(savingsCost)}` : ""}.
               </p>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                 Závazný rozvrh respektuje vaše zamčené termíny ({formatCurrency(forced.totalCost)}). Optimální rozvrh
                 ignoruje zámky ({formatCurrency(optimal.totalCost)}).
               </p>

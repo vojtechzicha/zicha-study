@@ -83,15 +83,9 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
   }
 
   return (
-    <div 
-      className="min-h-screen" 
-      style={{ 
-        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
-        minHeight: "100vh"
-      } as React.CSSProperties}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20">
+      <header className="bg-card/80 backdrop-blur-sm border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center space-x-4">
@@ -104,15 +98,15 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
                 />
               )}
               <div className="flex items-center space-x-4">
-                <Link href="/" className="text-gray-600 hover:text-gray-900">
+                <Link href="/" className="text-muted-foreground hover:text-foreground">
                   <Home className="h-5 w-5" />
                 </Link>
                 {studyData?.is_public && studyData.public_slug && (
                   <>
-                    <span className="text-gray-400">/</span>
+                    <span className="text-muted-foreground/70">/</span>
                     <Link 
                       href={`/${studyData.public_slug}`}
-                      className="text-gray-600 hover:text-gray-900 font-medium"
+                      className="text-muted-foreground hover:text-foreground font-medium"
                     >
                       {studyData.name}
                     </Link>
@@ -120,8 +114,8 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
                 )}
                 {subjectData && (
                   <>
-                    <span className="text-gray-400">/</span>
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-muted-foreground/70">/</span>
+                    <span className="text-foreground font-medium">
                       {subjectData.abbreviation}
                     </span>
                   </>
@@ -136,7 +130,7 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
           {/* Note Info Card */}
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
@@ -145,7 +139,7 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
                     {note.name}
                   </CardTitle>
                   {note.description && (
-                    <p className="text-gray-600">{note.description}</p>
+                    <p className="text-muted-foreground">{note.description}</p>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -171,19 +165,19 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 {cacheInfo?.onedriveLastModified && (
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <RefreshCw className="h-4 w-4" />
                     <span>Naposledy upraveno: {formatDate(cacheInfo.onedriveLastModified)}</span>
                   </div>
                 )}
                 {cacheInfo?.generatedAt && (
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-4 w-4" />
                     <span>Naposledy generováno: {formatDate(cacheInfo.generatedAt)}</span>
                   </div>
                 )}
                 {note.subjects && note.subjects.length > 0 && (
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <BookOpen className="h-4 w-4" />
                     <span>
                       {note.subjects.length === 1 

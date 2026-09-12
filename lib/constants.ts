@@ -186,25 +186,25 @@ export const getCompletionTypeShortCode = (completionType: string): string => {
 // Subject type configuration for UI rendering
 export const SUBJECT_TYPE_CONFIG = {
   [SUBJECT_TYPES.MANDATORY]: {
-    color: 'bg-red-50 text-red-700 border-red-200',
+    color: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
     shortCode: 'P',
     order: 1,
     fullText: 'Povinný',
   },
   [SUBJECT_TYPES.MANDATORY_ELECTIVE]: {
-    color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    color: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-300 dark:border-yellow-800',
     shortCode: 'PV',
     order: 2,
     fullText: 'Povinně volitelný',
   },
   [SUBJECT_TYPES.ELECTIVE]: {
-    color: 'bg-green-50 text-green-700 border-green-200',
+    color: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800',
     shortCode: 'V',
     order: 3,
     fullText: 'Volitelný',
   },
   [SUBJECT_TYPES.OTHER]: {
-    color: 'bg-primary-50 text-primary-700 border-primary-200',
+    color: 'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-950 dark:text-primary-300 dark:border-primary-800',
     shortCode: '-',
     order: 5,
     fullText: 'Ostatní',
@@ -215,7 +215,7 @@ export const SUBJECT_TYPE_CONFIG = {
 export const getSubjectTypeConfig = (type: string) => {
   return (
     SUBJECT_TYPE_CONFIG[type as keyof typeof SUBJECT_TYPE_CONFIG] || {
-      color: 'bg-primary-50 text-primary-700 border-primary-200',
+      color: 'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-950 dark:text-primary-300 dark:border-primary-800',
       shortCode: type.charAt(0).toUpperCase(),
       order: 999,
       fullText: type,
@@ -435,31 +435,31 @@ export const TASK_STATE_CONFIG: Record<TaskState, {
 }> = {
   [TASK_STATE.OVERDUE]: {
     label: 'Po termínu',
-    badgeClass: 'bg-red-100 text-red-700 border-red-200',
-    cardClass: 'border-red-300 bg-gradient-to-br from-red-50 via-white to-white shadow-red-100/50',
+    badgeClass: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
+    cardClass: 'border-red-300 bg-gradient-to-br from-red-50 via-card to-card shadow-red-100/50 dark:border-red-800 dark:from-red-950/40 dark:via-card dark:to-card dark:shadow-none',
     dotClass: 'bg-red-500',
-    accentClass: 'text-red-600',
+    accentClass: 'text-red-600 dark:text-red-400',
   },
   [TASK_STATE.RUNNING]: {
     label: 'Probíhá',
-    badgeClass: 'bg-amber-100 text-amber-700 border-amber-200',
-    cardClass: 'border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white shadow-amber-100/40',
+    badgeClass: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800',
+    cardClass: 'border-amber-200 bg-gradient-to-br from-amber-50 via-card to-card shadow-amber-100/40 dark:border-amber-800 dark:from-amber-950/40 dark:via-card dark:to-card dark:shadow-none',
     dotClass: 'bg-amber-500',
-    accentClass: 'text-amber-700',
+    accentClass: 'text-amber-700 dark:text-amber-300',
   },
   [TASK_STATE.UPCOMING]: {
     label: 'Nadcházející',
-    badgeClass: 'bg-primary-50 text-primary-700 border-primary-200',
-    cardClass: 'border-primary-200 bg-white',
+    badgeClass: 'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-950 dark:text-primary-300 dark:border-primary-800',
+    cardClass: 'border-primary-200 bg-card dark:border-primary-800',
     dotClass: 'bg-primary-500',
-    accentClass: 'text-primary-700',
+    accentClass: 'text-primary-700 dark:text-primary-300',
   },
   [TASK_STATE.COMPLETED]: {
     label: 'Hotovo',
-    badgeClass: 'bg-green-100 text-green-700 border-green-200',
-    cardClass: 'border-green-200 bg-green-50/40',
+    badgeClass: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
+    cardClass: 'border-green-200 bg-green-50/40 dark:border-green-800 dark:bg-green-950/30',
     dotClass: 'bg-green-500',
-    accentClass: 'text-green-700',
+    accentClass: 'text-green-700 dark:text-green-300',
   },
 }
 

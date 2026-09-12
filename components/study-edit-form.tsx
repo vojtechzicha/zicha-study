@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Upload, X, Trash2, Award, FileText } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { TitlePageFooter } from "@/components/title-page-footer"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -222,17 +223,17 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background p-4">
       <div className="max-w-2xl mx-auto">
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <CardTitle className="text-2xl font-bold text-gray-900">Upravit studium</CardTitle>
-                <CardDescription className="text-gray-600">Upravte informace o vašem studiu</CardDescription>
+                <CardTitle className="text-2xl font-bold text-foreground">Upravit studium</CardTitle>
+                <CardDescription className="text-muted-foreground">Upravte informace o vašem studiu</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -267,8 +268,8 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       </Button>
                     </div>
                   ) : (
-                    <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded flex items-center justify-center flex-shrink-0">
-                      <Upload className="h-6 w-6 text-gray-400" />
+                    <div className="w-16 h-16 border-2 border-dashed border-border rounded flex items-center justify-center flex-shrink-0">
+                      <Upload className="h-6 w-6 text-muted-foreground/70" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -276,9 +277,9 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       type="file"
                       accept="image/*"
                       onChange={handleLogoChange}
-                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:cursor-pointer"
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-950 dark:file:text-primary-300 dark:hover:file:bg-primary-900/60 file:cursor-pointer"
                     />
-                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF do 5MB</p>
+                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG, GIF do 5MB</p>
                   </div>
                 </div>
               </div>
@@ -390,7 +391,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       „S vyznamenáním“ zobrazí {getStudyTerminology(formData.type).diplomaNoun.toLowerCase()} v slavnostním červeném provedení.
                     </p>
                   </div>
@@ -400,10 +401,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
               {/* Diploma Upload */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Award className="h-4 w-4 text-amber-600" />
+                  <Award className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <Label>{getStudyTerminology(formData.type).diplomaNoun}</Label>
                   {formData.status !== "completed" && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       (zobrazí se po dokončení studia)
                     </span>
                   )}
@@ -416,12 +417,12 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                         <img
                           src={diplomaUrl}
                           alt={`${getStudyTerminology(formData.type).diplomaNoun} – náhled`}
-                          className="w-20 h-20 object-cover border border-amber-200 rounded shadow-sm"
+                          className="w-20 h-20 object-cover border border-amber-200 dark:border-amber-800 rounded shadow-sm"
                         />
                       ) : (
-                        <div className="w-20 h-20 flex flex-col items-center justify-center border border-amber-200 rounded bg-gradient-to-br from-amber-50 to-amber-100 shadow-sm">
-                          <FileText className="h-7 w-7 text-amber-700" />
-                          <span className="text-[10px] mt-1 font-medium text-amber-900">PDF</span>
+                        <div className="w-20 h-20 flex flex-col items-center justify-center border border-amber-200 dark:border-amber-800 rounded bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/40 dark:to-amber-900/40 shadow-sm">
+                          <FileText className="h-7 w-7 text-amber-700 dark:text-amber-300" />
+                          <span className="text-[10px] mt-1 font-medium text-amber-900 dark:text-amber-200">PDF</span>
                         </div>
                       )}
                       <Button
@@ -435,8 +436,8 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       </Button>
                     </div>
                   ) : (
-                    <div className="w-20 h-20 border-2 border-dashed border-amber-300 rounded flex items-center justify-center flex-shrink-0 bg-amber-50/50">
-                      <Award className="h-7 w-7 text-amber-400" />
+                    <div className="w-20 h-20 border-2 border-dashed border-amber-300 dark:border-amber-700 rounded flex items-center justify-center flex-shrink-0 bg-amber-50/50 dark:bg-amber-950/30">
+                      <Award className="h-7 w-7 text-amber-500 dark:text-amber-400" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -444,11 +445,11 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       type="file"
                       accept="application/pdf,image/*"
                       onChange={handleDiplomaChange}
-                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-800 hover:file:bg-amber-100 file:cursor-pointer"
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-800 hover:file:bg-amber-100 dark:file:bg-amber-950/40 dark:file:text-amber-200 dark:hover:file:bg-amber-900/40 file:cursor-pointer"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {diplomaFileName ? (
-                        <span className="text-amber-700 font-medium">{diplomaFileName}</span>
+                        <span className="text-amber-700 dark:text-amber-300 font-medium">{diplomaFileName}</span>
                       ) : (
                         "PDF nebo obrázek do 10MB"
                       )}
@@ -467,12 +468,12 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                   onChange={(e) => setFormData({ ...formData, is_url: e.target.value })}
                   placeholder="https://is.muni.cz/studium/..."
                 />
-                <p className="text-xs text-gray-500">Odkaz na stránku studia v informačním systému školy (volitelné)</p>
+                <p className="text-xs text-muted-foreground">Odkaz na stránku studia v informačním systému školy (volitelné)</p>
               </div>
 
               {/* Final Exams Toggle */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
                     <Label htmlFor="final-exams" className="text-base font-medium">
                       {getStudyTerminology(formData.type).finalExamToggleLabel}
@@ -493,7 +494,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
 
               {/* Tasks Toggle */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
                     <Label htmlFor="tasks-enabled" className="text-base font-medium">
                       Úkoly
@@ -514,7 +515,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
 
               {/* Exam Scheduler Toggle */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
                     <Label htmlFor="exam-scheduler" className="text-base font-medium">
                       Plánovač zkoušek
@@ -537,8 +538,8 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
 
                 {/* Scheduler Configuration - only show when enabled */}
                 {formData.exam_scheduler_enabled && formData.status === STUDY_STATUS.ACTIVE && (
-                  <div className="p-4 border rounded-lg bg-primary-50/30 space-y-4">
-                    <p className="text-sm font-medium text-gray-700">Nastavení plánovače</p>
+                  <div className="p-4 border rounded-lg bg-primary-50/30 dark:bg-primary-950/40 space-y-4">
+                    <p className="text-sm font-medium text-foreground/80">Nastavení plánovače</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="transit_duration">Doba cesty (hodiny)</Label>
@@ -554,7 +555,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                             transit_duration_hours: parseFloat(e.target.value) || 4
                           })}
                         />
-                        <p className="text-xs text-gray-500">Jednosměrná cesta do školy</p>
+                        <p className="text-xs text-muted-foreground">Jednosměrná cesta do školy</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="earliest_arrival">Nejdřívější příjezd</Label>
@@ -568,7 +569,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                           })}
                           placeholder="08:50"
                         />
-                        <p className="text-xs text-gray-500">Kdy nejdříve můžete být ve škole (volitelné)</p>
+                        <p className="text-xs text-muted-foreground">Kdy nejdříve můžete být ve škole (volitelné)</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="transit_cost">Cena cesty (Kč)</Label>
@@ -582,7 +583,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                             transit_cost_one_way: parseInt(e.target.value) || 0
                           })}
                         />
-                        <p className="text-xs text-gray-500">Jednosměrná cesta</p>
+                        <p className="text-xs text-muted-foreground">Jednosměrná cesta</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="accommodation_cost">Ubytování/noc (Kč)</Label>
@@ -596,18 +597,18 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                             accommodation_cost_per_night: parseInt(e.target.value) || 0
                           })}
                         />
-                        <p className="text-xs text-gray-500">Cena za noc u školy</p>
+                        <p className="text-xs text-muted-foreground">Cena za noc u školy</p>
                       </div>
                     </div>
 
                     {/* Free-day (weekend) preference */}
-                    <div className="pt-2 border-t border-primary-100 space-y-4">
+                    <div className="pt-2 border-t border-primary-100 dark:border-primary-900 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5 pr-4">
                           <Label htmlFor="prefer-free-day" className="text-sm font-medium">
                             Upřednostnit volné dny
                           </Label>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             Prezenční zkoušky v pracovní dny vyžadují dovolenou. Plánovač je penalizuje a dá přednost termínům ve volných dnech (např. o víkendu), pokud se to vyplatí.
                           </p>
                         </div>
@@ -635,7 +636,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                                 pto_day_cost: parseInt(e.target.value) || 0
                               })}
                             />
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               Kolik vás stojí jeden den dovolené. Vyšší hodnota = silnější preference volných dní.
                             </p>
                           </div>
@@ -658,7 +659,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                                     className={`w-11 h-10 rounded-md border text-sm font-medium transition-colors ${
                                       selected
                                         ? "bg-primary-600 text-white border-primary-600 hover:bg-primary-700"
-                                        : "bg-white text-gray-600 border-gray-300 hover:bg-primary-50"
+                                        : "bg-card text-muted-foreground border-border hover:bg-primary-50 dark:hover:bg-primary-900/40"
                                     }`}
                                   >
                                     {day.label}
@@ -666,7 +667,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                                 )
                               })}
                             </div>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               Dny, kdy pracujete. Zkoušky v ostatní (volné) dny nejsou penalizovány.
                             </p>
                           </div>
@@ -692,10 +693,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
             </form>
 
             {/* Danger Zone */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                <h3 className="text-lg font-semibold text-red-900 mb-2">Nebezpečná zóna</h3>
-                <p className="text-sm text-red-700 mb-4">
+            <div className="mt-8 pt-6 border-t border-border">
+              <div className="p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-950/40">
+                <h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">Nebezpečná zóna</h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mb-4">
                   Smazání studia je nevratné. Budou odstraněny všechny předměty a veškerá data spojená s tímto studiem včetně nahraného loga.
                 </p>
                 <AlertDialog>
@@ -728,6 +729,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
           </CardContent>
         </Card>
       </div>
+      <TitlePageFooter />
     </div>
   )
 }

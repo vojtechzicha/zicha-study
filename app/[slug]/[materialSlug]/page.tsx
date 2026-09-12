@@ -121,7 +121,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
 
     const { StudyNoteDisplay } = await import("@/components/study-note-display")
     return (
-      <div className="min-h-screen bg-primary-50">
+      <div className="min-h-screen bg-primary-50 dark:bg-primary-950">
         <StudyNoteDisplay
           note={{
             ...studyNote,
@@ -189,14 +189,14 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
   }
 
   const fileIcons: { [key: string]: JSX.Element } = {
-    pdf: <FileText className="h-12 w-12 text-red-600" />,
+    pdf: <FileText className="h-12 w-12 text-red-600 dark:text-red-400" />,
     doc: <FileText className="h-12 w-12 text-primary" />,
     docx: <FileText className="h-12 w-12 text-primary" />,
-    xls: <FileText className="h-12 w-12 text-green-600" />,
-    xlsx: <FileText className="h-12 w-12 text-green-600" />,
-    ppt: <FileText className="h-12 w-12 text-orange-600" />,
-    pptx: <FileText className="h-12 w-12 text-orange-600" />,
-    default: <FileText className="h-12 w-12 text-gray-600" />,
+    xls: <FileText className="h-12 w-12 text-green-600 dark:text-green-400" />,
+    xlsx: <FileText className="h-12 w-12 text-green-600 dark:text-green-400" />,
+    ppt: <FileText className="h-12 w-12 text-orange-600 dark:text-orange-400" />,
+    pptx: <FileText className="h-12 w-12 text-orange-600 dark:text-orange-400" />,
+    default: <FileText className="h-12 w-12 text-muted-foreground" />,
   }
 
   function getFileIcon(extension: string | null) {
@@ -219,9 +219,9 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen dark:[--page-grad-from:var(--primary-950,217_45%_12%)] dark:[--page-grad-to:var(--background)]"
       style={{
-        background: `linear-gradient(to bottom right, var(--primary-50, hsl(217, 100%, 95%)), var(--primary-100, hsl(217, 100%, 90%)))`,
+        background: `linear-gradient(to bottom right, hsl(var(--page-grad-from, var(--primary-50, 217 100% 95%))), hsl(var(--page-grad-to, var(--primary-100, 217 100% 90%))))`,
         minHeight: "100vh"
       } as React.CSSProperties}
     >
@@ -234,9 +234,9 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
           </Link>
           <div className="flex items-center gap-3 mb-2">
             <Globe className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold text-gray-900">Veřejný materiál</h1>
+            <h1 className="text-2xl font-bold text-foreground">Veřejný materiál</h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {isSubjectMaterial && subjectInfo
               ? `Materiál z předmětu ${subjectInfo.abbreviation || subjectInfo.name} (${study.name})`
               : `Materiál ze studia ${study.name}`
@@ -245,19 +245,19 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
         </div>
 
         {/* Material Card */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-xl">
           <CardContent className="p-8">
             <div className="flex items-start gap-6">
-              <div className="flex-shrink-0 p-4 bg-primary-50 rounded-xl">
+              <div className="flex-shrink-0 p-4 bg-primary-50 dark:bg-primary-950 rounded-xl">
                 {getFileIcon((material as any).file_extension)}
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{(material as any).name}</h2>
-                <p className="text-sm text-gray-600 mb-2">Soubor: {(material as any).file_name}</p>
+                <h2 className="text-xl font-bold text-foreground mb-2">{(material as any).name}</h2>
+                <p className="text-sm text-muted-foreground mb-2">Soubor: {(material as any).file_name}</p>
 
-                <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                   {(material as any).category && (
-                    <span className="bg-primary-100 px-2 py-1 rounded">
+                    <span className="bg-primary-100 dark:bg-primary-900/50 px-2 py-1 rounded">
                       {(material as any).category}
                     </span>
                   )}
@@ -268,8 +268,8 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
 
                 {(material as any).description && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">Popis</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">{(material as any).description}</p>
+                    <h3 className="text-sm font-medium text-foreground mb-2">Popis</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{(material as any).description}</p>
                   </div>
                 )}
 
@@ -282,7 +282,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
                   <div className="flex items-center justify-center py-8">
                     <div className="text-center">
                       <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                      <p className="text-gray-600">Přesměrování na OneDrive...</p>
+                      <p className="text-muted-foreground">Přesměrování na OneDrive...</p>
                     </div>
                   </div>
                 )}

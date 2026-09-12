@@ -175,19 +175,19 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               {isMarkdown ? (
-                <FileText className="h-8 w-8 text-primary-600" />
+                <FileText className="h-8 w-8 text-primary-600 dark:text-primary-400" />
               ) : isObsidian ? (
-                <NotebookPen className="h-8 w-8 text-primary-600" />
+                <NotebookPen className="h-8 w-8 text-primary-600 dark:text-primary-400" />
               ) : (
-                <BookOpen className="h-8 w-8 text-indigo-600" />
+                <BookOpen className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
               )}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-base mb-1 truncate">{note.name}</h3>
               {note.description && (
-                <p className="text-xs text-gray-600 mb-2 line-clamp-2">{note.description}</p>
+                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{note.description}</p>
               )}
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span>{formatFileSize(note.file_size ?? null)}</span>
                 <span>
                   {new Date(note.created_at).toLocaleDateString("cs-CZ")}
@@ -202,7 +202,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
               {/* Show subject info based on current context */}
               {note.subjects && note.subjects.length > 1 && (
                 <div className="flex items-center gap-1 mt-2">
-                  <Link className="h-3 w-3 text-gray-400" />
+                  <Link className="h-3 w-3 text-muted-foreground/70" />
                   <div className="flex flex-wrap gap-1">
                     {(() => {
                       const primaryItem = note.subjects!.find(s => s.is_primary)
@@ -215,7 +215,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                           .map(item => (
                             <Badge key={item.id} variant="outline" className="text-xs py-0 px-2">
                               {item.name}
-                              {item.is_final_exam && <span className="ml-1 text-gray-500">({finalExamBadge})</span>}
+                              {item.is_final_exam && <span className="ml-1 text-muted-foreground">({finalExamBadge})</span>}
                             </Badge>
                           ))
                       } else {
@@ -223,7 +223,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                         return primaryItem ? (
                           <Badge variant="outline" className="text-xs py-0 px-2">
                             {primaryItem.name}
-                            {primaryItem.is_final_exam && <span className="ml-1 text-gray-500">({finalExamBadge})</span>}
+                            {primaryItem.is_final_exam && <span className="ml-1 text-muted-foreground">({finalExamBadge})</span>}
                           </Badge>
                         ) : null
                       }
@@ -296,7 +296,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-                  className="text-red-600"
+                  className="text-red-600 dark:text-red-400"
                   disabled={loading}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -332,7 +332,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="public">Veřejně dostupné</Label>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Povolit přístup k zápisu pomocí veřejného odkazu
                 </p>
               </div>
@@ -348,7 +348,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                 <div className="space-y-2">
                   <Label htmlFor="slug">URL adresa *</Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">{getShareUrl(studySlug || "study-slug")}/</span>
+                    <span className="text-sm text-muted-foreground">{getShareUrl(studySlug || "study-slug")}/</span>
                     <Input
                       id="slug"
                       value={publicSlug ?? ""}
@@ -371,36 +371,36 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   {/* Status Message - Always Visible */}
                   {publicSlug && publicSlug.length >= 3 ? (
                     slugAvailable === false ? (
-                      <p className="text-sm text-red-600">Tato URL adresa již není dostupná pro toto studium</p>
+                      <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná pro toto studium</p>
                     ) : slugAvailable === true ? (
-                      <p className="text-sm text-green-600">URL adresa je dostupná</p>
+                      <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
                     ) : (
-                      <p className="text-sm text-gray-500">Kontroluje se dostupnost...</p>
+                      <p className="text-sm text-muted-foreground">Kontroluje se dostupnost...</p>
                     )
                   ) : publicSlug && publicSlug.length > 0 ? (
-                    <p className="text-sm text-orange-600">URL adresa musí mít alespoň 3 znaky</p>
+                    <p className="text-sm text-orange-600 dark:text-orange-400">URL adresa musí mít alespoň 3 znaky</p>
                   ) : (
-                    <p className="text-sm text-gray-500">Zadejte URL adresu</p>
+                    <p className="text-sm text-muted-foreground">Zadejte URL adresu</p>
                   )}
-                  <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+                  <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
                 </div>
 
                 {/* URL Preview - Always Visible When Slug Exists */}
                 {publicSlug && (
                   <div className={`p-4 rounded-lg border ${
-                    slugAvailable === true ? 'bg-primary-50 border-primary-200' :
-                    slugAvailable === false ? 'bg-red-50 border-red-200' :
-                    'bg-primary-50 border-primary-200'
+                    slugAvailable === true ? 'bg-primary-50 border-primary-200 dark:bg-primary-950 dark:border-primary-800' :
+                    slugAvailable === false ? 'bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800' :
+                    'bg-primary-50 border-primary-200 dark:bg-primary-950 dark:border-primary-800'
                   }`}>
                     <Label className={`text-sm font-medium ${
-                      slugAvailable === true ? 'text-primary-900' :
-                      slugAvailable === false ? 'text-red-900' :
-                      'text-gray-700'
+                      slugAvailable === true ? 'text-primary-900 dark:text-primary-100' :
+                      slugAvailable === false ? 'text-red-900 dark:text-red-200' :
+                      'text-foreground/80'
                     }`}>
                       Veřejná URL adresa:
                     </Label>
                     <div className="flex items-center gap-2 mt-2">
-                      <code className="flex-1 p-2 bg-white rounded border text-sm">
+                      <code className="flex-1 p-2 bg-card rounded border text-sm">
                         {getShareUrl(studySlug || "study-slug", publicSlug)}
                       </code>
                     </div>

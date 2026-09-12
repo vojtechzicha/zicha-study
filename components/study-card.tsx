@@ -17,7 +17,7 @@ interface StudyCardProps {
 export default function StudyCard({ study, onSelect, onEdit }: StudyCardProps) {
   return (
     <Card
-      className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group relative"
+      className="bg-card/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group relative"
       onClick={() => onSelect?.(study)}
     >
       <CardHeader>
@@ -25,10 +25,10 @@ export default function StudyCard({ study, onSelect, onEdit }: StudyCardProps) {
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="lg" />
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors leading-tight break-words">
+              <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-tight break-words">
                 {study.name}
               </CardTitle>
-              <CardDescription className="text-gray-600 text-sm mt-1">
+              <CardDescription className="text-muted-foreground text-sm mt-1">
                 {study.type} • {study.form}
               </CardDescription>
             </div>
@@ -55,7 +55,7 @@ export default function StudyCard({ study, onSelect, onEdit }: StudyCardProps) {
       </CardHeader>
 
       <CardContent>
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           <p>Začátek: {study.start_year}</p>
           {study.end_year && <p>Konec: {study.end_year}</p>}
         </div>

@@ -206,7 +206,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
         {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={`skeleton-${index}`}
-            className="bg-white rounded-lg border p-4 space-y-3"
+            className="bg-card rounded-lg border p-4 space-y-3"
           >
             {/* Header skeleton */}
             <div className="flex justify-between items-start">
@@ -251,7 +251,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
 
   if (semesterGroups.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-muted-foreground">
         Žádné předměty nenalezeny.
       </div>
     )
@@ -265,11 +265,11 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
         return (
           <div key={group.semester} className="space-y-3">
             {/* Semester heading */}
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg bg-primary-50 border border-primary-200 px-3 py-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-700">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 px-3 py-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-700 dark:text-primary-300">
                 {getSemesterHeadingLabel(group.semester)}
               </h3>
-              <span className="text-xs text-primary-600 whitespace-nowrap">
+              <span className="text-xs text-primary-600 dark:text-primary-400 whitespace-nowrap">
                 {group.subjects.length} {getCzechSubjectsWord(group.subjects.length)} · {totalCredits} {getCzechCreditsWord(totalCredits)}
               </span>
             </div>
@@ -280,15 +280,15 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
               return (
                 <div
                   key={subject.id}
-                  className={`bg-white rounded-lg border p-4 space-y-3 ${
-                    isSubjectFailed(subject) ? "bg-red-50 border-red-200" : ""
+                  className={`bg-card rounded-lg border p-4 space-y-3 ${
+                    isSubjectFailed(subject) ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800" : ""
                   }`}
                 >
                   {/* Header */}
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-gray-900 truncate">
+                        <h3 className="font-medium text-foreground truncate">
                           {subject.abbreviation || subject.name}
                         </h3>
                         {getSubjectTypeBadge(subject.subject_type)}
@@ -299,9 +299,9 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                         )}
                       </div>
                       {subject.abbreviation && (
-                        <p className="text-sm text-gray-600 mb-2">{subject.name}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{subject.name}</p>
                       )}
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span>
                           {(() => {
                             const display = getCreditsAndHoursDisplayMobile(subject.credits, subject.hours)
@@ -311,18 +311,18 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                             if (display.type === 'both') {
                               return (
                                 <>
-                                  <span className="font-medium text-gray-700">{display.credits} {display.creditsText}</span>
-                                  <span className="text-gray-400 ml-1">({display.hours} {display.hoursText})</span>
+                                  <span className="font-medium text-foreground/80">{display.credits} {display.creditsText}</span>
+                                  <span className="text-muted-foreground/70 ml-1">({display.hours} {display.hoursText})</span>
                                 </>
                               )
                             }
 
                             if (display.type === 'credits') {
-                              return <span className="font-medium text-gray-700">{display.credits} {display.creditsText}</span>
+                              return <span className="font-medium text-foreground/80">{display.credits} {display.creditsText}</span>
                             }
 
                             if (display.type === 'hours') {
-                              return <span className="text-gray-400">{display.hours} {display.hoursText}</span>
+                              return <span className="text-muted-foreground/70">{display.hours} {display.hoursText}</span>
                             }
                           })()}
                         </span>
@@ -407,7 +407,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
 
                   {/* Detail Info */}
                   {(subject.department || subject.lecturer) && (
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       {[subject.department, subject.lecturer].filter(Boolean).join(' • ')}
                     </div>
                   )}
@@ -415,13 +415,13 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                   {/* Completion and Grades */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-500">Ukončení:</span>
+                      <span className="text-muted-foreground">Ukončení:</span>
                       <div className="mt-1">{getCompletionBadge(subject.completion_type)}</div>
                     </div>
 
                     {isFieldVisibleForState("grade", subjectState) && subject.grade && (
                       <div>
-                        <span className="text-gray-500">Hodnocení:</span>
+                        <span className="text-muted-foreground">Hodnocení:</span>
                         <div className="mt-1 flex items-center gap-2 whitespace-nowrap">
                           {(() => {
                             const gradeConfig = getGradeBadgeConfig(subject.grade, subject)
@@ -432,7 +432,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                             )
                           })()}
                           {isFieldVisibleForState("points", subjectState) && subject.points && (
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-muted-foreground">
                               ({subject.points} {getCzechPointsWord(subject.points)})
                             </span>
                           )}
@@ -442,9 +442,9 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
 
                     {!isFieldVisibleForState("grade", subjectState) && isFieldVisibleForState("points", subjectState) && subject.points && (
                       <div>
-                        <span className="text-gray-500">Body:</span>
+                        <span className="text-muted-foreground">Body:</span>
                         <div className="mt-1">
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-muted-foreground">
                             {subject.points} {getCzechPointsWord(subject.points)}
                           </span>
                         </div>
@@ -454,7 +454,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
 
                     {isFieldVisibleForState("final_date", subjectState) && subject.final_date && (
                       <div>
-                        <span className="text-gray-500">Datum ukončení:</span>
+                        <span className="text-muted-foreground">Datum ukončení:</span>
                         <div className="mt-1 whitespace-nowrap">{formatDateCzech(subject.final_date)}</div>
                       </div>
                     )}
@@ -477,9 +477,9 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                               disabled={actionLoading[`${subject.id}_credit_completed`] || subject.credit_completed}
                             />
                           ) : (
-                            subject.credit_completed ? (isSubjectFailed(subject) ? <span className="text-sm">-</span> : <CheckCircle className="h-4 w-4 text-green-600" />) : <div className="w-4 h-4" />
+                            subject.credit_completed ? (isSubjectFailed(subject) ? <span className="text-sm">-</span> : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : <div className="w-4 h-4" />
                           )}
-                          <span className="text-sm text-gray-600">Zápočet</span>
+                          <span className="text-sm text-muted-foreground">Zápočet</span>
                         </div>
                       )}
 
@@ -497,9 +497,9 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                               disabled={actionLoading[`${subject.id}_exam_completed`] || subject.exam_completed}
                             />
                           ) : (
-                            subject.exam_completed ? (isSubjectFailed(subject) ? <span className="text-sm">-</span> : <CheckCircle className="h-4 w-4 text-green-600" />) : <div className="w-4 h-4" />
+                            subject.exam_completed ? (isSubjectFailed(subject) ? <span className="text-sm">-</span> : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : <div className="w-4 h-4" />
                           )}
-                          <span className="text-sm text-gray-600">Zkouška</span>
+                          <span className="text-sm text-muted-foreground">Zkouška</span>
                         </div>
                       )}
                     </div>

@@ -25,16 +25,16 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-primary-50 to-primary-100">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
       <main className="flex flex-1 items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <Card className="w-full max-w-md shadow-xl border-0 bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center">
               <GraduationCap className="h-8 w-8 text-white" />
             </div>
             <div>
-              <CardTitle className="text-2xl font-bold text-gray-900">Sledování studií</CardTitle>
-              <CardDescription className="text-gray-600 mt-2">
+              <CardTitle className="text-2xl font-bold text-foreground">Sledování studií</CardTitle>
+              <CardDescription className="text-muted-foreground mt-2">
                 Přihlaste se pomocí Microsoft osobního účtu
               </CardDescription>
             </div>

@@ -145,7 +145,7 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
                   value={formData.start_date}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 />
-                <p className="text-xs text-gray-500">Volitelné</p>
+                <p className="text-xs text-muted-foreground">Volitelné</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="task-deadline">Termín *</Label>
@@ -159,7 +159,7 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
               </div>
             </div>
 
-            <div className="flex items-center gap-2 rounded-lg border bg-primary-50/40 p-3">
+            <div className="flex items-center gap-2 rounded-lg border bg-primary-50/40 dark:bg-primary-950/40 p-3">
               <Checkbox
                 id="task-completed"
                 checked={formData.completed}

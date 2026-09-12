@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { TitlePageFooter } from "@/components/title-page-footer"
 
 interface StudyFormProps {
   onClose: () => void
@@ -71,18 +72,18 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background p-4">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <Button variant="ghost" onClick={onClose} className="text-gray-600 hover:text-gray-900">
+          <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zpět na přehled
           </Button>
         </div>
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-900">Přidat nové studium</CardTitle>
+            <CardTitle className="text-2xl font-bold text-foreground">Přidat nové studium</CardTitle>
             <CardDescription>Vyplňte základní informace o vašem studiu</CardDescription>
           </CardHeader>
           <CardContent>
@@ -193,6 +194,7 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
           </CardContent>
         </Card>
       </div>
+      <TitlePageFooter />
     </div>
   )
 }

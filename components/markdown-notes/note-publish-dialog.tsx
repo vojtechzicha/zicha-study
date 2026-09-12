@@ -85,7 +85,7 @@ export function NotePublishDialog({
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="md-public">Veřejně dostupné</Label>
-              <p className="text-sm text-gray-500">Povolit přístup pomocí veřejného odkazu</p>
+              <p className="text-sm text-muted-foreground">Povolit přístup pomocí veřejného odkazu</p>
             </div>
             <Switch id="md-public" checked={pub} onCheckedChange={setPub} />
           </div>
@@ -95,7 +95,7 @@ export function NotePublishDialog({
               <div className="space-y-2">
                 <Label htmlFor="md-slug">URL adresa *</Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">{getShareUrl(studySlug || "study-slug")}/</span>
+                  <span className="text-sm text-muted-foreground">{getShareUrl(studySlug || "study-slug")}/</span>
                   <Input
                     id="md-slug"
                     value={slug}
@@ -112,25 +112,25 @@ export function NotePublishDialog({
                 </div>
                 {slug && slug.length >= 3 ? (
                   available === false ? (
-                    <p className="text-sm text-red-600">Tato URL adresa již není dostupná</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná</p>
                   ) : available === true ? (
-                    <p className="text-sm text-green-600">URL adresa je dostupná</p>
+                    <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
                   ) : (
-                    <p className="text-sm text-gray-500">Kontroluje se dostupnost…</p>
+                    <p className="text-sm text-muted-foreground">Kontroluje se dostupnost…</p>
                   )
                 ) : slug.length > 0 ? (
-                  <p className="text-sm text-orange-600">URL adresa musí mít alespoň 3 znaky</p>
+                  <p className="text-sm text-orange-600 dark:text-orange-400">URL adresa musí mít alespoň 3 znaky</p>
                 ) : (
-                  <p className="text-sm text-gray-500">Zadejte URL adresu</p>
+                  <p className="text-sm text-muted-foreground">Zadejte URL adresu</p>
                 )}
-                <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+                <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
               </div>
 
               {slug && (
-                <div className={`rounded-lg border p-4 ${available === false ? "border-red-200 bg-red-50" : "border-primary-200 bg-primary-50"}`}>
-                  <Label className="text-sm font-medium text-gray-700">Veřejná URL adresa:</Label>
+                <div className={`rounded-lg border p-4 ${available === false ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40" : "border-primary-200 bg-primary-50 dark:border-primary-800 dark:bg-primary-950"}`}>
+                  <Label className="text-sm font-medium text-foreground/80">Veřejná URL adresa:</Label>
                   <div className="mt-2 flex items-center gap-2">
-                    <code className="flex-1 rounded border bg-white p-2 text-sm">
+                    <code className="flex-1 rounded border bg-card p-2 text-sm">
                       {getShareUrl(studySlug || "study-slug", slug)}
                     </code>
                   </div>

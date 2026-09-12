@@ -119,16 +119,16 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
   if (compact) {
     return (
       <>
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Úkoly</CardTitle>
-            <ListChecks className="h-4 w-4 text-primary-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Úkoly</CardTitle>
+            <ListChecks className="h-4 w-4 text-primary-600 dark:text-primary-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-2xl font-bold text-foreground">
               {counts.completed > 0 ? "Vše hotovo" : "Žádné úkoly"}
             </div>
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {counts.completed > 0
                 ? getCompletedTasksLabel(counts.completed)
                 : "Zatím žádné deadliny k vyřízení"}
@@ -138,7 +138,7 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAddDialog(true)}
-                className="h-7 px-2 text-xs text-gray-700"
+                className="h-7 px-2 text-xs text-foreground/80"
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />
                 Přidat úkol
@@ -148,7 +148,7 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowAllDialog(true)}
-                  className="h-7 px-2 text-xs text-gray-600"
+                  className="h-7 px-2 text-xs text-muted-foreground"
                 >
                   Zobrazit vše ({tasks.length})
                   <ChevronRight className="ml-1 h-3.5 w-3.5" />
@@ -165,15 +165,15 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
 
   return (
     <>
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <ListChecks className="h-5 w-5 text-primary-600" />
-                <CardTitle className="text-xl font-bold text-gray-900">Úkoly</CardTitle>
+                <ListChecks className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                <CardTitle className="text-xl font-bold text-foreground">Úkoly</CardTitle>
               </div>
-              <p className="ml-7 mt-1 text-sm text-gray-600">
+              <p className="ml-7 mt-1 text-sm text-muted-foreground">
                 Deadliny, termíny a věci k vyřízení
               </p>
             </div>
@@ -198,10 +198,10 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
           )}
 
           {tasks.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/50 px-6 py-10 text-center">
-              <ListChecks className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-              <p className="text-sm font-medium text-gray-900">Zatím žádné úkoly</p>
-              <p className="mt-1 text-sm text-gray-500">
+            <div className="rounded-xl border border-dashed border-border bg-muted/50 px-6 py-10 text-center">
+              <ListChecks className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70" />
+              <p className="text-sm font-medium text-foreground">Zatím žádné úkoly</p>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Klikněte na „Přidat úkol“ a začněte si evidovat deadliny.
               </p>
             </div>
@@ -223,7 +223,7 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
                     variant="outline"
                     size="sm"
                     onClick={() => setShowAllDialog(true)}
-                    className="text-gray-700"
+                    className="text-foreground/80"
                   >
                     Zobrazit všechny ({tasks.length})
                     <ChevronRight className="ml-1 h-4 w-4" />

@@ -132,7 +132,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="text-2xl font-bold text-gray-900">
+        <DialogTitle className="text-2xl font-bold text-foreground">
           Přidat nový předmět
         </DialogTitle>
         <DialogDescription className="sr-only">
@@ -324,29 +324,29 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
         )}
 
         {/* Subject State Selector */}
-        <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+        <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
           <Label className="text-sm font-medium">Stav předmětu</Label>
           <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="planned" id="planned" />
               <Label htmlFor="planned" className="cursor-pointer">{getSubjectStateText("planned")}</Label>
-              <span className="text-xs text-gray-600">- ještě nebyl zahájen</span>
+              <span className="text-xs text-muted-foreground">- ještě nebyl zahájen</span>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="active" id="active" />
               <Label htmlFor="active" className="cursor-pointer">{getSubjectStateText("active")}</Label>
-              <span className="text-xs text-gray-600">- probíhá</span>
+              <span className="text-xs text-muted-foreground">- probíhá</span>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="completed" id="completed" />
               <Label htmlFor="completed" className="cursor-pointer">{getSubjectStateText("completed")}</Label>
-              <span className="text-xs text-gray-600">- ukončený</span>
+              <span className="text-xs text-muted-foreground">- ukončený</span>
             </div>
           </RadioGroup>
         </div>
 
         {/* Repeat Subject Section */}
-        <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+        <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
           <div className="flex items-center space-x-2">
             <Checkbox
               id="is_repeat"
@@ -377,7 +377,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 Opakovaný předmět bude sdílet materiály a studijní zápisy s původním předmětem.
               </p>
             </div>

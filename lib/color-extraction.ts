@@ -275,6 +275,10 @@ export async function extractDominantColor(imageUrl: string): Promise<ExtractedC
  * Generates CSS custom properties for theming based on extracted color
  * Ensures light, subtle backgrounds while preserving the original color for accents
  */
+// NOTE: every returned `--primary-*` value is a bare, SPACE-separated HSL
+// component triple (e.g. `217 91% 55%`), never `217, 91%, 55%`. Tailwind wraps
+// them as `hsl(var(--primary-600))` and, for opacity modifiers, as
+// `hsl(var(--primary-600) / 0.5)` — the legacy comma form is invalid there.
 export function generateColorTheme(color: ExtractedColor) {
   const [h, s, l] = color.hsl
   
@@ -287,25 +291,33 @@ export function generateColorTheme(color: ExtractedColor) {
   const backgroundLightness100 = 94 // Light background
   
   return {
-    "--primary": `${h}, ${baseSaturation}%, ${l}%`,
+    "--primary": `${h} ${baseSaturation}% ${l}%`,
     "--primary-rgb": color.rgb.join(", "),
     "--primary-h": h.toString(),
     "--primary-s": `${baseSaturation}%`,
     "--primary-l": `${l}%`,
     
     // Light backgrounds - preserve more saturation for color visibility
-    "--primary-50": `${h}, ${Math.min(s * 0.5, 50)}%, ${backgroundLightness50}%`,
-    "--primary-100": `${h}, ${Math.min(s * 0.6, 55)}%, ${backgroundLightness100}%`,
-    "--primary-200": `${h}, ${Math.min(s * 0.7, 60)}%, ${Math.max(l + 25, 85)}%`,
-    "--primary-300": `${h}, ${Math.min(s * 0.8, 65)}%, ${Math.max(l + 15, 80)}%`,
-    "--primary-400": `${h}, ${Math.min(s * 0.9, 70)}%, ${Math.max(l + 10, 75)}%`,
+    "--primary-50": `${h} ${Math.min(s * 0.5, 50)}% ${backgroundLightness50}%`,
+    "--primary-100": `${h} ${Math.min(s * 0.6, 55)}% ${backgroundLightness100}%`,
+    "--primary-200": `${h} ${Math.min(s * 0.7, 60)}% ${Math.max(l + 25, 85)}%`,
+    "--primary-300": `${h} ${Math.min(s * 0.8, 65)}% ${Math.max(l + 15, 80)}%`,
+    "--primary-400": `${h} ${Math.min(s * 0.9, 70)}% ${Math.max(l + 10, 75)}%`,
     
     // Original and darker shades preserve more saturation
     // For primary-600 and darker, ensure sufficient contrast for white text
-    "--primary-500": `${h}, ${baseSaturation}%, ${l}%`,
-    "--primary-600": `${h}, ${Math.min(s, 85)}%, ${Math.min(Math.max(l - 10, 25), 50)}%`,
-    "--primary-700": `${h}, ${Math.min(s, 90)}%, ${Math.min(Math.max(l - 15, 20), 40)}%`,
-    "--primary-800": `${h}, ${Math.min(s, 95)}%, ${Math.min(Math.max(l - 20, 15), 30)}%`,
-    "--primary-900": `${h}, ${s}%, ${Math.max(l - 30, 10)}%`,
+    "--primary-500": `${h} ${baseSaturation}% ${l}%`,
+    "--primary-600": `${h} ${Math.min(s, 85)}% ${Math.min(Math.max(l - 10, 25), 50)}%`,
+    "--primary-700": `${h} ${Math.min(s, 90)}% ${Math.min(Math.max(l - 15, 20), 40)}%`,
+
+    // 800/900 double as dark-mode borders and tinted surfaces, so they are
+    // clamped dark enough to sit under light text (dark:border-primary-800,
+    // dark:bg-primary-900/50).
+    "--primary-800": `${h} ${Math.min(s, 95)}% ${Math.min(Math.max(l - 20, 15), 30)}%`,
+    "--primary-900": `${h} ${s}% ${Math.min(Math.max(l - 30, 10), 22)}%`,
+
+    // Dark-mode tinted page/panel surface (dark:bg-primary-950): keeps the logo
+    // hue but heavily desaturated so it reads as a near-neutral deep surface.
+    "--primary-950": `${h} ${Math.min(s * 0.55, 45)}% 12%`,
   }
 }

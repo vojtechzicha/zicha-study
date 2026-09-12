@@ -37,14 +37,14 @@ interface MaterialCardProps {
 }
 
 const fileIcons: { [key: string]: JSX.Element } = {
-  pdf: <FileText className="h-8 w-8 text-red-600" />,
+  pdf: <FileText className="h-8 w-8 text-red-600 dark:text-red-400" />,
   doc: <FileText className="h-8 w-8 text-primary" />,
   docx: <FileText className="h-8 w-8 text-primary" />,
-  xls: <FileText className="h-8 w-8 text-green-600" />,
-  xlsx: <FileText className="h-8 w-8 text-green-600" />,
-  ppt: <FileText className="h-8 w-8 text-orange-600" />,
-  pptx: <FileText className="h-8 w-8 text-orange-600" />,
-  default: <FileText className="h-8 w-8 text-gray-600" />,
+  xls: <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />,
+  xlsx: <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />,
+  ppt: <FileText className="h-8 w-8 text-orange-600 dark:text-orange-400" />,
+  pptx: <FileText className="h-8 w-8 text-orange-600 dark:text-orange-400" />,
+  default: <FileText className="h-8 w-8 text-muted-foreground" />,
 }
 
 function getFileIcon(extension: string | null) {
@@ -188,11 +188,11 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
   }
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer">
+    <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div
-            className="flex-shrink-0 p-2 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+            className="flex-shrink-0 p-2 bg-primary-50 dark:bg-primary-950 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
             onClick={handleCardClick}
           >
             {getFileIcon(material.file_extension)}
@@ -200,10 +200,10 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0" onClick={handleCardClick}>
-                <h3 className="font-medium text-gray-900 truncate group-hover:text-primary-600 transition-colors">
+                <h3 className="font-medium text-foreground truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                   {material.name}
                 </h3>
-                <p className="text-sm text-gray-600 truncate">{material.file_name}</p>
+                <p className="text-sm text-muted-foreground truncate">{material.file_name}</p>
                 <div className="flex items-center gap-2 mt-1">
                   {material.category && (
                     <Badge variant="secondary" className="text-xs">
@@ -211,13 +211,13 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                     </Badge>
                   )}
                   {isPublic && (
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800">
                       <Globe className="h-3 w-3 mr-1" />
                       Veřejné
                     </Badge>
                   )}
                   {material.file_size && (
-                    <span className="text-xs text-gray-500">{formatFileSize(material.file_size)}</span>
+                    <span className="text-xs text-muted-foreground">{formatFileSize(material.file_size)}</span>
                   )}
                 </div>
               </div>
@@ -281,7 +281,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => onDelete(material.id)}
-                        className="text-red-600 focus:text-red-600"
+                        className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Odstranit
@@ -292,7 +292,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
               </DropdownMenu>
             </div>
             {material.description && (
-              <p className="text-sm text-gray-600 mt-2 line-clamp-2">{material.description}</p>
+              <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{material.description}</p>
             )}
           </div>
         </div>
@@ -318,7 +318,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
             <div className="space-y-2">
               <Label htmlFor="public-slug">URL adresa *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{getShareUrl(studySlug)}/</span>
+                <span className="text-sm text-muted-foreground">{getShareUrl(studySlug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}
@@ -331,19 +331,19 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                 />
               </div>
               {slugAvailable === false && (
-                <p className="text-sm text-red-600">Tato URL adresa již není dostupná pro toto studium</p>
+                <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná pro toto studium</p>
               )}
               {slugAvailable === true && publicSlug && (
-                <p className="text-sm text-green-600">URL adresa je dostupná</p>
+                <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
               )}
-              <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+              <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
             </div>
 
             {publicSlug && slugAvailable && (
-              <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
-                <Label className="text-sm font-medium text-primary-900">Veřejná URL adresa:</Label>
+              <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
+                <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná URL adresa:</Label>
                 <div className="flex items-center gap-2 mt-2">
-                  <code className="flex-1 p-2 bg-white rounded border text-sm">
+                  <code className="flex-1 p-2 bg-card rounded border text-sm">
                     {getShareUrl(studySlug, publicSlug)}
                   </code>
                 </div>

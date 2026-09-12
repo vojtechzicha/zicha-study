@@ -72,8 +72,8 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
       <CardHeader>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary-100 rounded-lg">
-              <CalendarDays className="h-5 w-5 text-primary-600" />
+            <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-lg">
+              <CalendarDays className="h-5 w-5 text-primary-600 dark:text-primary-400" />
             </div>
             <div>
               <CardTitle className="text-xl">Plánovač zkoušek</CardTitle>
@@ -83,7 +83,7 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
           <Button
             onClick={() => router.push("/exam-scheduler")}
             variant="outline"
-            className="border-primary-200 text-primary-700 hover:bg-primary-50"
+            className="border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/40"
           >
             <ExternalLink className="h-4 w-4 mr-2" />
             Otevřít plánovač
@@ -92,12 +92,12 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="py-6 flex items-center justify-center text-gray-500">
+          <div className="py-6 flex items-center justify-center text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin mr-2" />
             Načítání…
           </div>
         ) : periods.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Zatím nejsou nastavena žádná zkoušková období. Vytvořte je v plánovači zkoušek.
           </p>
         ) : (
@@ -109,14 +109,14 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
               return (
                 <div key={p.id} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="font-medium text-gray-900">{p.name}</span>
-                    <span className="text-sm text-gray-500">
+                    <span className="font-medium text-foreground">{p.name}</span>
+                    <span className="text-sm text-muted-foreground">
                       {formatDateShort(p.start_date)} – {formatDateShort(p.due_date)}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {subjectIds.length === 0 ? (
-                      <span className="text-xs text-gray-400 italic">žádné předměty</span>
+                      <span className="text-xs text-muted-foreground/70 italic">žádné předměty</span>
                     ) : (
                       subjectIds.map((sid) => {
                         const subj = subjectMap.get(sid)
@@ -127,17 +127,17 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
                             <Badge
                               key={sid}
                               variant="secondary"
-                              className="bg-amber-100 text-amber-800 font-normal"
+                              className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-normal"
                               title="Předmět zatím nemá žádné termíny a není zahrnut do rozvrhu"
                             >
                               <AlertTriangle className="h-3 w-3 mr-1" />
                               {subj?.abbreviation || subj?.name || "?"}
-                              <span className="ml-1 text-amber-600">(bez termínů)</span>
+                              <span className="ml-1 text-amber-600 dark:text-amber-400">(bez termínů)</span>
                             </Badge>
                           )
                         }
                         return (
-                          <Badge key={sid} variant="secondary" className="bg-primary-100 text-primary-700 font-normal">
+                          <Badge key={sid} variant="secondary" className="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-normal">
                             {hasLock && <Lock className="h-3 w-3 mr-1" />}
                             {subj?.abbreviation || subj?.name || "?"}
                             <span className="ml-1 text-primary-400">({grpTerms.length})</span>

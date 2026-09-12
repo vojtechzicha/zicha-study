@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress"
 import { BookOpen, Clock, Trophy, Target, GraduationCap } from "lucide-react"
 import { StudyHeader } from "./study-header"
+import { TitlePageFooter } from "@/components/title-page-footer"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
 import { calculateStudyStatistics, calculateSemesterStatistics } from "@/lib/utils/statistics-utils"
 import { getSubjectTypeOptions, getSubjectTypeConfig } from "@/lib/constants"
@@ -205,7 +206,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-background">
       <StudyHeader 
         title="Statistiky"
         subtitle={studyName}
@@ -216,14 +217,14 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg mb-8">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg mb-8">
           <CardHeader>
-            <CardTitle className="text-lg font-bold text-gray-900">Filtry</CardTitle>
+            <CardTitle className="text-lg font-bold text-foreground">Filtry</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium mb-2 block text-gray-700">Období</label>
+                <label className="text-sm font-medium mb-2 block text-foreground/80">Období</label>
                 <Select value={semesterFilter} onValueChange={setSemesterFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Všechna období" />
@@ -245,7 +246,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block text-gray-700">Katedra</label>
+                <label className="text-sm font-medium mb-2 block text-foreground/80">Katedra</label>
                 <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Všechny katedry" />
@@ -262,7 +263,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block text-gray-700">Typ předmětu</label>
+                <label className="text-sm font-medium mb-2 block text-foreground/80">Typ předmětu</label>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Všechny typy" />
@@ -283,73 +284,73 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
         {/* Main Statistics */}
         <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${stats.gpa !== null ? "xl:grid-cols-5" : ""} gap-6 mb-8`}>
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
-              <BookOpen className="h-4 w-4 text-primary-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Celkem předmětů</CardTitle>
+              <BookOpen className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <p className="text-xs text-gray-600 mt-1">
+              <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 Dokončeno: {stats.completed} ({stats.completionRate.toFixed(1)}%)
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Zbývá zkoušek</CardTitle>
-              <Target className="h-4 w-4 text-red-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Zbývá zkoušek</CardTitle>
+              <Target className="h-4 w-4 text-red-600 dark:text-red-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.remainingExams}</div>
-              <p className="text-xs text-gray-600 mt-1">
+              <div className="text-2xl font-bold text-foreground">{stats.remainingExams}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 Dokončeno: {stats.examsCompleted} z {stats.totalSubjectsWithExams} ({stats.examCompletionRate.toFixed(1)}%)
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Zbývá zápočtů</CardTitle>
-              <Clock className="h-4 w-4 text-orange-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Zbývá zápočtů</CardTitle>
+              <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.remainingCredits}</div>
-              <p className="text-xs text-gray-600 mt-1">
+              <div className="text-2xl font-bold text-foreground">{stats.remainingCredits}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 Dokončeno: {stats.creditsCompleted} z {stats.totalSubjectsWithCredits} ({stats.creditCompletionRate.toFixed(1)}%)
               </p>
             </CardContent>
           </Card>
 
           {stats.average.type !== 'none' && (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">{stats.average.label}</CardTitle>
-                <Trophy className="h-4 w-4 text-green-600" />
+                <CardTitle className="text-sm font-medium text-muted-foreground">{stats.average.label}</CardTitle>
+                <Trophy className="h-4 w-4 text-green-600 dark:text-green-400" />
               </CardHeader>
               <CardContent>
                 {stats.average.type === 'both' ? (
                   <div className="space-y-2">
                     <div>
-                      <div className="text-lg font-bold text-gray-900">
+                      <div className="text-lg font-bold text-foreground">
                         {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
                       </div>
-                      <p className="text-xs text-gray-600">body (vážené kredity)</p>
+                      <p className="text-xs text-muted-foreground">body (vážené kredity)</p>
                     </div>
                     <div>
-                      <div className="text-lg font-bold text-gray-900">
+                      <div className="text-lg font-bold text-foreground">
                         {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
                       </div>
-                      <p className="text-xs text-gray-600">známky (vážené kredity)</p>
+                      <p className="text-xs text-muted-foreground">známky (vážené kredity)</p>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-foreground">
                       {stats.average.value ? stats.average.value.toFixed(2) : '-'}
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">vážené kredity</p>
+                    <p className="text-xs text-muted-foreground mt-1">vážené kredity</p>
                   </div>
                 )}
               </CardContent>
@@ -357,14 +358,14 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           )}
 
           {stats.gpa !== null && (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">GPA</CardTitle>
-                <GraduationCap className="h-4 w-4 text-primary-600" />
+                <CardTitle className="text-sm font-medium text-muted-foreground">GPA</CardTitle>
+                <GraduationCap className="h-4 w-4 text-primary-600 dark:text-primary-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{stats.gpa.toFixed(2)}</div>
-                <p className="text-xs text-gray-600 mt-1">ECTS přepočet</p>
+                <div className="text-2xl font-bold text-foreground">{stats.gpa.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">ECTS přepočet</p>
               </CardContent>
             </Card>
           )}
@@ -372,14 +373,14 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
         {/* Progress Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Dokončené předměty</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Dokončené předměty</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
+                  <span className="text-muted-foreground">
                     {stats.completed} z {stats.total}
                   </span>
                   <span className="font-medium">{stats.completionRate.toFixed(1)}%</span>
@@ -389,14 +390,14 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Získané kredity</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Získané kredity</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
+                  <span className="text-muted-foreground">
                     {stats.completedCredits} z {stats.totalCredits}
                   </span>
                   <span className="font-medium">
@@ -411,14 +412,14 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Celkové hodiny</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Celkové hodiny</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <p className="text-2xl font-bold text-gray-900">{stats.completedHours}</p>
-                <p className="text-sm text-gray-600">
+                <p className="text-2xl font-bold text-foreground">{stats.completedHours}</p>
+                <p className="text-sm text-muted-foreground">
                   z {stats.totalHours} hodin ({stats.totalHours > 0 ? ((stats.completedHours / stats.totalHours) * 100).toFixed(1) : 0}%)
                 </p>
               </div>
@@ -428,9 +429,9 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
         {/* Year Overview (when showing all periods) */}
         {semesterFilter === "all" && years.length > 0 && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg mb-8">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg mb-8">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Přehled podle ročníků</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Přehled podle ročníků</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -438,20 +439,20 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                   const yearData = yearStats[year]
                   if (!yearData) return null
                   return (
-                    <div key={year} className="border border-gray-200 rounded-lg p-4 bg-primary-50/50">
+                    <div key={year} className="border border-border rounded-lg p-4 bg-primary-50/50 dark:bg-primary-950/50">
                       <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium text-gray-900">{year}</h3>
-                        <Badge variant="outline" className="bg-white">
+                        <h3 className="font-medium text-foreground">{year}</h3>
+                        <Badge variant="outline" className="bg-card">
                           {yearData.completed}/{yearData.total} předmětů
                         </Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-600">Dokončeno: </span>
+                          <span className="text-muted-foreground">Dokončeno: </span>
                           <span className="font-medium">{yearData.completionRate.toFixed(1)}%</span>
                         </div>
                         <div>
-                          <span className="text-gray-600">Kredity: </span>
+                          <span className="text-muted-foreground">Kredity: </span>
                           <span className="font-medium">
                             {yearData.completedCredits}/{yearData.credits}
                           </span>
@@ -468,34 +469,34 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
         {/* Semester Breakdown */}
         {Object.keys(semesterStats).length > 0 && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg mb-8">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg mb-8">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Přehled podle semestrů</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Přehled podle semestrů</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {Object.entries(semesterStats).map(([semester, semesterData]) => (
-                  <div key={semester} className="border border-gray-200 rounded-lg p-4 bg-primary-50/50">
+                  <div key={semester} className="border border-border rounded-lg p-4 bg-primary-50/50 dark:bg-primary-950/50">
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-medium text-gray-900">{semester}</h3>
-                      <Badge variant="outline" className="bg-white">
+                      <h3 className="font-medium text-foreground">{semester}</h3>
+                      <Badge variant="outline" className="bg-card">
                         {semesterData.completed}/{semesterData.total} předmětů
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">Dokončeno: </span>
+                        <span className="text-muted-foreground">Dokončeno: </span>
                         <span className="font-medium">{semesterData.completionRate.toFixed(1)}%</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Kredity: </span>
+                        <span className="text-muted-foreground">Kredity: </span>
                         <span className="font-medium">
                           {semesterData.completedCredits}/{semesterData.credits}
                         </span>
                       </div>
                     </div>
                     {(semesterData.average.type !== 'none' || semesterData.gpa !== null) && (
-                      <div className="text-xs text-gray-500 mt-2">
+                      <div className="text-xs text-muted-foreground mt-2">
                         {semesterData.average.type === 'both' ? (
                           <div className="space-y-1">
                             <div>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : '-'}</div>
@@ -524,31 +525,31 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
         {/* Department Breakdown */}
         {Object.keys(departmentStats).length > 0 && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg mb-8">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg mb-8">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Přehled podle kateder</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Přehled podle kateder</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {Object.entries(departmentStats).map(([dept, deptData]) => (
-                  <div key={dept} className="border border-gray-200 rounded-lg p-4 bg-primary-50/50">
+                  <div key={dept} className="border border-border rounded-lg p-4 bg-primary-50/50 dark:bg-primary-950/50">
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-medium text-gray-900">{dept}</h3>
-                      <Badge variant="outline" className="bg-white">
+                      <h3 className="font-medium text-foreground">{dept}</h3>
+                      <Badge variant="outline" className="bg-card">
                         {deptData.completed}/{deptData.total} předmětů
                       </Badge>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">Dokončeno: </span>
+                        <span className="text-muted-foreground">Dokončeno: </span>
                         <span className="font-medium">{deptData.completionRate.toFixed(1)}%</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Kredity: </span>
+                        <span className="text-muted-foreground">Kredity: </span>
                         <span className="font-medium">{deptData.credits}</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Hodiny: </span>
+                        <span className="text-muted-foreground">Hodiny: </span>
                         <span className="font-medium">{deptData.hours}</span>
                       </div>
                     </div>
@@ -562,9 +563,9 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
         {/* Subject Type Breakdown */}
         {Object.keys(typeStats).length > 0 && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-gray-900">Přehled podle typů předmětů</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Přehled podle typů předmětů</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -572,7 +573,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                   <div key={type} className={`border rounded-lg p-4 ${getTypeColor(type)}`}>
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium">{type}</h3>
-                      <Badge variant="outline" className="bg-white">
+                      <Badge variant="outline" className="bg-card">
                         {data.completed}/{data.total}
                       </Badge>
                     </div>
@@ -594,6 +595,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           </Card>
         )}
       </main>
+      <TitlePageFooter />
     </div>
   )
 }

@@ -45,14 +45,14 @@ interface MaterialsTableProps {
 }
 
 const fileIcons: { [key: string]: JSX.Element } = {
-  pdf: <FileText className="h-4 w-4 text-red-600" />,
+  pdf: <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />,
   doc: <FileText className="h-4 w-4 text-primary" />,
   docx: <FileText className="h-4 w-4 text-primary" />,
-  xls: <FileText className="h-4 w-4 text-green-600" />,
-  xlsx: <FileText className="h-4 w-4 text-green-600" />,
-  ppt: <FileText className="h-4 w-4 text-orange-600" />,
-  pptx: <FileText className="h-4 w-4 text-orange-600" />,
-  default: <FileText className="h-4 w-4 text-gray-600" />,
+  xls: <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />,
+  xlsx: <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />,
+  ppt: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
+  pptx: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
+  default: <FileText className="h-4 w-4 text-muted-foreground" />,
 }
 
 function getFileIcon(extension: string | null) {
@@ -226,10 +226,10 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-10 bg-primary-100 rounded animate-pulse" />
+        <div className="h-10 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-primary-100 rounded animate-pulse" />
+            <div key={i} className="h-16 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -239,7 +239,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
         <Input
           placeholder="Hledat v materiálech..."
           value={searchQuery}
@@ -263,7 +263,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
           <TableBody>
             {filteredMaterials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   {searchQuery ? "Žádné materiály neodpovídají vyhledávání" : "Zatím nejsou přidány žádné materiály"}
                 </TableCell>
               </TableRow>
@@ -275,9 +275,9 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                       {getFileIcon(material.file_extension)}
                       <div>
                         <div className="font-medium">{material.name}</div>
-                        <div className="text-sm text-gray-500">{material.file_name}</div>
+                        <div className="text-sm text-muted-foreground">{material.file_name}</div>
                         {material.description && (
-                          <div className="text-sm text-gray-600 mt-1">{material.description}</div>
+                          <div className="text-sm text-muted-foreground mt-1">{material.description}</div>
                         )}
                       </div>
                     </div>
@@ -289,20 +289,20 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                   </TableCell>
                   <TableCell>
                     {material.is_public ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800">
                         <Globe className="h-3 w-3 mr-1" />
                         Veřejné
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-primary-50 text-primary-600 border-primary-200">
+                      <Badge variant="outline" className="bg-primary-50 text-primary-600 border-primary-200 dark:bg-primary-950 dark:text-primary-400 dark:border-primary-800">
                         Soukromé
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm text-gray-600">
+                  <TableCell className="text-sm text-muted-foreground">
                     {formatFileSize(material.file_size)}
                   </TableCell>
-                  <TableCell className="text-sm text-gray-600">
+                  <TableCell className="text-sm text-muted-foreground">
                     {formatDate(material.created_at)}
                   </TableCell>
                   <TableCell className="text-right">
@@ -365,7 +365,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => onDelete(material.id)}
-                                className="text-red-600 focus:text-red-600"
+                                className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Odstranit
@@ -413,7 +413,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
             <div className="space-y-2">
               <Label htmlFor="public-slug">URL adresa *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{getShareUrl(studySlug)}/</span>
+                <span className="text-sm text-muted-foreground">{getShareUrl(studySlug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}
@@ -426,19 +426,19 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                 />
               </div>
               {slugAvailable === false && (
-                <p className="text-sm text-red-600">Tato URL adresa již není dostupná pro toto studium</p>
+                <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná pro toto studium</p>
               )}
               {slugAvailable === true && publicSlug && (
-                <p className="text-sm text-green-600">URL adresa je dostupná</p>
+                <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
               )}
-              <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+              <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
             </div>
 
             {publicSlug && slugAvailable && (
-              <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
-                <Label className="text-sm font-medium text-primary-900">Veřejná URL adresa:</Label>
+              <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
+                <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná URL adresa:</Label>
                 <div className="flex items-center gap-2 mt-2">
-                  <code className="flex-1 p-2 bg-white rounded border text-sm">
+                  <code className="flex-1 p-2 bg-card rounded border text-sm">
                     {getShareUrl(studySlug, publicSlug)}
                   </code>
                 </div>

@@ -11,8 +11,8 @@ export default function ExamSchedulerPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600 dark:text-primary-400" />
       </div>
     )
   }

@@ -139,10 +139,10 @@ export function CacheSettingsDialog({
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-900">
+            <DialogTitle className="text-xl font-bold text-foreground">
               Nastavení OneDrive cache
             </DialogTitle>
-            <DialogDescription className="text-gray-600">
+            <DialogDescription className="text-muted-foreground">
               Konfigurujte složku pro zálohy souborů z OneDrive. Zálohy
               zajistí funkčnost odkazů i po smazání původního souboru.
             </DialogDescription>
@@ -161,9 +161,9 @@ export function CacheSettingsDialog({
               <Label className="text-base font-medium">Složka pro cache</Label>
 
               {cacheFolder?.cache_folder_id ? (
-                <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-lg border border-primary-200">
-                  <Folder className="h-5 w-5 text-primary-600 flex-shrink-0" />
-                  <p className="flex-1 text-sm font-medium text-gray-900 min-w-0 truncate">
+                <div className="flex items-center gap-3 p-3 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
+                  <Folder className="h-5 w-5 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+                  <p className="flex-1 text-sm font-medium text-foreground min-w-0 truncate">
                     {cacheFolder.cache_folder_name}
                   </p>
                   <Button
@@ -188,7 +188,7 @@ export function CacheSettingsDialog({
                 </Button>
               )}
 
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Při přidání materiálu nebo studijního zápisu se soubor
                 automaticky zkopíruje do této složky.
               </p>
@@ -218,7 +218,7 @@ export function CacheSettingsDialog({
                     </>
                   )}
                 </Button>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Zkopíruje soubory, u kterých existuje původní odkaz v OneDrive.
                 </p>
 
@@ -240,7 +240,7 @@ export function CacheSettingsDialog({
                     </>
                   )}
                 </Button>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Pro soubory smazané a znovu nahrané do OneDrive. Vyhledá
                   soubory podle cesty a názvu a aktualizuje odkazy.
                 </p>
@@ -251,12 +251,12 @@ export function CacheSettingsDialog({
                   variant={syncResult.failed > 0 ? "destructive" : "default"}
                   className={
                     syncResult.failed === 0
-                      ? "border-green-200 bg-green-50"
+                      ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40"
                       : undefined
                   }
                 >
                   {syncResult.failed === 0 ? (
-                    <Check className="h-4 w-4 text-green-600" />
+                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
                     <AlertCircle className="h-4 w-4" />
                   )}
@@ -276,10 +276,10 @@ export function CacheSettingsDialog({
                     </ul>
                     {syncResult.errors.length > 0 && (
                       <details className="mt-2">
-                        <summary className="text-xs cursor-pointer text-gray-500">
+                        <summary className="text-xs cursor-pointer text-muted-foreground">
                           Zobrazit detaily ({syncResult.errors.length})
                         </summary>
-                        <ul className="text-xs mt-1 space-y-0.5 text-gray-600">
+                        <ul className="text-xs mt-1 space-y-0.5 text-muted-foreground">
                           {syncResult.errors.map((err, i) => (
                             <li key={i}>{err}</li>
                           ))}

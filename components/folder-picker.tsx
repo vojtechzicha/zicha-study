@@ -134,17 +134,17 @@ export function FolderPicker({
           )}
 
           {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-1 text-sm text-gray-600 overflow-x-auto">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground overflow-x-auto">
             {folderPathHistory.map((crumb, index) => (
               <div key={index} className="flex items-center gap-1">
                 <button
                   onClick={() => handleBreadcrumbNavigation(index)}
-                  className="hover:text-primary-600 whitespace-nowrap"
+                  className="hover:text-primary-600 dark:hover:text-primary-400 whitespace-nowrap"
                 >
                   {crumb.name}
                 </button>
                 {index < folderPathHistory.length - 1 && (
-                  <ChevronRight className="h-3 w-3 text-gray-400" />
+                  <ChevronRight className="h-3 w-3 text-muted-foreground/70" />
                 )}
               </div>
             ))}
@@ -154,24 +154,24 @@ export function FolderPicker({
             {folderPickerLoading ? (
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-12 bg-primary-100 rounded animate-pulse" />
+                  <div key={i} className="h-12 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
                 ))}
               </div>
             ) : availableFolders.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">Žádné složky nebyly nalezeny</p>
+              <p className="text-muted-foreground text-center py-8">Žádné složky nebyly nalezeny</p>
             ) : (
               availableFolders.map((folder) => (
                 <div
                   key={folder.id || 'root'}
-                  className="flex items-center gap-3 p-3 hover:bg-primary-50 cursor-pointer rounded border"
+                  className="flex items-center gap-3 p-3 hover:bg-primary-50 dark:hover:bg-primary-900/40 cursor-pointer rounded border"
                 >
-                  <Folder className="h-6 w-6 text-primary-600" />
+                  <Folder className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                   <div
                     className="flex-1 min-w-0"
                     onClick={() => handleFolderSelect(folder)}
                   >
                     <p className="font-medium truncate">{folder.name}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {folder.folder.childCount} položek
                     </p>
                   </div>

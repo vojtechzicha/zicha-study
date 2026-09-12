@@ -117,11 +117,11 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
   }
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+    <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
       <CardHeader>
         <div>
-          <CardTitle className="text-xl font-bold text-gray-900">Studijní zápisy</CardTitle>
-          <p className="text-sm text-gray-600 mt-1">
+          <CardTitle className="text-xl font-bold text-foreground">Studijní zápisy</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
             Veřejně dostupné studijní zápisy
           </p>
         </div>
@@ -137,7 +137,7 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="h-32 bg-primary-100 rounded-lg animate-pulse" />
+              <div key={i} className="h-32 bg-primary-100 dark:bg-primary-900/40 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : !showAll ? (
@@ -157,7 +157,7 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
                 <Button
                   variant="outline"
                   onClick={() => setShowAll(true)}
-                  className="text-gray-700"
+                  className="text-foreground/80"
                 >
                   Zobrazit všechny zápisy ({studyNotes.length})
                   <ChevronRight className="ml-2 h-4 w-4" />

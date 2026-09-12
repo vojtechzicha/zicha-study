@@ -375,11 +375,11 @@ export function StudyNoteLinkSubjectsDialog({
             <Label className="text-sm font-medium">
               {primaryFinalExam ? "Hlavní státní zkouška" : "Hlavní předmět"}
             </Label>
-            <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-lg border border-primary-200">
+            <div className="flex items-center gap-2 p-3 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
               <Badge variant="default" className="bg-primary-600">
                 {primaryFinalExam?.name || primarySubject?.name || "Neznámý předmět"}
               </Badge>
-              <span className="text-sm text-gray-600">(nelze změnit)</span>
+              <span className="text-sm text-muted-foreground">(nelze změnit)</span>
             </div>
           </div>
 
@@ -390,11 +390,11 @@ export function StudyNoteLinkSubjectsDialog({
               <ScrollArea className="h-[200px] rounded-md border p-2">
                 <div className="space-y-2">
                   {allLinkedItems.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-primary-50 rounded-lg border mr-3">
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-primary-50 dark:bg-primary-950 rounded-lg border mr-3">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{item.name}</Badge>
                         {item.is_final_exam && (
-                          <span className="text-xs text-gray-500">(Státní zkouška)</span>
+                          <span className="text-xs text-muted-foreground">(Státní zkouška)</span>
                         )}
                       </div>
                       <Button
@@ -402,7 +402,7 @@ export function StudyNoteLinkSubjectsDialog({
                         size="sm"
                         onClick={() => handleUnlink(item.id, item.is_final_exam)}
                         disabled={loading}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         <Unlink className="h-4 w-4 mr-1" />
                         Odpojit
@@ -419,7 +419,7 @@ export function StudyNoteLinkSubjectsDialog({
             <div className="space-y-2">
               <Label className="text-sm font-medium">
                 Dostupné předměty pro propojení
-                {studyName && <span className="text-gray-500 font-normal ml-2">({studyName})</span>}
+                {studyName && <span className="text-muted-foreground font-normal ml-2">({studyName})</span>}
               </Label>
               <ScrollArea className="h-[300px] border rounded-lg p-4">
                 <div className="space-y-2">
@@ -430,14 +430,14 @@ export function StudyNoteLinkSubjectsDialog({
                         checked={selectedSubjects.has(subject.id)}
                         onCheckedChange={() => toggleSubject(subject.id)}
                         disabled={loading}
-                        className="data-[state=checked]:bg-primary-600 data-[state=checked]:text-white border-gray-300"
+                        className="data-[state=checked]:bg-primary-600 data-[state=checked]:text-white border-border"
                       />
                       <Label
                         htmlFor={subject.id}
                         className="text-sm font-normal cursor-pointer flex-1"
                       >
                         {subject.name}
-                        <span className="text-gray-500 ml-2">
+                        <span className="text-muted-foreground ml-2">
                           {subject.is_final_exam ? "(Státní zkouška)" : `(${subject.semester}. semestr)`}
                         </span>
                       </Label>

@@ -49,15 +49,15 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
 
   return (
     <>
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader>
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-primary-600" />
-                <CardTitle className="text-xl font-bold text-gray-900">Předměty</CardTitle>
+                <BookOpen className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                <CardTitle className="text-xl font-bold text-foreground">Předměty</CardTitle>
               </div>
-              <p className="text-sm text-gray-600 mt-1 ml-7">
+              <p className="text-sm text-muted-foreground mt-1 ml-7">
                 {searchQuery || showActiveOnly
                   ? `Zobrazeno ${filteredSubjects.length} z ${subjects.length} předmětů`
                   : "Přehled všech předmětů ve studiu"}
@@ -66,7 +66,7 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
             {/* Search Input with Filter and Add button - Right side on desktop, below on mobile */}
             <div className="w-full md:w-auto relative flex gap-2 items-center">
               <div className="flex-1 md:flex-initial md:w-64 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
                 <Input
                   placeholder="Hledat v předmětech..."
                   value={searchQuery}
@@ -80,11 +80,11 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
                 className={`h-10 w-10 p-0 flex-shrink-0 ${
                   showActiveOnly
                     ? "bg-primary-600 text-white border-primary-600 hover:bg-primary-700"
-                    : "text-gray-600 hover:bg-primary-100 hover:text-gray-900"
+                    : "text-muted-foreground hover:bg-primary-100 dark:hover:bg-primary-900/60 hover:text-foreground"
                 }`}
                 title={showActiveOnly ? "Zobrazit všechny předměty" : "Zobrazit pouze aktivní předměty"}
               >
-                <Filter className={`h-4 w-4 ${showActiveOnly ? "text-white" : "text-gray-600"}`} />
+                <Filter className={`h-4 w-4 ${showActiveOnly ? "text-white" : "text-muted-foreground"}`} />
               </Button>
               <Button
                 onClick={() => setShowSubjectForm(true)}
