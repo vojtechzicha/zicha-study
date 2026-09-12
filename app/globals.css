@@ -258,3 +258,13 @@ body {
   pointer-events: none;
   height: 0;
 }
+/* Printing from a dark tab: the global print block above restores the light
+   tokens, but these `.dark`-scoped Markdown rules are more specific and would
+   keep their dark tints. Reset them to the light values. */
+@media print {
+  .dark .tiptap-note blockquote {
+    border-left-color: hsl(var(--primary-200, 214 95% 93%));
+    background: hsl(var(--primary-50, 214 100% 97%));
+  }
+  .dark .tiptap-note a { color: hsl(var(--primary-600, 221 83% 53%)); }
+}

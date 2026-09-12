@@ -22,6 +22,7 @@ import {
 import { updateStudyNoteAction } from "@/lib/actions/study-notes"
 import { looksLikeMarkdown, markdownToEditorHtml } from "@/components/markdown-notes/markdown-import"
 import { coerceNoteContent, type MarkdownNoteEditorData, type NoteContentJSON } from "@/lib/types/markdown-notes"
+import { TitlePageFooter } from "@/components/title-page-footer"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
@@ -241,6 +242,7 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
           </Tabs>
         </main>
       </div>
+      <TitlePageFooter />
 
       <NotePublishDialog
         noteId={noteId}

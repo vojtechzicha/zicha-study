@@ -39,9 +39,13 @@ const DEFAULT_THEME: Record<string, string> = {
  * `--primary` is set inline on <html>, which beats the `.dark {}` rule, so the
  * matching foreground has to be derived from the logo colour as well — a dark
  * logo colour needs white text on it, a light one needs near-black.
+ *
+ * Decided on relative luminance (`ExtractedColor.isLight`, computed from RGB),
+ * not HSL lightness: a saturated yellow or lime has L ≈ 50 % yet is very
+ * bright, and white text on it would be unreadable.
  */
-function primaryForegroundFor(lightness: number): string {
-  return lightness <= 55 ? "0 0% 100%" : "0 0% 9%"
+function primaryForegroundFor(isLight: boolean): string {
+  return isLight ? "0 0% 9%" : "0 0% 100%"
 }
 
 function applyTheme(theme: Record<string, string>) {
@@ -83,7 +87,7 @@ export function useLogoTheme(logoUrl?: string | null) {
           setExtractedColor(color)
           applyTheme({
             ...generateColorTheme(color),
-            "--primary-foreground": primaryForegroundFor(color.hsl[2]),
+            "--primary-foreground": primaryForegroundFor(color.isLight),
           })
         }
       })
