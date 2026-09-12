@@ -59,7 +59,7 @@ export function HighSchoolSubjectsAdmin({ study, subjects, loading, onUpdate }: 
       </Button>
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+          <Button size="sm" variant="ghost" className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30">
             <Trash2 className="h-4 w-4" />
           </Button>
         </AlertDialogTrigger>
@@ -83,12 +83,12 @@ export function HighSchoolSubjectsAdmin({ study, subjects, loading, onUpdate }: 
 
   return (
     <>
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader>
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary-600" />
-              <CardTitle className="text-xl font-bold text-gray-900">Předměty</CardTitle>
+              <BookOpen className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+              <CardTitle className="text-xl font-bold text-foreground">Předměty</CardTitle>
             </div>
             <Button
               onClick={() => setShowAddForm(true)}

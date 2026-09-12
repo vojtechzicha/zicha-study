@@ -116,7 +116,7 @@ export function DoodleCanvas({ scene, editable, onChange }: DoodleCanvasProps) {
   return (
     <div className="inline-block max-w-full">
       {editable && (
-        <div className="flex flex-wrap items-center gap-2 mb-2 rounded-md border bg-gray-50 p-2">
+        <div className="flex flex-wrap items-center gap-2 mb-2 rounded-md border bg-muted/50 p-2">
           <Button
             type="button"
             size="sm"
@@ -142,7 +142,7 @@ export function DoodleCanvas({ scene, editable, onChange }: DoodleCanvasProps) {
                 type="button"
                 aria-label={`Barva ${c}`}
                 onClick={() => { setColor(c); setTool("pen") }}
-                className={`h-5 w-5 rounded-full border ${color === c ? "ring-2 ring-offset-1 ring-primary-500" : ""}`}
+                className={`h-5 w-5 rounded-full border ${color === c ? "ring-2 ring-offset-1 ring-offset-background ring-primary-500" : ""}`}
                 style={{ backgroundColor: c }}
               />
             ))}
@@ -154,9 +154,9 @@ export function DoodleCanvas({ scene, editable, onChange }: DoodleCanvasProps) {
                 type="button"
                 aria-label={`Tloušťka ${s}`}
                 onClick={() => { setSize(s); setTool("pen") }}
-                className={`flex h-6 w-6 items-center justify-center rounded border ${size === s ? "border-primary-500 bg-primary-50" : "border-gray-300"}`}
+                className={`flex h-6 w-6 items-center justify-center rounded border ${size === s ? "border-primary-500 bg-primary-50 dark:bg-primary-900/40" : "border-border"}`}
               >
-                <span className="rounded-full bg-gray-800" style={{ width: s + 2, height: s + 2 }} />
+                <span className="rounded-full bg-foreground" style={{ width: s + 2, height: s + 2 }} />
               </button>
             ))}
           </div>
@@ -170,12 +170,14 @@ export function DoodleCanvas({ scene, editable, onChange }: DoodleCanvasProps) {
           </div>
         </div>
       )}
+      {/* The drawing surface stays a light "paper" in both themes: saved strokes
+          keep fixed dark colours (PEN_COLORS) and would vanish on a dark card. */}
       <svg
         ref={svgRef}
         viewBox={`0 0 ${scene.width} ${scene.height}`}
         width={scene.width}
         height={scene.height}
-        className="max-w-full rounded-md border border-gray-200 bg-white"
+        className="max-w-full rounded-md border border-border bg-white dark:bg-neutral-100"
         style={{ touchAction: editable ? "none" : "auto", cursor: editable ? "crosshair" : "default" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

@@ -92,6 +92,23 @@ interface SubjectTableProps {
 
 type FilterType = "all" | "active"
 
+/**
+ * Backgrounds for the opaque leading columns (the pinned first column, the
+ * Detail column that sits under it while scrolling) and the pinned Actions
+ * column.
+ *
+ * A sticky cell must be fully opaque or the rest of the row scrolls visibly
+ * underneath it. The row tint (`bg-red-50 dark:bg-red-950/40`) and the row
+ * hover (`bg-muted/50`) are translucent, so the tint is painted as a gradient
+ * *layer* on top of an opaque `bg-card` base instead of replacing it — the
+ * result is pixel-identical to the row while staying opaque.
+ */
+const STICKY_CELL_BG =
+  "bg-card bg-gradient-to-r group-hover:from-muted/50 group-hover:to-muted/50"
+const STICKY_CELL_BG_FAILED =
+  "bg-card bg-gradient-to-r from-red-50 to-red-50 dark:from-red-950/40 dark:to-red-950/40 " +
+  "group-hover:from-red-100 group-hover:to-red-100 dark:group-hover:from-red-900/50 dark:group-hover:to-red-900/50"
+
 export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false, study, examSchedulerEnabled = false }: SubjectTableProps) {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({})
@@ -289,14 +306,14 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         {/* Scroll indicators - only show when scrolling is possible */}
         {showLeftIndicator && (
           <div className="absolute left-[250px] top-0 bottom-0 w-16 flex items-center pointer-events-none z-30">
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent" />
-            <ChevronLeft className="relative ml-2 h-5 w-5 text-gray-400" />
+            <div className="absolute inset-0 bg-gradient-to-r from-card via-card/90 to-transparent" />
+            <ChevronLeft className="relative ml-2 h-5 w-5 text-muted-foreground/70" />
           </div>
         )}
         {showRightIndicator && (
           <div className="absolute right-[100px] top-0 bottom-0 w-16 flex items-center justify-end pointer-events-none z-30">
-            <div className="absolute inset-0 bg-gradient-to-l from-white via-white/90 to-transparent" />
-            <ChevronRight className="relative mr-2 h-5 w-5 text-gray-400" />
+            <div className="absolute inset-0 bg-gradient-to-l from-card via-card/90 to-transparent" />
+            <ChevronRight className="relative mr-2 h-5 w-5 text-muted-foreground/70" />
           </div>
         )}
 
@@ -311,17 +328,17 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         )}
 
         <div
-          className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
+          className="overflow-x-auto scrollbar-thin"
           ref={scrollContainerRef}
           style={{
             scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db #f3f4f6'
+            scrollbarColor: 'hsl(var(--border)) hsl(var(--muted))'
           }}
         >
           <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 z-20 bg-white min-w-[250px]">Předmět</TableHead>
+              <TableHead className="sticky left-0 z-20 bg-card min-w-[250px]">Předmět</TableHead>
               {hasDetailInfo && <TableHead className="w-[200px]">Detail</TableHead>}
               <TableHead>Typ</TableHead>
               <TableHead>Ukončení</TableHead>
@@ -330,7 +347,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
               <TableHead>Datum ukončení</TableHead>
               <TableHead>Zápočet</TableHead>
               <TableHead>Zkouška</TableHead>
-              <TableHead className="sticky right-0 z-10 bg-white w-[100px] text-right">Akce</TableHead>
+              <TableHead className="sticky right-0 z-10 bg-card w-[100px] text-right">Akce</TableHead>
             </TableRow>
           </TableHeader>
         <TableBody>
@@ -338,7 +355,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
             // Skeleton loading rows
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={`skeleton-${index}`}>
-                <TableCell className="sticky left-0 z-20 bg-white min-w-[250px]">
+                <TableCell className="sticky left-0 z-20 bg-card min-w-[250px]">
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-48" />
@@ -359,7 +376,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-4 rounded" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-4 rounded" /></TableCell>
-                <TableCell className="sticky right-0 z-10 bg-white">
+                <TableCell className="sticky right-0 z-10 bg-card">
                   <div className="flex gap-1 justify-end">
                     <Skeleton className="h-8 w-8 rounded" />
                     <Skeleton className="h-8 w-8 rounded" />
@@ -369,7 +386,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
             ))
           ) : semesterGroups.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={hasDetailInfo ? 10 : 9} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={hasDetailInfo ? 10 : 9} className="text-center py-8 text-muted-foreground">
                 Žádné předměty nenalezeny.
               </TableCell>
             </TableRow>
@@ -381,13 +398,13 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                 <Fragment key={group.semester}>
                   {/* Semester divider row */}
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={hasDetailInfo ? 10 : 9} className="bg-primary-50 border-y border-primary-200 p-0">
+                    <TableCell colSpan={hasDetailInfo ? 10 : 9} className="bg-primary-50 dark:bg-primary-950 border-y border-primary-200 dark:border-primary-800 p-0">
                       {/* Sticky wrapper keeps the label visible while the table scrolls horizontally */}
                       <div className="sticky left-0 w-fit max-w-full flex items-baseline gap-3 px-4 py-2 whitespace-nowrap">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-primary-700">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-primary-700 dark:text-primary-300">
                           {getSemesterHeadingLabel(group.semester)}
                         </span>
-                        <span className="text-xs text-primary-600">
+                        <span className="text-xs text-primary-600 dark:text-primary-400">
                           {group.subjects.length} {getCzechSubjectsWord(group.subjects.length)} · {totalCredits} {getCzechCreditsWord(totalCredits)}
                         </span>
                       </div>
@@ -400,10 +417,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                     return (
                       <TableRow
                         key={subject.id}
-                        className={isSubjectFailed(subject) ? "group bg-red-50 hover:bg-red-100" : "group"}
+                        className={isSubjectFailed(subject) ? "group bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50" : "group"}
                       >
                         {/* Subject */}
-                        <TableCell className={`sticky left-0 z-20 min-w-[250px] ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                        <TableCell className={`sticky left-0 z-20 min-w-[250px] ${isSubjectFailed(subject) ? STICKY_CELL_BG_FAILED : STICKY_CELL_BG}`}>
                           <div>
                             <div className="font-medium flex items-center gap-2">
                               {subject.abbreviation || subject.name}
@@ -414,14 +431,14 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                               )}
                             </div>
                             {subject.abbreviation && (
-                              <div className="text-sm text-gray-600">{subject.name}</div>
+                              <div className="text-sm text-muted-foreground">{subject.name}</div>
                             )}
                           </div>
                         </TableCell>
 
                         {/* Detail - Department and Lecturer */}
                         {hasDetailInfo && (
-                          <TableCell className={`text-xs text-gray-600 max-w-[200px] overflow-hidden pl-6 ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                          <TableCell className={`text-xs text-muted-foreground max-w-[200px] overflow-hidden pl-6 ${isSubjectFailed(subject) ? STICKY_CELL_BG_FAILED : STICKY_CELL_BG}`}>
                             {(subject.department || subject.lecturer) ? (
                               <TooltipProvider>
                                 <div className="space-y-0.5">
@@ -440,7 +457,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                   {subject.lecturer && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <div className="truncate text-gray-500 cursor-help">
+                                        <div className="truncate text-muted-foreground cursor-help">
                                           {subject.lecturer}
                                         </div>
                                       </TooltipTrigger>
@@ -476,7 +493,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                               return (
                                 <span>
                                   <span className="font-medium">{display.credits}</span>
-                                  <span className="text-gray-500 text-sm ml-1">({display.hours} {display.hoursText})</span>
+                                  <span className="text-muted-foreground text-sm ml-1">({display.hours} {display.hoursText})</span>
                                 </span>
                               )
                             }
@@ -486,7 +503,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                             }
 
                             if (display.type === 'hours') {
-                              return <span className="text-gray-500">{display.hours} {display.hoursText}</span>
+                              return <span className="text-muted-foreground">{display.hours} {display.hoursText}</span>
                             }
                           })()}
                         </TableCell>
@@ -507,7 +524,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                   <span className={`px-2 py-1 rounded text-sm font-medium ${gradeConfig.className}`} style={gradeConfig.style}>
                                     {subject.grade}
                                   </span>
-                                  <span className="text-sm text-gray-600">({subject.points} {getCzechPointsWord(subject.points!)})</span>
+                                  <span className="text-sm text-muted-foreground">({subject.points} {getCzechPointsWord(subject.points!)})</span>
                                 </div>
                               )
                             }
@@ -522,7 +539,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                             }
 
                             if (hasPoints) {
-                              return <span className="text-sm text-gray-600">{subject.points} {getCzechPointsWord(subject.points!)}</span>
+                              return <span className="text-sm text-muted-foreground">{subject.points} {getCzechPointsWord(subject.points!)}</span>
                             }
                           })()}
                         </TableCell>
@@ -554,10 +571,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                 } : {}}
                               />
                             ) : (
-                              subject.credit_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600" />) : "-"
+                              subject.credit_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : "-"
                             )
                           ) : (
-                            <span className="text-gray-400">N/A</span>
+                            <span className="text-muted-foreground/70">N/A</span>
                           )}
                         </TableCell>
 
@@ -583,15 +600,15 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                 } : {}}
                               />
                             ) : (
-                              subject.exam_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600" />) : "-"
+                              subject.exam_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : "-"
                             )
                           ) : (
-                            <span className="text-gray-400">N/A</span>
+                            <span className="text-muted-foreground/70">N/A</span>
                           )}
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className={`sticky right-0 z-10 text-right ${isSubjectFailed(subject) ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-hover:bg-muted/50'}`}>
+                        <TableCell className={`sticky right-0 z-10 text-right ${isSubjectFailed(subject) ? STICKY_CELL_BG_FAILED : STICKY_CELL_BG}`}>
                           <div className="flex gap-1 justify-end">
                             {/* Make Active */}
                             {availableActions.includes("makeActive") && (

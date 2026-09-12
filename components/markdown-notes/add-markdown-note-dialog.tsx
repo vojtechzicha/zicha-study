@@ -141,7 +141,7 @@ export function AddMarkdownNoteDialog({
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="md-pub">Publikovat ihned</Label>
-              <p className="text-sm text-gray-500">Zpřístupnit přes veřejný odkaz</p>
+              <p className="text-sm text-muted-foreground">Zpřístupnit přes veřejný odkaz</p>
             </div>
             <Switch id="md-pub" checked={isPublic} onCheckedChange={setIsPublic} />
           </div>
@@ -150,7 +150,7 @@ export function AddMarkdownNoteDialog({
             <div className="space-y-2">
               <Label htmlFor="md-add-slug">URL adresa *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{getShareUrl(studySlug || "study-slug")}/</span>
+                <span className="text-sm text-muted-foreground">{getShareUrl(studySlug || "study-slug")}/</span>
                 <Input
                   id="md-add-slug"
                   value={slug}
@@ -166,14 +166,14 @@ export function AddMarkdownNoteDialog({
               </div>
               {slug && slug.length >= 3 ? (
                 available === false ? (
-                  <p className="text-sm text-red-600">Tato URL adresa již není dostupná</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná</p>
                 ) : available === true ? (
-                  <p className="text-sm text-green-600">URL adresa je dostupná</p>
+                  <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
                 ) : (
-                  <p className="text-sm text-gray-500">Kontroluje se dostupnost…</p>
+                  <p className="text-sm text-muted-foreground">Kontroluje se dostupnost…</p>
                 )
               ) : (
-                <p className="text-sm text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+                <p className="text-sm text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
               )}
             </div>
           )}

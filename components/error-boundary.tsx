@@ -49,21 +49,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       // Default error UI
       return (
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg max-w-md mx-auto my-8">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg max-w-md mx-auto my-8">
           <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-red-600" />
+            <div className="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
-            <CardTitle className="text-xl font-bold text-gray-900">
+            <CardTitle className="text-xl font-bold text-foreground">
               Něco se pokazilo
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Došlo k neočekávané chybě. Zkuste akci opakovat nebo obnovit stránku.
             </p>
             {process.env.NODE_ENV === "development" && this.state.error && (
-              <pre className="text-left text-xs bg-gray-100 p-3 rounded-lg overflow-auto max-h-32 text-red-600">
+              <pre className="text-left text-xs bg-muted p-3 rounded-lg overflow-auto max-h-32 text-red-600 dark:text-red-400">
                 {this.state.error.message}
               </pre>
             )}

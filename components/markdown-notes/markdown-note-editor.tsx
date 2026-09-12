@@ -22,6 +22,7 @@ import {
 import { updateStudyNoteAction } from "@/lib/actions/study-notes"
 import { looksLikeMarkdown, markdownToEditorHtml } from "@/components/markdown-notes/markdown-import"
 import { coerceNoteContent, type MarkdownNoteEditorData, type NoteContentJSON } from "@/lib/types/markdown-notes"
+import { TitlePageFooter } from "@/components/title-page-footer"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
@@ -173,7 +174,7 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
   }
 
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col bg-background">
       {/* Header */}
       <header className="flex items-center gap-3 border-b px-4 py-2">
         <Button variant="ghost" size="sm" onClick={handleBack} className="shrink-0">
@@ -193,7 +194,7 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
             variant="outline"
             size="sm"
             onClick={() => setShowPublish(true)}
-            className={isPublic ? "border-primary-300 text-primary-700" : ""}
+            className={isPublic ? "border-primary-300 text-primary-700 dark:border-primary-700 dark:text-primary-300" : ""}
           >
             <Globe className="mr-1 h-4 w-4" />
             {isPublic ? "Sdíleno" : "Sdílet"}
@@ -203,7 +204,7 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
 
       <div className="flex min-h-0 flex-1">
         {/* TOC sidebar */}
-        <aside className="hidden w-64 shrink-0 overflow-y-auto border-r bg-gray-50/60 p-3 md:block">
+        <aside className="hidden w-64 shrink-0 overflow-y-auto border-r bg-muted/50 p-3 md:block">
           <NoteToc editor={editor} onNavigate={() => setTab("editor")} />
         </aside>
 
@@ -229,8 +230,8 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
             </TabsContent>
 
             <TabsContent value="history" className="mt-0 min-h-0 flex-1 overflow-y-auto px-4 py-6">
-              <div className="mx-auto max-w-md rounded-lg border border-dashed p-8 text-center text-gray-500">
-                <History className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+              <div className="mx-auto max-w-md rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+                <History className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
                 <p className="font-medium">Historie verzí</p>
                 <p className="mt-1 text-sm">
                   Verze se ukládají automaticky (posledních 50). Prohlížení a obnova
@@ -241,6 +242,7 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
           </Tabs>
         </main>
       </div>
+      <TitlePageFooter />
 
       <NotePublishDialog
         noteId={noteId}
@@ -261,21 +263,21 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
 function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === "saving") {
     return (
-      <span className="flex items-center text-xs text-gray-500">
+      <span className="flex items-center text-xs text-muted-foreground">
         <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Ukládání…
       </span>
     )
   }
   if (status === "saved") {
     return (
-      <span className="flex items-center text-xs text-green-600">
+      <span className="flex items-center text-xs text-green-600 dark:text-green-400">
         <Check className="mr-1 h-3 w-3" /> Uloženo
       </span>
     )
   }
   if (status === "error") {
     return (
-      <span className="flex items-center text-xs text-red-600">
+      <span className="flex items-center text-xs text-red-600 dark:text-red-400">
         <CloudOff className="mr-1 h-3 w-3" /> Chyba ukládání
       </span>
     )

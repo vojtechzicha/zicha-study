@@ -344,8 +344,8 @@ export function AddStudyNoteDialog({
               )
             })()
           ) : !selectedFile ? (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <p className="text-sm text-gray-600 mb-4">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+              <p className="text-sm text-muted-foreground mb-4">
                 {isObsidian
                   ? "Vyberte Markdown soubor z vašeho OneDrive (Obsidian vault)"
                   : "Vyberte DOCX soubor z vašeho OneDrive"}
@@ -360,7 +360,7 @@ export function AddStudyNoteDialog({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-primary-50 rounded-lg p-4 flex items-center gap-3">
+              <div className="bg-primary-50 dark:bg-primary-950 rounded-lg p-4 flex items-center gap-3">
                 <FileText className="h-8 w-8 text-primary" />
                 <div className="flex-1 min-w-0">
                   <TooltipProvider>
@@ -375,7 +375,7 @@ export function AddStudyNoteDialog({
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {selectedFile.size ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : ""}
                   </p>
                 </div>
@@ -413,7 +413,7 @@ export function AddStudyNoteDialog({
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="public">Veřejně dostupné</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Povolit přístup k zápisu pomocí veřejného odkazu
                     </p>
                   </div>
@@ -440,12 +440,12 @@ export function AddStudyNoteDialog({
                       placeholder="unikatni-nazev"
                     />
                     {publicSlug && slugAvailable === false && (
-                      <p className="text-sm text-red-600">Tato URL je již použita</p>
+                      <p className="text-sm text-red-600 dark:text-red-400">Tato URL je již použita</p>
                     )}
                     {publicSlug && slugAvailable === true && (
-                      <p className="text-sm text-green-600">Tato URL je dostupná</p>
+                      <p className="text-sm text-green-600 dark:text-green-400">Tato URL je dostupná</p>
                     )}
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Zápis bude dostupný na: {getShareUrl(studySlug || "study-slug", publicSlug || "...")}
                     </p>
                   </div>

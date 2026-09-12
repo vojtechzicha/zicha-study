@@ -115,7 +115,7 @@ export function SubjectCompletionModal({
             </Alert>
           )}
 
-          <div className="text-sm text-gray-600 mb-4">
+          <div className="text-sm text-muted-foreground mb-4">
             <strong>{subject.name}</strong>
           </div>
 
@@ -149,7 +149,7 @@ export function SubjectCompletionModal({
           )}
 
           {/* Mark as Completed Option */}
-          <div className="flex items-center space-x-2 p-3 border rounded-lg bg-primary-50">
+          <div className="flex items-center space-x-2 p-3 border rounded-lg bg-primary-50 dark:bg-primary-950">
             <Checkbox
               id="markAsCompleted"
               checked={formData.markAsCompleted}
@@ -162,8 +162,8 @@ export function SubjectCompletionModal({
               }
               className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               style={formData.markAsCompleted ? {
-                backgroundColor: 'var(--primary-600)',
-                borderColor: 'var(--primary-600)',
+                backgroundColor: 'hsl(var(--primary-600))',
+                borderColor: 'hsl(var(--primary-600))',
                 color: 'white'
               } : {}}
             />

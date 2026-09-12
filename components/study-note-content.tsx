@@ -140,7 +140,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
             { left: "\\begin{CD}", right: "\\end{CD}", display: true }
           ],
           throwOnError: false,
-          errorColor: "#cc0000",
+          errorColor: "hsl(0 72% 55%)",
           strict: false,
           trust: true,
           macros: {
@@ -295,7 +295,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
       <Card className="min-h-[600px] flex items-center justify-center">
         <CardContent className="flex flex-col items-center gap-4 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-gray-600">Načítám studijní zápis...</p>
+          <p className="text-muted-foreground">Načítám studijní zápis...</p>
         </CardContent>
       </Card>
     )

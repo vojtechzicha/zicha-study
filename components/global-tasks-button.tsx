@@ -175,12 +175,12 @@ export function GlobalTasksButton() {
       </PopoverTrigger>
 
       <PopoverContent align="end" sideOffset={8} className="w-[22rem] p-0 sm:w-96">
-        <div className="border-b border-gray-100 px-4 py-3">
+        <div className="border-b border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-primary-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Úkoly</h3>
+            <ListChecks className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+            <h3 className="text-sm font-semibold text-foreground">Úkoly</h3>
             {activeCount > 0 && (
-              <span className="ml-auto text-xs text-gray-500">{activeCount} otevřených</span>
+              <span className="ml-auto text-xs text-muted-foreground">{activeCount} otevřených</span>
             )}
           </div>
           {activeCount + counts.completed > 0 && (
@@ -194,14 +194,14 @@ export function GlobalTasksButton() {
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-12 animate-pulse rounded-lg bg-primary-100/50" />
+                <div key={i} className="h-12 animate-pulse rounded-lg bg-primary-100/50 dark:bg-primary-900/40" />
               ))}
             </div>
           ) : visible.length === 0 && visibleExams.length === 0 ? (
             <div className="px-3 py-8 text-center">
-              <ListChecks className="mx-auto mb-2 h-8 w-8 text-gray-300" />
-              <p className="text-sm font-medium text-gray-700">Žádné aktivní úkoly</p>
-              <p className="mt-0.5 text-xs text-gray-500">Užijte si chvilku klidu.</p>
+              <ListChecks className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+              <p className="text-sm font-medium text-foreground/80">Žádné aktivní úkoly</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Užijte si chvilku klidu.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -222,8 +222,8 @@ export function GlobalTasksButton() {
               {visibleExams.length > 0 && (
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5 px-1 pt-1">
-                    <CalendarDays className="h-3.5 w-3.5 text-purple-600" />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-purple-700">
+                    <CalendarDays className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                    <span className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">
                       Nadcházející zkoušky
                     </span>
                   </div>
@@ -236,31 +236,31 @@ export function GlobalTasksButton() {
                         setOpen(false)
                         router.push(`/studies/${study.id}`)
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-lg border border-purple-100 bg-purple-50/40 p-2 text-left transition-colors hover:bg-purple-50"
+                      className="flex w-full items-center gap-2.5 rounded-lg border border-purple-100 bg-purple-50/40 p-2 text-left transition-colors hover:bg-purple-50 dark:border-purple-900 dark:bg-purple-950/30 dark:hover:bg-purple-950/50"
                     >
                       {study && (
                         <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="sm" className="flex-shrink-0" />
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <Lock className="h-3 w-3 flex-shrink-0 text-purple-500" />
-                          <span className="truncate text-sm font-medium text-gray-900">
+                          <Lock className="h-3 w-3 flex-shrink-0 text-purple-500 dark:text-purple-400" />
+                          <span className="truncate text-sm font-medium text-foreground">
                             {subject ? (subject.abbreviation || subject.name) : "Zkouška"}
                           </span>
-                          {term.is_online && <Monitor className="h-3 w-3 flex-shrink-0 text-green-600" />}
+                          {term.is_online && <Monitor className="h-3 w-3 flex-shrink-0 text-green-600 dark:text-green-400" />}
                         </div>
-                        <div className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                        <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           <span>
                             {formatExamDate(term.date)} · {(term.start_time || "").substring(0, 5)}
                           </span>
-                          {study && <span className="truncate text-gray-400">• {study.name}</span>}
+                          {study && <span className="truncate text-muted-foreground/70">• {study.name}</span>}
                         </div>
                       </div>
                     </button>
                   ))}
                   {hiddenExamCount > 0 && (
-                    <p className="px-1 text-xs text-gray-400">+ {hiddenExamCount} dalších zkoušek</p>
+                    <p className="px-1 text-xs text-muted-foreground/70">+ {hiddenExamCount} dalších zkoušek</p>
                   )}
                 </div>
               )}
@@ -268,15 +268,15 @@ export function GlobalTasksButton() {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-3 py-2">
-          <span className="text-xs text-gray-500">
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 px-3 py-2">
+          <span className="text-xs text-muted-foreground">
             {hiddenCount > 0 ? `+ ${hiddenCount} dalších` : " "}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleShowAll}
-            className="text-primary-700 hover:bg-primary-50"
+            className="text-primary-700 hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-primary-900/40"
           >
             Zobrazit všechny
             <ChevronRight className="ml-1 h-4 w-4" />

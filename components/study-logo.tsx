@@ -34,7 +34,7 @@ export function StudyLogo({ logoUrl, studyName, size = "md", className }: StudyL
     return (
       <div
         className={cn(
-          "relative overflow-hidden rounded-lg border border-gray-200 bg-white p-1",
+          "relative overflow-hidden rounded-lg border border-border bg-card p-1",
           sizeClasses[size],
           className,
         )}
@@ -54,7 +54,7 @@ export function StudyLogo({ logoUrl, studyName, size = "md", className }: StudyL
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-lg border border-gray-200 bg-gradient-to-br from-primary-100 to-primary-200 font-semibold text-primary-700",
+        "flex items-center justify-center rounded-lg border border-border bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900/60 dark:to-primary-800/60 font-semibold text-primary-700 dark:text-primary-200",
         sizeClasses[size],
         className,
       )}

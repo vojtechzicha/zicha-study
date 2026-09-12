@@ -2,7 +2,7 @@
 .study-note-content {
   font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.6;
-  color: #333;
+  color: hsl(var(--foreground));
   max-width: 100%;
 }
 
@@ -35,12 +35,17 @@
   width: 220px;
   height: fit-content;
   max-height: calc(100vh - 2rem);
-  background-color: #ffffff;
-  border: 1px solid var(--primary-100, #e5e7eb);
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--primary-100, 217 55% 94%));
   border-radius: 0.5rem;
   transition: all 0.3s ease;
   z-index: 10;
-  background: linear-gradient(to bottom, #ffffff, var(--primary-50, #ffffff));
+  background: linear-gradient(to bottom, hsl(var(--card)), hsl(var(--primary-50, 217 50% 96%)));
+}
+
+.dark .study-note-toc {
+  border-color: hsl(var(--primary-800, 217 91% 30%));
+  background: linear-gradient(to bottom, hsl(var(--card)), hsl(var(--primary-950, 217 45% 12%)));
 }
 
 .study-note-toc.collapsed {
@@ -52,16 +57,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid var(--primary-100, #e5e7eb);
-  background-color: #ffffff;
+  border-bottom: 1px solid hsl(var(--primary-100, 217 55% 94%));
+  background-color: hsl(var(--card));
   height: 60px; /* Match content header height */
+}
+
+.dark .toc-header {
+  border-bottom-color: hsl(var(--primary-800, 217 91% 30%));
 }
 
 .study-note-toc .toc-header h2 {
   font-size: 0.8rem !important;
   font-weight: 600;
   margin: 0;
-  color: #1f2937;
+  color: hsl(var(--foreground));
   transition: opacity 0.3s ease;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif !important;
   text-transform: uppercase;
@@ -79,13 +88,13 @@
   border: none;
   padding: 0.25rem;
   cursor: pointer;
-  color: #6b7280;
+  color: hsl(var(--muted-foreground));
   transition: color 0.2s;
   flex-shrink: 0;
 }
 
 .toc-toggle:hover {
-  color: #374151;
+  color: hsl(var(--foreground));
 }
 
 .toc-content {
@@ -115,27 +124,36 @@
 }
 
 .toc-content::-webkit-scrollbar-track {
-  background: #f3f4f6;
+  background: hsl(var(--muted));
   border-radius: 3px;
 }
 
 .toc-content::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: hsl(var(--border));
   border-radius: 3px;
 }
 
 .toc-content::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: hsl(var(--muted-foreground));
+}
+
+/* Firefox */
+.toc-content {
+  scrollbar-color: hsl(var(--border)) hsl(var(--muted));
 }
 
 /* Main content card */
 .study-note-card {
-  background-color: #ffffff;
-  border: 1px solid var(--primary-100, #e5e7eb);
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--primary-100, 217 55% 94%));
   border-radius: 0.5rem;
   padding: 2rem;
   min-height: 600px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .study-note-card {
+  border-color: hsl(var(--primary-800, 217 91% 30%));
 }
 
 .study-note-article {
@@ -171,7 +189,7 @@
 
 .study-note-article li {
   display: list-item;
-  color: #333;
+  color: hsl(var(--foreground));
 }
 
 /* Typography - matching app design language */
@@ -182,7 +200,7 @@
 .study-note-content h5,
 .study-note-content h6 {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  color: #1f2937;
+  color: hsl(var(--foreground));
   margin-top: 2rem;
   margin-bottom: 1rem;
   line-height: 1.2;
@@ -192,12 +210,16 @@
 .study-note-title {
   font-size: 2rem;
   font-weight: 700;
-  color: #111827;
+  color: hsl(var(--foreground));
   margin-top: 0;
   margin-bottom: 2.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid var(--primary-200, #e5e7eb);
+  border-bottom: 2px solid hsl(var(--primary-200, 217 60% 88%));
   letter-spacing: -0.025em;
+}
+
+.dark .study-note-title {
+  border-bottom-color: hsl(var(--primary-800, 217 91% 30%));
 }
 
 /* Override heading font for ToC */
@@ -225,28 +247,28 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  background-color: var(--primary-500, #3b82f6);
+  background-color: hsl(var(--primary-500, 217 91% 60%));
   border-radius: 2px;
 }
 
 .study-note-content h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #374151;
+  color: hsl(var(--foreground) / 0.92);
   margin-top: 2.5rem;
 }
 
 .study-note-content h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #4b5563;
+  color: hsl(var(--foreground) / 0.84);
   margin-top: 2rem;
 }
 
 .study-note-content h4 {
   font-size: 1.125rem;
   font-weight: 500;
-  color: #6b7280;
+  color: hsl(var(--muted-foreground));
   margin-top: 1.5rem;
 }
 
@@ -254,7 +276,7 @@
 .study-note-content h6 {
   font-size: 1rem;
   font-weight: 500;
-  color: #6b7280;
+  color: hsl(var(--muted-foreground));
   margin-top: 1.5rem;
 }
 
@@ -304,7 +326,7 @@
 .study-note-toc a,
 #TOC a {
   text-decoration: none;
-  color: #6b7280;
+  color: hsl(var(--muted-foreground));
   transition: all 0.15s;
   display: block;
   padding: 0.25rem 0.5rem;
@@ -316,17 +338,30 @@
 
 .study-note-toc a:hover,
 #TOC a:hover {
-  color: #1f2937;
-  background-color: var(--primary-50, #f3f4f6);
-  border-left-color: var(--primary-200, #d1d5db);
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--primary-50, 217 50% 96%));
+  border-left-color: hsl(var(--primary-200, 217 60% 88%));
 }
 
 .study-note-toc a.active,
 #TOC a.active {
-  color: var(--primary-600, #2563eb);
+  color: hsl(var(--primary-600, 217 91% 55%));
   font-weight: 500;
-  background-color: var(--primary-50, #eff6ff);
-  border-left-color: var(--primary-600, #2563eb);
+  background-color: hsl(var(--primary-50, 217 50% 96%));
+  border-left-color: hsl(var(--primary-600, 217 91% 55%));
+}
+
+.dark .study-note-toc a:hover,
+.dark #TOC a:hover {
+  background-color: hsl(var(--primary-900, 217 91% 22%) / 0.4);
+  border-left-color: hsl(var(--primary-700, 217 91% 50%));
+}
+
+.dark .study-note-toc a.active,
+.dark #TOC a.active {
+  color: hsl(var(--primary-400, 217 70% 76%));
+  background-color: hsl(var(--primary-900, 217 91% 22%) / 0.5);
+  border-left-color: hsl(var(--primary-400, 217 70% 76%));
 }
 
 /* Nested TOC items */
@@ -353,7 +388,7 @@
 #TOC > ul > li > a::before {
   content: counter(toc-section) ". ";
   font-weight: 600;
-  color: #9ca3af;
+  color: hsl(var(--muted-foreground) / 0.8);
   margin-right: 0.25rem;
 }
 
@@ -383,11 +418,11 @@
 
 .study-note-content li {
   margin-bottom: 0.5rem;
-  color: #333;
+  color: hsl(var(--foreground));
 }
 
 .study-note-content li::marker {
-  color: #333 !important;
+  color: hsl(var(--foreground)) !important;
   opacity: 1 !important;
 }
 
@@ -424,8 +459,12 @@
 
 /* Links */
 .study-note-content a {
-  color: var(--primary-600, #007bff);
+  color: hsl(var(--primary-600, 217 91% 55%));
   text-decoration: none;
+}
+
+.dark .study-note-content a {
+  color: hsl(var(--primary-400, 217 70% 76%));
 }
 
 .study-note-content a:hover {
@@ -434,8 +473,8 @@
 
 /* Code blocks */
 .study-note-content pre {
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
   border-radius: 0.375rem;
   padding: 1rem;
   overflow-x: auto;
@@ -449,7 +488,7 @@
 
 .study-note-content p code,
 .study-note-content li code {
-  background-color: #f5f5f5;
+  background-color: hsl(var(--muted));
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.875em;
@@ -467,34 +506,35 @@
 .study-note-content table th,
 .study-note-content table td {
   padding: 0.75rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid hsl(var(--border));
 }
 
 .study-note-content table th {
-  background-color: #f8f9fa;
+  background-color: hsl(var(--muted));
   font-weight: 600;
   text-align: left;
 }
 
 .study-note-content table tr:nth-child(even) {
-  background-color: #f8f9fa;
+  background-color: hsl(var(--muted) / 0.5);
 }
 
 /* Blockquotes */
 .study-note-content blockquote {
-  border-left: 4px solid var(--primary-500, #007bff);
+  border-left: 4px solid hsl(var(--primary-500, 217 91% 60%));
   padding-left: 1rem;
   margin-left: 0;
   margin-right: 0;
   margin-bottom: 1rem;
-  color: #6c757d;
+  color: hsl(var(--muted-foreground));
   font-style: italic;
 }
 
 /* Obsidian callouts (> [!note], > [!warning], ...) */
 .study-note-content .callout {
-  --callout-color: hsl(var(--primary-600, 217, 91%, 45%));
-  --callout-bg: hsl(var(--primary-50, 217, 91%, 97%));
+  --callout-color: hsl(var(--primary-600, 217 91% 55%));
+  --callout-bg: hsl(var(--primary-50, 217 50% 96%));
+  color: hsl(var(--foreground));
   border-left: 4px solid var(--callout-color);
   background-color: var(--callout-bg);
   border-radius: 0.5rem;
@@ -519,8 +559,8 @@
 .study-note-content .callout.callout-warning,
 .study-note-content .callout.callout-caution,
 .study-note-content .callout.callout-attention {
-  --callout-color: #b45309;
-  --callout-bg: #fffbeb;
+  --callout-color: hsl(26 90% 37%);
+  --callout-bg: hsl(48 100% 96%);
 }
 
 .study-note-content .callout.callout-danger,
@@ -529,8 +569,8 @@
 .study-note-content .callout.callout-fail,
 .study-note-content .callout.callout-failure,
 .study-note-content .callout.callout-missing {
-  --callout-color: #b91c1c;
-  --callout-bg: #fef2f2;
+  --callout-color: hsl(0 74% 42%);
+  --callout-bg: hsl(0 86% 97%);
 }
 
 .study-note-content .callout.callout-tip,
@@ -539,22 +579,69 @@
 .study-note-content .callout.callout-success,
 .study-note-content .callout.callout-check,
 .study-note-content .callout.callout-done {
-  --callout-color: #15803d;
-  --callout-bg: #f0fdf4;
+  --callout-color: hsl(142 72% 29%);
+  --callout-bg: hsl(138 76% 97%);
 }
 
 .study-note-content .callout.callout-question,
 .study-note-content .callout.callout-help,
 .study-note-content .callout.callout-faq {
-  --callout-color: #6d28d9;
-  --callout-bg: #f5f3ff;
+  --callout-color: hsl(263 70% 50%);
+  --callout-bg: hsl(250 100% 98%);
 }
 
 .study-note-content .callout.callout-quote,
 .study-note-content .callout.callout-cite,
 .study-note-content .callout.callout-example {
-  --callout-color: #4b5563;
-  --callout-bg: #f9fafb;
+  --callout-color: hsl(var(--muted-foreground));
+  --callout-bg: hsl(var(--muted) / 0.6);
+}
+
+/* Dark variants: lighter accent text on a low-opacity tinted surface. */
+.dark .study-note-content .callout {
+  --callout-color: hsl(var(--primary-400, 217 70% 76%));
+  --callout-bg: hsl(var(--primary-950, 217 45% 12%));
+}
+
+.dark .study-note-content .callout.callout-warning,
+.dark .study-note-content .callout.callout-caution,
+.dark .study-note-content .callout.callout-attention {
+  --callout-color: hsl(46 97% 65%);
+  --callout-bg: hsl(38 92% 50% / 0.12);
+}
+
+.dark .study-note-content .callout.callout-danger,
+.dark .study-note-content .callout.callout-error,
+.dark .study-note-content .callout.callout-bug,
+.dark .study-note-content .callout.callout-fail,
+.dark .study-note-content .callout.callout-failure,
+.dark .study-note-content .callout.callout-missing {
+  --callout-color: hsl(0 94% 82%);
+  --callout-bg: hsl(0 84% 60% / 0.12);
+}
+
+.dark .study-note-content .callout.callout-tip,
+.dark .study-note-content .callout.callout-hint,
+.dark .study-note-content .callout.callout-important,
+.dark .study-note-content .callout.callout-success,
+.dark .study-note-content .callout.callout-check,
+.dark .study-note-content .callout.callout-done {
+  --callout-color: hsl(142 77% 73%);
+  --callout-bg: hsl(142 71% 45% / 0.12);
+}
+
+.dark .study-note-content .callout.callout-question,
+.dark .study-note-content .callout.callout-help,
+.dark .study-note-content .callout.callout-faq {
+  --callout-color: hsl(252 95% 85%);
+  --callout-bg: hsl(258 90% 66% / 0.12);
+}
+
+.dark .study-note-content .callout.callout-quote,
+.dark .study-note-content .callout.callout-cite,
+.dark .study-note-content .callout.callout-example {
+  --callout-color: hsl(var(--muted-foreground));
+  --callout-bg: hsl(var(--muted) / 0.6);
 }
 
 /* Images */
@@ -588,7 +675,7 @@
 
 .study-note-content figcaption {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: hsl(var(--muted-foreground));
   margin-top: 0.5rem;
 }
 
@@ -601,6 +688,7 @@
 
 .study-note-content .katex {
   font-size: 1.1em;
+  color: hsl(var(--foreground));
 }
 
 /* Pandoc math spans */
@@ -617,13 +705,26 @@
 /* Ensure math content is visible */
 .study-note-content .math,
 .study-note-content .katex-mathml {
-  color: #333;
+  color: hsl(var(--foreground));
+}
+
+/* Word/Obsidian text highlights keep a yellow tint that stays readable in both themes. */
+.study-note-content mark {
+  background-color: hsl(48 96% 78%);
+  color: hsl(26 60% 12%);
+  border-radius: 0.15rem;
+  padding: 0 0.15em;
+}
+
+.dark .study-note-content mark {
+  background-color: hsl(48 96% 30% / 0.45);
+  color: hsl(var(--foreground));
 }
 
 /* Horizontal rules */
 .study-note-content hr {
   border: none;
-  border-top: 2px solid #e5e7eb;
+  border-top: 2px solid hsl(var(--border));
   margin: 2rem 0;
 }
 
@@ -738,8 +839,72 @@
     display: none;
   }
   
-  .study-note-card {
+  .study-note-card,
+  .dark .study-note-card {
     border: none;
     box-shadow: none;
+    background-color: hsl(0 0% 100%);
+  }
+
+  /* Tokens follow the on-screen theme, so restore print-safe ink explicitly. */
+  .study-note-content,
+  .dark .study-note-content,
+  .study-note-content li,
+  .dark .study-note-content li,
+  .study-note-content h1,
+  .study-note-content h2,
+  .study-note-content h3,
+  .study-note-content h4,
+  .study-note-content h5,
+  .study-note-content h6,
+  .study-note-title,
+  .study-note-content .math,
+  .dark .study-note-content .math,
+  .study-note-content .katex,
+  .dark .study-note-content .katex,
+  .study-note-content .katex-mathml,
+  .dark .study-note-content .katex-mathml {
+    color: hsl(220 39% 11%);
+  }
+
+  .study-note-content li::marker {
+    color: hsl(220 39% 11%) !important;
+  }
+
+  .study-note-content blockquote,
+  .study-note-content figcaption {
+    color: hsl(215 14% 34%);
+  }
+
+  .study-note-content a,
+  .dark .study-note-content a {
+    color: hsl(220 39% 11%);
+  }
+
+  .study-note-content pre,
+  .study-note-content p code,
+  .study-note-content li code,
+  .study-note-content table th,
+  .study-note-content table tr:nth-child(even) {
+    background-color: hsl(210 20% 98%);
+    border-color: hsl(220 13% 82%);
+  }
+
+  .study-note-content table th,
+  .study-note-content table td {
+    border-color: hsl(220 13% 82%);
+  }
+
+  .study-note-content mark,
+  .dark .study-note-content mark {
+    background-color: hsl(48 96% 78%);
+    color: hsl(26 60% 12%);
+  }
+
+  /* [class] only raises specificity above the .dark callout variants above. */
+  .dark .study-note-content .callout[class] {
+    --callout-color: hsl(220 39% 11%);
+    --callout-bg: hsl(0 0% 100%);
+    color: hsl(220 39% 11%);
   }
 }

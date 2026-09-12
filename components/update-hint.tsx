@@ -71,9 +71,9 @@ export function UpdateHint() {
   return (
     <div
       role="alert"
-      className="fixed bottom-6 left-1/2 z-50 flex w-[min(92vw,560px)] -translate-x-1/2 items-center gap-3 rounded-lg border border-primary-200 bg-white px-4 py-3 shadow-lg"
+      className="fixed bottom-6 left-1/2 z-50 flex w-[min(92vw,560px)] -translate-x-1/2 items-center gap-3 rounded-lg border border-primary-200 bg-card px-4 py-3 shadow-lg dark:border-primary-800"
     >
-      <span className="text-sm leading-relaxed text-gray-700">
+      <span className="text-sm leading-relaxed text-foreground/80">
         Mezitím vyšla nová verze aplikace. Obnovte stránku, ať pracujete s tou
         aktuální.
       </span>
@@ -90,7 +90,7 @@ export function UpdateHint() {
         type="button"
         aria-label="Zavřít"
         title="Zavřít"
-        className="shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-gray-600"
+        className="shrink-0 rounded p-1 text-muted-foreground/70 transition-colors hover:text-muted-foreground"
         onClick={() => setDismissedId(serverBuildId)}
       >
         <X className="h-4 w-4" />

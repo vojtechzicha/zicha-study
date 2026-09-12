@@ -75,9 +75,9 @@ export function Dashboard({ user }: DashboardProps) {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
+      <header className="bg-card/80 backdrop-blur-sm border-b border-border/40 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 gap-2">
             <div className="flex items-center space-x-3 min-w-0">
@@ -85,8 +85,8 @@ export function Dashboard({ user }: DashboardProps) {
                 <GraduationCap className="h-6 w-6 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">Sledování studií</h1>
-                <p className="text-sm text-gray-600 truncate">Vítejte, {getUserDisplayName()}</p>
+                <h1 className="text-base sm:text-xl font-bold text-foreground truncate">Sledování studií</h1>
+                <p className="text-sm text-muted-foreground truncate">Vítejte, {getUserDisplayName()}</p>
               </div>
             </div>
             <div className="flex items-center space-x-0.5 sm:space-x-2 shrink-0 [&_button]:px-2 sm:[&_button]:px-3">
@@ -133,35 +133,35 @@ export function Dashboard({ user }: DashboardProps) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Celkem studií</CardTitle>
-              <BookOpen className="h-4 w-4 text-primary-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Celkem studií</CardTitle>
+              <BookOpen className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{studies.length}</div>
+              <div className="text-2xl font-bold text-foreground">{studies.length}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Aktivní studia</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Aktivní studia</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold text-foreground">
                 {studies.filter((s) => s.status === "active").length}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Dokončená studia</CardTitle>
-              <GraduationCap className="h-4 w-4 text-indigo-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Dokončená studia</CardTitle>
+              <GraduationCap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold text-foreground">
                 {studies.filter((s) => s.status === "completed").length}
               </div>
             </CardContent>
@@ -170,7 +170,7 @@ export function Dashboard({ user }: DashboardProps) {
 
         {/* Studies List */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Vaše studia</h2>
+          <h2 className="text-2xl font-bold text-foreground">Vaše studia</h2>
           <Button
             onClick={() => router.push("/studies/new")}
             className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
@@ -183,24 +183,24 @@ export function Dashboard({ user }: DashboardProps) {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-pulse">
+              <Card key={i} className="bg-card/80 backdrop-blur-sm border-0 shadow-lg animate-pulse">
                 <CardHeader>
-                  <div className="h-4 bg-primary-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-primary-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-primary-200 dark:bg-primary-800/60 rounded w-3/4"></div>
+                  <div className="h-3 bg-primary-200 dark:bg-primary-800/60 rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-3 bg-primary-200 rounded w-full mb-2"></div>
-                  <div className="h-3 bg-primary-200 rounded w-2/3"></div>
+                  <div className="h-3 bg-primary-200 dark:bg-primary-800/60 rounded w-full mb-2"></div>
+                  <div className="h-3 bg-primary-200 dark:bg-primary-800/60 rounded w-2/3"></div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : studies.length === 0 ? (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="text-center py-12">
-              <GraduationCap className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Zatím nemáte žádná studia</h3>
-              <p className="text-gray-600 mb-6">Začněte přidáním vašeho prvního studia</p>
+              <GraduationCap className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Zatím nemáte žádná studia</h3>
+              <p className="text-muted-foreground mb-6">Začněte přidáním vašeho prvního studia</p>
               <Button
                 onClick={() => router.push("/studies/new")}
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
@@ -215,23 +215,23 @@ export function Dashboard({ user }: DashboardProps) {
             {studies.map((study) => (
               <Card
                 key={study.id}
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group relative"
+                className="bg-card/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group relative"
               >
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="flex items-start gap-3 flex-1 min-w-0" onClick={() => router.push(`/studies/${study.id}`)}>
                       <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="lg" />
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors leading-tight break-words">
+                        <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-tight break-words">
                           {study.name}
                         </CardTitle>
-                        <CardDescription className="text-gray-600 text-sm mt-1">
+                        <CardDescription className="text-muted-foreground text-sm mt-1">
                           {study.type} • {getStudyFormLabel(study.form)}
                         </CardDescription>
                         <div className="flex gap-1 mt-2">
                           <Badge className={getStatusColor(study.status)}>{getStatusText(study.status)}</Badge>
                           {study.is_public && (
-                            <Badge variant="outline" className="bg-primary-50 text-primary-700 border-primary-200">
+                            <Badge variant="outline" className="bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-950 dark:text-primary-300 dark:border-primary-800">
                               Veřejné
                             </Badge>
                           )}
@@ -252,7 +252,7 @@ export function Dashboard({ user }: DashboardProps) {
                   </div>
                 </CardHeader>
                 <CardContent onClick={() => router.push(`/studies/${study.id}`)}>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     <p>Začátek: {study.start_year}</p>
                     {study.end_year && <p>Konec: {study.end_year}</p>}
                   </div>

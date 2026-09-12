@@ -46,19 +46,19 @@ export interface Subject {
 export const getStatusColor = (status: StudyStatus): string => {
   switch (status) {
     case STUDY_STATUS.ACTIVE:
-      return "bg-green-100 text-green-800 border-green-200"
+      return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800"
     case STUDY_STATUS.COMPLETED:
-      return "bg-primary-100 text-primary-800 border-primary-200"
+      return "bg-primary-100 text-primary-800 border-primary-200 dark:bg-primary-900/50 dark:text-primary-200 dark:border-primary-800"
     case STUDY_STATUS.PAUSED:
-      return "bg-yellow-100 text-yellow-800 border-yellow-200"
+      return "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-200 dark:border-yellow-800"
     case STUDY_STATUS.ABANDONED:
-      return "bg-red-100 text-red-800 border-red-200"
+      return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800"
     case STUDY_STATUS.PLANNED:
-      return "bg-purple-100 text-purple-800 border-purple-200"
+      return "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-800"
     case STUDY_STATUS.INTENDED:
-      return "bg-indigo-100 text-indigo-800 border-indigo-200"
+      return "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:border-indigo-800"
     default:
-      return "bg-primary-100 text-primary-800 border-primary-200"
+      return "bg-primary-100 text-primary-800 border-primary-200 dark:bg-primary-900/50 dark:text-primary-200 dark:border-primary-800"
   }
 }
 
@@ -96,54 +96,62 @@ export const isSubjectFailed = (subject: Pick<Subject, 'completed' | 'grade'>): 
   return g.startsWith('F') || g.startsWith('4') || g.startsWith('-')
 }
 
-// Get grade badge configuration with inline styles
+// Get grade badge configuration.
+// The colours live in `className` (not inline styles) so they can carry `dark:`
+// variants; `style` is kept for backwards compatibility with the consumers.
 export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'completed' | 'grade'>) => {
+  const style: Record<string, string> = {}
+
   // Failed state has precedence - darker red for failed
   if (isSubjectFailed(subject)) {
     return {
-      className: "border",
-      style: { color: "white", backgroundColor: "rgb(220, 38, 38)", borderColor: "rgb(185, 28, 28)" }
+      className: "border bg-red-600 text-white border-red-700",
+      style
     }
   }
-  
+
   const gradeUpper = grade.toUpperCase()
-  
+
   // Deep green for 1/A
   if (gradeUpper === '1' || gradeUpper === 'A') {
     return {
-      className: "border",
-      style: { color: "white", backgroundColor: "rgb(5, 150, 105)", borderColor: "rgb(4, 120, 87)" }
+      className: "border bg-emerald-600 text-white border-emerald-700",
+      style
     }
   }
-  
+
   // Light green for 1-/B
   if (gradeUpper === '1-' || gradeUpper === 'B') {
     return {
-      className: "border",
-      style: { color: "rgb(21, 128, 61)", backgroundColor: "rgb(240, 253, 244)", borderColor: "rgb(187, 247, 208)" }
+      className:
+        "border bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800",
+      style
     }
   }
-  
+
   // Yellow for 2, 2-/C
   if (gradeUpper === '2' || gradeUpper === '2-' || gradeUpper === 'C') {
     return {
-      className: "border",
-      style: { color: "rgb(161, 98, 7)", backgroundColor: "rgb(254, 249, 195)", borderColor: "rgb(253, 224, 71)" }
+      className:
+        "border bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-yellow-700",
+      style
     }
   }
-  
+
   // Orange for poor grades (D, E, 3-9) - different from failed
   if (/^[3-9]/.test(gradeUpper) || gradeUpper === 'D' || gradeUpper === 'E') {
     return {
-      className: "border",
-      style: { color: "rgb(194, 65, 12)", backgroundColor: "rgb(255, 237, 213)", borderColor: "rgb(254, 215, 170)" }
+      className:
+        "border bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-800",
+      style
     }
   }
-  
+
   // Blue for any other (including Z)
   return {
-    className: "border", 
-    style: { color: "rgb(29, 78, 216)", backgroundColor: "rgb(239, 246, 255)", borderColor: "rgb(191, 219, 254)" }
+    className:
+      "border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",
+    style
   }
 }
 
@@ -285,20 +293,20 @@ export const getSubjectStateColor = (state: SubjectState, subject?: Subject, isP
   if (state === "completed" && subject && isSubjectFailed(subject)) {
     // More subtle styling for public views
     if (isPublic) {
-      return "bg-orange-50 text-orange-700 border-orange-200"
+      return "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800"
     }
-    return "bg-red-100 text-red-800 border-red-200"
+    return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800"
   }
   
   switch (state) {
     case "planned":
-      return "bg-purple-100 text-purple-800 border-purple-200"
+      return "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-800"
     case "active":
-      return "bg-green-100 text-green-800 border-green-200"
+      return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800"
     case "completed":
-      return "bg-primary-100 text-primary-800 border-primary-200"
+      return "bg-primary-100 text-primary-800 border-primary-200 dark:bg-primary-900/50 dark:text-primary-200 dark:border-primary-800"
     default:
-      return "bg-primary-100 text-primary-800 border-primary-200"
+      return "bg-primary-100 text-primary-800 border-primary-200 dark:bg-primary-900/50 dark:text-primary-200 dark:border-primary-800"
   }
 }
 
@@ -330,100 +338,119 @@ export const requiresExam = (completionType: string): boolean => {
   return completionType.includes("Zkouška") || completionType.includes("Zk")
 }
 
-// Get completion type badge configuration
+// Get completion type badge configuration.
+// Colours are Tailwind classes (with `dark:` variants) rather than inline
+// styles; `style` stays as an empty object for the existing consumers.
 export const getCompletionBadgeConfig = (completionType: string) => {
   // Convert database/form values to short codes using the centralized mapping
   const shortType = getCompletionTypeShortCode(completionType)
-  
+  const style: Record<string, string> = {}
+
+  const neutral =
+    "border-border bg-muted/50 text-foreground/80"
+
   switch (shortType) {
     case "Zp":
       return {
         text: "Zp",
-        className: "border-green-200",
-        style: { color: "rgb(21, 128, 61)", backgroundColor: "rgb(240, 253, 244)" },
+        className:
+          "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300",
+        style,
         fullText: "Zápočet"
       }
     case "KZp":
       return {
-        text: "KZp", 
-        className: "border-blue-200",
-        style: { color: "rgb(29, 78, 216)", backgroundColor: "rgb(239, 246, 255)" },
+        text: "KZp",
+        className:
+          "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300",
+        style,
         fullText: "Klasifikovaný zápočet"
       }
     case "Zk":
       return {
         text: "Zk",
-        className: "border-orange-200",
-        style: { color: "rgb(194, 65, 12)", backgroundColor: "rgb(255, 247, 237)" },
+        className:
+          "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300",
+        style,
         fullText: "Zkouška"
       }
     case "Zp+Zk":
       return {
         text: "Zp+Zk",
-        className: "border-red-200",
-        style: { color: "rgb(185, 28, 28)", backgroundColor: "rgb(254, 242, 242)" },
+        className:
+          "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300",
+        style,
         fullText: "Zápočet + Zkouška"
       }
     case "-":
       return {
         text: "-",
-        className: "border-gray-200",
-        style: { color: "rgb(55, 65, 81)", backgroundColor: "rgb(249, 250, 251)" },
+        className: neutral,
+        style,
         fullText: "Ostatní"
       }
     default:
       return {
         text: shortType,
-        className: "border-gray-200",
-        style: { color: "rgb(55, 65, 81)", backgroundColor: "rgb(249, 250, 251)" },
+        className: neutral,
+        style,
         fullText: shortType
       }
   }
 }
 
-// Get subject state badge configuration with inline styles
+// Get subject state badge configuration.
+// Colours are Tailwind classes (with `dark:` variants) rather than inline
+// styles; `style` stays as an empty object for the existing consumers.
 export const getSubjectStateBadgeConfig = (state: SubjectState, subject?: Pick<Subject, 'completed' | 'grade'>, isPublic: boolean = false) => {
+  const style: Record<string, string> = {}
+
   // Check if subject is failed (completed with grade starting with F)
   if (state === "completed" && subject && isSubjectFailed(subject)) {
     // More subtle styling for public views
     if (isPublic) {
       return {
         text: "Neúspěšný",
-        className: "border-orange-200",
-        style: { color: "rgb(194, 65, 12)", backgroundColor: "rgb(255, 247, 237)" }
+        className:
+          "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300",
+        style
       }
     }
     return {
       text: "Neúspěšný",
-      className: "border-red-200",
-      style: { color: "rgb(185, 28, 28)", backgroundColor: "rgb(254, 242, 242)" }
+      className:
+        "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300",
+      style
     }
   }
-  
+
   switch (state) {
     case "planned":
       return {
         text: "Plánovaný",
-        className: "border-purple-200",
-        style: { color: "rgb(107, 33, 168)", backgroundColor: "rgb(250, 245, 255)" }
+        className:
+          "border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-200",
+        style
       }
     case "active":
       return {
         text: "Aktivní",
-        className: "border-green-200",
-        style: { color: "rgb(21, 128, 61)", backgroundColor: "rgb(240, 253, 244)" }
+        className:
+          "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300",
+        style
       }
     case "completed":
       return {
         text: "Dokončený",
-        className: "border-blue-200",
-        style: { color: "rgb(29, 78, 216)", backgroundColor: "rgb(239, 246, 255)" }
+        className:
+          "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300",
+        style
       }
     default:
       return {
         text: state,
-        className: "border-gray-200",
-        style: { color: "rgb(55, 65, 81)", backgroundColor: "rgb(249, 250, 251)" }
+        className: "border-border bg-muted/50 text-foreground/80",
+        style
       }
   }
 }

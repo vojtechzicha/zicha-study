@@ -70,8 +70,8 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
   if (loading) {
     return (
       <div className="space-y-2">
-        <div className="h-32 bg-primary-100 rounded-lg animate-pulse" />
-        <div className="h-32 bg-primary-100 rounded-lg animate-pulse" />
+        <div className="h-32 bg-primary-100 dark:bg-primary-900/40 rounded-lg animate-pulse" />
+        <div className="h-32 bg-primary-100 dark:bg-primary-900/40 rounded-lg animate-pulse" />
       </div>
     )
   }
@@ -80,9 +80,9 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-gray-600" />
+          <BookOpen className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-semibold">Studijní zápisy</h3>
-          <span className="text-sm text-gray-500">({notes.length})</span>
+          <span className="text-sm text-muted-foreground">({notes.length})</span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -112,8 +112,8 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
       </div>
 
       {notes.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+        <div className="text-center py-8 text-muted-foreground">
+          <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
           <p className="text-sm">Zatím nebyly přidány žádné studijní zápisy</p>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

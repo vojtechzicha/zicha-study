@@ -54,11 +54,11 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
   }
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+    <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
       <CardHeader>
         <div>
-          <CardTitle className="text-xl font-bold text-gray-900">Materiály</CardTitle>
-          <p className="text-sm text-gray-600 mt-1">
+          <CardTitle className="text-xl font-bold text-foreground">Materiály</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
             Veřejně dostupné dokumenty a soubory ke studiu
           </p>
         </div>
@@ -74,7 +74,7 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-primary-100 rounded-lg animate-pulse" />
+              <div key={i} className="h-24 bg-primary-100 dark:bg-primary-900/50 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : !showAll ? (
@@ -94,7 +94,7 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
                 <Button
                   variant="outline"
                   onClick={() => setShowAll(true)}
-                  className="text-gray-700"
+                  className="text-foreground/80"
                 >
                   Zobrazit všechny materiály ({materials.length})
                   <ChevronRight className="ml-2 h-4 w-4" />

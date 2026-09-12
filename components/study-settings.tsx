@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Copy, ExternalLink, Check, Folder } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { TitlePageFooter } from "@/components/title-page-footer"
 import { FolderPicker } from "./folder-picker"
 import { RESERVED_ROUTES } from "@/lib/constants"
 import type { MaterialsRootFolder } from "@/lib/types/onedrive"
@@ -126,17 +127,17 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background p-4">
       <div className="max-w-2xl mx-auto">
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <CardTitle className="text-2xl font-bold text-gray-900">Nastavení sdílení</CardTitle>
-                <CardDescription className="text-gray-600">Spravujte veřejné sdílení vašeho studia</CardDescription>
+                <CardTitle className="text-2xl font-bold text-foreground">Nastavení sdílení</CardTitle>
+                <CardDescription className="text-muted-foreground">Spravujte veřejné sdílení vašeho studia</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -152,7 +153,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label className="text-base font-medium">Veřejné sdílení</Label>
-                  <p className="text-sm text-gray-600">Umožnit ostatním zobrazit vaše studium bez přihlášení</p>
+                  <p className="text-sm text-muted-foreground">Umožnit ostatním zobrazit vaše studium bez přihlášení</p>
                 </div>
                 <Switch checked={isPublic} onCheckedChange={setIsPublic} />
               </div>
@@ -163,7 +164,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                   <div className="space-y-2">
                     <Label htmlFor="slug">URL adresa *</Label>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">{window.location.origin}/</span>
+                      <span className="text-sm text-muted-foreground">{window.location.origin}/</span>
                       <Input
                         id="slug"
                         value={slug}
@@ -176,14 +177,14 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                       />
                     </div>
                     {slugAvailable === false && (
-                      <p className="text-sm text-red-600">
+                      <p className="text-sm text-red-600 dark:text-red-400">
                         {RESERVED_ROUTES.includes(slug.toLowerCase()) 
                           ? "Tato URL adresa je rezervována pro systémové funkce" 
                           : "Tato URL adresa již není dostupná"}
                       </p>
                     )}
-                    {slugAvailable === true && slug && <p className="text-sm text-green-600">URL adresa je dostupná</p>}
-                    <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+                    {slugAvailable === true && slug && <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>}
+                    <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
                   </div>
 
                   {/* Description */}
@@ -200,10 +201,10 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
                   {/* URL Preview */}
                   {slug && slugAvailable && (
-                    <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
-                      <Label className="text-sm font-medium text-primary-900">Veřejná URL adresa:</Label>
+                    <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
+                      <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná URL adresa:</Label>
                       <div className="flex items-center gap-2 mt-2">
-                        <code className="flex-1 p-2 bg-white rounded border text-sm">{publicUrl}</code>
+                        <code className="flex-1 p-2 bg-card rounded border text-sm">{publicUrl}</code>
                         <Button type="button" variant="outline" size="sm" onClick={copyUrl}>
                           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         </Button>
@@ -229,27 +230,27 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
               {/* Materials Section */}
               <div className="space-y-4 pt-6 border-t">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Materiály</h3>
-                  <p className="text-sm text-gray-600">Nastavte výchozí složku pro ukládání materiálů ze studia</p>
+                  <h3 className="text-lg font-medium text-foreground mb-2">Materiály</h3>
+                  <p className="text-sm text-muted-foreground">Nastavte výchozí složku pro ukládání materiálů ze studia</p>
                 </div>
                 
                 <div className="space-y-2">
                   <Label>Kořenová složka materiálů</Label>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 p-3 bg-primary-50 rounded-lg flex items-center gap-2">
-                      <Folder className="h-5 w-5 text-primary-600" />
+                    <div className="flex-1 p-3 bg-primary-50 dark:bg-primary-950 rounded-lg flex items-center gap-2">
+                      <Folder className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                       <span className="text-sm font-medium">{materialsRootFolder.name}</span>
                     </div>
                     <Button
                       type="button"
                       onClick={() => setShowFolderPicker(true)}
                       variant="outline"
-                      className="text-primary-600 border-primary-200 hover:bg-primary-50"
+                      className="text-primary-600 border-primary-200 hover:bg-primary-50 dark:text-primary-400 dark:border-primary-800 dark:hover:bg-primary-900/40"
                     >
                       Změnit složku
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Tato složka bude výchozí při přidávání nových materiálů ke studiu
                   </p>
                 </div>
@@ -271,6 +272,8 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
           </CardContent>
         </Card>
       </div>
+
+      <TitlePageFooter />
 
       {/* Folder Picker Dialog */}
       <FolderPicker

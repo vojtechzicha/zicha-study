@@ -307,8 +307,8 @@ export function GlobalExamScheduler() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600 dark:text-primary-400" />
       </div>
     )
   }
@@ -320,11 +320,11 @@ export function GlobalExamScheduler() {
   const hasEnabled = studies.length > 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-background">
+      <header className="bg-card/80 backdrop-blur-sm border-b border-border/40 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center min-h-16 py-3 gap-4">
-            <Button variant="ghost" onClick={() => router.push("/")} className="text-gray-600 hover:text-gray-900 flex-shrink-0">
+            <Button variant="ghost" onClick={() => router.push("/")} className="text-muted-foreground hover:text-foreground flex-shrink-0">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zpět
             </Button>
@@ -333,8 +333,8 @@ export function GlobalExamScheduler() {
                 <CalendarDays className="h-6 w-6 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl font-bold text-gray-900 leading-tight">Plánovač zkoušek</h1>
-                <p className="text-sm text-gray-600">Optimální rozvrh napříč všemi studii</p>
+                <h1 className="text-xl font-bold text-foreground leading-tight">Plánovač zkoušek</h1>
+                <p className="text-sm text-muted-foreground">Optimální rozvrh napříč všemi studii</p>
               </div>
             </div>
             {hasEnabled && (
@@ -349,20 +349,20 @@ export function GlobalExamScheduler() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {noActiveStudies ? (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="py-12 text-center">
-              <CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-              <p className="text-sm font-medium text-gray-900">Žádná aktivní studia</p>
-              <p className="mt-1 text-sm text-gray-500">Plánovač zkoušek je dostupný pouze pro aktivní studia.</p>
+              <CalendarDays className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70" />
+              <p className="text-sm font-medium text-foreground">Žádná aktivní studia</p>
+              <p className="mt-1 text-sm text-muted-foreground">Plánovač zkoušek je dostupný pouze pro aktivní studia.</p>
             </CardContent>
           </Card>
         ) : (
           <>
             {/* Studies management: enable + configure directly from the planner */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Settings2 className="h-5 w-5 text-primary-600" />
+                  <Settings2 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                   Studia v plánovači
                 </CardTitle>
               </CardHeader>
@@ -371,20 +371,20 @@ export function GlobalExamScheduler() {
                   <div key={s.id} className="flex items-center gap-3 border rounded-lg p-3">
                     <StudyLogo logoUrl={s.logo_url} studyName={s.name} size="sm" className="flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-900 truncate">{s.name}</p>
+                      <p className="font-medium text-foreground truncate">{s.name}</p>
                       {s.exam_scheduler_enabled ? (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           Cesta {s.transit_duration_hours} h / {s.transit_cost_one_way} Kč · ubytování {s.accommodation_cost_per_night} Kč/noc
                         </p>
                       ) : (
-                        <p className="text-xs text-gray-400">Nezahrnuto do plánovače</p>
+                        <p className="text-xs text-muted-foreground/70">Nezahrnuto do plánovače</p>
                       )}
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setSettingsStudy(s)}
-                      className="h-8 text-primary-700 hover:bg-primary-50"
+                      className="h-8 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/40"
                     >
                       <Settings2 className="h-4 w-4 sm:mr-1" />
                       <span className="hidden sm:inline">Nastavení</span>
@@ -400,23 +400,23 @@ export function GlobalExamScheduler() {
             </Card>
 
             {!hasEnabled ? (
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardContent className="py-10 text-center">
-                  <CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-                  <p className="text-sm font-medium text-gray-900">Žádné studium není zahrnuto do plánovače</p>
-                  <p className="mt-1 text-sm text-gray-500">Zapněte přepínač u studia výše a nastavte dopravu a ubytování.</p>
+                  <CalendarDays className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70" />
+                  <p className="text-sm font-medium text-foreground">Žádné studium není zahrnuto do plánovače</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Zapněte přepínač u studia výše a nastavte dopravu a ubytování.</p>
                 </CardContent>
               </Card>
             ) : (
               <>
             {/* Settings + run */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="py-4 flex flex-wrap items-center gap-4 justify-between">
                 <div className="flex items-center gap-3">
-                  <Clock3 className="h-5 w-5 text-primary-600" />
+                  <Clock3 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-800">Pauza mezi studii</p>
-                    <p className="text-xs text-gray-500">Přidá se k době přesunu při dvou prezenčních zkouškách v jeden den</p>
+                    <p className="text-sm font-medium text-foreground">Pauza mezi studii</p>
+                    <p className="text-xs text-muted-foreground">Přidá se k době přesunu při dvou prezenčních zkouškách v jeden den</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Input
@@ -427,7 +427,7 @@ export function GlobalExamScheduler() {
                       onChange={(e) => handleBreakChange(Math.max(0, parseInt(e.target.value) || 0))}
                       className="h-9 w-24"
                     />
-                    <span className="text-sm text-gray-600">min</span>
+                    <span className="text-sm text-muted-foreground">min</span>
                   </div>
                 </div>
                 <Button
@@ -439,7 +439,7 @@ export function GlobalExamScheduler() {
                   {comparison ? "Přegenerovat rozvrh" : "Vygenerovat rozvrh"}
                 </Button>
                 {subjectsWithoutTermsCount > 0 && (
-                  <p className="w-full flex items-center gap-1.5 text-xs text-amber-700">
+                  <p className="w-full flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
                     <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
                     {subjectsWithoutTermsCount === 1
                       ? "1 předmět zatím nemá žádné termíny a není zahrnut do rozvrhu – plán se ještě změní."
@@ -457,7 +457,7 @@ export function GlobalExamScheduler() {
                 const studyPeriods = periodsByStudy.get(study.id) || []
                 if (studyPeriods.length === 0) return null
                 return (
-                  <Card key={study.id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                  <Card key={study.id} className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
                         <StudyLogo logoUrl={study.logo_url} studyName={study.name} size="sm" />
@@ -476,8 +476,8 @@ export function GlobalExamScheduler() {
                           <div key={p.id} className="border rounded-lg p-3">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div>
-                                <span className="font-medium text-gray-900">{p.name}</span>
-                                <span className="text-sm text-gray-500 ml-2">
+                                <span className="font-medium text-foreground">{p.name}</span>
+                                <span className="text-sm text-muted-foreground ml-2">
                                   {formatDateShort(p.start_date)} – {formatDateShort(p.due_date)}
                                 </span>
                               </div>
@@ -490,7 +490,7 @@ export function GlobalExamScheduler() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => setDeleteTarget(p)}
-                                  className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  className="h-8 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -498,7 +498,7 @@ export function GlobalExamScheduler() {
                             </div>
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {periodSubjectIds.length === 0 ? (
-                                <span className="text-xs text-gray-400 italic">žádné předměty</span>
+                                <span className="text-xs text-muted-foreground/70 italic">žádné předměty</span>
                               ) : (
                                 periodSubjectIds.map((sid) => {
                                   const subj = subjectMap.get(sid)
@@ -509,12 +509,12 @@ export function GlobalExamScheduler() {
                                       <Badge
                                         key={sid}
                                         variant="secondary"
-                                        className="bg-amber-100 text-amber-800 font-normal"
+                                        className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-normal"
                                         title="Předmět zatím nemá žádné termíny a není zahrnut do rozvrhu"
                                       >
                                         <AlertTriangle className="h-3 w-3 mr-1" />
                                         {subj?.abbreviation || subj?.name || "?"}
-                                        <span className="ml-1 text-amber-600">(bez termínů)</span>
+                                        <span className="ml-1 text-amber-600 dark:text-amber-400">(bez termínů)</span>
                                       </Badge>
                                     )
                                   }
@@ -522,7 +522,7 @@ export function GlobalExamScheduler() {
                                     <Badge
                                       key={sid}
                                       variant="secondary"
-                                      className="bg-primary-100 text-primary-700 font-normal"
+                                      className="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-normal"
                                     >
                                       {hasLock && <Lock className="h-3 w-3 mr-1" />}
                                       {subj?.abbreviation || subj?.name || "?"}
@@ -541,11 +541,11 @@ export function GlobalExamScheduler() {
               })}
 
               {periods.length === 0 && (
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
                   <CardContent className="py-12 text-center">
-                    <CalendarDays className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-                    <p className="text-sm font-medium text-gray-900">Zatím žádná zkoušková období</p>
-                    <p className="mt-1 text-sm text-gray-500 mb-4">
+                    <CalendarDays className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70" />
+                    <p className="text-sm font-medium text-foreground">Zatím žádná zkoušková období</p>
+                    <p className="mt-1 text-sm text-muted-foreground mb-4">
                       Vytvořte období, přidejte předměty a jejich možné termíny.
                     </p>
                     <Button onClick={openNewPeriod} className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800">

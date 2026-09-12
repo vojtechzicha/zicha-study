@@ -34,7 +34,7 @@ interface HighSchoolGradeMatrixProps {
 }
 
 function GradeBadge({ grade }: { grade: string | null }) {
-  if (!grade) return <span className="text-gray-300">–</span>
+  if (!grade) return <span className="text-muted-foreground/50">–</span>
   const style = highSchoolGradeStyle(grade)
   return (
     <TooltipProvider>
@@ -73,7 +73,7 @@ export function HighSchoolGradeMatrix({ subjects, periods, renderActions }: High
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="min-w-[180px] sticky left-0 bg-white/90 backdrop-blur-sm">Předmět</TableHead>
+            <TableHead className="min-w-[180px] sticky left-0 bg-card/90 backdrop-blur-sm">Předmět</TableHead>
             {periods.map((period) => (
               <TableHead key={period.key} className="text-center whitespace-nowrap w-[56px]">
                 <TooltipProvider>
@@ -94,16 +94,16 @@ export function HighSchoolGradeMatrix({ subjects, periods, renderActions }: High
         </TableHeader>
         <TableBody>
           {subjects.map((subject) => (
-            <TableRow key={subject.id} className="hover:bg-primary-50">
-              <TableCell className="sticky left-0 bg-white/90 backdrop-blur-sm">
+            <TableRow key={subject.id} className="hover:bg-primary-50 dark:hover:bg-primary-900/40">
+              <TableCell className="sticky left-0 bg-card/90 backdrop-blur-sm">
                 <div className="font-medium text-sm">
                   {subject.abbreviation ? (
-                    <span className="font-mono text-xs text-gray-500 mr-2">{subject.abbreviation}</span>
+                    <span className="font-mono text-xs text-muted-foreground mr-2">{subject.abbreviation}</span>
                   ) : null}
                   {subject.name}
                 </div>
                 {subject.lecturer && (
-                  <div className="text-xs text-gray-500 mt-0.5">{subject.lecturer}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{subject.lecturer}</div>
                 )}
               </TableCell>
               {periods.map((period) => (
@@ -111,7 +111,7 @@ export function HighSchoolGradeMatrix({ subjects, periods, renderActions }: High
                   <GradeBadge grade={getGrade(subject, period.year, period.half)} />
                 </TableCell>
               ))}
-              <TableCell className="text-center font-semibold text-gray-700">
+              <TableCell className="text-center font-semibold text-foreground/80">
                 {formatAverage(subjectAverage(subject))}
               </TableCell>
               {renderActions && (
@@ -121,12 +121,12 @@ export function HighSchoolGradeMatrix({ subjects, periods, renderActions }: High
           ))}
 
           {/* Per-pololetí averages */}
-          <TableRow className="border-t-2 bg-primary-50/50 font-medium">
-            <TableCell className="sticky left-0 bg-primary-50/90 backdrop-blur-sm text-sm text-gray-700">
+          <TableRow className="border-t-2 bg-primary-50/50 dark:bg-primary-950/50 font-medium">
+            <TableCell className="sticky left-0 bg-primary-50/90 dark:bg-primary-950/90 backdrop-blur-sm text-sm text-foreground/80">
               Průměr pololetí
             </TableCell>
             {periods.map((period) => (
-              <TableCell key={period.key} className="text-center text-sm text-gray-700">
+              <TableCell key={period.key} className="text-center text-sm text-foreground/80">
                 {formatAverage(periodAverage(subjects, period.year, period.half))}
               </TableCell>
             ))}

@@ -77,12 +77,12 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
 
   return (
     <>
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-xl font-bold text-gray-900">Materiály</CardTitle>
-              <p className="text-sm text-gray-600 mt-1">
+              <CardTitle className="text-xl font-bold text-foreground">Materiály</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
                 Dokumenty a soubory ke studiu
               </p>
             </div>
@@ -107,16 +107,16 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-primary-100 rounded-lg animate-pulse" />
+                <div key={i} className="h-24 bg-primary-100 dark:bg-primary-900/50 rounded-lg animate-pulse" />
               ))}
             </div>
           ) : materials.length === 0 ? (
             <div className="text-center py-12">
-              <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <FolderOpen className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 Zatím nejsou přidány žádné materiály
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 Přidejte dokumenty z vašeho OneDrive
               </p>
               <Button
@@ -146,7 +146,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
                   <Button
                     variant="outline"
                     onClick={() => setShowAll(true)}
-                    className="text-gray-700"
+                    className="text-foreground/80"
                   >
                     Zobrazit všechny materiály
                     <ChevronRight className="ml-2 h-4 w-4" />

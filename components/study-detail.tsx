@@ -143,21 +143,21 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
   const tasksCompact = tasksReady && !tasksError && taskGroups.visible.length === 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
       <StudyHeader 
         study={currentStudy}
         onBack={onBack}
         actions={
           <>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/edit`)} className="text-gray-700" size="sm">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/edit`)} className="text-foreground/80" size="sm">
               <Edit className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Upravit</span>
             </Button>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/settings`)} className="text-gray-700" size="sm">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/settings`)} className="text-foreground/80" size="sm">
               <Settings className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Sdílení</span>
             </Button>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/statistics`)} className="text-gray-700" size="sm">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/statistics`)} className="text-foreground/80" size="sm">
               <BarChart3 className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Statistiky</span>
             </Button>

@@ -224,27 +224,27 @@ function CompactDiplomaCard({
 
   return (
     <div
-      className={`group relative mb-8 overflow-hidden rounded-xl border bg-gradient-to-r from-amber-50 via-white to-amber-50/60 shadow-sm transition-shadow hover:shadow-md ${
-        honors ? "border-amber-300/70 ring-1 ring-amber-300/40" : "border-amber-200/60"
+      className={`group relative mb-8 overflow-hidden rounded-xl border bg-gradient-to-r from-amber-50 via-card to-amber-50/60 shadow-sm transition-shadow hover:shadow-md dark:from-amber-950/40 dark:via-card dark:to-amber-950/20 ${
+        honors ? "border-amber-300/70 ring-1 ring-amber-300/40 dark:border-amber-700/70 dark:ring-amber-700/40" : "border-amber-200/60 dark:border-amber-800/60"
       }`}
     >
       {/* Accent bar – gold for both; honors is celebrated via the badge, not red */}
       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600" />
       {/* Subtle watermark seal */}
       <Award
-        className="pointer-events-none absolute -right-4 -top-4 h-32 w-32 text-amber-200/40"
+        className="pointer-events-none absolute -right-4 -top-4 h-32 w-32 text-amber-200/40 dark:text-amber-800/40"
         strokeWidth={1}
         aria-hidden
       />
 
       <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6">
         <div className="flex items-start gap-4 min-w-0">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-amber-300/70 bg-gradient-to-br from-amber-100 to-amber-50 shadow-inner">
-            <Award className="h-5 w-5 text-amber-700" />
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-amber-300/70 bg-gradient-to-br from-amber-100 to-amber-50 shadow-inner dark:border-amber-700/70 dark:from-amber-900/40 dark:to-amber-950/40">
+            <Award className="h-5 w-5 text-amber-700 dark:text-amber-300" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
                 {term.diplomaNoun}
               </span>
               {honors ? (
@@ -253,16 +253,16 @@ function CompactDiplomaCard({
                   S vyznamenáním
                 </span>
               ) : (
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-800">
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
                   Dokončeno
                 </span>
               )}
             </div>
-            <h3 className="mt-1 truncate text-base font-semibold text-gray-900 sm:text-lg">
+            <h3 className="mt-1 truncate text-base font-semibold text-foreground sm:text-lg">
               {study.name}
             </h3>
             {conferredDate && (
-              <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
                 <span>Nahráno {conferredDate}</span>
               </div>
@@ -274,7 +274,7 @@ function CompactDiplomaCard({
           <a
             href={study.diploma_url!}
             download
-            className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-white px-3 py-2 text-xs font-medium text-amber-800 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-card px-3 py-2 text-xs font-medium text-amber-800 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-200 dark:hover:border-amber-700 dark:hover:bg-amber-950/40"
           >
             <Download className="h-3.5 w-3.5" />
             <span>Stáhnout</span>

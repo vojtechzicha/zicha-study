@@ -114,16 +114,16 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
   return (
     <div className="space-y-6">
       {Object.entries(subjectsBySemester).map(([semester, semesterData]) => (
-        <Card key={semester} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card key={semester} className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
                 <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary-600" />
-                  <CardTitle className="text-xl font-bold text-gray-900 whitespace-nowrap">{semester}</CardTitle>
+                  <BookOpen className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  <CardTitle className="text-xl font-bold text-foreground whitespace-nowrap">{semester}</CardTitle>
                 </div>
                 {(semesterData.average.type !== "none" || semesterData.gpa !== null) && (
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {semesterData.average.type === "both" ? (
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
                         <span>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : "-"}</span>
@@ -143,7 +143,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                   </div>
                 )}
               </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                 <span>
                   {semesterData.subjects.filter((s) => s.completed).length}/{semesterData.subjects.length} dokončeno
                 </span>
@@ -168,7 +168,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                 </TableHeader>
                 <TableBody>
                   {semesterData.subjects.map((subject) => (
-                    <TableRow key={subject.id} className="hover:bg-primary-50">
+                    <TableRow key={subject.id} className="hover:bg-primary-50 dark:hover:bg-primary-900/40">
                       <TableCell className="font-mono text-sm">{subject.abbreviation || "-"}</TableCell>
                       <TableCell className="text-sm">
                         <div>
@@ -181,7 +181,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                             )}
                           </div>
                           {(subject.department || subject.lecturer) && (
-                            <div className="text-xs text-gray-500 mt-0.5">
+                            <div className="text-xs text-muted-foreground mt-0.5">
                               {[subject.department, subject.lecturer].filter(Boolean).join(" • ")}
                             </div>
                           )}
@@ -199,7 +199,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                             return (
                               <span>
                                 <span className="font-medium">{display.credits}</span>
-                                <span className="text-gray-500 text-sm ml-1">
+                                <span className="text-muted-foreground text-sm ml-1">
                                   ({display.hours} {display.hoursText})
                                 </span>
                               </span>
@@ -212,7 +212,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
 
                           if (display.type === "hours") {
                             return (
-                              <span className="text-gray-500">
+                              <span className="text-muted-foreground">
                                 {display.hours} {display.hoursText}
                               </span>
                             )
@@ -226,7 +226,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                           const hasPoints = isFieldVisibleForState("points", subjectState) && subject.points
 
                           if (!hasGrade && !hasPoints) {
-                            return <span className="text-gray-400">-</span>
+                            return <span className="text-muted-foreground/70">-</span>
                           }
 
                           if (hasGrade && hasPoints) {
@@ -239,7 +239,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                                 >
                                   {subject.grade}
                                 </span>
-                                <span className="text-sm text-gray-600">
+                                <span className="text-sm text-muted-foreground">
                                   ({subject.points} {getCzechPointsWord(subject.points!)})
                                 </span>
                               </div>
@@ -260,7 +260,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
 
                           if (hasPoints) {
                             return (
-                              <span className="text-sm text-gray-600">
+                              <span className="text-sm text-muted-foreground">
                                 {subject.points} {getCzechPointsWord(subject.points!)}
                               </span>
                             )
@@ -273,7 +273,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                           return isFieldVisibleForState("final_date", subjectState) && subject.final_date ? (
                             <span className="text-sm">{formatDateCzech(subject.final_date)}</span>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-muted-foreground/70">-</span>
                           )
                         })()}
                       </TableCell>

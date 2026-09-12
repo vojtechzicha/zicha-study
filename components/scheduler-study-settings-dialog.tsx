@@ -81,7 +81,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50">
+          <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
             <div className="space-y-0.5">
               <Label className="text-base font-medium">Plánovač zkoušek</Label>
               <p className="text-sm text-muted-foreground">
@@ -98,8 +98,8 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
           </div>
 
           {form.exam_scheduler_enabled && isActive && (
-            <div className="p-4 border rounded-lg bg-primary-50/30 space-y-4">
-              <p className="text-sm font-medium text-gray-700">Doprava a ubytování</p>
+            <div className="p-4 border rounded-lg bg-primary-50/30 dark:bg-primary-950/30 space-y-4">
+              <p className="text-sm font-medium text-foreground/80">Doprava a ubytování</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="transit_duration">Doba cesty (hodiny)</Label>
@@ -114,7 +114,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                       setForm({ ...form, transit_duration_hours: parseFloat(e.target.value) || EXAM_SCHEDULER_DEFAULTS.TRANSIT_DURATION_HOURS })
                     }
                   />
-                  <p className="text-xs text-gray-500">Jednosměrná cesta do školy</p>
+                  <p className="text-xs text-muted-foreground">Jednosměrná cesta do školy</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="earliest_arrival">Nejdřívější příjezd</Label>
@@ -125,7 +125,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                     onChange={(e) => setForm({ ...form, earliest_arrival_time: e.target.value })}
                     placeholder="08:50"
                   />
-                  <p className="text-xs text-gray-500">Kdy nejdříve můžete být ve škole (volitelné)</p>
+                  <p className="text-xs text-muted-foreground">Kdy nejdříve můžete být ve škole (volitelné)</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="transit_cost">Cena cesty (Kč)</Label>
@@ -136,7 +136,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                     value={form.transit_cost_one_way}
                     onChange={(e) => setForm({ ...form, transit_cost_one_way: parseInt(e.target.value) || 0 })}
                   />
-                  <p className="text-xs text-gray-500">Jednosměrná cesta</p>
+                  <p className="text-xs text-muted-foreground">Jednosměrná cesta</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="accommodation_cost">Ubytování/noc (Kč)</Label>
@@ -147,15 +147,15 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                     value={form.accommodation_cost_per_night}
                     onChange={(e) => setForm({ ...form, accommodation_cost_per_night: parseInt(e.target.value) || 0 })}
                   />
-                  <p className="text-xs text-gray-500">Cena za noc u školy (0 = bez nákladů)</p>
+                  <p className="text-xs text-muted-foreground">Cena za noc u školy (0 = bez nákladů)</p>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-primary-100 space-y-4">
+              <div className="pt-2 border-t border-primary-100 dark:border-primary-900 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5 pr-4">
                     <Label className="text-sm font-medium">Upřednostnit volné dny</Label>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       Prezenční zkoušky v pracovní dny penalizovat, aby plánovač dal přednost volným dnům, pokud se to vyplatí.
                     </p>
                   </div>
@@ -177,7 +177,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                         value={form.pto_day_cost}
                         onChange={(e) => setForm({ ...form, pto_day_cost: parseInt(e.target.value) || 0 })}
                       />
-                      <p className="text-xs text-gray-500">Vyšší hodnota = silnější preference volných dní.</p>
+                      <p className="text-xs text-muted-foreground">Vyšší hodnota = silnější preference volných dní.</p>
                     </div>
                     <div className="space-y-2">
                       <Label>Pracovní dny</Label>
@@ -197,7 +197,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                               className={`w-11 h-10 rounded-md border text-sm font-medium transition-colors ${
                                 selected
                                   ? "bg-primary-600 text-white border-primary-600 hover:bg-primary-700"
-                                  : "bg-white text-gray-600 border-gray-300 hover:bg-primary-50"
+                                  : "bg-card text-muted-foreground border-border hover:bg-primary-50 dark:hover:bg-primary-900/40"
                               }`}
                             >
                               {day.label}
@@ -205,7 +205,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                           )
                         })}
                       </div>
-                      <p className="text-xs text-gray-500">Dny, kdy pracujete. Zkoušky v ostatní (volné) dny nejsou penalizovány.</p>
+                      <p className="text-xs text-muted-foreground">Dny, kdy pracujete. Zkoušky v ostatní (volné) dny nejsou penalizovány.</p>
                     </div>
                   </div>
                 )}

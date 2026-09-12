@@ -29,58 +29,58 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
     <>
       {/* Main Statistics Row */}
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${stats.gpa !== null ? "xl:grid-cols-5" : ""} gap-6 mb-8`}>
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
-            <BookOpen className="h-4 w-4 text-primary-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Celkem předmětů</CardTitle>
+            <BookOpen className="h-4 w-4 text-primary-600 dark:text-primary-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-            <p className="text-xs text-gray-600 mt-1">
+            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Dokončeno: {stats.completed} ({stats.completionRate.toFixed(1)}%)
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Získané kredity</CardTitle>
-            <Target className="h-4 w-4 text-indigo-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Získané kredity</CardTitle>
+            <Target className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.completedCredits}</div>
-            <p className="text-xs text-gray-600 mt-1">z {stats.totalCredits} kreditů</p>
+            <div className="text-2xl font-bold text-foreground">{stats.completedCredits}</div>
+            <p className="text-xs text-muted-foreground mt-1">z {stats.totalCredits} kreditů</p>
           </CardContent>
         </Card>
 
         {stats.average.type !== 'none' && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">{stats.average.label}</CardTitle>
-              <Trophy className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">{stats.average.label}</CardTitle>
+              <Trophy className="h-4 w-4 text-green-600 dark:text-green-400" />
             </CardHeader>
             <CardContent>
               {stats.average.type === 'both' ? (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">
+                    <div className="text-lg font-bold text-foreground">
                       {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
                     </div>
-                    <p className="text-xs text-gray-600">body</p>
+                    <p className="text-xs text-muted-foreground">body</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">
+                    <div className="text-lg font-bold text-foreground">
                       {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
                     </div>
-                    <p className="text-xs text-gray-600">známky</p>
+                    <p className="text-xs text-muted-foreground">známky</p>
                   </div>
                 </div>
               ) : (
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-2xl font-bold text-foreground">
                     {stats.average.value ? stats.average.value.toFixed(2) : '-'}
                   </div>
-                  <p className="text-xs text-gray-600 mt-1">vážené kredity</p>
+                  <p className="text-xs text-muted-foreground mt-1">vážené kredity</p>
                 </div>
               )}
             </CardContent>
@@ -88,26 +88,26 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
         )}
 
         {stats.gpa !== null && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">GPA</CardTitle>
-              <GraduationCap className="h-4 w-4 text-primary-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">GPA</CardTitle>
+              <GraduationCap className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.gpa.toFixed(2)}</div>
-              <p className="text-xs text-gray-600 mt-1">ECTS přepočet</p>
+              <div className="text-2xl font-bold text-foreground">{stats.gpa.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">ECTS přepočet</p>
             </CardContent>
           </Card>
         )}
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Celkové hodiny</CardTitle>
-            <Clock className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Celkové hodiny</CardTitle>
+            <Clock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.completedHours}</div>
-            <p className="text-xs text-gray-600 mt-1">
+            <div className="text-2xl font-bold text-foreground">{stats.completedHours}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               z {stats.totalHours} hodin ({stats.totalHours > 0 ? ((stats.completedHours / stats.totalHours) * 100).toFixed(1) : 0}%)
             </p>
           </CardContent>
@@ -116,14 +116,14 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
 
       {/* Progress Overview Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg font-bold text-gray-900">Dokončené předměty</CardTitle>
+            <CardTitle className="text-lg font-bold text-foreground">Dokončené předměty</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">
+                <span className="text-muted-foreground">
                   {stats.completed} z {stats.total}
                 </span>
                 <span className="font-medium">{stats.completionRate.toFixed(1)}%</span>
@@ -133,14 +133,14 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg font-bold text-gray-900">Zápočty</CardTitle>
+            <CardTitle className="text-lg font-bold text-foreground">Zápočty</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">
+                <span className="text-muted-foreground">
                   {stats.creditsCompleted} z {stats.totalSubjectsWithCredits}
                 </span>
                 <span className="font-medium">{stats.creditCompletionRate.toFixed(1)}%</span>
@@ -150,14 +150,14 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg font-bold text-gray-900">Zkoušky</CardTitle>
+            <CardTitle className="text-lg font-bold text-foreground">Zkoušky</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">
+                <span className="text-muted-foreground">
                   {stats.examsCompleted} z {stats.totalSubjectsWithExams}
                 </span>
                 <span className="font-medium">{stats.examCompletionRate.toFixed(1)}%</span>
@@ -177,69 +177,69 @@ function SimpleStatisticsCards({ stats, tasksSlot }: { stats: StudyStatistics; t
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${cardCount >= 5 ? "xl:grid-cols-5" : ""} gap-6 mb-8`}>
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">Celkem předmětů</CardTitle>
-          <BookOpen className="h-4 w-4 text-primary-600" />
+          <CardTitle className="text-sm font-medium text-muted-foreground">Celkem předmětů</CardTitle>
+          <BookOpen className="h-4 w-4 text-primary-600 dark:text-primary-400" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          <p className="text-xs text-gray-600 mt-1">
+          <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+          <p className="text-xs text-muted-foreground mt-1">
             Dokončeno: {stats.completed} ({stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(1) : 0}%)
           </p>
         </CardContent>
       </Card>
 
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">Dokončeno</CardTitle>
-          <Calendar className="h-4 w-4 text-green-600" />
+          <CardTitle className="text-sm font-medium text-muted-foreground">Dokončeno</CardTitle>
+          <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
-          <p className="text-xs text-gray-600 mt-1">z {stats.total} předmětů</p>
+          <div className="text-2xl font-bold text-foreground">{stats.completed}</div>
+          <p className="text-xs text-muted-foreground mt-1">z {stats.total} předmětů</p>
         </CardContent>
       </Card>
 
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">Celkem kreditů</CardTitle>
-          <Target className="h-4 w-4 text-indigo-600" />
+          <CardTitle className="text-sm font-medium text-muted-foreground">Celkem kreditů</CardTitle>
+          <Target className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-gray-900">{stats.completedCredits}</div>
-          <p className="text-xs text-gray-600 mt-1">z {stats.totalCredits} kreditů</p>
+          <div className="text-2xl font-bold text-foreground">{stats.completedCredits}</div>
+          <p className="text-xs text-muted-foreground mt-1">z {stats.totalCredits} kreditů</p>
         </CardContent>
       </Card>
 
       {stats.average.type !== 'none' && (
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">{stats.average.label}</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">{stats.average.label}</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
             {stats.average.type === 'both' ? (
               <div className="space-y-2">
                 <div>
-                  <div className="text-lg font-bold text-gray-900">
+                  <div className="text-lg font-bold text-foreground">
                     {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
                   </div>
-                  <p className="text-xs text-gray-600">body (vážené kredity)</p>
+                  <p className="text-xs text-muted-foreground">body (vážené kredity)</p>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-gray-900">
+                  <div className="text-lg font-bold text-foreground">
                     {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
                   </div>
-                  <p className="text-xs text-gray-600">známky (vážené kredity)</p>
+                  <p className="text-xs text-muted-foreground">známky (vážené kredity)</p>
                 </div>
               </div>
             ) : (
               <div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-foreground">
                   {stats.average.value ? stats.average.value.toFixed(2) : '-'}
                 </div>
-                <p className="text-xs text-gray-600 mt-1">průměr vážený kredity</p>
+                <p className="text-xs text-muted-foreground mt-1">průměr vážený kredity</p>
               </div>
             )}
           </CardContent>

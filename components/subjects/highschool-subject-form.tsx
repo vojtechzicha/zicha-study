@@ -104,7 +104,7 @@ export function HighSchoolSubjectForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="text-2xl font-bold text-gray-900">
+        <DialogTitle className="text-2xl font-bold text-foreground">
           {isEdit ? "Upravit předmět" : "Přidat nový předmět"}
         </DialogTitle>
         <DialogDescription className="sr-only">
@@ -152,12 +152,12 @@ export function HighSchoolSubjectForm({
         </div>
 
         {/* Per-pololetí grades */}
-        <div className="space-y-3 p-4 border rounded-lg bg-primary-50">
+        <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
           <Label className="text-sm font-medium">Známky za jednotlivá pololetí</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {periods.map((period) => (
               <div key={period.key} className="space-y-1">
-                <Label htmlFor={`grade-${period.key}`} className="text-xs text-gray-600">
+                <Label htmlFor={`grade-${period.key}`} className="text-xs text-muted-foreground">
                   {period.label}
                 </Label>
                 <Select

@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -29,6 +29,14 @@ export const metadata: Metadata = {
   generator: "zicha-study",
 }
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    // Matches --background in the .dark block of app/globals.css (224 20% 8%).
+    { media: "(prefers-color-scheme: dark)", color: "#101318" },
+  ],
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -38,7 +46,13 @@ export default function RootLayout({
     <html lang="cs" suppressHydrationWarning>
       <body className={inter.className}>
         <SessionProvider>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            storageKey="zs_theme"
+            disableTransitionOnChange
+          >
             {children}
             <UpdateHint />
           </ThemeProvider>

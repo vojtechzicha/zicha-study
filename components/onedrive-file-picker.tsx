@@ -144,11 +144,11 @@ export function OneDriveFilePicker({
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase()
-    if (ext === "pdf") return <FileText className="h-6 w-6 text-red-600" />
+    if (ext === "pdf") return <FileText className="h-6 w-6 text-red-600 dark:text-red-400" />
     if (ext === "docx" || ext === "doc") return <FileText className="h-6 w-6 text-primary" />
     if (ext === "md") return <FileText className="h-6 w-6 text-primary" />
-    if (ext === "xlsx" || ext === "xls") return <FileText className="h-6 w-6 text-green-600" />
-    return <File className="h-6 w-6 text-gray-600" />
+    if (ext === "xlsx" || ext === "xls") return <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
+    return <File className="h-6 w-6 text-muted-foreground" />
   }
 
   const formatFileSize = (bytes: number): string => {
@@ -188,7 +188,7 @@ export function OneDriveFilePicker({
       {/* Search Bar */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
           <Input
             placeholder="Hledat soubory..."
             value={searchQuery}
@@ -209,17 +209,17 @@ export function OneDriveFilePicker({
 
       {/* Breadcrumb Navigation */}
       {!isSearching && (
-        <div className="flex items-center gap-1 text-sm text-gray-600 overflow-x-auto">
+        <div className="flex items-center gap-1 text-sm text-muted-foreground overflow-x-auto">
           {pathHistory.map((crumb, index) => (
             <div key={index} className="flex items-center gap-1">
               <button
                 onClick={() => handleBreadcrumbClick(index)}
-                className="hover:text-primary-600 whitespace-nowrap"
+                className="hover:text-primary-600 dark:hover:text-primary-400 whitespace-nowrap"
               >
                 {crumb.name}
               </button>
               {index < pathHistory.length - 1 && (
-                <ChevronRight className="h-3 w-3 text-gray-400" />
+                <ChevronRight className="h-3 w-3 text-muted-foreground/70" />
               )}
             </div>
           ))}
@@ -231,18 +231,18 @@ export function OneDriveFilePicker({
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 bg-primary-100 rounded animate-pulse" />
+              <div key={i} className="h-12 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
             ))}
           </div>
         ) : availableFiles.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
+          <p className="text-muted-foreground text-center py-8">
             {isSearching ? "Žádné soubory neodpovídají hledání" : "Žádné soubory nebyly nalezeny"}
           </p>
         ) : (
           availableFiles.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 p-3 hover:bg-primary-50 cursor-pointer rounded border"
+              className="flex items-center gap-3 p-3 hover:bg-primary-50 dark:hover:bg-primary-900/40 cursor-pointer rounded border"
               onClick={() => handleItemClick(item)}
             >
               <div className="flex-shrink-0">
@@ -265,7 +265,7 @@ export function OneDriveFilePicker({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {item.folder 
                     ? `${item.folder.childCount || 0} položek`
                     : item.size ? formatFileSize(item.size) : ''
@@ -273,7 +273,7 @@ export function OneDriveFilePicker({
                 </p>
               </div>
               {item.folder && !allowFolders && (
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/70" />
               )}
             </div>
           ))

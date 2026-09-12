@@ -231,8 +231,8 @@ export function AddMaterialDialog({
               initialPathName={studyMaterialSettingsData.materials_root_folder_name || "OneDrive"}
             />
           ) : !selectedFile ? (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <p className="text-sm text-gray-600 mb-4">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+              <p className="text-sm text-muted-foreground mb-4">
                 Vyberte soubor z vašeho OneDrive
               </p>
               <Button
@@ -245,8 +245,8 @@ export function AddMaterialDialog({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-primary-50 rounded-lg p-4 flex items-center gap-3">
-                <FileText className="h-8 w-8 text-gray-600" />
+              <div className="bg-primary-50 dark:bg-primary-950 rounded-lg p-4 flex items-center gap-3">
+                <FileText className="h-8 w-8 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
                   <TooltipProvider>
                     <Tooltip>
@@ -260,7 +260,7 @@ export function AddMaterialDialog({
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {selectedFile.size ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : ""}
                   </p>
                 </div>

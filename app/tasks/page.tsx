@@ -117,8 +117,8 @@ export default function TasksPage() {
 
   if (status === "loading" || (status === "authenticated" && loading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600 dark:text-primary-400" />
       </div>
     )
   }
@@ -127,14 +127,14 @@ export default function TasksPage() {
   const noTasksAtAll = totalActive + counts.completed === 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
+      <header className="bg-card/80 backdrop-blur-sm border-b border-border/40 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center min-h-16 py-3 gap-4">
             <Button
               variant="ghost"
               onClick={() => router.push("/")}
-              className="text-gray-600 hover:text-gray-900 flex-shrink-0"
+              className="text-muted-foreground hover:text-foreground flex-shrink-0"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zpět
@@ -144,8 +144,8 @@ export default function TasksPage() {
                 <ListChecks className="h-6 w-6 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl font-bold text-gray-900 leading-tight">Úkoly</h1>
-                <p className="text-sm text-gray-600">Souhrn napříč všemi studii</p>
+                <h1 className="text-xl font-bold text-foreground leading-tight">Úkoly</h1>
+                <p className="text-sm text-muted-foreground">Souhrn napříč všemi studii</p>
               </div>
             </div>
           </div>
@@ -154,20 +154,20 @@ export default function TasksPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {totalActive + counts.completed > 0 && (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="py-4">
               <TaskStateChips counts={counts} />
             </CardContent>
           </Card>
         )}
 
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardContent className="py-6">
             {noTasksAtAll ? (
-              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/50 px-6 py-12 text-center">
-                <ListChecks className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-                <p className="text-sm font-medium text-gray-900">Zatím žádné úkoly</p>
-                <p className="mt-1 text-sm text-gray-500">
+              <div className="rounded-xl border border-dashed border-border bg-muted/50 px-6 py-12 text-center">
+                <ListChecks className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70" />
+                <p className="text-sm font-medium text-foreground">Zatím žádné úkoly</p>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Otevřete některé studium níže a přidejte první úkol.
                 </p>
               </div>
@@ -193,7 +193,7 @@ export default function TasksPage() {
                           >
                             {config.label}
                           </h3>
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                             {list.length}
                           </span>
                         </div>
@@ -203,7 +203,7 @@ export default function TasksPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setCollapsedCompleted(!collapsedCompleted)}
-                            className="h-7 text-xs text-gray-600"
+                            className="h-7 text-xs text-muted-foreground"
                           >
                             <ChevronDown
                               className={cn(
@@ -244,19 +244,19 @@ export default function TasksPage() {
 
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Studia s úkoly</h2>
-            <span className="text-sm text-gray-500">
+            <h2 className="text-lg font-bold text-foreground">Studia s úkoly</h2>
+            <span className="text-sm text-muted-foreground">
               {studies.length === 0 ? "žádné" : `${studies.length}`}
             </span>
           </div>
 
           {studies.length === 0 ? (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="py-10 text-center">
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-foreground">
                   Žádné studium nemá zapnuté úkoly
                 </p>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Zapněte úkoly v nastavení studia, abyste mohli evidovat deadliny.
                 </p>
                 <Button
@@ -277,7 +277,7 @@ export default function TasksPage() {
                   <Card
                     key={study.id}
                     onClick={() => router.push(`/studies/${study.id}`)}
-                    className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group"
+                    className="bg-card/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group"
                   >
                     <CardContent className="flex items-center gap-3 p-4">
                       <StudyLogo
@@ -287,10 +287,10 @@ export default function TasksPage() {
                         className="flex-shrink-0"
                       />
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                        <h3 className="truncate font-semibold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                           {study.name}
                         </h3>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {active === 0 ? "žádné aktivní úkoly" : `${active} aktivních`}
                         </p>
                       </div>

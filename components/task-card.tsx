@@ -76,7 +76,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(function TaskC
             "h-5 w-5 rounded-md border-2",
             state === "overdue" && "border-red-400 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500",
             state === "running" && "border-amber-400 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500",
-            state === "upcoming" && "border-primary-300",
+            state === "upcoming" && "border-primary-300 dark:border-primary-400",
             state === "completed" && "border-green-400 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
           )}
           aria-label={isCompleted ? "Označit jako nesplněné" : "Označit jako splněné"}
@@ -87,8 +87,8 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(function TaskC
         <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
           <h3
             className={cn(
-              "text-sm font-semibold leading-tight text-gray-900 sm:text-base",
-              isCompleted && "line-through text-gray-500"
+              "text-sm font-semibold leading-tight text-foreground sm:text-base",
+              isCompleted && "line-through text-muted-foreground"
             )}
           >
             {task.title}
@@ -107,8 +107,8 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(function TaskC
 
         {task.description && (
           <p className={cn(
-            "mt-1 text-sm text-gray-600 line-clamp-2",
-            isCompleted && "text-gray-400"
+            "mt-1 text-sm text-muted-foreground line-clamp-2",
+            isCompleted && "text-muted-foreground/70"
           )}>
             {task.description}
           </p>
@@ -120,7 +120,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(function TaskC
             {config.label}
           </Badge>
           {task.start_date && (
-            <Badge variant="outline" className="h-5 gap-1 border-gray-200 bg-white px-2 py-0 text-xs font-normal text-gray-600">
+            <Badge variant="outline" className="h-5 gap-1 border-border bg-card px-2 py-0 text-xs font-normal text-muted-foreground">
               <CalendarClock className="h-3 w-3" />
               od {formatCzechDate(task.start_date)}
             </Badge>

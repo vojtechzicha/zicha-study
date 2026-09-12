@@ -82,14 +82,14 @@ interface SubjectMaterialsDialogProps {
 }
 
 const fileIcons: { [key: string]: JSX.Element } = {
-  pdf: <FileText className="h-4 w-4 text-red-600" />,
+  pdf: <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />,
   doc: <FileText className="h-4 w-4 text-primary" />,
   docx: <FileText className="h-4 w-4 text-primary" />,
-  xls: <FileText className="h-4 w-4 text-green-600" />,
-  xlsx: <FileText className="h-4 w-4 text-green-600" />,
-  ppt: <FileText className="h-4 w-4 text-orange-600" />,
-  pptx: <FileText className="h-4 w-4 text-orange-600" />,
-  default: <FileText className="h-4 w-4 text-gray-600" />,
+  xls: <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />,
+  xlsx: <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />,
+  ppt: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
+  pptx: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
+  default: <FileText className="h-4 w-4 text-muted-foreground" />,
 }
 
 function getFileIcon(extension: string | null) {
@@ -370,7 +370,7 @@ export function SubjectMaterialsDialog({
                 {/* Header with search and add button */}
                 <div className="flex items-center gap-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
                     <Input
                       placeholder="Hledat v materiálech..."
                       value={searchQuery}
@@ -392,7 +392,7 @@ export function SubjectMaterialsDialog({
               {loading ? (
                 <div className="space-y-4 p-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-primary-100 rounded animate-pulse" />
+                    <div key={i} className="h-16 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
                   ))}
                 </div>
               ) : (
@@ -410,7 +410,7 @@ export function SubjectMaterialsDialog({
                   <TableBody>
                     {filteredMaterials.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                           {searchQuery
                             ? "Žádné materiály neodpovídají vyhledávání"
                             : materials.length === 0
@@ -427,9 +427,9 @@ export function SubjectMaterialsDialog({
                               {getFileIcon(material.file_extension)}
                               <div>
                                 <div className="font-medium">{material.name}</div>
-                                <div className="text-sm text-gray-500">{material.file_name}</div>
+                                <div className="text-sm text-muted-foreground">{material.file_name}</div>
                                 {material.description && (
-                                  <div className="text-sm text-gray-600 mt-1">{material.description}</div>
+                                  <div className="text-sm text-muted-foreground mt-1">{material.description}</div>
                                 )}
                               </div>
                             </div>
@@ -441,20 +441,20 @@ export function SubjectMaterialsDialog({
                           </TableCell>
                           <TableCell>
                             {material.is_public ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800">
                                 <Globe className="h-3 w-3 mr-1" />
                                 Veřejné
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="bg-primary-50 text-primary-600 border-primary-200">
+                              <Badge variant="outline" className="bg-primary-50 text-primary-600 border-primary-200 dark:bg-primary-950 dark:text-primary-400 dark:border-primary-800">
                                 Soukromé
                               </Badge>
                             )}
                           </TableCell>
-                          <TableCell className="text-sm text-gray-600">
+                          <TableCell className="text-sm text-muted-foreground">
                             {formatFileSize(material.file_size)}
                           </TableCell>
-                          <TableCell className="text-sm text-gray-600">
+                          <TableCell className="text-sm text-muted-foreground">
                             {formatDate(material.created_at)}
                           </TableCell>
                           <TableCell className="text-right">
@@ -515,7 +515,7 @@ export function SubjectMaterialsDialog({
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     onClick={() => handleDelete(material.id)}
-                                    className="text-red-600 focus:text-red-600"
+                                    className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Odstranit
@@ -574,7 +574,7 @@ export function SubjectMaterialsDialog({
             <div className="space-y-2">
               <Label htmlFor="public-slug">URL adresa *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{getShareUrl(study?.public_slug)}/</span>
+                <span className="text-sm text-muted-foreground">{getShareUrl(study?.public_slug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}
@@ -589,36 +589,36 @@ export function SubjectMaterialsDialog({
               {/* Status Message - Always Visible */}
               {publicSlug && publicSlug.length >= 3 ? (
                 slugAvailable === false ? (
-                  <p className="text-sm text-red-600">Tato URL adresa již není dostupná pro toto studium</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná pro toto studium</p>
                 ) : slugAvailable === true ? (
-                  <p className="text-sm text-green-600">URL adresa je dostupná</p>
+                  <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
                 ) : (
-                  <p className="text-sm text-gray-500">Kontroluje se dostupnost...</p>
+                  <p className="text-sm text-muted-foreground">Kontroluje se dostupnost...</p>
                 )
               ) : publicSlug && publicSlug.length > 0 ? (
-                <p className="text-sm text-orange-600">URL adresa musí mít alespoň 3 znaky</p>
+                <p className="text-sm text-orange-600 dark:text-orange-400">URL adresa musí mít alespoň 3 znaky</p>
               ) : (
-                <p className="text-sm text-gray-500">Zadejte URL adresu</p>
+                <p className="text-sm text-muted-foreground">Zadejte URL adresu</p>
               )}
-              <p className="text-xs text-gray-500">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+              <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
             </div>
 
             {/* URL Preview - Always Visible When Slug Exists */}
             {publicSlug && (
               <div className={`p-4 rounded-lg border ${
-                slugAvailable === true ? 'bg-primary-50 border-primary-200' :
-                slugAvailable === false ? 'bg-red-50 border-red-200' :
-                'bg-primary-50 border-primary-200'
+                slugAvailable === true ? 'bg-primary-50 border-primary-200 dark:bg-primary-950 dark:border-primary-800' :
+                slugAvailable === false ? 'bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800' :
+                'bg-primary-50 border-primary-200 dark:bg-primary-950 dark:border-primary-800'
               }`}>
                 <Label className={`text-sm font-medium ${
-                  slugAvailable === true ? 'text-primary-900' :
-                  slugAvailable === false ? 'text-red-900' :
-                  'text-gray-700'
+                  slugAvailable === true ? 'text-primary-900 dark:text-primary-100' :
+                  slugAvailable === false ? 'text-red-900 dark:text-red-200' :
+                  'text-foreground/80'
                 }`}>
                   Veřejná URL adresa:
                 </Label>
                 <div className="flex items-center gap-2 mt-2">
-                  <code className="flex-1 p-2 bg-white rounded border text-sm">
+                  <code className="flex-1 p-2 bg-card rounded border text-sm">
                     {getShareUrl(study?.public_slug, publicSlug)}
                   </code>
                 </div>

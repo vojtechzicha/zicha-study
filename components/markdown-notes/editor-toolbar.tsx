@@ -97,7 +97,7 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
   }
 
   return (
-    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b bg-white/95 p-2 backdrop-blur">
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b bg-card/95 p-2 backdrop-blur">
       <Toggle size="sm" pressed={editor.isActive("bold")} onPressedChange={() => editor.chain().focus().toggleBold().run()} aria-label="Tučné">
         <Bold className="h-4 w-4" />
       </Toggle>

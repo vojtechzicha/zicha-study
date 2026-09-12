@@ -77,7 +77,7 @@ export function TasksAllDialog({ tasks, onClose, onEdit, onChange, highlightedId
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle className="text-lg font-bold text-gray-900">
+          <DialogTitle className="text-lg font-bold text-foreground">
             Všechny úkoly
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -101,7 +101,7 @@ export function TasksAllDialog({ tasks, onClose, onEdit, onChange, highlightedId
                       <h3 className={cn("text-sm font-semibold uppercase tracking-wide", config.accentClass)}>
                         {config.label}
                       </h3>
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         {items.length}
                       </span>
                     </div>
@@ -111,7 +111,7 @@ export function TasksAllDialog({ tasks, onClose, onEdit, onChange, highlightedId
                         variant="ghost"
                         size="sm"
                         onClick={() => setCollapsedCompleted(!collapsedCompleted)}
-                        className="h-7 text-xs text-gray-600"
+                        className="h-7 text-xs text-muted-foreground"
                       >
                         <ChevronDown
                           className={cn(

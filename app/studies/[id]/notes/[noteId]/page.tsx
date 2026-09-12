@@ -9,6 +9,7 @@ import { fetchMarkdownNote } from "@/lib/actions/markdown-notes"
 import { fetchStudy } from "@/lib/actions/studies"
 import { NOTE_TYPES } from "@/lib/constants"
 import type { MarkdownNoteEditorData } from "@/lib/types/markdown-notes"
+import { TitlePageFooter } from "@/components/title-page-footer"
 
 export default function MarkdownNoteEditorPage({
   params,
@@ -56,18 +57,21 @@ export default function MarkdownNoteEditorPage({
   if (status === "loading" || loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600 dark:text-primary-400" />
       </div>
     )
   }
 
   if (error || !note) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 text-gray-600">
-        <p>{error ?? "Zápis nenalezen"}</p>
-        <button className="text-primary-600 underline" onClick={() => router.push(`/studies/${id}`)}>
-          Zpět na studium
-        </button>
+      <div className="flex min-h-screen flex-col">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-muted-foreground">
+          <p>{error ?? "Zápis nenalezen"}</p>
+          <button className="text-primary-600 underline dark:text-primary-400" onClick={() => router.push(`/studies/${id}`)}>
+            Zpět na studium
+          </button>
+        </div>
+        <TitlePageFooter />
       </div>
     )
   }
