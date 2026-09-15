@@ -42,7 +42,9 @@ import {
   getCzechPointsWord,
   getCzechCreditsWord,
   getCzechSubjectsWord,
-  getCreditsAndHoursDisplay
+  getCreditsAndHoursDisplay,
+  getCompletionDateUpdates,
+  getTodayDateString
 } from "@/lib/status-utils"
 import { getSubjectTypeConfig } from "@/lib/constants"
 import { formatDateCzech } from "@/lib/utils"
@@ -67,6 +69,8 @@ interface Subject {
   credit_completed: boolean
   planned?: boolean
   final_date?: string
+  credit_date?: string | null
+  exam_date?: string | null
   created_at: string
   is_repeat?: boolean
   repeats_subject_id?: string
@@ -183,7 +187,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
 
     // If changing to completed, we need to set a final_date and mark credit/exam as completed
     if (newState === "completed") {
-      updates.final_date = new Date().toISOString().split('T')[0] // Today's date
+      updates.final_date = getTodayDateString() // Today's date
 
       // Automatically mark credit and exam as completed if required by completion type
       if (requiresCredit(subject.completion_type)) {
@@ -200,6 +204,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       updates.exam_completed = false
       updates.credit_completed = false
     }
+
+    // Closing a subject also ticks its credit/exam, so stamp those dates with
+    // the closing date; reopening clears them again.
+    Object.assign(updates, getCompletionDateUpdates(updates, subject, updates.final_date))
 
     const { error } = await updateSubject(subjectId, updates)
 

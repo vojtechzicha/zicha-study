@@ -75,7 +75,7 @@ lib/
 MongoDB Atlas collections (auth enforced by NextAuth middleware):
 
 - **studies**: User's university programs (_id, user_id, name, type, years, status, is_public, public_slug, logo_data, logo_mime_type)
-- **subjects**: Courses within studies (_id, study_id, name, semester, credits, subject_type, completion_type, grade, final_date, hours)
+- **subjects**: Courses within studies (_id, study_id, name, semester, credits, subject_type, completion_type, grade, final_date, credit_date, exam_date, hours)
 - **final_exams**: State final exams (_id, study_id, name, shortcut, grade, exam_date)
 - **materials**: Study materials from OneDrive (_id, study_id, name, onedrive_id, is_public, public_slug)
 - **subject_materials**: Subject-specific materials (_id, study_id, subject_id, name, onedrive_id)

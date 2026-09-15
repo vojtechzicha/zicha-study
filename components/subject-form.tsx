@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { SubjectState, isFieldVisibleForState, getSubjectStateText, requiresCredit, requiresExam } from "@/lib/status-utils"
+import { SubjectState, isFieldVisibleForState, getSubjectStateText, requiresCredit, requiresExam, getCompletionDateUpdates, getTodayDateString } from "@/lib/status-utils"
 import { DepartmentAutocomplete } from "@/components/department-autocomplete"
 import { useDepartments } from "@/hooks/use-departments"
 
@@ -98,13 +98,17 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
       insertData.exam_completed = requiresExam(formData.completion_type)
       // Set final date to today if not provided
       if (!insertData.final_date) {
-        insertData.final_date = new Date().toISOString().split('T')[0]
+        insertData.final_date = getTodayDateString()
       }
     } else {
       // Otherwise, start with both uncompleted
       insertData.credit_completed = false
       insertData.exam_completed = false
     }
+
+    // A subject created as completed carries its closing date as the credit /
+    // exam completion date; otherwise both dates start empty.
+    Object.assign(insertData, getCompletionDateUpdates(insertData, null, insertData.final_date))
 
     const result = await createSubject(insertData)
 

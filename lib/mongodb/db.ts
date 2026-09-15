@@ -1,6 +1,7 @@
 import { getDb } from "./connection"
 import { type Filter, Binary } from "mongodb"
 import crypto from "crypto"
+import { FAILING_GRADE_PATTERN } from "@/lib/status-utils"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -106,8 +107,47 @@ export async function getStudiesWithPublicSlug() {
 // ─── Subjects ───────────────────────────────────────────────────────────────
 
 export async function getSubjectsByStudyId(studyId: string, sort?: Record<string, 1 | -1>) {
+  await backfillSubjectCompletionDates()
+
   const c = await col("subjects")
   return c.find({ study_id: studyId }).sort(sort || { semester: 1 }).toArray()
+}
+
+/**
+ * One-time, idempotent backfill of credit_date / exam_date for subjects that
+ * were closed before those fields existed.
+ *
+ * Closing a subject implicitly ticks its credit/exam, so a ticked completion
+ * without a date inherits the subject's closing date (final_date). Failed
+ * subjects are skipped - a failing grade means the completion was never really
+ * earned, so no date is invented for it. Subjects that are still running, that
+ * have no final_date, or whose completion is not ticked keep their empty dates
+ * and can be filled in by hand. Guarded by
+ * app_settings.subject_completion_dates_backfilled.
+ */
+export async function backfillSubjectCompletionDates() {
+  const settings = await getAppSettings()
+  if (settings?.subject_completion_dates_backfilled) return
+
+  const c = await col("subjects")
+  const closedAndPassed = {
+    completed: true,
+    final_date: { $type: "string", $ne: "" },
+    // `$not` also matches subjects without a grade, which is what we want.
+    grade: { $not: FAILING_GRADE_PATTERN },
+  }
+
+  for (const [flag, dateField] of [
+    ["credit_completed", "credit_date"],
+    ["exam_completed", "exam_date"],
+  ] as const) {
+    await c.updateMany(
+      { ...closedAndPassed, [flag]: true, [dateField]: null },
+      [{ $set: { [dateField]: "$final_date" } }]
+    )
+  }
+
+  await upsertAppSettings({ subject_completion_dates_backfilled: true })
 }
 
 export async function getSubjectById(id: string) {

@@ -33,6 +33,8 @@ export interface Subject {
   credit_completed: boolean
   planned?: boolean
   final_date?: string
+  credit_date?: string | null
+  exam_date?: string | null
   subject_type: string
   hours?: number
   grade?: string
@@ -90,10 +92,11 @@ export const getStatusPriority = (status: StudyStatus): number => {
 export type SubjectState = "planned" | "active" | "completed" | "failed"
 
 // Check if a subject is failed (grade starts with F, 4, or -)
+export const FAILING_GRADE_PATTERN = /^[F4-]/i
+
 export const isSubjectFailed = (subject: Pick<Subject, 'completed' | 'grade'>): boolean => {
   if (!subject.completed || !subject.grade) return false
-  const g = subject.grade.toUpperCase()
-  return g.startsWith('F') || g.startsWith('4') || g.startsWith('-')
+  return FAILING_GRADE_PATTERN.test(subject.grade)
 }
 
 // Get grade badge configuration.
@@ -336,6 +339,56 @@ export const requiresCredit = (completionType: string): boolean => {
 export const requiresExam = (completionType: string): boolean => {
   if (completionType === "Ostatní") return false
   return completionType.includes("Zkouška") || completionType.includes("Zk")
+}
+
+// Completion dates (credit_date / exam_date)
+
+/** Today as a date-only string (YYYY-MM-DD), the format all subject dates use. */
+export const getTodayDateString = (): string => new Date().toISOString().split("T")[0]
+
+export interface SubjectCompletionFlags {
+  credit_completed?: boolean
+  exam_completed?: boolean
+}
+
+export interface SubjectCompletionDates {
+  credit_date?: string | null
+  exam_date?: string | null
+}
+
+/**
+ * Derives the `credit_date` / `exam_date` part of a subject update from the
+ * completion flags the update already carries.
+ *
+ * - a flag turning true stamps the date, unless one is already stored
+ * - a flag turning false clears the date
+ * - a flag the update does not touch leaves its date alone
+ *
+ * `date` is the moment the completion happened - the date picked in the
+ * completion dialog, or the subject's closing date when closing a subject
+ * implicitly ticks credit/exam. It defaults to today.
+ */
+export const getCompletionDateUpdates = (
+  updates: SubjectCompletionFlags,
+  current?: SubjectCompletionDates | null,
+  date?: string | null
+): SubjectCompletionDates => {
+  const stamp = date || getTodayDateString()
+  const dates: SubjectCompletionDates = {}
+
+  if (updates.credit_completed === true) {
+    if (!current?.credit_date) dates.credit_date = stamp
+  } else if (updates.credit_completed === false) {
+    dates.credit_date = null
+  }
+
+  if (updates.exam_completed === true) {
+    if (!current?.exam_date) dates.exam_date = stamp
+  } else if (updates.exam_completed === false) {
+    dates.exam_date = null
+  }
+
+  return dates
 }
 
 // Get completion type badge configuration.

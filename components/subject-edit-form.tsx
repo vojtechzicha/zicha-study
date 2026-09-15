@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { SubjectState, isFieldVisibleForState, getSubjectStateText, getSubjectStatus, requiresCredit, requiresExam } from "@/lib/status-utils"
+import { SubjectState, isFieldVisibleForState, getSubjectStateText, getSubjectStatus, requiresCredit, requiresExam, getCompletionDateUpdates, getTodayDateString } from "@/lib/status-utils"
 import { DepartmentAutocomplete } from "@/components/department-autocomplete"
 import { useDepartments } from "@/hooks/use-departments"
 import { ExamOptionsEditor, type ExamOptionData } from "@/components/exam-options-editor"
@@ -49,6 +49,8 @@ interface Subject {
   credit_completed: boolean
   planned?: boolean
   final_date?: string
+  credit_date?: string | null
+  exam_date?: string | null
   created_at: string
   is_repeat?: boolean
   repeats_subject_id?: string
@@ -81,6 +83,8 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     final_date: subject.final_date || "",
     credit_completed: subject.credit_completed,
     exam_completed: subject.exam_completed,
+    credit_date: subject.credit_date || "",
+    exam_date: subject.exam_date || "",
     is_repeat: subject.is_repeat || false,
     repeats_subject_id: subject.repeats_subject_id || "",
   })
@@ -162,7 +166,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       }
       // Set final date to today if not provided
       if (!updateData.final_date) {
-        updateData.final_date = new Date().toISOString().split('T')[0]
+        updateData.final_date = getTodayDateString()
       }
     } else if (subjectState === "active") {
       // For active subjects, preserve the checkbox states
@@ -172,6 +176,16 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       // For planned subjects, clear completion fields
       updateData.exam_completed = false
       updateData.credit_completed = false
+    }
+
+    // Stamp completion dates for anything newly ticked (a closed subject uses
+    // its closing date), then let the dates edited in the form win.
+    Object.assign(updateData, getCompletionDateUpdates(updateData, subject, updateData.final_date))
+    if (updateData.credit_completed && formData.credit_date) {
+      updateData.credit_date = formData.credit_date
+    }
+    if (updateData.exam_completed && formData.exam_date) {
+      updateData.exam_date = formData.exam_date
     }
 
     const result = await updateSubject(subject.id, updateData)
@@ -480,43 +494,81 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   <Label className="text-sm font-medium">Průběžné plnění</Label>
                   <div className="space-y-3">
                     {requiresCredit(formData.completion_type) && (
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="credit_completed"
-                          checked={formData.credit_completed}
-                          onCheckedChange={(checked) => 
-                            setFormData({ ...formData, credit_completed: checked as boolean })
-                          }
-                          className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          style={formData.credit_completed ? {
-                            backgroundColor: 'hsl(var(--primary-600))',
-                            borderColor: 'hsl(var(--primary-600))',
-                            color: 'white'
-                          } : {}}
-                        />
-                        <Label htmlFor="credit_completed" className="cursor-pointer">
-                          Zápočet splněn
-                        </Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="credit_completed"
+                            checked={formData.credit_completed}
+                            onCheckedChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                credit_completed: checked as boolean,
+                                credit_date: checked ? (formData.credit_date || getTodayDateString()) : formData.credit_date,
+                              })
+                            }
+                            className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            style={formData.credit_completed ? {
+                              backgroundColor: 'hsl(var(--primary-600))',
+                              borderColor: 'hsl(var(--primary-600))',
+                              color: 'white'
+                            } : {}}
+                          />
+                          <Label htmlFor="credit_completed" className="cursor-pointer">
+                            Zápočet splněn
+                          </Label>
+                        </div>
+                        {formData.credit_completed && (
+                          <div className="space-y-1 pl-6">
+                            <Label htmlFor="credit_date" className="text-xs text-muted-foreground">
+                              Datum splnění zápočtu
+                            </Label>
+                            <Input
+                              id="credit_date"
+                              type="date"
+                              value={formData.credit_date}
+                              onChange={(e) => setFormData({ ...formData, credit_date: e.target.value })}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                     {requiresExam(formData.completion_type) && (
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="exam_completed"
-                          checked={formData.exam_completed}
-                          onCheckedChange={(checked) => 
-                            setFormData({ ...formData, exam_completed: checked as boolean })
-                          }
-                          className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          style={formData.exam_completed ? {
-                            backgroundColor: 'hsl(var(--primary-600))',
-                            borderColor: 'hsl(var(--primary-600))',
-                            color: 'white'
-                          } : {}}
-                        />
-                        <Label htmlFor="exam_completed" className="cursor-pointer">
-                          Zkouška splněna
-                        </Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="exam_completed"
+                            checked={formData.exam_completed}
+                            onCheckedChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                exam_completed: checked as boolean,
+                                exam_date: checked ? (formData.exam_date || getTodayDateString()) : formData.exam_date,
+                              })
+                            }
+                            className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            style={formData.exam_completed ? {
+                              backgroundColor: 'hsl(var(--primary-600))',
+                              borderColor: 'hsl(var(--primary-600))',
+                              color: 'white'
+                            } : {}}
+                          />
+                          <Label htmlFor="exam_completed" className="cursor-pointer">
+                            Zkouška splněna
+                          </Label>
+                        </div>
+                        {formData.exam_completed && (
+                          <div className="space-y-1 pl-6">
+                            <Label htmlFor="exam_date" className="text-xs text-muted-foreground">
+                              Datum splnění zkoušky
+                            </Label>
+                            <Input
+                              id="exam_date"
+                              type="date"
+                              value={formData.exam_date}
+                              onChange={(e) => setFormData({ ...formData, exam_date: e.target.value })}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

@@ -67,6 +67,8 @@ interface Subject {
   credit_completed: boolean
   planned?: boolean
   final_date?: string
+  credit_date?: string | null
+  exam_date?: string | null
   created_at: string
   is_repeat?: boolean
   repeats_subject_id?: string

@@ -9,7 +9,13 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { isFieldVisibleForState, requiresCredit, requiresExam } from "@/lib/status-utils"
+import {
+  getCompletionDateUpdates,
+  getTodayDateString,
+  isFieldVisibleForState,
+  requiresCredit,
+  requiresExam,
+} from "@/lib/status-utils"
 
 interface Subject {
   id: string
@@ -18,6 +24,8 @@ interface Subject {
   points?: number
   grade?: string
   final_date?: string
+  credit_date?: string | null
+  exam_date?: string | null
   completed: boolean
   exam_completed: boolean
   credit_completed: boolean
@@ -39,10 +47,14 @@ export function SubjectCompletionModal({
   onClose, 
   onSuccess 
 }: SubjectCompletionModalProps) {
+  const isCredit = completionType === "credit"
+  const dateField = isCredit ? "credit_date" : "exam_date"
+
   const [formData, setFormData] = useState({
     points: subject.points?.toString() || "",
     grade: subject.grade || "",
     final_date: subject.final_date || "",
+    completion_date: subject[dateField] || getTodayDateString(),
     markAsCompleted: false,
   })
   const [loading, setLoading] = useState(false)
@@ -51,8 +63,8 @@ export function SubjectCompletionModal({
   // Determine current state based on subject properties
   const currentState = subject.planned ? "planned" : subject.completed ? "completed" : "active"
 
-  const isCredit = completionType === "credit"
   const title = isCredit ? "Zápočet splněn" : "Zkouška splněna"
+  const dateLabel = isCredit ? "Datum splnění zápočtu *" : "Datum splnění zkoušky *"
   const fieldName = isCredit ? "credit_completed" : "exam_completed"
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,8 +88,8 @@ export function SubjectCompletionModal({
     if (formData.markAsCompleted) {
       updates.completed = true
       updates.planned = false
-      updates.final_date = formData.final_date || new Date().toISOString().split('T')[0]
-      
+      updates.final_date = formData.final_date || getTodayDateString()
+
       // Automatically mark credit and exam as completed if required
       if (requiresCredit(subject.completion_type)) {
         updates.credit_completed = true
@@ -86,6 +98,12 @@ export function SubjectCompletionModal({
         updates.exam_completed = true
       }
     }
+
+    // Stamp the completion dates: anything ticked implicitly by closing the
+    // subject gets the closing date, the completion ticked here gets the date
+    // entered in this dialog.
+    Object.assign(updates, getCompletionDateUpdates(updates, subject, updates.final_date))
+    updates[dateField] = formData.completion_date || getTodayDateString()
 
     const result = await updateSubject(subject.id, updates)
 
@@ -148,6 +166,18 @@ export function SubjectCompletionModal({
             </div>
           )}
 
+          {/* Completion date */}
+          <div className="space-y-2">
+            <Label htmlFor="completion_date">{dateLabel}</Label>
+            <Input
+              id="completion_date"
+              type="date"
+              value={formData.completion_date}
+              onChange={(e) => setFormData({ ...formData, completion_date: e.target.value })}
+              required
+            />
+          </div>
+
           {/* Mark as Completed Option */}
           <div className="flex items-center space-x-2 p-3 border rounded-lg bg-primary-50 dark:bg-primary-950">
             <Checkbox
@@ -157,7 +187,7 @@ export function SubjectCompletionModal({
                 setFormData({ 
                   ...formData, 
                   markAsCompleted: checked as boolean,
-                  final_date: checked ? (formData.final_date || new Date().toISOString().split('T')[0]) : formData.final_date
+                  final_date: checked ? (formData.final_date || formData.completion_date || getTodayDateString()) : formData.final_date
                 })
               }
               className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -192,7 +222,7 @@ export function SubjectCompletionModal({
             </Button>
             <Button
               type="submit"
-              disabled={loading || (formData.markAsCompleted && !formData.final_date)}
+              disabled={loading || !formData.completion_date || (formData.markAsCompleted && !formData.final_date)}
               className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               <Save className="mr-2 h-4 w-4" />
