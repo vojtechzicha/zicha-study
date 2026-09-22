@@ -297,7 +297,7 @@ export function AddStudyNoteDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
             {showFilePicker ? "Vyberte studijní zápis" : "Přidat studijní zápis"}
@@ -314,7 +314,7 @@ export function AddStudyNoteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="min-w-0 space-y-4 py-4">
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
