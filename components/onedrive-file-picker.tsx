@@ -177,7 +177,7 @@ export function OneDriveFilePicker({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -186,8 +186,8 @@ export function OneDriveFilePicker({
       )}
 
       {/* Search Bar */}
-      <div className="flex gap-2">
-        <div className="flex-1 relative">
+      <div className="flex min-w-0 gap-2">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
           <Input
             placeholder="Hledat soubory..."
@@ -197,11 +197,11 @@ export function OneDriveFilePicker({
             className="pl-10"
           />
         </div>
-        <Button onClick={handleSearch} disabled={loading || !searchQuery.trim()}>
+        <Button onClick={handleSearch} disabled={loading || !searchQuery.trim()} className="flex-shrink-0">
           Hledat
         </Button>
         {isSearching && (
-          <Button variant="outline" onClick={handleClearSearch}>
+          <Button variant="outline" onClick={handleClearSearch} className="flex-shrink-0">
             <X className="h-4 w-4" />
           </Button>
         )}
@@ -209,17 +209,18 @@ export function OneDriveFilePicker({
 
       {/* Breadcrumb Navigation */}
       {!isSearching && (
-        <div className="flex items-center gap-1 text-sm text-muted-foreground overflow-x-auto">
+        <div className="flex min-w-0 flex-wrap items-center gap-1 text-sm text-muted-foreground">
           {pathHistory.map((crumb, index) => (
-            <div key={index} className="flex items-center gap-1">
+            <div key={index} className="flex min-w-0 items-center gap-1">
               <button
                 onClick={() => handleBreadcrumbClick(index)}
-                className="hover:text-primary-600 dark:hover:text-primary-400 whitespace-nowrap"
+                title={crumb.name}
+                className="max-w-[20rem] truncate text-left hover:text-primary-600 dark:hover:text-primary-400"
               >
                 {crumb.name}
               </button>
               {index < pathHistory.length - 1 && (
-                <ChevronRight className="h-3 w-3 text-muted-foreground/70" />
+                <ChevronRight className="h-3 w-3 flex-shrink-0 text-muted-foreground/70" />
               )}
             </div>
           ))}
@@ -227,7 +228,7 @@ export function OneDriveFilePicker({
       )}
 
       {/* File/Folder List */}
-      <div className="max-h-96 overflow-y-auto space-y-1">
+      <div className="max-h-96 min-w-0 space-y-1 overflow-y-auto pr-1">
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
@@ -242,7 +243,7 @@ export function OneDriveFilePicker({
           availableFiles.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 p-3 hover:bg-primary-50 dark:hover:bg-primary-900/40 cursor-pointer rounded border"
+              className="flex min-w-0 cursor-pointer items-center gap-3 rounded border p-3 hover:bg-primary-50 dark:hover:bg-primary-900/40"
               onClick={() => handleItemClick(item)}
             >
               <div className="flex-shrink-0">
@@ -273,7 +274,7 @@ export function OneDriveFilePicker({
                 </p>
               </div>
               {item.folder && !allowFolders && (
-                <ChevronRight className="h-4 w-4 text-muted-foreground/70" />
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground/70" />
               )}
             </div>
           ))
