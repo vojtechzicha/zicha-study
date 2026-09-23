@@ -59,9 +59,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-muted-foreground">
-              Došlo k neočekávané chybě. Zkuste akci opakovat nebo obnovit stránku.
-            </p>
             {process.env.NODE_ENV === "development" && this.state.error && (
               <pre className="text-left text-xs bg-muted p-3 rounded-lg overflow-auto max-h-32 text-red-600 dark:text-red-400">
                 {this.state.error.message}

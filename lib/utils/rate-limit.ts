@@ -86,7 +86,7 @@ function cleanupExpiredEntries(): void {
 export function rateLimitResponse(resetTime: number): NextResponse {
   const retryAfter = Math.ceil((resetTime - Date.now()) / 1000)
   return NextResponse.json(
-    { error: 'Too many requests. Please try again later.' },
+    { error: 'Příliš mnoho požadavků. Chvíli počkejte.' },
     {
       status: 429,
       headers: {

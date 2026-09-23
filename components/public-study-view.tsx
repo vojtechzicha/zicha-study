@@ -98,7 +98,7 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground/80">Doba studia</span>
                   <span className="text-sm text-muted-foreground">
-                    {study.start_year} - {study.end_year || 'probíhá'}
+                    {study.start_year}–{study.end_year || 'probíhá'}
                   </span>
                 </div>
                 <div className="relative">

@@ -5,7 +5,7 @@ import { checkSlugAvailability, updateStudy } from "@/lib/actions/studies"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { getShareUrl } from "@/lib/utils/share-url"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -105,7 +105,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
     try {
       if (isPublic && (!slug || slugAvailable === false)) {
-        throw new Error("Zadejte platný a dostupný slug")
+        throw new Error("Zadejte platnou a volnou adresu.")
       }
 
       await updateStudy(study.id, {
@@ -119,7 +119,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
+      setError(err instanceof Error ? err.message : "Nepodařilo se uložit nastavení.")
     } finally {
       setLoading(false)
     }
@@ -132,12 +132,11 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
         <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={onClose} aria-label="Zpět">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
                 <CardTitle className="text-2xl font-bold text-foreground">Nastavení sdílení</CardTitle>
-                <CardDescription className="text-muted-foreground">Spravujte veřejné sdílení vašeho studia</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -152,8 +151,8 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
               {/* Public Toggle */}
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
-                  <Label className="text-base font-medium">Veřejné sdílení</Label>
-                  <p className="text-sm text-muted-foreground">Umožnit ostatním zobrazit vaše studium bez přihlášení</p>
+                  <Label className="text-base font-medium">Veřejně dostupné</Label>
+                  <p className="text-sm text-muted-foreground">Studium uvidí kdokoli s odkazem, bez přihlášení.</p>
                 </div>
                 <Switch checked={isPublic} onCheckedChange={setIsPublic} />
               </div>
@@ -162,7 +161,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 <>
                   {/* Slug Input */}
                   <div className="space-y-2">
-                    <Label htmlFor="slug">URL adresa *</Label>
+                    <Label htmlFor="slug">Adresa *</Label>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">{window.location.origin}/</span>
                       <Input
@@ -179,12 +178,12 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                     {slugAvailable === false && (
                       <p className="text-sm text-red-600 dark:text-red-400">
                         {RESERVED_ROUTES.includes(slug.toLowerCase()) 
-                          ? "Tato URL adresa je rezervována pro systémové funkce" 
-                          : "Tato URL adresa již není dostupná"}
+                          ? "Tuto adresu nelze použít"
+                          : "Adresa je už obsazená"}
                       </p>
                     )}
-                    {slugAvailable === true && slug && <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>}
-                    <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+                    {slugAvailable === true && slug && <p className="text-sm text-green-600 dark:text-green-400">Adresa je volná</p>}
+                    <p className="text-xs text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
                   </div>
 
                   {/* Description */}
@@ -194,7 +193,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Krátký popis vašeho studia pro veřejnost..."
+                      placeholder="Krátký popis pro návštěvníky…"
                       rows={3}
                     />
                   </div>
@@ -202,14 +201,14 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                   {/* URL Preview */}
                   {slug && slugAvailable && (
                     <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
-                      <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná URL adresa:</Label>
+                      <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná adresa</Label>
                       <div className="flex items-center gap-2 mt-2">
                         <code className="flex-1 p-2 bg-card rounded border text-sm">{publicUrl}</code>
-                        <Button type="button" variant="outline" size="sm" onClick={copyUrl}>
+                        <Button type="button" variant="outline" size="sm" onClick={copyUrl} aria-label={copied ? "Zkopírováno" : "Kopírovat odkaz"}>
                           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         </Button>
                         <Button type="button" variant="outline" size="sm" asChild>
-                          <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                          <a href={publicUrl} target="_blank" rel="noopener noreferrer" aria-label="Otevřít veřejnou stránku">
                             <ExternalLink className="h-4 w-4" />
                           </a>
                         </Button>
@@ -220,8 +219,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                   {/* Privacy Notice */}
                   <Alert>
                     <AlertDescription>
-                      <strong>Upozornění:</strong> Veřejně sdílené studium bude dostupné všem bez přihlášení. Nebudou
-                      zobrazeny žádné osobní údaje, pouze název studia, předměty a statistiky.
+                      Veřejná stránka ukazuje předměty, výsledky a publikované materiály a zápisy. Osobní údaje na ní nejsou.
                     </AlertDescription>
                   </Alert>
                 </>
@@ -231,7 +229,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
               <div className="space-y-4 pt-6 border-t">
                 <div>
                   <h3 className="text-lg font-medium text-foreground mb-2">Materiály</h3>
-                  <p className="text-sm text-muted-foreground">Nastavte výchozí složku pro ukládání materiálů ze studia</p>
                 </div>
                 
                 <div className="space-y-2">
@@ -251,7 +248,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Tato složka bude výchozí při přidávání nových materiálů ke studiu
+                    Výběr souboru z OneDrive se otevře v této složce.
                   </p>
                 </div>
               </div>
@@ -262,7 +259,7 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                   disabled={loading || (isPublic && slugAvailable === false)}
                   className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
-                  {loading ? "Ukládání..." : "Uložit nastavení"}
+                  {loading ? "Ukládání…" : "Uložit"}
                 </Button>
                 <Button type="button" variant="outline" onClick={onClose}>
                   Zrušit

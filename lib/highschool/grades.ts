@@ -86,7 +86,7 @@ export interface HighSchoolPeriod {
   half: 1 | 2
   /** `${year}-${half}` */
   key: string
-  /** e.g. "1. ročník 1. pol." */
+  /** e.g. "1. ročník, 1. pololetí" */
   label: string
   /** e.g. "1/1" */
   shortLabel: string
@@ -123,7 +123,7 @@ export function derivePeriods(
         year,
         half,
         key: periodKey(year, half),
-        label: `${year}. ročník ${half}. pol.`,
+        label: `${year}. ročník, ${half}. pololetí`,
         shortLabel: `${year}/${half}`,
       })
     }

@@ -67,7 +67,7 @@ export function NoteToc({ editor, onNavigate }: NoteTocProps) {
         Obsah
       </div>
       {headings.length === 0 ? (
-        <p className="px-2 text-xs text-muted-foreground/70">Přidejte nadpisy pro automatický obsah.</p>
+        <p className="px-2 text-xs text-muted-foreground/70">Obsah se sestaví z nadpisů.</p>
       ) : (
         <ul className="space-y-0.5">
           {headings.map((h, i) => (

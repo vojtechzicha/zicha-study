@@ -11,7 +11,7 @@ const EMPTY_DOC: NoteContentJSON = { type: "doc", content: [{ type: "paragraph" 
 async function requireUser() {
   const session = await auth()
   if (!session) {
-    throw new Error("Neautorizováno")
+    throw new Error("Nejste přihlášeni.")
   }
   return {
     email: session.user?.email ?? null,
@@ -46,7 +46,7 @@ export async function createMarkdownNote(input: CreateMarkdownNoteInput) {
     })
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
-    return { data: null, error: { message: err?.message || "Unknown error" } }
+    return { data: null, error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -54,7 +54,7 @@ export async function createMarkdownNote(input: CreateMarkdownNoteInput) {
 export async function fetchMarkdownNote(noteId: string) {
   await requireUser()
   const doc = await db.getStudyNoteById(noteId)
-  if (!doc) return { data: null, error: { message: "Zápis nenalezen" } }
+  if (!doc) return { data: null, error: { message: "Zápis nebyl nalezen." } }
   return { data: db.normalizeId(doc), error: null }
 }
 
@@ -66,7 +66,7 @@ export async function saveMarkdownContent(noteId: string, contentJson: NoteConte
     return { error: null, savedAt: new Date().toISOString() }
   } catch (err: any) {
     console.error("saveMarkdownContent failed:", err)
-    return { error: { message: err?.message || "Unknown error" }, savedAt: null }
+    return { error: { message: err?.message || "Neznámá chyba." }, savedAt: null }
   }
 }
 
@@ -79,7 +79,7 @@ export async function commitMarkdownVersion(noteId: string, contentJson: NoteCon
     await db.createMarkdownNoteVersion(noteId, contentJson, user, MARKDOWN_NOTE_MAX_VERSIONS)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -110,6 +110,6 @@ export async function uploadMarkdownImage(
     const id = await db.insertMarkdownNoteMedia(noteId, buffer, mimeType, originalName)
     return { url: `/api/markdown-notes/${noteId}/media/${id}`, error: null }
   } catch (err: any) {
-    return { url: null, error: { message: err?.message || "Unknown error" } }
+    return { url: null, error: { message: err?.message || "Neznámá chyba." } }
   }
 }

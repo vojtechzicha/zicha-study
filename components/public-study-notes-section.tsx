@@ -85,7 +85,7 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
             const exam = finalExamsMap.get(link.final_exam_id)
             return exam ? {
               id: exam.id,
-              name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
+              name: `${exam.shortcut ? `${exam.shortcut} – ` : ""}${exam.name}`,
               study_id: exam.study_id,
               is_primary: link.is_primary,
               is_final_exam: true
@@ -100,7 +100,7 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
 
         setStudyNotes(transformedNotes)
       } catch {
-        setError("Nepodařilo se načíst studijní zápisy")
+        setError("Nepodařilo se načíst zápisy.")
       } finally {
         setLoading(false)
       }
@@ -121,9 +121,6 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
       <CardHeader>
         <div>
           <CardTitle className="text-xl font-bold text-foreground">Studijní zápisy</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Veřejně dostupné studijní zápisy
-          </p>
         </div>
       </CardHeader>
       <CardContent>

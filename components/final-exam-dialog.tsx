@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -74,7 +73,7 @@ export function FinalExamDialog({ studyId, exam, terminology, onClose, onSave }:
       onSave()
     } catch (err) {
       console.error("Error saving final exam:", err)
-      setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
+      setError(err instanceof Error ? err.message : "Nepodařilo se uložit předmět.")
     } finally {
       setLoading(false)
     }
@@ -82,15 +81,12 @@ export function FinalExamDialog({ studyId, exam, terminology, onClose, onSave }:
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
               {exam ? t.finalExamDialogEditTitle : t.finalExamDialogAddTitle}
             </DialogTitle>
-            <DialogDescription>
-              {exam ? t.finalExamDialogEditDescription : t.finalExamDialogAddDescription}
-            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -184,7 +180,7 @@ export function FinalExamDialog({ studyId, exam, terminology, onClose, onSave }:
               disabled={loading}
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
             >
-              {loading ? "Ukládání..." : exam ? "Uložit změny" : "Přidat předmět"}
+              {loading ? "Ukládání…" : exam ? "Uložit změny" : "Přidat předmět"}
             </Button>
           </DialogFooter>
         </form>

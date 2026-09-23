@@ -12,6 +12,7 @@ import { TaskStateChips } from "@/components/task-state-chips"
 import { StudyLogo } from "@/components/study-logo"
 import type { UpcomingExamTerm } from "@/components/upcoming-exam-terms"
 import { getTaskState, todayLocalIso, type Task, type TaskState } from "@/lib/constants"
+import { czPlural } from "@/lib/utils/task-format"
 import { cn } from "@/lib/utils"
 
 const POPOVER_VISIBLE_NON_OVERDUE = 5
@@ -180,7 +181,7 @@ export function GlobalTasksButton() {
             <ListChecks className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             <h3 className="text-sm font-semibold text-foreground">Úkoly</h3>
             {activeCount > 0 && (
-              <span className="ml-auto text-xs text-muted-foreground">{activeCount} otevřených</span>
+              <span className="ml-auto text-xs text-muted-foreground">{activeCount} {czPlural(activeCount, "otevřený", "otevřené", "otevřených")}</span>
             )}
           </div>
           {activeCount + counts.completed > 0 && (
@@ -201,7 +202,6 @@ export function GlobalTasksButton() {
             <div className="px-3 py-8 text-center">
               <ListChecks className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
               <p className="text-sm font-medium text-foreground/80">Žádné aktivní úkoly</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Užijte si chvilku klidu.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -260,7 +260,7 @@ export function GlobalTasksButton() {
                     </button>
                   ))}
                   {hiddenExamCount > 0 && (
-                    <p className="px-1 text-xs text-muted-foreground/70">+ {hiddenExamCount} dalších zkoušek</p>
+                    <p className="px-1 text-xs text-muted-foreground/70">+ {hiddenExamCount} {czPlural(hiddenExamCount, "další zkouška", "další zkoušky", "dalších zkoušek")}</p>
                   )}
                 </div>
               )}
@@ -270,7 +270,7 @@ export function GlobalTasksButton() {
 
         <div className="flex items-center justify-between gap-2 border-t border-border/60 px-3 py-2">
           <span className="text-xs text-muted-foreground">
-            {hiddenCount > 0 ? `+ ${hiddenCount} dalších` : " "}
+            {hiddenCount > 0 ? `+ ${hiddenCount} ${czPlural(hiddenCount, "další", "další", "dalších")}` : " "}
           </span>
           <Button
             variant="ghost"

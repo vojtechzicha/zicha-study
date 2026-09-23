@@ -135,7 +135,7 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
       {notes.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-          <p className="text-sm">Zatím nebyly přidány žádné studijní zápisy</p>
+          <p className="text-sm">Zatím žádné zápisy</p>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="mt-4">

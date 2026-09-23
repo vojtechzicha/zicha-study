@@ -7,10 +7,10 @@ import { auth } from "@/auth"
 export async function getOneDriveToken(): Promise<string> {
   const session = await auth()
   if (!session?.accessToken) {
-    throw new Error("No valid OneDrive access token available")
+    throw new Error("Chybí platný přístupový token k OneDrive.")
   }
   if (session.error === "RefreshAccessTokenError") {
-    throw new Error("Access token expired and refresh failed")
+    throw new Error("Přístupový token k OneDrive vypršel a nepodařilo se ho obnovit.")
   }
   return session.accessToken
 }

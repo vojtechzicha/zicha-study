@@ -321,7 +321,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         {showScrollHint && showRightIndicator && (
           <div className="absolute right-[116px] top-1/2 -translate-y-1/2 animate-pulse pointer-events-none z-40">
             <div className="bg-primary-600 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1 shadow-lg">
-              <span>Posunout pro více</span>
+              <span>Další sloupce</span>
               <ChevronRight className="h-4 w-4" />
             </div>
           </div>
@@ -387,7 +387,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           ) : semesterGroups.length === 0 ? (
             <TableRow>
               <TableCell colSpan={hasDetailInfo ? 10 : 9} className="text-center py-8 text-muted-foreground">
-                Žádné předměty nenalezeny.
+                Žádné předměty
               </TableCell>
             </TableRow>
           ) : (
@@ -469,7 +469,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                 </div>
                               </TooltipProvider>
                             ) : (
-                              "-"
+                              "–"
                             )}
                           </TableCell>
                         )}
@@ -487,7 +487,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           {(() => {
                             const display = getCreditsAndHoursDisplay(subject.credits, subject.hours)
 
-                            if (display.type === 'none') return "-"
+                            if (display.type === 'none') return "–"
 
                             if (display.type === 'both') {
                               return (
@@ -514,7 +514,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                             const hasGrade = isFieldVisibleForState("grade", subjectState) && subject.grade
                             const hasPoints = isFieldVisibleForState("points", subjectState) && subject.points
 
-                            if (!hasGrade && !hasPoints) return "-"
+                            if (!hasGrade && !hasPoints) return "–"
 
 
                             if (hasGrade && hasPoints) {
@@ -546,7 +546,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
 
                         {/* Final Date */}
                         <TableCell className="whitespace-nowrap">
-                          {isFieldVisibleForState("final_date", subjectState) ? (formatDateCzech(subject.final_date) || "-") : "-"}
+                          {isFieldVisibleForState("final_date", subjectState) ? (formatDateCzech(subject.final_date) || "–") : "–"}
                         </TableCell>
 
                         {/* Credit Completion */}
@@ -571,10 +571,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                 } : {}}
                               />
                             ) : (
-                              subject.credit_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : "-"
+                              subject.credit_completed ? (isSubjectFailed(subject) ? "–" : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : "–"
                             )
                           ) : (
-                            <span className="text-muted-foreground/70">N/A</span>
+                            <span className="text-muted-foreground/70" title="Nevyžaduje se">–</span>
                           )}
                         </TableCell>
 
@@ -600,10 +600,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                 } : {}}
                               />
                             ) : (
-                              subject.exam_completed ? (isSubjectFailed(subject) ? "-" : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : "-"
+                              subject.exam_completed ? (isSubjectFailed(subject) ? "–" : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : "–"
                             )
                           ) : (
-                            <span className="text-muted-foreground/70">N/A</span>
+                            <span className="text-muted-foreground/70" title="Nevyžaduje se">–</span>
                           )}
                         </TableCell>
 
@@ -641,7 +641,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Označit předmět jako dokončený?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Předmět &quot;{subject.name}&quot; bude označen jako dokončený s dnešním datem.
+                                      Předmětu „{subject.name}“ se jako datum ukončení nastaví dnešek.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -662,7 +662,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                               variant="ghost"
                               size="sm"
                               onClick={() => handleMaterialsClick(subject)}
-                              title="Materiály předmětu"
+                              title="Zápisy a materiály"
                             >
                               <FolderOpen className="h-4 w-4" />
                             </Button>

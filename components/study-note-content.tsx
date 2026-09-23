@@ -31,7 +31,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
       const response = await fetch(url)
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || "Failed to load study note")
+        throw new Error(data.error || "Nepodařilo se načíst zápis.")
       }
 
       const data = await response.json()
@@ -48,7 +48,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
       // Set the document title if available
       if (data.title) {
         setTitle(data.title)
-        document.title = `${data.title} - Studijní zápis`
+        document.title = `${data.title} – Studijní zápis`
       }
 
       // Process HTML to update image URLs
@@ -67,7 +67,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
 
       setContent(processedHtml)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      setError(err instanceof Error ? err.message : "Nepodařilo se načíst zápis.")
     } finally {
       setLoading(false)
     }
@@ -295,7 +295,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
       <Card className="min-h-[600px] flex items-center justify-center">
         <CardContent className="flex flex-col items-center gap-4 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Načítám studijní zápis...</p>
+          <p className="text-muted-foreground">Načítání zápisu…</p>
         </CardContent>
       </Card>
     )
@@ -314,7 +314,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Obsah studijního zápisu není k dispozici.</AlertDescription>
+        <AlertDescription>Obsah zápisu není k dispozici.</AlertDescription>
       </Alert>
     )
   }

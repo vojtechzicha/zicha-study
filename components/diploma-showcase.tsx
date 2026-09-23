@@ -342,6 +342,7 @@ function DiplomaViewer({
             <a
               href={study.diploma_url!}
               download
+              aria-label="Stáhnout"
               className="inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/5 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.2em] text-amber-100 transition-colors hover:border-amber-200/70 hover:bg-amber-200/10 hover:text-amber-50"
             >
               <Download className="h-3.5 w-3.5" />
@@ -356,13 +357,13 @@ function DiplomaViewer({
               <iframe
                 src={`${study.diploma_url}#toolbar=0&navpanes=0&view=FitH`}
                 className="h-[80vh] w-full max-w-5xl rounded-lg border border-amber-200/10 bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
-                title={`${term.diplomaNoun} ${study.name}`}
+                title={`${term.diplomaNoun} – ${study.name}`}
               />
             ) : isImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={study.diploma_url!}
-                alt={`${term.diplomaNoun} ${study.name}`}
+                alt={`${term.diplomaNoun} – ${study.name}`}
                 className="max-h-[80vh] w-auto max-w-full rounded-lg border border-amber-200/10 bg-white object-contain shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
               />
             ) : (

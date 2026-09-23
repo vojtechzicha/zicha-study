@@ -1,7 +1,7 @@
 import * as db from "@/lib/mongodb/db"
 import { PublicStudyView } from "@/components/public-study-view"
 import { notFound } from "next/navigation"
-import { RESERVED_ROUTES } from "@/lib/constants"
+import { RESERVED_ROUTES, getStudyFormLabel } from "@/lib/constants"
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps) {
   // Check if the slug conflicts with reserved routes
   if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
     return {
-      title: "Stránka nenalezena",
+      title: "Stránka nenalezena – Sledování studií",
     }
   }
 
@@ -46,12 +46,12 @@ export async function generateMetadata({ params }: PageProps) {
 
   if (!study) {
     return {
-      title: "Studium nenalezeno",
+      title: "Studium nenalezeno – Sledování studií",
     }
   }
 
   return {
-    title: `${study.name} - Studijní pokrok`,
-    description: study.public_description || `Sledování pokroku ve studiu ${study.name} (${study.type}, ${study.form})`,
+    title: `${study.name} – Sledování studií`,
+    description: study.public_description || `Předměty, výsledky a materiály ze studia ${study.name} (${study.type}, ${getStudyFormLabel(study.form)}).`,
   }
 }

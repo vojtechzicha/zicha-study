@@ -458,8 +458,8 @@ function runMode(
         periodName: req.periodName,
         subjectName: req.subjectName,
         reason: hasAnyTerm
-          ? "Žádný termín nespadá do období"
-          : "Žádné termíny",
+          ? "žádný termín nespadá do období"
+          : "žádné termíny",
       });
       continue;
     }
@@ -478,7 +478,7 @@ function runMode(
       requirementId: req.requirementId,
       periodName: req.periodName,
       subjectName: req.subjectName,
-      reason: "Termín nelze umístit bez konfliktu",
+      reason: "v konfliktu s jinými zkouškami",
     });
   }
 

@@ -38,7 +38,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
       const data = await fetchMaterials(studyId) as Material[]
       setMaterials(data || [])
     } catch {
-      setError("Nepodařilo se načíst materiály")
+      setError("Nepodařilo se načíst materiály.")
     } finally {
       setLoading(false)
     }
@@ -49,7 +49,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
   }, [loadMaterials])
 
   const handleDelete = async (materialId: string) => {
-    if (!confirm("Opravdu chcete odstranit tento materiál?")) {
+    if (!confirm("Odstranit tento materiál?")) {
       return
     }
 
@@ -59,7 +59,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
 
       setMaterials(materials.filter(m => m.id !== materialId))
     } catch {
-      setError("Nepodařilo se odstranit materiál")
+      setError("Nepodařilo se odstranit materiál.")
     }
   }
 
@@ -82,14 +82,12 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-xl font-bold text-foreground">Materiály</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Dokumenty a soubory ke studiu
-              </p>
             </div>
             <Button
               onClick={() => setShowAddDialog(true)}
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               size="sm"
+              aria-label="Přidat materiál"
             >
               <Plus className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Přidat materiál</span>
@@ -114,10 +112,10 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
             <div className="text-center py-12">
               <FolderOpen className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                Zatím nejsou přidány žádné materiály
+                Zatím žádné materiály
               </h3>
               <p className="text-muted-foreground mb-6">
-                Přidejte dokumenty z vašeho OneDrive
+                Materiály se přidávají ze souborů v OneDrive.
               </p>
               <Button
                 onClick={() => setShowAddDialog(true)}

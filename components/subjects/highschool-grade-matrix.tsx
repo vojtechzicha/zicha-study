@@ -63,7 +63,7 @@ export function HighSchoolGradeMatrix({ subjects, periods, renderActions }: High
   if (subjects.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        Zatím nebyly přidány žádné předměty.
+        Zatím žádné předměty
       </div>
     )
   }

@@ -52,7 +52,7 @@ export default function StudyStatisticsPage({ params }: { params: Promise<{ id: 
   // Update document title with study name
   useEffect(() => {
     if (study?.name) {
-      document.title = `Statistiky - ${study.name}`
+      document.title = `Statistiky – ${study.name}`
     }
   }, [study?.name])
 
@@ -93,7 +93,7 @@ export default function StudyStatisticsPage({ params }: { params: Promise<{ id: 
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-background">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">Studium nenalezeno</h1>
-          <p className="text-muted-foreground">Požadované studium neexistuje nebo k němu nemáte přístup.</p>
+          <p className="text-muted-foreground">Studium neexistuje nebo k němu nemáte přístup.</p>
         </div>
       </div>
     )

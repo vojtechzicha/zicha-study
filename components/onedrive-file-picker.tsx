@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip"
 import { FileText, AlertCircle, Search, X, Folder, ChevronRight, File } from "lucide-react"
 import { signIn } from "next-auth/react"
+import { czPlural } from "@/lib/utils/task-format"
 import type { OneDriveFile } from "@/lib/types/materials"
 
 interface OneDriveFilePickerProps {
@@ -70,7 +71,7 @@ export function OneDriveFilePicker({
           return
         }
         
-        throw new Error(errorData.error || "Nepodařilo se načíst soubory z OneDrive")
+        throw new Error(errorData.error || "Nepodařilo se načíst soubory z OneDrive.")
       }
 
       const { files } = await response.json()
@@ -94,7 +95,7 @@ export function OneDriveFilePicker({
         setCurrentPath(path)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nastala chyba při načítání souborů")
+      setError(err instanceof Error ? err.message : "Nepodařilo se načíst soubory z OneDrive.")
     } finally {
       setLoading(false)
     }
@@ -162,18 +163,18 @@ export function OneDriveFilePicker({
     
     const dotIndex = fileName.lastIndexOf('.')
     if (dotIndex === -1) {
-      return `${fileName.substring(0, maxLength - 3)  }...`
+      return `${fileName.substring(0, maxLength - 1)  }…`
     }
     
     const extension = fileName.substring(dotIndex)
     const nameWithoutExt = fileName.substring(0, dotIndex)
-    const availableLength = maxLength - extension.length - 3
+    const availableLength = maxLength - extension.length - 1
     
     if (availableLength <= 0) {
-      return `${fileName.substring(0, maxLength - 3)  }...`
+      return `${fileName.substring(0, maxLength - 1)  }…`
     }
     
-    return `${nameWithoutExt.substring(0, availableLength)  }...${  extension}`
+    return `${nameWithoutExt.substring(0, availableLength)  }…${  extension}`
   }
 
   return (
@@ -190,7 +191,7 @@ export function OneDriveFilePicker({
         <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
           <Input
-            placeholder="Hledat soubory..."
+            placeholder="Hledat soubory…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -201,7 +202,7 @@ export function OneDriveFilePicker({
           Hledat
         </Button>
         {isSearching && (
-          <Button variant="outline" onClick={handleClearSearch} className="flex-shrink-0">
+          <Button variant="outline" onClick={handleClearSearch} className="flex-shrink-0" aria-label="Zrušit hledání">
             <X className="h-4 w-4" />
           </Button>
         )}
@@ -237,7 +238,7 @@ export function OneDriveFilePicker({
           </div>
         ) : availableFiles.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
-            {isSearching ? "Žádné soubory neodpovídají hledání" : "Žádné soubory nebyly nalezeny"}
+            {isSearching ? "Hledání neodpovídá žádný soubor" : "Žádné soubory"}
           </p>
         ) : (
           availableFiles.map((item) => (
@@ -268,7 +269,7 @@ export function OneDriveFilePicker({
                 </TooltipProvider>
                 <p className="text-sm text-muted-foreground">
                   {item.folder 
-                    ? `${item.folder.childCount || 0} položek`
+                    ? `${item.folder.childCount || 0} ${czPlural(item.folder.childCount || 0, "položka", "položky", "položek")}`
                     : item.size ? formatFileSize(item.size) : ''
                   }
                 </p>

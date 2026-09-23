@@ -7,7 +7,7 @@ import type { OneDriveItem, OneDriveProcessedItem, OneDriveFolderItem, OneDriveF
 export async function GET(request: Request) {
   const session = await auth()
   if (!session?.accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Nejste přihlášeni." }, { status: 401 })
   }
 
   // Rate limiting
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     const isValidPath = validPathPatterns.some(pattern => pattern.test(path))
     if (!isValidPath) {
       return NextResponse.json(
-        { error: "Invalid path parameter" },
+        { error: "Neplatná cesta ke složce." },
         { status: 400 }
       )
     }
@@ -49,13 +49,13 @@ export async function GET(request: Request) {
     if (!data || !data.value) {
       if (data?.error?.code === 'itemNotFound') {
         return NextResponse.json(
-          { error: "Folder not found or no access permission" },
+          { error: "Složka neexistuje nebo k ní nemáte přístup." },
           { status: 404 }
         )
       }
 
       return NextResponse.json(
-        { error: data?.error?.message || "Invalid response from OneDrive" },
+        { error: data?.error?.message || "OneDrive vrátil neplatnou odpověď." },
         { status: 500 }
       )
     }
@@ -116,13 +116,13 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message.includes('token')) {
       return NextResponse.json(
-        { error: error.message, needsReauth: true },
+        { error: "Přístup k OneDrive vypršel. Přihlaste se znovu.", needsReauth: true },
         { status: 401 }
       )
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to access OneDrive files" },
+      { error: error instanceof Error ? error.message : "Nepodařilo se načíst soubory z OneDrive." },
       { status: 500 }
     )
   }

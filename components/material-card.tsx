@@ -15,7 +15,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -132,10 +131,10 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
 
           // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
-            throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
+            throw new Error("Přístup k OneDrive vypršel. Přihlaste se znovu.")
           }
 
-          throw new Error(errorData.error || "Failed to create public share link")
+          throw new Error(errorData.error || "Nepodařilo se vytvořit veřejný odkaz.")
         }
 
         const { shareUrl } = await response.json()
@@ -162,7 +161,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
       setIsPublic(isPublicNew)
       if (onUpdate) onUpdate()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
+      setError(err instanceof Error ? err.message : "Nepodařilo se změnit publikování materiálu.")
     } finally {
       setLoading(false)
     }
@@ -170,7 +169,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
 
   const handlePublicSubmit = async () => {
     if (!publicSlug || slugAvailable === false) {
-      setError("Zadejte platný a dostupný slug")
+      setError("Zadejte platnou a volnou adresu.")
       return
     }
 
@@ -228,6 +227,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                     size="sm"
                     className="h-8 w-8 p-0"
                     onClick={(e) => e.stopPropagation()}
+                    aria-label="Další akce"
                   >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
@@ -270,7 +270,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                       {isPublic && studySlug && material.public_slug && (
                         <DropdownMenuItem onClick={copyPublicUrl}>
                           {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                          {copied ? "Zkopírováno!" : "Kopírovat veřejný odkaz"}
+                          {copied ? "Zkopírováno" : "Kopírovat odkaz"}
                         </DropdownMenuItem>
                       )}
                     </>
@@ -300,12 +300,9 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
 
       {/* Public Sharing Dialog */}
       <Dialog open={showPublicDialog} onOpenChange={setShowPublicDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Publikovat materiál</DialogTitle>
-            <DialogDescription>
-              Nastavte veřejný odkaz pro tento materiál. Bude dostupný na adrese /{studySlug}/{publicSlug}
-            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -316,14 +313,14 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="public-slug">URL adresa *</Label>
+              <Label htmlFor="public-slug">Adresa *</Label>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">{getShareUrl(studySlug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}
                   onChange={(e) => handleSlugChange(e.target.value)}
-                  placeholder="material-name"
+                  placeholder="nazev-materialu"
                   className={
                     slugAvailable === false ? "border-red-500" : slugAvailable === true ? "border-green-500" : ""
                   }
@@ -331,17 +328,17 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                 />
               </div>
               {slugAvailable === false && (
-                <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná pro toto studium</p>
+                <p className="text-sm text-red-600 dark:text-red-400">Adresa je už obsazená</p>
               )}
               {slugAvailable === true && publicSlug && (
-                <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
+                <p className="text-sm text-green-600 dark:text-green-400">Adresa je volná</p>
               )}
-              <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+              <p className="text-xs text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
             </div>
 
             {publicSlug && slugAvailable && (
               <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
-                <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná URL adresa:</Label>
+                <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná adresa</Label>
                 <div className="flex items-center gap-2 mt-2">
                   <code className="flex-1 p-2 bg-card rounded border text-sm">
                     {getShareUrl(studySlug, publicSlug)}
@@ -360,7 +357,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
               disabled={loading || !publicSlug || slugAvailable === false}
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
-              {loading ? "Publikování..." : "Publikovat"}
+              {loading ? "Publikování…" : "Publikovat"}
             </Button>
           </div>
         </DialogContent>

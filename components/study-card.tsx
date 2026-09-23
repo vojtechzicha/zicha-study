@@ -46,6 +46,7 @@ export default function StudyCard({ study, onSelect, onEdit }: StudyCardProps) {
                   onEdit(study)
                 }}
                 className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                aria-label="Upravit studium"
               >
                 <Edit className="h-4 w-4" />
               </Button>

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, type JSX } from "react"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -144,7 +143,7 @@ export function SubjectMaterialsDialog({
       const data = await fetchSubjectMaterials(id) as SubjectMaterial[]
       setMaterials(data || [])
     } catch {
-      setError("Nepodařilo se načíst materiály předmětu")
+      setError("Nepodařilo se načíst materiály.")
     } finally {
       setLoading(false)
     }
@@ -176,7 +175,7 @@ export function SubjectMaterialsDialog({
   }, [isOpen, subject, loadMaterials, loadNoteCount])
 
   const handleDelete = async (materialId: string) => {
-    if (!confirm("Opravdu chcete odstranit tento materiál?")) {
+    if (!confirm("Odstranit tento materiál?")) {
       return
     }
 
@@ -186,7 +185,7 @@ export function SubjectMaterialsDialog({
 
       setMaterials(materials.filter(m => m.id !== materialId))
     } catch {
-      setError("Nepodařilo se odstranit materiál")
+      setError("Nepodařilo se odstranit materiál.")
     }
   }
 
@@ -231,7 +230,7 @@ export function SubjectMaterialsDialog({
 
   const handlePublicSubmit = async () => {
     if (!publicDialogMaterial || !publicSlug || slugAvailable === false) {
-      setPublicError("Zadejte platný a dostupný slug")
+      setPublicError("Zadejte platnou a volnou adresu.")
       return
     }
 
@@ -250,7 +249,7 @@ export function SubjectMaterialsDialog({
       if (isPublic) {
         // Find the material to get its OneDrive ID
         const material = materials.find(m => m.id === materialId)
-        if (!material) throw new Error("Material not found")
+        if (!material) throw new Error("Materiál nebyl nalezen.")
 
         // Generate public share link
         const response = await fetch('/api/onedrive/share', {
@@ -268,10 +267,10 @@ export function SubjectMaterialsDialog({
 
           // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
-            throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
+            throw new Error("Přístup k OneDrive vypršel. Přihlaste se znovu.")
           }
 
-          throw new Error(errorData.error || "Failed to create public share link")
+          throw new Error(errorData.error || "Nepodařilo se vytvořit veřejný odkaz.")
         }
 
         const { shareUrl } = await response.json()
@@ -287,7 +286,7 @@ export function SubjectMaterialsDialog({
       if (result.error) throw new Error(result.error.message)
       if (rootSubjectId) await loadMaterials(rootSubjectId)
     } catch (err) {
-      setPublicError(err instanceof Error ? err.message : "Nepodařilo se aktualizovat publikování materiálu")
+      setPublicError(err instanceof Error ? err.message : "Nepodařilo se změnit publikování materiálu.")
     } finally {
       setPublicLoading(false)
     }
@@ -325,14 +324,11 @@ export function SubjectMaterialsDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
-              {subject?.abbreviation || subject?.name} - Zápisy a materiály
+              {subject?.abbreviation || subject?.name} – zápisy a materiály
             </DialogTitle>
-            <DialogDescription>
-              Studijní zápisy, dokumenty a soubory související s tímto předmětem
-            </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -372,7 +368,7 @@ export function SubjectMaterialsDialog({
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
                     <Input
-                      placeholder="Hledat v materiálech..."
+                      placeholder="Hledat v materiálech…"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10"
@@ -401,7 +397,7 @@ export function SubjectMaterialsDialog({
                     <TableRow>
                       <TableHead>Název</TableHead>
                       <TableHead>Kategorie</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Stav</TableHead>
                       <TableHead>Velikost</TableHead>
                       <TableHead>Přidáno</TableHead>
                       <TableHead className="text-right">Akce</TableHead>
@@ -412,9 +408,9 @@ export function SubjectMaterialsDialog({
                       <TableRow>
                         <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                           {searchQuery
-                            ? "Žádné materiály neodpovídají vyhledávání"
+                            ? "Hledání neodpovídá žádný materiál"
                             : materials.length === 0
-                            ? "Zatím nejsou přidány žádné materiály k tomuto předmětu"
+                            ? "Zatím žádné materiály"
                             : "Žádné materiály nenalezeny"
                           }
                         </TableCell>
@@ -478,7 +474,7 @@ export function SubjectMaterialsDialog({
                               {/* Dropdown Menu */}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
+                                  <Button variant="ghost" size="sm" aria-label="Další akce">
                                     <MoreVertical className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -506,7 +502,7 @@ export function SubjectMaterialsDialog({
                                       {material.is_public && study.public_slug && material.public_slug && (
                                         <DropdownMenuItem onClick={() => copyPublicUrl(material)}>
                                           {copied === material.id ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                                          {copied === material.id ? "Zkopírováno!" : "Kopírovat veřejný odkaz"}
+                                          {copied === material.id ? "Zkopírováno" : "Kopírovat odkaz"}
                                         </DropdownMenuItem>
                                       )}
                                     </>
@@ -556,12 +552,9 @@ export function SubjectMaterialsDialog({
 
       {/* Public Sharing Dialog */}
       <Dialog open={showPublicDialog} onOpenChange={setShowPublicDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Publikovat materiál předmětu</DialogTitle>
-            <DialogDescription>
-              Nastavte veřejný odkaz pro tento materiál. Bude dostupný na adrese /{study?.public_slug}/{publicSlug}
-            </DialogDescription>
+            <DialogTitle>Publikovat materiál</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -572,14 +565,14 @@ export function SubjectMaterialsDialog({
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="public-slug">URL adresa *</Label>
+              <Label htmlFor="public-slug">Adresa *</Label>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">{getShareUrl(study?.public_slug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}
                   onChange={(e) => handleSlugChange(e.target.value)}
-                  placeholder="material-name"
+                  placeholder="nazev-materialu"
                   className={
                     slugAvailable === false ? "border-red-500" : slugAvailable === true ? "border-green-500" : ""
                   }
@@ -589,18 +582,18 @@ export function SubjectMaterialsDialog({
               {/* Status Message - Always Visible */}
               {publicSlug && publicSlug.length >= 3 ? (
                 slugAvailable === false ? (
-                  <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná pro toto studium</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">Adresa je už obsazená</p>
                 ) : slugAvailable === true ? (
-                  <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
+                  <p className="text-sm text-green-600 dark:text-green-400">Adresa je volná</p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Kontroluje se dostupnost...</p>
+                  <p className="text-sm text-muted-foreground">Kontrola dostupnosti…</p>
                 )
               ) : publicSlug && publicSlug.length > 0 ? (
-                <p className="text-sm text-orange-600 dark:text-orange-400">URL adresa musí mít alespoň 3 znaky</p>
+                <p className="text-sm text-orange-600 dark:text-orange-400">Adresa musí mít aspoň 3 znaky</p>
               ) : (
-                <p className="text-sm text-muted-foreground">Zadejte URL adresu</p>
+                <p className="text-sm text-muted-foreground">Zadejte adresu</p>
               )}
-              <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+              <p className="text-xs text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
             </div>
 
             {/* URL Preview - Always Visible When Slug Exists */}
@@ -615,7 +608,7 @@ export function SubjectMaterialsDialog({
                   slugAvailable === false ? 'text-red-900 dark:text-red-200' :
                   'text-foreground/80'
                 }`}>
-                  Veřejná URL adresa:
+                  Veřejná adresa
                 </Label>
                 <div className="flex items-center gap-2 mt-2">
                   <code className="flex-1 p-2 bg-card rounded border text-sm">
@@ -635,7 +628,7 @@ export function SubjectMaterialsDialog({
               disabled={publicLoading || !publicSlug || slugAvailable === false}
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
-              {publicLoading ? "Publikování..." : "Publikovat"}
+              {publicLoading ? "Publikování…" : "Publikovat"}
             </Button>
           </div>
         </DialogContent>

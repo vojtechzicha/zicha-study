@@ -181,11 +181,11 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
     }
 
     if (!shareUrl) {
-      shareError = "Veřejný odkaz pro tento materiál není dostupný"
+      shareError = "Odkaz na tento materiál není k dispozici."
     }
   } catch (error) {
     console.error("Error accessing share link:", error)
-    shareError = "Nepodařilo se načíst odkaz pro zobrazení souboru"
+    shareError = "Nepodařilo se načíst odkaz na soubor."
   }
 
   const fileIcons: { [key: string]: JSX.Element } = {
@@ -282,7 +282,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
                   <div className="flex items-center justify-center py-8">
                     <div className="text-center">
                       <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                      <p className="text-muted-foreground">Přesměrování na OneDrive...</p>
+                      <p className="text-muted-foreground">Přesměrování na OneDrive…</p>
                     </div>
                   </div>
                 )}
@@ -296,7 +296,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
           <div className="mt-6 text-center">
             <Button asChild className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white">
               <a href={shareUrl} target="_blank" rel="noopener noreferrer">
-                Otevřít materiál v OneDrive
+                Otevřít v OneDrive
               </a>
             </Button>
           </div>
@@ -357,7 +357,7 @@ export async function generateMetadata({ params }: PageProps) {
       : "Neznámý předmět"
 
     return {
-      title: `${(note as any).name} - ${(primarySubject as any)?.abbreviation || subjectNames}`,
+      title: `${(note as any).name} – ${(primarySubject as any)?.abbreviation || subjectNames}`,
       description: (note as any).description || `Studijní zápis k předmětům: ${allSubjects.map(s => s.name).join(", ")}`,
     }
   }
@@ -386,8 +386,8 @@ export async function generateMetadata({ params }: PageProps) {
     }
 
     return {
-      title: `${(material as any).name} - ${study.name}`,
-      description: (material as any).description || `Materiál ze studia ${study.name}${subjectInfo ? ` - ${subjectInfo.name}` : ''}`,
+      title: `${(material as any).name} – ${study.name}`,
+      description: (material as any).description || `Materiál ze studia ${study.name}${subjectInfo ? ` – ${subjectInfo.name}` : ''}`,
     }
   }
 

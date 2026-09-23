@@ -222,7 +222,7 @@ export function buildScheduleItems(
           startTime: exam.startTime,
           endTime: exam.endTime,
           exam,
-          description: `${formatDate(day.date)} - ${exam.startTime} - ${exam.endTime} - [${exam.subject.shortcut}] ${exam.subject.name}${exam.isOnline ? " (online)" : ""}`,
+          description: `${formatDate(day.date)} · ${exam.startTime}–${exam.endTime} · [${exam.subject.shortcut}] ${exam.subject.name}${exam.isOnline ? " (online)" : ""}`,
           cost: 0,
           requiresPto: requiresPto(exam, day.date),
         });
@@ -246,7 +246,7 @@ export function buildScheduleItems(
         type: "travel_to",
         date: segment.arrivalDate,
         startTime: "14:00",
-        description: `${formatDate(segment.arrivalDate)} - 14:00 - Cesta do školy`,
+        description: `${formatDate(segment.arrivalDate)} · 14:00 · Cesta do školy`,
         cost: config.travelCostOneWay,
       });
     } else {
@@ -268,7 +268,7 @@ export function buildScheduleItems(
           type: "travel_to",
           date: segment.arrivalDate,
           startTime: travelStart,
-          description: `${formatDate(segment.arrivalDate)} - ${travelStart} - Cesta do školy`,
+          description: `${formatDate(segment.arrivalDate)} · ${travelStart} · Cesta do školy`,
           cost: config.travelCostOneWay,
         });
       }
@@ -280,7 +280,7 @@ export function buildScheduleItems(
       items.push({
         type: "accommodation",
         date: nightDate,
-        description: `${formatDate(nightDate)} - ${formatDate(nextDateStr)} - Ubytování`,
+        description: `${formatDate(nightDate)} – ${formatDate(nextDateStr)} · Ubytování`,
         cost: config.accommodationCostPerNight,
       });
     }
@@ -292,7 +292,7 @@ export function buildScheduleItems(
         type: "travel_from",
         date: segment.departureDate,
         startTime: "09:00",
-        description: `${formatDate(segment.departureDate)} - 09:00 - Cesta domů`,
+        description: `${formatDate(segment.departureDate)} · 09:00 · Cesta domů`,
         cost: config.travelCostOneWay,
       });
     } else {
@@ -306,7 +306,7 @@ export function buildScheduleItems(
           type: "travel_from",
           date: segment.departureDate,
           startTime: lastOfflineExam.endTime,
-          description: `${formatDate(segment.departureDate)} - ${lastOfflineExam.endTime} - Cesta domů`,
+          description: `${formatDate(segment.departureDate)} · ${lastOfflineExam.endTime} · Cesta domů`,
           cost: config.travelCostOneWay,
         });
       }
@@ -325,7 +325,7 @@ export function buildScheduleItems(
         startTime: exam.startTime,
         endTime: exam.endTime,
         exam,
-        description: `${formatDate(day.date)} - ${exam.startTime} - ${exam.endTime} - [${exam.subject.shortcut}] ${exam.subject.name}${exam.isOnline ? " (online)" : ""}`,
+        description: `${formatDate(day.date)} · ${exam.startTime}–${exam.endTime} · [${exam.subject.shortcut}] ${exam.subject.name}${exam.isOnline ? " (online)" : ""}`,
         cost: 0,
         requiresPto: requiresPto(exam, day.date),
       });
@@ -382,7 +382,7 @@ export function generateSchedule(
         accommodationNights: 0,
         ptoDays: 0,
       },
-      error: `Následující předměty nemají žádné termíny zkoušek: ${names}`,
+      error: `Tyto předměty nemají žádné termíny zkoušek: ${names}.`,
     };
   }
 
@@ -424,7 +424,7 @@ export function generateSchedule(
         ptoDays: 0,
       },
       error:
-        "Nebyl nalezen platný rozvrh. Zkontrolujte, zda nejsou termíny v konfliktu.",
+        "Nepodařilo se najít platný rozvrh. Zkontrolujte, jestli se termíny nepřekrývají.",
     };
   }
 

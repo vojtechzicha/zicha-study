@@ -54,7 +54,7 @@ export function CacheSettingsDialog({
       setCacheFolder(settings)
       setLoaded(true)
     } catch {
-      setError("Nepodařilo se načíst nastavení")
+      setError("Nepodařilo se načíst nastavení.")
       setLoaded(true)
     }
   }, [])
@@ -82,7 +82,7 @@ export function CacheSettingsDialog({
         cache_folder_path: folder.path,
       })
     } catch {
-      setError("Nepodařilo se uložit nastavení")
+      setError("Nepodařilo se uložit nastavení.")
     } finally {
       setSaving(false)
     }
@@ -100,7 +100,7 @@ export function CacheSettingsDialog({
       setError(
         err instanceof Error
           ? err.message
-          : "Nepodařilo se synchronizovat soubory"
+          : "Nepodařilo se zálohovat soubory."
       )
     } finally {
       setSyncing(false)
@@ -119,7 +119,7 @@ export function CacheSettingsDialog({
       setError(
         err instanceof Error
           ? err.message
-          : "Nepodařilo se synchronizovat soubory"
+          : "Nepodařilo se dohledat soubory."
       )
     } finally {
       setSyncingByName(false)
@@ -140,11 +140,11 @@ export function CacheSettingsDialog({
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground">
-              Nastavení OneDrive cache
+              Záloha souborů
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Konfigurujte složku pro zálohy souborů z OneDrive. Zálohy
-              zajistí funkčnost odkazů i po smazání původního souboru.
+              Přidané materiály a zápisy se kopírují do zvolené složky
+              v OneDrive, takže veřejné odkazy fungují i po smazání originálu.
             </DialogDescription>
           </DialogHeader>
 
@@ -158,7 +158,7 @@ export function CacheSettingsDialog({
 
             {/* Cache folder selection */}
             <div className="space-y-3">
-              <Label className="text-base font-medium">Složka pro cache</Label>
+              <Label className="text-base font-medium">Složka pro zálohy</Label>
 
               {cacheFolder?.cache_folder_id ? (
                 <div className="flex items-center gap-3 p-3 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
@@ -187,17 +187,12 @@ export function CacheSettingsDialog({
                   Vybrat složku z OneDrive
                 </Button>
               )}
-
-              <p className="text-xs text-muted-foreground">
-                Při přidání materiálu nebo studijního zápisu se soubor
-                automaticky zkopíruje do této složky.
-              </p>
             </div>
 
             {/* Sync buttons */}
             <div className="space-y-3 pt-2 border-t">
               <Label className="text-base font-medium">
-                Synchronizace souborů
+                Doplnit zálohy
               </Label>
 
               <div className="space-y-2">
@@ -209,17 +204,18 @@ export function CacheSettingsDialog({
                   {syncing ? (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Synchronizace...
+                      Zálohování…
                     </>
                   ) : (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Synchronizovat (podle ID)
+                      Zálohovat chybějící
                     </>
                   )}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Zkopíruje soubory, u kterých existuje původní odkaz v OneDrive.
+                  Zálohuje soubory, které zálohu ještě nemají a v OneDrive
+                  pořád jsou.
                 </p>
 
                 <Button
@@ -231,18 +227,18 @@ export function CacheSettingsDialog({
                   {syncingByName ? (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Hledání souborů...
+                      Hledání…
                     </>
                   ) : (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Synchronizovat (podle názvu)
+                      Dohledat podle názvu
                     </>
                   )}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Pro soubory smazané a znovu nahrané do OneDrive. Vyhledá
-                  soubory podle cesty a názvu a aktualizuje odkazy.
+                  Pro soubory, které byly v OneDrive smazány a nahrány znovu.
+                  Najde je podle cesty a názvu, opraví odkazy a zálohuje je.
                 </p>
               </div>
 
@@ -262,22 +258,22 @@ export function CacheSettingsDialog({
                   )}
                   <AlertDescription>
                     <p className="font-medium">
-                      Synchronizace dokončena
+                      Hotovo
                     </p>
                     <ul className="text-sm mt-1 space-y-0.5">
                       <li>Celkem: {syncResult.total}</li>
-                      <li>Synchronizováno: {syncResult.synced}</li>
+                      <li>Zálohováno: {syncResult.synced}</li>
                       {syncResult.skipped > 0 && (
-                        <li>Přeskočeno (smazané): {syncResult.skipped}</li>
+                        <li>Přeskočeno (není v OneDrive): {syncResult.skipped}</li>
                       )}
                       {syncResult.failed > 0 && (
-                        <li>Selhalo: {syncResult.failed}</li>
+                        <li>S chybou: {syncResult.failed}</li>
                       )}
                     </ul>
                     {syncResult.errors.length > 0 && (
                       <details className="mt-2">
                         <summary className="text-xs cursor-pointer text-muted-foreground">
-                          Zobrazit detaily ({syncResult.errors.length})
+                          Podrobnosti ({syncResult.errors.length})
                         </summary>
                         <ul className="text-xs mt-1 space-y-0.5 text-muted-foreground">
                           {syncResult.errors.map((err, i) => (
@@ -298,8 +294,8 @@ export function CacheSettingsDialog({
         open={showFolderPicker}
         onOpenChange={setShowFolderPicker}
         onFolderSelect={handleFolderSelect}
-        title="Vyberte složku pro OneDrive cache"
-        description="Zálohy souborů budou ukládány do této složky"
+        title="Vyberte složku pro zálohy"
+        description="Sem se budou ukládat kopie přidaných souborů."
       />
     </>
   )

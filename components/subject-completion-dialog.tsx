@@ -111,7 +111,7 @@ export function SubjectCompletionDialog({
         <DialogHeader>
           <DialogTitle>Dokončení: {getCompletionTypeText()}</DialogTitle>
           <DialogDescription>
-            {subject.name} - Zadejte detaily o dokončení předmětu
+            {subject.name}
           </DialogDescription>
         </DialogHeader>
 

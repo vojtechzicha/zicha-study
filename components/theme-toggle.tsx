@@ -23,7 +23,7 @@ export function ThemeToggle({ size = "default", className }: ThemeToggleProps) {
   const { theme, toggleTheme, mounted } = useAppTheme()
 
   const isDark = theme === "dark"
-  const label = isDark ? "Světlý motiv" : "Tmavý motiv"
+  const label = isDark ? "Přepnout na světlý motiv" : "Přepnout na tmavý motiv"
   const iconClassName = size === "sm" ? "h-4 w-4" : "h-[1.15rem] w-[1.15rem]"
 
   const buttonClassName = cn(

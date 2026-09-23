@@ -205,11 +205,11 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
 
   const handleSave = async () => {
     if (!studyId || !name.trim() || !startDate || !dueDate) {
-      toast({ title: "Vyplňte studium, název a období", variant: "destructive" })
+      toast({ title: "Vyplňte studium, název, začátek a konec období", variant: "destructive" })
       return
     }
     if (dueDate < startDate) {
-      toast({ title: "Konec období je před začátkem", variant: "destructive" })
+      toast({ title: "Konec období nemůže být před začátkem", variant: "destructive" })
       return
     }
     setSaving(true)
@@ -279,7 +279,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
       onSaved()
       onOpenChange(false)
     } catch (err: any) {
-      toast({ title: "Chyba při ukládání", description: err?.message, variant: "destructive" })
+      toast({ title: "Nepodařilo se uložit období", description: err?.message, variant: "destructive" })
     } finally {
       setSaving(false)
     }
@@ -357,7 +357,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
 
             {groups.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">
-                Zatím žádné předměty. Přidejte předmět a jeho možné termíny – plánovač vybere jeden pro každý předmět.
+                Zatím žádné předměty. Přidejte předmět a jeho možné termíny, plánovač z nich vybere jeden.
               </p>
             ) : (
               groups.map((grp) => {
@@ -382,7 +382,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
 
                     {grp.terms.length === 0 ? (
                       <p className="text-xs text-amber-600 dark:text-amber-400 italic">
-                        Zatím žádné termíny – předmět se uloží, ale do rozvrhu se zahrne až po přidání termínů.
+                        Zatím žádné termíny. Do rozvrhu se předmět dostane, až nějaké přidáte.
                       </p>
                     ) : (
                       grp.terms.map((term, index) => (
@@ -452,7 +452,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                             <Input
                               value={term.note}
                               onChange={(e) => updateTerm(grp.subjectId, index, "note", e.target.value)}
-                              placeholder="volitelná poznámka"
+                              placeholder="Poznámka"
                               className="h-9 flex-1 min-w-[8rem]"
                             />
                             <div className="flex items-center h-9 px-2 border rounded-md bg-card">
@@ -472,6 +472,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               variant="ghost"
                               size="sm"
                               onClick={() => removeTerm(grp.subjectId, index)}
+                              aria-label="Odebrat termín"
                               className="h-9 w-9 p-0 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                             >
                               <Trash2 className="h-4 w-4" />

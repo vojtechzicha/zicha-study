@@ -37,7 +37,7 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
         const data = await fetchPublicMaterials(studyId) as Material[]
         setMaterials(data || [])
       } catch {
-        setError("Nepodařilo se načíst materiály")
+        setError("Nepodařilo se načíst materiály.")
       } finally {
         setLoading(false)
       }
@@ -58,9 +58,6 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
       <CardHeader>
         <div>
           <CardTitle className="text-xl font-bold text-foreground">Materiály</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Veřejně dostupné dokumenty a soubory ke studiu
-          </p>
         </div>
       </CardHeader>
       <CardContent>

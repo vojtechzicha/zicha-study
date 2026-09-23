@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Save } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SubjectState, isFieldVisibleForState, getSubjectStateText, requiresCredit, requiresExam } from "@/lib/status-utils"
@@ -110,21 +110,18 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
 
     if (result.error) {
       // Provide more specific error messages based on error code/message
-      let errorMessage = "Chyba při ukládání předmětu. Zkuste to prosím znovu."
+      let errorMessage = "Nepodařilo se uložit předmět."
 
       if (result.error.code === "23505") {
-        errorMessage = "Předmět s touto kombinací názvu a semestru již existuje."
+        errorMessage = "Předmět s tímto názvem a semestrem už existuje."
       } else if (result.error.message) {
-        errorMessage = `Chyba při ukládání: ${result.error.message}`
+        errorMessage = `Nepodařilo se uložit předmět. ${result.error.message}`
       }
 
       setError(errorMessage)
       setLoading(false)
     } else {
-      toast({
-        title: "Předmět přidán",
-        description: `Předmět "${formData.name}" byl úspěšně přidán.`,
-      })
+      toast({ title: "Předmět přidán" })
       onSuccess()
     }
   }
@@ -133,11 +130,8 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
     <>
       <DialogHeader>
         <DialogTitle className="text-2xl font-bold text-foreground">
-          Přidat nový předmět
+          Přidat předmět
         </DialogTitle>
-        <DialogDescription className="sr-only">
-          Vyplňte údaje o předmětu, nastavte jeho stav a uložte ho do studia.
-        </DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-6 p-1">
         {error && (
@@ -255,7 +249,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
               onChange={(e) => setFormData({ ...formData, hours: Number.parseInt(e.target.value) || 0 })}
               min="0"
               max="200"
-              placeholder="volitelné"
             />
           </div>
         </div>
@@ -271,7 +264,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                 onChange={(e) => setFormData({ ...formData, points: e.target.value })}
                 min="0"
                 max="100"
-                placeholder="volitelné"
               />
             </div>
           )}
@@ -305,7 +297,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
             value={formData.department}
             onChange={(value) => setFormData({ ...formData, department: value })}
             departments={departments}
-            placeholder="Vyberte nebo zadejte katedru..."
+            placeholder="Vyberte nebo zadejte katedru…"
           />
         </div>
 
@@ -330,17 +322,14 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="planned" id="planned" />
               <Label htmlFor="planned" className="cursor-pointer">{getSubjectStateText("planned")}</Label>
-              <span className="text-xs text-muted-foreground">- ještě nebyl zahájen</span>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="active" id="active" />
               <Label htmlFor="active" className="cursor-pointer">{getSubjectStateText("active")}</Label>
-              <span className="text-xs text-muted-foreground">- probíhá</span>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="completed" id="completed" />
               <Label htmlFor="completed" className="cursor-pointer">{getSubjectStateText("completed")}</Label>
-              <span className="text-xs text-muted-foreground">- ukončený</span>
             </div>
           </RadioGroup>
         </div>
@@ -372,7 +361,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
                 <SelectContent>
                   {availableSubjects.map((subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
-                      {subject.semester} - {subject.abbreviation ? `${subject.abbreviation} - ` : ''}{subject.name}
+                      {subject.semester} – {subject.abbreviation ? `${subject.abbreviation} – ` : ''}{subject.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -402,7 +391,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
             className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
           >
             <Save className="mr-2 h-4 w-4" />
-            {loading ? "Ukládání..." : "Uložit předmět"}
+            {loading ? "Ukládání…" : "Uložit předmět"}
           </Button>
         </div>
       </form>

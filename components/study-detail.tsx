@@ -121,7 +121,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
       const data = (await fetchTasks(study.id)) as Task[]
       setTasks(data || [])
     } catch {
-      setTasksError("Nepodařilo se načíst úkoly")
+      setTasksError("Nepodařilo se načíst úkoly.")
     } finally {
       setTasksLoading(false)
     }
@@ -149,15 +149,15 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
         onBack={onBack}
         actions={
           <>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/edit`)} className="text-foreground/80" size="sm">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/edit`)} className="text-foreground/80" size="sm" aria-label="Upravit">
               <Edit className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Upravit</span>
             </Button>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/settings`)} className="text-foreground/80" size="sm">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/settings`)} className="text-foreground/80" size="sm" aria-label="Sdílení">
               <Settings className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Sdílení</span>
             </Button>
-            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/statistics`)} className="text-foreground/80" size="sm">
+            <Button variant="outline" onClick={() => router.push(`/studies/${study.id}/statistics`)} className="text-foreground/80" size="sm" aria-label="Statistiky">
               <BarChart3 className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Statistiky</span>
             </Button>

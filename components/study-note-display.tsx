@@ -92,13 +92,13 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
               {(studyData?.logo_url || study?.logo_url) && (
                 <StudyLogo 
                   logoUrl={studyData?.logo_url || study?.logo_url} 
-                  studyName={studyData?.name || study?.name || "Study"} 
+                  studyName={studyData?.name || study?.name || "Studium"} 
                   size="sm" 
                   className="!w-10 !h-10" 
                 />
               )}
               <div className="flex items-center space-x-4">
-                <Link href="/" className="text-muted-foreground hover:text-foreground">
+                <Link href="/" className="text-muted-foreground hover:text-foreground" aria-label="Domů">
                   <Home className="h-5 w-5" />
                 </Link>
                 {studyData?.is_public && studyData.public_slug && (

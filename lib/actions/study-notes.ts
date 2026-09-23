@@ -23,7 +23,7 @@ export async function createStudyNote(data: Record<string, any>) {
     const doc = await db.createStudyNote(data)
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
-    return { data: null, error: { message: err?.message || "Unknown error" } }
+    return { data: null, error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -32,7 +32,7 @@ export async function updateStudyNoteAction(id: string, data: Record<string, any
     await db.updateStudyNote(id, data)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -47,7 +47,7 @@ export async function deleteStudyNoteAction(id: string) {
     await db.deleteStudyNote(id)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 

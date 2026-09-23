@@ -69,7 +69,7 @@ export function StudyNotesDisplaySection({
   studyId,
   study,
   isPublicView = false,
-  showSubtitle = false,
+  showSubtitle: _showSubtitle = false,
   showPublicBadge = true,
   showSubjectNames = false
 }: StudyNotesDisplaySectionProps) {
@@ -144,7 +144,7 @@ export function StudyNotesDisplaySection({
           const exam = finalExamsMap.get(link.final_exam_id)
           return exam ? {
             id: exam.id,
-            name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
+            name: `${exam.shortcut ? `${exam.shortcut} – ` : ""}${exam.name}`,
             study_id: exam.study_id,
             is_primary: link.is_primary,
             is_final_exam: true
@@ -160,7 +160,7 @@ export function StudyNotesDisplaySection({
       setStudyNotes(transformedNotes)
     } catch {
       if (!silent) {
-        setError("Nepodařilo se načíst studijní zápisy")
+        setError("Nepodařilo se načíst zápisy.")
       }
     } finally {
       if (!silent) {
@@ -253,18 +253,13 @@ export function StudyNotesDisplaySection({
         <div className="flex justify-between items-start gap-4">
           <div className="flex-1">
             <CardTitle className="text-xl font-bold text-foreground">Studijní zápisy</CardTitle>
-            {showSubtitle && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {isPublicView ? "Veřejně dostupné studijní zápisy" : "Všechny studijní zápisy napříč předměty"}
-              </p>
-            )}
           </div>
           {studyNotes.length > 0 && (
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
               <Input
                 type="text"
-                placeholder="Hledat zápisy..."
+                placeholder="Hledat zápisy…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-9"
@@ -291,10 +286,10 @@ export function StudyNotesDisplaySection({
           <div className="text-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
-              Zatím nejsou přidány žádné studijní zápisy
+              Zatím žádné zápisy
             </h3>
             <p className="text-muted-foreground">
-              Studijní zápisy můžete přidat v jednotlivých předmětech
+              Zápisy se přidávají u jednotlivých předmětů.
             </p>
           </div>
         ) : filteredNotes.length === 0 ? (
@@ -303,9 +298,6 @@ export function StudyNotesDisplaySection({
             <h3 className="text-lg font-medium text-foreground mb-2">
               Žádné zápisy neodpovídají vyhledávání
             </h3>
-            <p className="text-muted-foreground">
-              Zkuste změnit vyhledávací dotaz
-            </p>
           </div>
         ) : !showAll ? (
           <div className="space-y-4">

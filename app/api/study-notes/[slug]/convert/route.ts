@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     const note = await db.getStudyNoteBySlug(slug, studyId || undefined)
 
     if (!note) {
-      return NextResponse.json({ error: 'Study note not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Zápis nebyl nalezen.' }, { status: 404 })
     }
 
     const noteId = note._id as string
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     // 2. If note is private, only allow authenticated access
     const isOwner = !!session?.accessToken
     if (!note.is_public && !isOwner) {
-      return NextResponse.json({ error: 'Study note not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Zápis nebyl nalezen.' }, { status: 404 })
     }
 
     // Suppress unused variable warning - study is fetched for potential future auth checks
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     // Need to regenerate — must have file content from either original or cache
     if (!fileBuffer) {
       return NextResponse.json(
-        { error: 'Unable to access file from original location or cache' },
+        { error: 'Nepodařilo se načíst soubor zápisu z OneDrive ani z mezipaměti.' },
         { status: 500 }
       )
     }
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     })
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Conversion failed' },
+      { error: error instanceof Error ? error.message : 'Nepodařilo se převést zápis.' },
       { status: 500 }
     )
   }

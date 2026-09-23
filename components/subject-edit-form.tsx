@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Save, Trash2, CalendarDays } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -178,12 +178,12 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
 
     if (result.error) {
       // Provide more specific error messages based on error code/message
-      let errorMessage = "Chyba při ukládání předmětu. Zkuste to prosím znovu."
+      let errorMessage = "Nepodařilo se uložit předmět."
 
       if (result.error.code === "23505") {
-        errorMessage = "Předmět s touto kombinací názvu a semestru již existuje."
+        errorMessage = "Předmět s tímto názvem a semestrem už existuje."
       } else if (result.error.message) {
-        errorMessage = `Chyba při ukládání: ${result.error.message}`
+        errorMessage = `Nepodařilo se uložit předmět. ${result.error.message}`
       }
 
       setError(errorMessage)
@@ -207,10 +207,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       }
     }
 
-    toast({
-      title: "Předmět uložen",
-      description: `Předmět "${formData.name}" byl úspěšně aktualizován.`,
-    })
+    toast({ title: "Předmět uložen" })
     setLoading(false)
     onSuccess()
   }
@@ -222,33 +219,27 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     const result = await deleteSubjectAction(subject.id)
 
     if (result.error) {
-      let errorMessage = "Chyba při mazání předmětu. Zkuste to prosím znovu."
+      let errorMessage = "Nepodařilo se smazat předmět."
 
       if (result.error.message) {
-        errorMessage = `Chyba při mazání: ${result.error.message}`
+        errorMessage = `Nepodařilo se smazat předmět. ${result.error.message}`
       }
 
       setError(errorMessage)
       setDeleting(false)
     } else {
-      toast({
-        title: "Předmět smazán",
-        description: `Předmět "${subject.name}" byl úspěšně smazán.`,
-      })
+      toast({ title: "Předmět smazán" })
       onSuccess()
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">
             Úprava předmětu {subject.abbreviation}
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            Upravte údaje předmětu, jeho stav, termíny zkoušek a další nastavení.
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 p-1">
               {error && (
@@ -366,7 +357,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                     onChange={(e) => setFormData({ ...formData, hours: Number.parseInt(e.target.value) || 0 })}
                     min="0"
                     max="200"
-                    placeholder="volitelné"
                   />
                 </div>
               </div>
@@ -382,7 +372,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                       onChange={(e) => setFormData({ ...formData, points: e.target.value })}
                       min="0"
                       max="100"
-                      placeholder="volitelné"
                     />
                   </div>
                 )}
@@ -416,7 +405,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   value={formData.department}
                   onChange={(value) => setFormData({ ...formData, department: value })}
                   departments={departments}
-                  placeholder="Vyberte nebo zadejte katedru..."
+                  placeholder="Vyberte nebo zadejte katedru…"
                 />
               </div>
 
@@ -459,17 +448,14 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="planned" id="planned" />
                     <Label htmlFor="planned" className="cursor-pointer">{getSubjectStateText("planned")}</Label>
-                    <span className="text-xs text-muted-foreground">- ještě nebyl zahájen</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="active" id="active" />
                     <Label htmlFor="active" className="cursor-pointer">{getSubjectStateText("active")}</Label>
-                    <span className="text-xs text-muted-foreground">- probíhá</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="completed" id="completed" />
                     <Label htmlFor="completed" className="cursor-pointer">{getSubjectStateText("completed")}</Label>
-                    <span className="text-xs text-muted-foreground">- ukončený</span>
                   </div>
                 </RadioGroup>
               </div>
@@ -550,7 +536,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                       <SelectContent>
                         {availableSubjects.map((subject) => (
                           <SelectItem key={subject.id} value={subject.id}>
-                            {subject.semester} - {subject.abbreviation ? `${subject.abbreviation} - ` : ''}{subject.name}
+                            {subject.semester} – {subject.abbreviation ? `${subject.abbreviation} – ` : ''}{subject.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -571,14 +557,14 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   <AlertDialogTrigger asChild>
                     <Button type="button" variant="destructive" disabled={deleting}>
                       <Trash2 className="mr-2 h-4 w-4" />
-                      {deleting ? "Mazání..." : "Smazat"}
+                      {deleting ? "Mazání…" : "Smazat"}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Smazat předmět?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Opravdu chcete smazat předmět &quot;{subject.name}&quot;? Tato akce je nevratná.
+                        Předmět „{subject.name}“ se trvale smaže.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -604,7 +590,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {loading ? "Ukládání..." : "Uložit změny"}
+                  {loading ? "Ukládání…" : "Uložit změny"}
                 </Button>
               </div>
         </form>

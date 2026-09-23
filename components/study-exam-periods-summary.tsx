@@ -77,7 +77,7 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
             </div>
             <div>
               <CardTitle className="text-xl">Plánovač zkoušek</CardTitle>
-              <CardDescription>Zkoušková období a termíny – rozvrh se počítá společně napříč studii</CardDescription>
+              <CardDescription>Rozvrh se počítá společně pro všechna studia.</CardDescription>
             </div>
           </div>
           <Button
@@ -98,7 +98,7 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
           </div>
         ) : periods.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Zatím nejsou nastavena žádná zkoušková období. Vytvořte je v plánovači zkoušek.
+            Zatím žádná zkoušková období. Vytvoříte je v plánovači.
           </p>
         ) : (
           <div className="space-y-3">
@@ -128,7 +128,7 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
                               key={sid}
                               variant="secondary"
                               className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-normal"
-                              title="Předmět zatím nemá žádné termíny a není zahrnut do rozvrhu"
+                              title="Do rozvrhu se nezahrne, dokud nebude mít termíny"
                             >
                               <AlertTriangle className="h-3 w-3 mr-1" />
                               {subj?.abbreviation || subj?.name || "?"}

@@ -192,7 +192,7 @@ export function calculateAverage(subjects: GradeCalculationSubject[]): AverageRe
       return {
         type: 'both',
         value: null, // Not used when both are present
-        label: 'Vážené průměry',
+        label: 'Vážený průměr',
         pointsValue: calculateWeightedPointsAverage(subjects),
         gradeValue: calculateWeightedGradeAverage(subjects, true) // Include subjects with points when calculating grades for 'both' mode
       }
@@ -206,7 +206,7 @@ export function calculateAverage(subjects: GradeCalculationSubject[]): AverageRe
       return {
         type: 'grade',
         value: calculateWeightedGradeAverage(subjects),
-        label: 'Vážené hodnocení'
+        label: 'Vážený průměr známek'
       }
     default:
       return {

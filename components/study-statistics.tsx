@@ -334,23 +334,23 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                   <div className="space-y-2">
                     <div>
                       <div className="text-lg font-bold text-foreground">
-                        {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
+                        {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '–'}
                       </div>
-                      <p className="text-xs text-muted-foreground">body (vážené kredity)</p>
+                      <p className="text-xs text-muted-foreground">body</p>
                     </div>
                     <div>
                       <div className="text-lg font-bold text-foreground">
-                        {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
+                        {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '–'}
                       </div>
-                      <p className="text-xs text-muted-foreground">známky (vážené kredity)</p>
+                      <p className="text-xs text-muted-foreground">známky</p>
                     </div>
                   </div>
                 ) : (
                   <div>
                     <div className="text-2xl font-bold text-foreground">
-                      {stats.average.value ? stats.average.value.toFixed(2) : '-'}
+                      {stats.average.value ? stats.average.value.toFixed(2) : '–'}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">vážené kredity</p>
+                    <p className="text-xs text-muted-foreground mt-1">váženo kredity</p>
                   </div>
                 )}
               </CardContent>
@@ -365,7 +365,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-foreground">{stats.gpa.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">ECTS přepočet</p>
+                <p className="text-xs text-muted-foreground mt-1">přepočet ze známek ECTS</p>
               </CardContent>
             </Card>
           )}
@@ -414,7 +414,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-foreground">Celkové hodiny</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Absolvované hodiny</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center">
@@ -499,19 +499,19 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
                       <div className="text-xs text-muted-foreground mt-2">
                         {semesterData.average.type === 'both' ? (
                           <div className="space-y-1">
-                            <div>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : '-'}</div>
-                            <div>Známky: {semesterData.average.gradeValue ? semesterData.average.gradeValue.toFixed(2) : '-'}</div>
+                            <div>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : '–'}</div>
+                            <div>Známky: {semesterData.average.gradeValue ? semesterData.average.gradeValue.toFixed(2) : '–'}</div>
                             {semesterData.gpa !== null && <div>GPA: {semesterData.gpa.toFixed(2)}</div>}
                           </div>
                         ) : semesterData.average.type !== 'none' ? (
                           <div className="space-y-1">
                             <div>
-                              {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : '-'}
+                              {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : '–'}
                             </div>
                             {semesterData.gpa !== null && <div>GPA: {semesterData.gpa.toFixed(2)}</div>}
                           </div>
                         ) : (
-                          <div>GPA: {semesterData.gpa?.toFixed(2) ?? '-'}</div>
+                          <div>GPA: {semesterData.gpa?.toFixed(2) ?? '–'}</div>
                         )}
                       </div>
                     )}

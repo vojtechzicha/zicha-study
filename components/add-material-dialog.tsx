@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -103,12 +102,12 @@ export function AddMaterialDialog({
 
   const handleSubmit = async () => {
     if (!selectedFile) {
-      setError("Nejprve vyberte soubor z OneDrive")
+      setError("Vyberte soubor z OneDrive.")
       return
     }
 
     if (!formData.name?.trim()) {
-      setError("Název je povinný")
+      setError("Vyplňte název.")
       return
     }
 
@@ -159,7 +158,7 @@ export function AddMaterialDialog({
       onSuccess()
       handleClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nepodařilo se přidat materiál")
+      setError(err instanceof Error ? err.message : "Nepodařilo se přidat materiál.")
     } finally {
       setLoading(false)
     }
@@ -186,34 +185,28 @@ export function AddMaterialDialog({
     const dotIndex = fileName.lastIndexOf('.')
     if (dotIndex === -1) {
       // No extension, just truncate
-      return `${fileName.substring(0, maxLength - 3)  }...`
+      return `${fileName.substring(0, maxLength - 1)  }…`
     }
 
     const extension = fileName.substring(dotIndex)
     const nameWithoutExt = fileName.substring(0, dotIndex)
-    const availableLength = maxLength - extension.length - 3 // 3 for "..."
+    const availableLength = maxLength - extension.length - 1
 
     if (availableLength <= 0) {
       // Extension is too long, just show the beginning
-      return `${fileName.substring(0, maxLength - 3)  }...`
+      return `${fileName.substring(0, maxLength - 1)  }…`
     }
 
-    return `${nameWithoutExt.substring(0, availableLength)  }...${  extension}`
+    return `${nameWithoutExt.substring(0, availableLength)  }…${  extension}`
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
             {showFilePicker ? "Vyberte soubor z OneDrive" : `Přidat materiál ${subjectId ? "k předmětu" : "ke studiu"}`}
           </DialogTitle>
-          <DialogDescription>
-            {showFilePicker
-              ? "Klikněte na soubor, který chcete přidat"
-              : `Vyberte soubor z vašeho OneDrive a přidejte ho ${subjectId ? "k předmětu" : "ke studiu"}`
-            }
-          </DialogDescription>
         </DialogHeader>
 
         <div className="min-w-0 space-y-4 py-4">
@@ -232,15 +225,12 @@ export function AddMaterialDialog({
             />
           ) : !selectedFile ? (
             <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <p className="text-sm text-muted-foreground mb-4">
-                Vyberte soubor z vašeho OneDrive
-              </p>
               <Button
                 onClick={handleOpenFilePicker}
                 disabled={loading}
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
-                {loading ? "Načítání..." : "Vybrat z OneDrive"}
+                {loading ? "Načítání…" : "Vybrat z OneDrive"}
               </Button>
             </div>
           ) : (
@@ -269,7 +259,7 @@ export function AddMaterialDialog({
                   disabled={loading}
                   className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
-                  {loading ? "Načítání..." : "Změnit"}
+                  {loading ? "Načítání…" : "Změnit"}
                 </Button>
               </div>
 
@@ -279,7 +269,7 @@ export function AddMaterialDialog({
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Např. Přednáška 1 - Úvod"
+                  placeholder="Např. Přednáška 1 – úvod"
                 />
               </div>
 
@@ -308,7 +298,6 @@ export function AddMaterialDialog({
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Volitelný popis materiálu..."
                   rows={3}
                 />
               </div>
@@ -331,7 +320,7 @@ export function AddMaterialDialog({
                 disabled={loading || !selectedFile || !formData.name?.trim()}
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
-                {loading ? "Přidávání..." : "Přidat materiál"}
+                {loading ? "Přidávání…" : "Přidat materiál"}
               </Button>
             </>
           )}

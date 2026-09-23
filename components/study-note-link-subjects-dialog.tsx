@@ -91,7 +91,7 @@ export function StudyNoteLinkSubjectsDialog({
         const finalExamIds = [primaryFinalExamEntry.final_exam_id]
         const examData = await fetchFinalExamsByIds(finalExamIds)
         if (!examData || examData.length === 0) {
-          setError("Nepodařilo se najít studium pro státní zkoušku")
+          setError("Nepodařilo se najít studium pro státní zkoušku.")
           return
         }
         studyId = examData[0].study_id
@@ -100,14 +100,14 @@ export function StudyNoteLinkSubjectsDialog({
         // Primary is a regular subject
         const primarySubject = note.subjects?.find(s => s.is_primary)
         if (!primarySubject) {
-          setError("Hlavní předmět nebyl nalezen")
+          setError("Hlavní předmět nebyl nalezen.")
           return
         }
 
         // Get the study info for the primary subject
         const subjectData = await fetchSubject(primarySubject.id)
         if (!subjectData?.study_id) {
-          setError("Nepodařilo se najít studium pro hlavní předmět")
+          setError("Nepodařilo se najít studium pro hlavní předmět.")
           return
         }
 
@@ -198,7 +198,7 @@ export function StudyNoteLinkSubjectsDialog({
         .sort((a: DbFinalExam, b: DbFinalExam) => a.name.localeCompare(b.name, "cs"))
         .map((exam: DbFinalExam) => ({
           id: exam.id,
-          name: `${exam.shortcut ? `${exam.shortcut  } - ` : ""}${exam.name}`,
+          name: `${exam.shortcut ? `${exam.shortcut  } – ` : ""}${exam.name}`,
           study_id: exam.study_id,
           study_name: studyName,
           semester: "Státní zkouška",
@@ -211,7 +211,7 @@ export function StudyNoteLinkSubjectsDialog({
       setAvailableSubjects(available)
     } catch (err) {
       console.error("Failed to load available subjects:", err)
-      setError("Nepodařilo se načíst dostupné předměty")
+      setError("Nepodařilo se načíst předměty.")
     }
   }, [note])
 
@@ -233,7 +233,7 @@ export function StudyNoteLinkSubjectsDialog({
           const exam = examsMap.get(link.final_exam_id)
           return exam ? {
             id: exam.id,
-            name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
+            name: `${exam.shortcut ? `${exam.shortcut} – ` : ""}${exam.name}`,
             study_id: exam.study_id || "",
             study_name: "",
             semester: "Státní zkouška",
@@ -266,7 +266,7 @@ export function StudyNoteLinkSubjectsDialog({
 
   const handleLink = async () => {
     if (selectedSubjects.size === 0) {
-      setError("Vyberte alespoň jeden předmět")
+      setError("Vyberte aspoň jeden předmět.")
       return
     }
 
@@ -289,14 +289,14 @@ export function StudyNoteLinkSubjectsDialog({
       onUpdate()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nepodařilo se propojit s předměty")
+      setError(err instanceof Error ? err.message : "Nepodařilo se propojit zápis s předměty.")
     } finally {
       setLoading(false)
     }
   }
 
   const handleUnlink = async (subjectId: string, isFinalExam: boolean = false) => {
-    if (!confirm("Opravdu chcete odpojit tento zápis od vybraného předmětu?")) return
+    if (!confirm("Odpojit zápis od tohoto předmětu?")) return
 
     setLoading(true)
     setError(null)
@@ -308,7 +308,7 @@ export function StudyNoteLinkSubjectsDialog({
         const linkData = linkedFinalExamEntries.find((l: { final_exam_id: string }) => l.final_exam_id === subjectId)
 
         if (linkData?.is_primary) {
-          throw new Error("Nelze odpojit hlavní státní zkoušku")
+          throw new Error("Hlavní státní zkoušku nelze odpojit.")
         }
 
         await unlinkFinalExamFromNoteAction(note.id, subjectId)
@@ -318,7 +318,7 @@ export function StudyNoteLinkSubjectsDialog({
         const linkData = linkedSubjectEntries.find((l: { subject_id: string }) => l.subject_id === subjectId)
 
         if (linkData?.is_primary) {
-          throw new Error("Nelze odpojit hlavní předmět")
+          throw new Error("Hlavní předmět nelze odpojit.")
         }
 
         await unlinkSubjectFromNoteAction(note.id, subjectId)
@@ -326,7 +326,7 @@ export function StudyNoteLinkSubjectsDialog({
 
       onUpdate()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nepodařilo se odpojit od předmětu")
+      setError(err instanceof Error ? err.message : "Nepodařilo se odpojit zápis od předmětu.")
     } finally {
       setLoading(false)
     }
@@ -356,9 +356,9 @@ export function StudyNoteLinkSubjectsDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Propojení studijního zápisu s předměty</DialogTitle>
+          <DialogTitle>Propojit s předměty</DialogTitle>
           <DialogDescription>
-            Propojte tento zápis s dalšími předměty, aby se zobrazoval v jejich seznamech
+            Zápis se zobrazí i u propojených předmětů.
           </DialogDescription>
         </DialogHeader>
 
@@ -418,7 +418,7 @@ export function StudyNoteLinkSubjectsDialog({
           {availableSubjects.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">
-                Dostupné předměty pro propojení
+                Další předměty
                 {studyName && <span className="text-muted-foreground font-normal ml-2">({studyName})</span>}
               </Label>
               <ScrollArea className="h-[300px] border rounded-lg p-4">
@@ -438,7 +438,7 @@ export function StudyNoteLinkSubjectsDialog({
                       >
                         {subject.name}
                         <span className="text-muted-foreground ml-2">
-                          {subject.is_final_exam ? "(Státní zkouška)" : `(${subject.semester}. semestr)`}
+                          {subject.is_final_exam ? "(Státní zkouška)" : `(${subject.semester})`}
                         </span>
                       </Label>
                     </div>
@@ -451,7 +451,7 @@ export function StudyNoteLinkSubjectsDialog({
           {availableSubjects.length === 0 && allLinkedItems.length === 0 && (
             <Alert>
               <AlertDescription>
-                Nejsou dostupné žádné další předměty pro propojení.
+                Žádné další předměty k propojení
               </AlertDescription>
             </Alert>
           )}
@@ -468,7 +468,7 @@ export function StudyNoteLinkSubjectsDialog({
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               <Link className="h-4 w-4 mr-2" />
-              Propojit vybrané předměty
+              Propojit vybrané
             </Button>
           )}
         </div>

@@ -12,7 +12,7 @@ export async function createTask(data: Record<string, any>) {
     const doc = await db.createTask(data)
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
-    return { data: null, error: { message: err?.message || "Unknown error" } }
+    return { data: null, error: { message: err?.message || "Nepodařilo se vytvořit úkol." } }
   }
 }
 
@@ -21,7 +21,7 @@ export async function updateTaskAction(id: string, data: Record<string, any>) {
     await db.updateTask(id, data)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se uložit úkol." } }
   }
 }
 
@@ -30,7 +30,7 @@ export async function deleteTaskAction(id: string) {
     await db.deleteTask(id)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se smazat úkol." } }
   }
 }
 
@@ -39,7 +39,7 @@ export async function toggleTaskCompleteAction(id: string, completed: boolean) {
     await db.updateTask(id, { completed_at: completed ? new Date().toISOString() : null })
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se uložit úkol." } }
   }
 }
 

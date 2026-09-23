@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Save } from "lucide-react"
 import {
@@ -89,15 +89,12 @@ export function HighSchoolSubjectForm({
       : await createSubject(data)
 
     if (result.error) {
-      setError(`Chyba při ukládání: ${result.error.message}`)
+      setError(`Nepodařilo se uložit předmět. ${result.error.message}`)
       setLoading(false)
       return
     }
 
-    toast({
-      title: isEdit ? "Předmět upraven" : "Předmět přidán",
-      description: `Předmět „${data.name}" byl úspěšně uložen.`,
-    })
+    toast({ title: isEdit ? "Předmět uložen" : "Předmět přidán" })
     onSuccess()
   }
 
@@ -105,11 +102,8 @@ export function HighSchoolSubjectForm({
     <>
       <DialogHeader>
         <DialogTitle className="text-2xl font-bold text-foreground">
-          {isEdit ? "Upravit předmět" : "Přidat nový předmět"}
+          {isEdit ? "Upravit předmět" : "Přidat předmět"}
         </DialogTitle>
-        <DialogDescription className="sr-only">
-          Vyplňte název předmětu a známky za jednotlivá pololetí.
-        </DialogDescription>
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="space-y-6 p-1">
@@ -146,14 +140,13 @@ export function HighSchoolSubjectForm({
               id="hs-lecturer"
               value={lecturer}
               onChange={(e) => setLecturer(e.target.value)}
-              placeholder="jméno vyučujícího"
             />
           </div>
         </div>
 
         {/* Per-pololetí grades */}
         <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
-          <Label className="text-sm font-medium">Známky za jednotlivá pololetí</Label>
+          <Label className="text-sm font-medium">Známky za pololetí</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {periods.map((period) => (
               <div key={period.key} className="space-y-1">
@@ -168,7 +161,7 @@ export function HighSchoolSubjectForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_GRADE}>—</SelectItem>
+                    <SelectItem value={NO_GRADE}>–</SelectItem>
                     {HS_GRADE_VALUES.map((grade) => (
                       <SelectItem key={grade} value={grade}>
                         {grade} – {hsGradeLabel(grade)}
@@ -191,7 +184,7 @@ export function HighSchoolSubjectForm({
             className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
           >
             <Save className="mr-2 h-4 w-4" />
-            {loading ? "Ukládání..." : "Uložit předmět"}
+            {loading ? "Ukládání…" : "Uložit předmět"}
           </Button>
         </div>
       </form>

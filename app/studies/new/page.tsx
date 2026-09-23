@@ -12,7 +12,7 @@ export default function NewStudyPage() {
 
   // Set document title
   useEffect(() => {
-    document.title = "Nové studium - Sledování studií"
+    document.title = "Nové studium – Sledování studií"
   }, [])
 
   if (status === "loading") {

@@ -50,14 +50,11 @@ export function Dashboard({ user }: DashboardProps) {
     setExporting(true)
     try {
       await exportStudiesToExcel()
-      toast({
-        title: "Export úspěšný",
-        description: "Excel soubor byl úspěšně stažen.",
-      })
+      toast({ title: "Export dokončen" })
     } catch (error) {
       console.error("Export failed:", error)
       toast({
-        title: "Export selhal",
+        title: "Export se nepodařil",
         description: error instanceof Error ? error.message : "Nepodařilo se exportovat data.",
         variant: "destructive",
       })
@@ -105,7 +102,7 @@ export function Dashboard({ user }: DashboardProps) {
                 size="sm"
                 onClick={handleExport}
                 disabled={exporting || studies.length === 0}
-                title="Export studií do Excelu"
+                title="Exportovat do Excelu"
               >
                 {exporting ? (
                   <Settings className="h-4 w-4 animate-spin" />
@@ -117,11 +114,11 @@ export function Dashboard({ user }: DashboardProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowCacheSettings(true)}
-                title="Nastavení OneDrive cache"
+                title="Záloha souborů z OneDrive"
               >
                 <HardDrive className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <Button variant="ghost" size="sm" onClick={handleSignOut} title="Odhlásit se" aria-label="Odhlásit se">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -170,7 +167,7 @@ export function Dashboard({ user }: DashboardProps) {
 
         {/* Studies List */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Vaše studia</h2>
+          <h2 className="text-2xl font-bold text-foreground">Studia</h2>
           <Button
             onClick={() => router.push("/studies/new")}
             className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
@@ -199,8 +196,7 @@ export function Dashboard({ user }: DashboardProps) {
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="text-center py-12">
               <GraduationCap className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Zatím nemáte žádná studia</h3>
-              <p className="text-muted-foreground mb-6">Začněte přidáním vašeho prvního studia</p>
+              <h3 className="text-lg font-medium text-foreground mb-6">Zatím nemáte žádná studia</h3>
               <Button
                 onClick={() => router.push("/studies/new")}
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
@@ -246,6 +242,7 @@ export function Dashboard({ user }: DashboardProps) {
                         router.push(`/studies/${study.id}/edit`)
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                      aria-label="Upravit studium"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>

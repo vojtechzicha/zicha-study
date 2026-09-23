@@ -119,7 +119,7 @@ interface SyncResult {
 export async function syncAllToCache(): Promise<SyncResult> {
   const config = await getCacheFolderConfig()
   if (!config?.cache_folder_id) {
-    return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Cache folder not configured"] }
+    return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Složka pro zálohy není nastavená."] }
   }
 
   const result: SyncResult = { total: 0, synced: 0, failed: 0, skipped: 0, errors: [] }
@@ -145,7 +145,7 @@ export async function syncAllToCache(): Promise<SyncResult> {
       const { exists } = await checkFileExists(onedriveId)
       if (!exists) {
         result.skipped++
-        result.errors.push(`${collectionName}/${docId}: original file no longer exists in OneDrive`)
+        result.errors.push(`${collectionName}/${docId}: původní soubor už v OneDrive není`)
         continue
       }
 
@@ -179,7 +179,7 @@ export async function syncAllToCache(): Promise<SyncResult> {
               await db.updateSubjectMaterial(docId, { cache_public_share_url: shareUrl })
             }
           } catch {
-            result.errors.push(`${collectionName}/${docId}: cached but share link creation failed`)
+            result.errors.push(`${collectionName}/${docId}: zálohováno, ale nepodařilo se vytvořit veřejný odkaz`)
           }
         }
 
@@ -187,7 +187,7 @@ export async function syncAllToCache(): Promise<SyncResult> {
       } catch (error) {
         result.failed++
         result.errors.push(
-          `${collectionName}/${docId}: ${error instanceof Error ? error.message : "unknown error"}`
+          `${collectionName}/${docId}: ${error instanceof Error ? error.message : "neznámá chyba"}`
         )
       }
 
@@ -207,7 +207,7 @@ export async function syncAllToCache(): Promise<SyncResult> {
 export async function syncByFilename(): Promise<SyncResult> {
   const config = await getCacheFolderConfig()
   if (!config?.cache_folder_id) {
-    return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Cache folder not configured"] }
+    return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Složka pro zálohy není nastavená."] }
   }
 
   const result: SyncResult = { total: 0, synced: 0, failed: 0, skipped: 0, errors: [] }
@@ -241,7 +241,7 @@ export async function syncByFilename(): Promise<SyncResult> {
       if (!found) {
         result.skipped++
         result.errors.push(
-          `${collectionName}/${docId}: "${fileName}" not found in OneDrive`
+          `${collectionName}/${docId}: „${fileName}“ v OneDrive není`
         )
         // Rate limit between search requests
         await new Promise((resolve) => setTimeout(resolve, 300))
@@ -295,7 +295,7 @@ export async function syncByFilename(): Promise<SyncResult> {
               await db.updateSubjectMaterial(docId, { cache_public_share_url: shareUrl })
             }
           } catch {
-            result.errors.push(`${collectionName}/${docId}: cached but share link failed`)
+            result.errors.push(`${collectionName}/${docId}: zálohováno, ale nepodařilo se vytvořit veřejný odkaz`)
           }
         }
 
@@ -303,7 +303,7 @@ export async function syncByFilename(): Promise<SyncResult> {
       } catch (error) {
         result.failed++
         result.errors.push(
-          `${collectionName}/${docId}: ${error instanceof Error ? error.message : "unknown error"}`
+          `${collectionName}/${docId}: ${error instanceof Error ? error.message : "neznámá chyba"}`
         )
       }
 

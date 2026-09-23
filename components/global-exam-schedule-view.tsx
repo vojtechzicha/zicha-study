@@ -20,6 +20,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import type { ScheduleItem, GlobalScheduleResult, GlobalScheduleComparison } from "@/lib/exam-scheduler"
+import { czPlural } from "@/lib/utils/task-format"
 
 interface GlobalExamScheduleViewProps {
   comparison: GlobalScheduleComparison
@@ -112,15 +113,15 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
             </div>
             <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/40 rounded-lg">
               <p className="text-xl font-semibold text-orange-700 dark:text-orange-300">{formatCurrency(result.breakdown.travelCost)}</p>
-              <p className="text-sm text-muted-foreground">{result.breakdown.travelTrips} cest</p>
+              <p className="text-sm text-muted-foreground">{result.breakdown.travelTrips} {czPlural(result.breakdown.travelTrips, "cesta", "cesty", "cest")}</p>
             </div>
             <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/40 rounded-lg">
               <p className="text-xl font-semibold text-purple-700 dark:text-purple-300">{formatCurrency(result.breakdown.accommodationCost)}</p>
-              <p className="text-sm text-muted-foreground">{result.breakdown.accommodationNights} nocí</p>
+              <p className="text-sm text-muted-foreground">{result.breakdown.accommodationNights} {czPlural(result.breakdown.accommodationNights, "noc", "noci", "nocí")}</p>
             </div>
             <div className="text-center p-3 bg-green-50 dark:bg-green-950/40 rounded-lg">
               <p className="text-xl font-semibold text-green-700 dark:text-green-300">{result.breakdown.examCount}</p>
-              <p className="text-sm text-muted-foreground">zkoušek</p>
+              <p className="text-sm text-muted-foreground">{czPlural(result.breakdown.examCount, "zkouška", "zkoušky", "zkoušek")}</p>
             </div>
           </div>
           {result.breakdown.ptoDays > 0 && (
@@ -137,7 +138,7 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
                 <div key={s.studyId} className="flex items-center justify-between text-sm border-t pt-2">
                   <span className="font-medium text-foreground/80">{s.studyName}</span>
                   <span className="text-muted-foreground">
-                    {formatCurrency(s.totalCost)} · {s.examCount} zk. · {s.travelTrips} cest · {s.accommodationNights} nocí
+                    {formatCurrency(s.totalCost)} · {s.examCount} zk. · {s.travelTrips} {czPlural(s.travelTrips, "cesta", "cesty", "cest")} · {s.accommodationNights} {czPlural(s.accommodationNights, "noc", "noci", "nocí")}
                   </span>
                 </div>
               ))}
@@ -167,7 +168,7 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
 
       {result.truncated && (
         <p className="text-sm text-amber-700 dark:text-amber-300">
-          Prohledávání bylo zastaveno na limitu – zobrazené řešení je nejlepší nalezené, nemusí však být zcela optimální.
+          Prohledávání narazilo na limit. Zobrazené řešení je nejlepší nalezené, ale nemusí být optimální.
         </p>
       )}
 
@@ -222,7 +223,7 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
                             <div className="flex items-center gap-2 text-sm mt-1">
                               <Clock className="h-3 w-3" />
                               <span>
-                                {item.startTime} - {item.endTime}
+                                {item.startTime}–{item.endTime}
                               </span>
                               {item.exam.note && <span className="text-muted-foreground">• {item.exam.note}</span>}
                             </div>
@@ -281,12 +282,12 @@ export function GlobalExamScheduleView({ comparison }: GlobalExamScheduleViewPro
             <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-medium text-blue-900 dark:text-blue-200">
-                Bez zamčených termínů by šel rozvrh levněji
+                Bez zamčených termínů by rozvrh vyšel levněji
                 {savingsCost > 0 ? ` o ${formatCurrency(savingsCost)}` : ""}.
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                Závazný rozvrh respektuje vaše zamčené termíny ({formatCurrency(forced.totalCost)}). Optimální rozvrh
-                ignoruje zámky ({formatCurrency(optimal.totalCost)}).
+                Závazný rozvrh počítá se zamčenými termíny ({formatCurrency(forced.totalCost)}), optimální je
+                ignoruje ({formatCurrency(optimal.totalCost)}).
               </p>
               <div className="flex gap-2 mt-3">
                 <Button

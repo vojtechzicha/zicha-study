@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Folder, ChevronRight } from "lucide-react"
+import { czPlural } from "@/lib/utils/task-format"
 import type { OneDriveFolderItem, FolderPathHistoryItem, MaterialsRootFolder } from "@/lib/types/onedrive"
 
 interface FolderPickerProps {
@@ -25,8 +26,8 @@ export function FolderPicker({
   open,
   onOpenChange,
   onFolderSelect,
-  title = "Vyberte složku pro materiály",
-  description = "Vyberte složku z vašeho OneDrive, která bude výchozí pro materiály tohoto studia"
+  title = "Vyberte výchozí složku",
+  description = "Výběr souboru z OneDrive se bude otevírat v této složce."
 }: FolderPickerProps) {
   const [availableFolders, setAvailableFolders] = useState<OneDriveFolderItem[]>([])
   const [folderPickerLoading, setFolderPickerLoading] = useState(false)
@@ -48,10 +49,10 @@ export function FolderPicker({
         const errorData = await response.json()
 
         if (errorData.needsReauth) {
-          throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
+          throw new Error("Přístup k OneDrive vypršel. Přihlaste se znovu.")
         }
 
-        throw new Error(errorData.error || "Nepodařilo se načíst složky z OneDrive")
+        throw new Error(errorData.error || "Nepodařilo se načíst složky z OneDrive.")
       }
 
       const { files } = await response.json()
@@ -69,7 +70,7 @@ export function FolderPicker({
       setAvailableFolders(folders)
       setCurrentFolderPath(path)
     } catch (err) {
-      setFolderPickerError(err instanceof Error ? err.message : "Nastala chyba při načítání složek")
+      setFolderPickerError(err instanceof Error ? err.message : "Nepodařilo se načíst složky z OneDrive.")
     } finally {
       setFolderPickerLoading(false)
     }
@@ -158,7 +159,7 @@ export function FolderPicker({
                 ))}
               </div>
             ) : availableFolders.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">Žádné složky nebyly nalezeny</p>
+              <p className="text-muted-foreground text-center py-8">Žádné složky</p>
             ) : (
               availableFolders.map((folder) => (
                 <div
@@ -172,7 +173,7 @@ export function FolderPicker({
                   >
                     <p className="font-medium truncate">{folder.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {folder.folder.childCount} položek
+                      {folder.folder.childCount} {czPlural(folder.folder.childCount, "položka", "položky", "položek")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

@@ -156,10 +156,10 @@ async function assertNoRepeatCycle(studyId: string, selfId: string, startId: str
   let cursor: string | null = startId
   while (cursor) {
     if (cursor === selfId) {
-      throw new Error("Repeat chain would create a cycle")
+      throw new Error("Opakování by vytvořilo cyklus.")
     }
     if (visited.has(cursor)) {
-      throw new Error("Repeat chain already contains a cycle")
+      throw new Error("Řetězec opakování už obsahuje cyklus.")
     }
     visited.add(cursor)
     const next = await c.findOne(
@@ -203,7 +203,7 @@ export async function deleteSubject(id: string) {
   )
   if (referenced) {
     const label = referenced.abbreviation ? `${referenced.abbreviation} – ${referenced.name}` : referenced.name
-    throw new Error(`Předmět nelze smazat, protože jej opakuje "${label}". Nejprve upravte nebo smažte opakování.`)
+    throw new Error(`Předmět nelze smazat, protože ho opakuje „${label}“. Nejdřív upravte nebo smažte opakování.`)
   }
   await db.collection("exam_options").deleteMany({ subject_id: id })
   await db.collection("exam_terms").deleteMany({ subject_id: id })

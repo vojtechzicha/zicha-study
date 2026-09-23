@@ -1,119 +1,102 @@
 # zicha-study
 
-A web application for tracking university and high-school studies, subjects, and academic progress.
+A personal tracker for university and high-school studies. You sign in with a Microsoft account. Data is stored in MongoDB Atlas, and study materials and notes come from OneDrive. The UI is in Czech.
 
-## Overview
+## Features
 
-zicha-study allows students to track their studies, manage subjects, monitor academic progress, and share their study plans publicly. It also supports study notes (DOCX files served via OneDrive), exam scheduling, and detailed statistics.
+- Studies of two kinds: university (bachelor's, master's, ...) and high school (Střední škola)
+- University subjects: semesters, credits, completion type, grades on the ECTS scale, credit-weighted average
+- High-school subjects: one grade per pololetí on the 1–5 scale, shown as a subjects × pololetí grid, unweighted average
+- Final exams: státní závěrečná zkouška (university) and maturitní zkouška (high school)
+- Statistics per study, and Excel export
+- Study materials and notes from OneDrive: DOCX files rendered as HTML, and read-only Obsidian vault notes
+- Markdown notes written in an in-app editor
+- Exam scheduler that finds a conflict-free set of exam dates across studies
+- Task list
+- Public, read-only sharing of a study, its materials and its notes
+- Colour theme taken from each study's logo, plus light and dark mode
 
-**Features:**
+The app is built for a single user. Any account that can sign in can see and edit all data, so restrict sign-in with `ALLOWED_EMAILS` in any deployment others can reach.
 
-- Create and manage multiple studies, both **university** and **high-school** (Střední škola) programs
-- Track university subjects with grades, credits, and completion status
-- Track high-school subjects across multiple years, with a grade per pololetí and a study-wide average
-- View detailed statistics and analytics
-- Share study plans publicly via unique URLs
-- Upload and display study notes from OneDrive (DOCX to HTML)
-- Exam scheduling with conflict detection
-- Final exams — Státní závěrečná zkouška (university) and Maturitní zkouška (high school)
-- Dynamic theming based on study logos
-- Responsive design with dark/light mode support
-- Post-deploy refresh hint: every build bakes in the commit SHA, and each tab compares its own against `GET /api/version` when it regains focus (plus a slow background interval). After a deploy, stale tabs show a toast asking to refresh, so a long-lived tab does not keep calling Server Actions from an old bundle.
+## Stack
 
-### Study kinds
+Next.js 16 (App Router), React 19, TypeScript, MongoDB Atlas, Auth.js (NextAuth v5) with Microsoft Entra ID, Tailwind CSS with shadcn/ui, Vitest. It is deployed on Vercel.
 
-The app supports two kinds of study, resolved from the study `type`:
+## Local setup
 
-- **University** (`Bakalářské`, `Magisterské`, …) — subjects are scoped to a semester, graded on the ECTS scale, and the average is **credit-weighted**.
-- **High school** (`Střední škola`) — a subject spans the whole study and carries a grade per **pololetí** (half-year) on the Czech **1–5** scale (where 5 = nedostatečný / fail). The study average is a plain **unweighted** arithmetic mean. Grades are displayed as a subjects × pololetí matrix on both the admin and public pages.
+You need:
 
-Kind-specific behavior is dispatched through component registries (see `components/subjects/`) and a terminology config (`lib/study-kind.ts`) rather than scattered conditionals; high-school grading logic lives in `lib/highschool/grades.ts`.
+- Node.js 20.9 or newer (required by Next.js 16) and pnpm
+- A MongoDB Atlas cluster
+- A Microsoft Entra ID app registration. See [docs/ONEDRIVE_OAUTH_SETUP.md](docs/ONEDRIVE_OAUTH_SETUP.md).
 
-## Tech Stack
+```bash
+git clone https://github.com/vojtechzicha/zicha-study.git
+cd zicha-study
+pnpm install
+cp .env.example .env.local   # then fill in the values
+pnpm dev                     # http://localhost:3000
+```
 
-- **Frontend:** Next.js, React, TypeScript
-- **Backend:** MongoDB Atlas
-- **Styling:** Tailwind CSS with shadcn/ui components
-- **Authentication:** NextAuth.js v5 + Microsoft Entra ID (personal accounts)
-- **Deployment:** Vercel
+If you have access to the Vercel project, `vercel env pull .env.local` fetches the environment variables instead.
 
-## Development
+### Environment variables
 
-### Prerequisites
+`.env.example` documents every variable. These are the ones you must set:
 
-- Node.js 18+ and pnpm
-- MongoDB Atlas account and cluster
-- Azure App Registration for Microsoft login and OneDrive integration
+| Variable | Purpose |
+| --- | --- |
+| `MONGODB_URI` | MongoDB Atlas connection string |
+| `AUTH_SECRET` | Signs and encrypts session tokens. Generate it with `openssl rand -base64 32`. |
+| `AUTH_MICROSOFT_ENTRA_ID_ID` | Application (client) ID of the Entra app |
+| `AUTH_MICROSOFT_ENTRA_ID_SECRET` | Client secret of the Entra app |
 
-### Setup
+These are optional:
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/vojtechzicha/zicha-study.git
-   cd zicha-study
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   pnpm install
-   ```
-
-3. **Environment setup:**
-   Copy `.env.example` to `.env.local` and fill in your credentials:
-   ```bash
-   cp .env.example .env.local
-   ```
-
-4. **Start development server:**
-   ```bash
-   pnpm dev
-   ```
-
-### Public share URLs
-
-Studies, materials, and study notes can be shared at public URLs. Two
-optional environment variables control how those URLs render in copy
-buttons and preview boxes:
-
-- `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` — when `true`, the study slug is
-  rendered as a subdomain (e.g. `https://newton.zicha.study/mat`).
-  Leave unset/`false` locally so previews stay on
-  `http://localhost:3001/<slug>`.
-- `NEXT_PUBLIC_SHARE_BASE_DOMAIN` — apex domain used for the subdomain
-  form, e.g. `zicha.study`.
-
-The middleware in `middleware.ts` rewrites incoming subdomain requests
-back to path form (and accepts deeper subdomain segments for
-back-compat), so the redirect target is unchanged regardless of how the
-link is presented. Any new code that builds a public URL must go through
-`getShareUrl()` in `lib/utils/share-url.ts` rather than concatenating
-`window.location.origin` manually.
-
-### Customize footer attribution
-
-Forks and third-party deployments should update the footer attribution before publishing. The visible name, profile image, attribution text, and footer home-link labels are centralized in [`lib/site-config.ts`](lib/site-config.ts).
-
-- Change `footerAttribution.name` to the deployer's name
-- Change `footerAttribution.imageSrc` to a file in `public/` such as `/profile.jpg`
-- Change `footerAttribution.description` for the short footer byline
-- Change `footerHomeLabel` and `publicFooterHomeLabel` if the deployment uses a different site name
-
-If you only want to replace the photo, keep `imageSrc` as `/profile.jpg` and replace `public/profile.jpg`.
+- `MONGODB_DB` (defaults to `zicha-study`)
+- `ALLOWED_EMAILS`
+- `AUTH_REDIRECT_PROXY_URL` (Vercel preview deployments only)
+- The share URL variables described below
+- Build metadata overrides
 
 ### Commands
 
 ```bash
-pnpm install     # Install dependencies
-pnpm dev         # Run development server
-pnpm build       # Build for production
-pnpm lint        # Run linting
-pnpm lint:fix    # Run linting with auto-fix
-pnpm test        # Run tests
+pnpm dev         # development server
+pnpm build       # production build
+pnpm start       # serve the production build
+pnpm lint        # ESLint
+pnpm lint:fix    # ESLint with auto-fix
+pnpm test        # Vitest in watch mode
+pnpm test:run    # Vitest, single run
 ```
+
+The production build ignores TypeScript errors (`typescript.ignoreBuildErrors` in `next.config.mjs`). Run `pnpm lint` and `pnpm exec tsc --noEmit` yourself.
+
+## Public share URLs
+
+Public pages live at `/<study-slug>` and `/<study-slug>/<material-or-note-slug>`. Two build-time variables control how the app displays these links in copy buttons and previews:
+
+- `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS`: set it to `true` to show the study slug as a subdomain, for example `https://newton.zicha.study/mat`.
+- `NEXT_PUBLIC_SHARE_BASE_DOMAIN`: the domain used in that form, for example `zicha.study`.
+
+Leave both unset locally. Links then use the current origin, such as `http://localhost:3000/newton/mat`.
+
+When someone opens a subdomain link, `middleware.ts` answers with a 308 redirect to the path form on the main domain. It also accepts older multi-level links such as `mat.newton.zicha.study`. The domain `zicha.study` is hard-coded in `middleware.ts`, so a fork with its own domain must change it there too.
+
+Code that builds a public link must call `getShareUrl()` from `lib/utils/share-url.ts`.
+
+## Footer attribution
+
+The footer shows an owner name, a profile photo, a short byline, and home-link labels. All of these are set in [`lib/site-config.ts`](lib/site-config.ts). Change them before you deploy a fork:
+
+- `footerAttribution.name`, `imageAlt` and `description`
+- `footerAttribution.imageSrc`: a path under `public/`, such as `/profile.jpg`. To change only the photo, replace `public/profile.jpg`.
+- `footerHomeLabel` and `publicFooterHomeLabel`
 
 ## Deployment
 
-The application is deployed on Vercel. See [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) for details.
+The app runs on Vercel. Production builds from `main`, and every pull request gets a preview deployment. [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) covers environment variables, sign-in on preview deployments, and the DNS setup for share URLs.
 
 ## License
 

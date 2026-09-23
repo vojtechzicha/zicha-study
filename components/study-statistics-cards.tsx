@@ -64,13 +64,13 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="text-center">
                     <div className="text-lg font-bold text-foreground">
-                      {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
+                      {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '–'}
                     </div>
                     <p className="text-xs text-muted-foreground">body</p>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-foreground">
-                      {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
+                      {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '–'}
                     </div>
                     <p className="text-xs text-muted-foreground">známky</p>
                   </div>
@@ -78,9 +78,9 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
               ) : (
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {stats.average.value ? stats.average.value.toFixed(2) : '-'}
+                    {stats.average.value ? stats.average.value.toFixed(2) : '–'}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">vážené kredity</p>
+                  <p className="text-xs text-muted-foreground mt-1">váženo kredity</p>
                 </div>
               )}
             </CardContent>
@@ -95,14 +95,14 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{stats.gpa.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground mt-1">ECTS přepočet</p>
+              <p className="text-xs text-muted-foreground mt-1">přepočet ze známek ECTS</p>
             </CardContent>
           </Card>
         )}
 
         <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Celkové hodiny</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Absolvované hodiny</CardTitle>
             <Clock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
@@ -203,7 +203,7 @@ function SimpleStatisticsCards({ stats, tasksSlot }: { stats: StudyStatistics; t
 
       <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Celkem kreditů</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Získané kredity</CardTitle>
           <Target className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
         </CardHeader>
         <CardContent>
@@ -223,23 +223,23 @@ function SimpleStatisticsCards({ stats, tasksSlot }: { stats: StudyStatistics; t
               <div className="space-y-2">
                 <div>
                   <div className="text-lg font-bold text-foreground">
-                    {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '-'}
+                    {stats.average.pointsValue ? stats.average.pointsValue.toFixed(2) : '–'}
                   </div>
-                  <p className="text-xs text-muted-foreground">body (vážené kredity)</p>
+                  <p className="text-xs text-muted-foreground">body</p>
                 </div>
                 <div>
                   <div className="text-lg font-bold text-foreground">
-                    {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '-'}
+                    {stats.average.gradeValue ? stats.average.gradeValue.toFixed(2) : '–'}
                   </div>
-                  <p className="text-xs text-muted-foreground">známky (vážené kredity)</p>
+                  <p className="text-xs text-muted-foreground">známky</p>
                 </div>
               </div>
             ) : (
               <div>
                 <div className="text-2xl font-bold text-foreground">
-                  {stats.average.value ? stats.average.value.toFixed(2) : '-'}
+                  {stats.average.value ? stats.average.value.toFixed(2) : '–'}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">průměr vážený kredity</p>
+                <p className="text-xs text-muted-foreground mt-1">váženo kredity</p>
               </div>
             )}
           </CardContent>

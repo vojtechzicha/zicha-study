@@ -6,13 +6,13 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.accessToken) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Nejste přihlášeni." }, { status: 401 })
     }
 
     const { onedriveId } = await request.json()
 
     if (!onedriveId) {
-      return NextResponse.json({ error: "OneDrive ID is required" }, { status: 400 })
+      return NextResponse.json({ error: "Chybí ID souboru v OneDrive." }, { status: 400 })
     }
 
     // Try to create a public share link for the OneDrive file
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: "Personal Microsoft accounts may not support anonymous file sharing. The file will still be accessible but may require Microsoft account login.",
+          error: "Nepodařilo se vytvořit veřejný odkaz. Osobní účty Microsoft nemusí anonymní sdílení podporovat.",
           fallback: true
         },
         { status: shareResponse.status }
@@ -65,13 +65,13 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof Error && error.message.includes('token')) {
       return NextResponse.json(
-        { error: error.message, needsReauth: true },
+        { error: "Přístup k OneDrive vypršel. Přihlaste se znovu.", needsReauth: true },
         { status: 401 }
       )
     }
 
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Nepodařilo se vytvořit veřejný odkaz." },
       { status: 500 }
     )
   }

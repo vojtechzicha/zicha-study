@@ -30,7 +30,7 @@ export async function ensureCacheSubfolder(
 ): Promise<string> {
   const config = await getCacheFolderConfig()
   if (!config?.cache_folder_id) {
-    throw new Error("Cache folder not configured")
+    throw new Error("Složka pro zálohy není nastavená.")
   }
 
   // Create or get study subfolder
@@ -205,7 +205,7 @@ async function createFolderIfNotExists(
     }
   }
 
-  throw new Error(`Failed to create or find folder: ${folderName}`)
+  throw new Error(`Nepodařilo se vytvořit ani najít složku „${folderName}“.`)
 }
 
 /**
@@ -228,7 +228,7 @@ export async function copyFileToCache(
   )
 
   if (!downloadResponse.ok) {
-    throw new Error(`Failed to download original file: ${downloadResponse.status}`)
+    throw new Error(`Nepodařilo se stáhnout původní soubor (${downloadResponse.status}).`)
   }
 
   const fileBuffer = await downloadResponse.arrayBuffer()
@@ -270,7 +270,7 @@ async function simpleUpload(
   )
 
   if (!response.ok) {
-    throw new Error(`Simple upload failed: ${response.status}`)
+    throw new Error(`Nepodařilo se nahrát zálohu (${response.status}).`)
   }
 
   const data = await response.json()
@@ -302,7 +302,7 @@ async function sessionUpload(
   )
 
   if (!sessionResponse.ok) {
-    throw new Error(`Failed to create upload session: ${sessionResponse.status}`)
+    throw new Error(`Nepodařilo se zahájit nahrávání zálohy (${sessionResponse.status}).`)
   }
 
   const sessionData = await sessionResponse.json()
@@ -327,14 +327,14 @@ async function sessionUpload(
     })
 
     if (!lastResponse.ok && lastResponse.status !== 202) {
-      throw new Error(`Chunk upload failed: ${lastResponse.status}`)
+      throw new Error(`Nepodařilo se nahrát část zálohy (${lastResponse.status}).`)
     }
 
     offset = end
   }
 
   if (!lastResponse) {
-    throw new Error("No upload response received")
+    throw new Error("Nahrávání zálohy nevrátilo odpověď.")
   }
 
   const data = await lastResponse.json()

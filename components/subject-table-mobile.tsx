@@ -252,7 +252,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
   if (semesterGroups.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Žádné předměty nenalezeny.
+        Žádné předměty
       </div>
     )
   }
@@ -306,7 +306,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                           {(() => {
                             const display = getCreditsAndHoursDisplayMobile(subject.credits, subject.hours)
 
-                            if (display.type === 'none') return "-"
+                            if (display.type === 'none') return "–"
 
                             if (display.type === 'both') {
                               return (
@@ -341,6 +341,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                                 e.stopPropagation()
                                 setMaterialsDialogSubject(subject)
                               }}
+                              aria-label="Zápisy a materiály"
                             >
                               <FolderOpen className="h-4 w-4" />
                             </Button>
@@ -357,6 +358,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                           size="sm"
                           onClick={() => handleStateChange(subject.id, "active")}
                           disabled={actionLoading[subject.id]}
+                          aria-label="Aktivovat předmět"
                         >
                           <Play className="h-4 w-4" />
                         </Button>
@@ -369,6 +371,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                               variant="ghost"
                               size="sm"
                               disabled={actionLoading[subject.id]}
+                              aria-label="Označit jako dokončený"
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
@@ -377,7 +380,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                             <AlertDialogHeader>
                               <AlertDialogTitle>Označit předmět jako dokončený?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Předmět &quot;{subject.name}&quot; bude označen jako dokončený s dnešním datem.
+                                Předmětu „{subject.name}“ se jako datum ukončení nastaví dnešek.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -398,6 +401,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditClick(subject)}
+                          aria-label="Upravit předmět"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -477,7 +481,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                               disabled={actionLoading[`${subject.id}_credit_completed`] || subject.credit_completed}
                             />
                           ) : (
-                            subject.credit_completed ? (isSubjectFailed(subject) ? <span className="text-sm">-</span> : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : <div className="w-4 h-4" />
+                            subject.credit_completed ? (isSubjectFailed(subject) ? <span className="text-sm">–</span> : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : <div className="w-4 h-4" />
                           )}
                           <span className="text-sm text-muted-foreground">Zápočet</span>
                         </div>
@@ -497,7 +501,7 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                               disabled={actionLoading[`${subject.id}_exam_completed`] || subject.exam_completed}
                             />
                           ) : (
-                            subject.exam_completed ? (isSubjectFailed(subject) ? <span className="text-sm">-</span> : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : <div className="w-4 h-4" />
+                            subject.exam_completed ? (isSubjectFailed(subject) ? <span className="text-sm">–</span> : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />) : <div className="w-4 h-4" />
                           )}
                           <span className="text-sm text-muted-foreground">Zkouška</span>
                         </div>

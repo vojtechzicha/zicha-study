@@ -42,10 +42,10 @@ export interface StudyTerminology {
   finalExamEmptyText: string
   finalExamLoadingText: string
   finalExamDeleteTitle: string
+  /** Subject noun at the start of a sentence: "Předmět SZZ" / "Maturitní předmět". */
+  finalExamSubjectNoun: string
   finalExamDialogAddTitle: string
   finalExamDialogEditTitle: string
-  finalExamDialogAddDescription: string
-  finalExamDialogEditDescription: string
   finalExamShortcutPlaceholder: string
   finalExamNamePlaceholder: string
   finalExamToggleLabel: string
@@ -65,17 +65,16 @@ export interface StudyTerminology {
 const UNIVERSITY_TERMINOLOGY: StudyTerminology = {
   finalExamsSectionTitle: 'Státní závěrečné zkoušky',
   finalExamAddButton: 'Přidat předmět SZZ',
-  finalExamEmptyText: 'Zatím nejsou přidány žádné předměty státní závěrečné zkoušky',
-  finalExamLoadingText: 'Načítání státních zkoušek...',
+  finalExamEmptyText: 'Zatím žádné předměty SZZ',
+  finalExamLoadingText: 'Načítání…',
   finalExamDeleteTitle: 'Smazat předmět SZZ?',
+  finalExamSubjectNoun: 'Předmět SZZ',
   finalExamDialogAddTitle: 'Přidat předmět SZZ',
   finalExamDialogEditTitle: 'Upravit předmět SZZ',
-  finalExamDialogAddDescription: 'Vyplňte informace o novém předmětu státní závěrečné zkoušky',
-  finalExamDialogEditDescription: 'Upravte informace o předmětu státní závěrečné zkoušky',
   finalExamShortcutPlaceholder: 'SZZ1',
   finalExamNamePlaceholder: 'např. Obhajoba diplomové práce',
   finalExamToggleLabel: 'Státní závěrečné zkoušky',
-  finalExamToggleDescription: 'Zobrazit sekci pro státní závěrečné zkoušky v tomto studiu',
+  finalExamToggleDescription: 'Zobrazí ve studiu sekci s předměty SZZ.',
   finalExamNoteBadge: 'SZZ',
   finalExamGrades: ['A', 'B', 'C', 'D', 'E', 'F', 'N'],
   diplomaNoun: 'Diplom',
@@ -86,17 +85,16 @@ const UNIVERSITY_TERMINOLOGY: StudyTerminology = {
 const HIGH_SCHOOL_TERMINOLOGY: StudyTerminology = {
   finalExamsSectionTitle: 'Maturitní zkouška',
   finalExamAddButton: 'Přidat maturitní předmět',
-  finalExamEmptyText: 'Zatím nejsou přidány žádné maturitní předměty',
-  finalExamLoadingText: 'Načítání maturitní zkoušky...',
+  finalExamEmptyText: 'Zatím žádné maturitní předměty',
+  finalExamLoadingText: 'Načítání…',
   finalExamDeleteTitle: 'Smazat maturitní předmět?',
+  finalExamSubjectNoun: 'Maturitní předmět',
   finalExamDialogAddTitle: 'Přidat maturitní předmět',
   finalExamDialogEditTitle: 'Upravit maturitní předmět',
-  finalExamDialogAddDescription: 'Vyplňte informace o novém maturitním předmětu',
-  finalExamDialogEditDescription: 'Upravte informace o maturitním předmětu',
   finalExamShortcutPlaceholder: 'ČJL',
   finalExamNamePlaceholder: 'např. Český jazyk a literatura',
   finalExamToggleLabel: 'Maturitní zkouška',
-  finalExamToggleDescription: 'Zobrazit sekci maturitní zkoušky v tomto studiu',
+  finalExamToggleDescription: 'Zobrazí ve studiu sekci s maturitními předměty.',
   finalExamNoteBadge: 'Maturita',
   finalExamGrades: ['1', '2', '3', '4', '5'],
   diplomaNoun: 'Vysvědčení',

@@ -75,7 +75,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Nastavení plánovače – {study.name}</DialogTitle>
         </DialogHeader>
@@ -84,11 +84,9 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
           <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
             <div className="space-y-0.5">
               <Label className="text-base font-medium">Plánovač zkoušek</Label>
-              <p className="text-sm text-muted-foreground">
-                {isActive
-                  ? "Zahrnout toto studium do plánovače zkoušek"
-                  : "Plánovač lze zapnout pouze u aktivního studia"}
-              </p>
+              {!isActive && (
+                <p className="text-sm text-muted-foreground">Plánovač lze zapnout jen u aktivního studia.</p>
+              )}
             </div>
             <Switch
               checked={form.exam_scheduler_enabled && isActive}
@@ -114,7 +112,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                       setForm({ ...form, transit_duration_hours: parseFloat(e.target.value) || EXAM_SCHEDULER_DEFAULTS.TRANSIT_DURATION_HOURS })
                     }
                   />
-                  <p className="text-xs text-muted-foreground">Jednosměrná cesta do školy</p>
+                  <p className="text-xs text-muted-foreground">Jedním směrem.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="earliest_arrival">Nejdřívější příjezd</Label>
@@ -125,7 +123,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                     onChange={(e) => setForm({ ...form, earliest_arrival_time: e.target.value })}
                     placeholder="08:50"
                   />
-                  <p className="text-xs text-muted-foreground">Kdy nejdříve můžete být ve škole (volitelné)</p>
+                  <p className="text-xs text-muted-foreground">Kdy nejdříve můžete být ve škole.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="transit_cost">Cena cesty (Kč)</Label>
@@ -136,7 +134,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                     value={form.transit_cost_one_way}
                     onChange={(e) => setForm({ ...form, transit_cost_one_way: parseInt(e.target.value) || 0 })}
                   />
-                  <p className="text-xs text-muted-foreground">Jednosměrná cesta</p>
+                  <p className="text-xs text-muted-foreground">Jedním směrem.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="accommodation_cost">Ubytování/noc (Kč)</Label>
@@ -147,7 +145,6 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                     value={form.accommodation_cost_per_night}
                     onChange={(e) => setForm({ ...form, accommodation_cost_per_night: parseInt(e.target.value) || 0 })}
                   />
-                  <p className="text-xs text-muted-foreground">Cena za noc u školy (0 = bez nákladů)</p>
                 </div>
               </div>
 
@@ -156,7 +153,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                   <div className="space-y-0.5 pr-4">
                     <Label className="text-sm font-medium">Upřednostnit volné dny</Label>
                     <p className="text-xs text-muted-foreground">
-                      Prezenční zkoušky v pracovní dny penalizovat, aby plánovač dal přednost volným dnům, pokud se to vyplatí.
+                      Prezenční zkouška v pracovní den znamená dovolenou. Plánovač takové termíny penalizuje a dá přednost volným dnům, pokud se to vyplatí.
                     </p>
                   </div>
                   <Switch
@@ -177,7 +174,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                         value={form.pto_day_cost}
                         onChange={(e) => setForm({ ...form, pto_day_cost: parseInt(e.target.value) || 0 })}
                       />
-                      <p className="text-xs text-muted-foreground">Vyšší hodnota = silnější preference volných dní.</p>
+                      <p className="text-xs text-muted-foreground">Čím vyšší cena, tím víc plánovač upřednostní volné dny.</p>
                     </div>
                     <div className="space-y-2">
                       <Label>Pracovní dny</Label>
@@ -205,7 +202,7 @@ export function SchedulerStudySettingsDialog({ open, onOpenChange, study, onSave
                           )
                         })}
                       </div>
-                      <p className="text-xs text-muted-foreground">Dny, kdy pracujete. Zkoušky v ostatní (volné) dny nejsou penalizovány.</p>
+                      <p className="text-xs text-muted-foreground">Zkoušky v ostatních dnech plánovač nepenalizuje.</p>
                     </div>
                   </div>
                 )}

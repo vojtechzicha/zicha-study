@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { updateSubject } from "@/lib/actions/subjects"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -90,7 +90,7 @@ export function SubjectCompletionModal({
     const result = await updateSubject(subject.id, updates)
 
     if (result.error) {
-      setError("Chyba při ukládání. Zkuste to prosím znovu.")
+      setError("Nepodařilo se uložit předmět.")
       setLoading(false)
     } else {
       onSuccess()
@@ -100,12 +100,9 @@ export function SubjectCompletionModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="sr-only">
-            Doplňte průběžné výsledky pro předmět {subject.name} a uložte splnění.
-          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -130,7 +127,6 @@ export function SubjectCompletionModal({
                 onChange={(e) => setFormData({ ...formData, points: e.target.value })}
                 min="0"
                 max="100"
-                placeholder="počet bodů"
               />
             </div>
           )}
@@ -196,7 +192,7 @@ export function SubjectCompletionModal({
               className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               <Save className="mr-2 h-4 w-4" />
-              {loading ? "Ukládání..." : "Uložit"}
+              {loading ? "Ukládání…" : "Uložit"}
             </Button>
           </div>
         </form>

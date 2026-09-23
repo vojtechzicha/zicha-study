@@ -33,7 +33,7 @@ export default function MarkdownNoteEditorPage({
       if (cancelled) return
 
       if (noteRes.error || !noteRes.data) {
-        setError("Zápis nenalezen")
+        setError("Zápis nebyl nalezen.")
         setLoading(false)
         return
       }
@@ -66,7 +66,7 @@ export default function MarkdownNoteEditorPage({
     return (
       <div className="flex min-h-screen flex-col">
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-muted-foreground">
-          <p>{error ?? "Zápis nenalezen"}</p>
+          <p>{error ?? "Zápis nebyl nalezen."}</p>
           <button className="text-primary-600 underline dark:text-primary-400" onClick={() => router.push(`/studies/${id}`)}>
             Zpět na studium
           </button>

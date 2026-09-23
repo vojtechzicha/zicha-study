@@ -3,7 +3,7 @@ import { fetchStudies } from '@/lib/actions/studies'
 import { fetchSubjectsByStudyId } from '@/lib/actions/subjects'
 import { fetchFinalExams } from '@/lib/actions/final-exams'
 import { getStudyStatusLabel, getStudyFormLabel, getGraduationResultLabel, type StudyStatus } from '@/lib/constants'
-import { sortStudiesByStatus } from '@/lib/status-utils'
+import { sortStudiesByStatus, getCzechSubjectsWord } from '@/lib/status-utils'
 import { getShareUrl } from '@/lib/utils/share-url'
 import { STUDY_KIND, resolveStudyKind, getStudyTerminology } from '@/lib/study-kind'
 import { calculateStudyStatistics, type StatisticsSubject } from '@/lib/utils/statistics-utils'
@@ -309,7 +309,7 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
   const subtitleParts = [
     study.type,
     getStudyFormLabel(study.form || ''),
-    `${study.start_year}–${study.end_year || '...'}`,
+    `${study.start_year}–${study.end_year || '…'}`,
     study.graduation_result ? getGraduationResultLabel(study.graduation_result) : null,
   ].filter(Boolean)
   const statusSpan = Math.min(2, numCols - 1)
@@ -352,7 +352,7 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
   const avg = overallAverage(hsSubjects)
   ws.mergeCells(r, 1, r, numCols)
   const statsCell = ws.getCell(r, 1)
-  statsCell.value = `${sorted.length} předmětů  •  studijní průměr ${avg !== null ? avg.toFixed(2) : '–'}`
+  statsCell.value = `${sorted.length} ${getCzechSubjectsWord(sorted.length)}  •  studijní průměr ${avg !== null ? avg.toFixed(2) : '–'}`
   statsCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
   statsCell.fill = solidFill(C.LIGHT_ACCENT)
   statsCell.alignment = { horizontal: 'center', vertical: 'middle' }
@@ -459,7 +459,7 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
   } else {
     ws.mergeCells(nextRow, 1, nextRow, numCols)
     const emptyCell = ws.getCell(nextRow, 1)
-    emptyCell.value = 'Pro toto studium nebyly nalezeny žádné předměty.'
+    emptyCell.value = 'Studium nemá žádné předměty.'
     emptyCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: C.SUBTLE } }
     emptyCell.alignment = { horizontal: 'center', vertical: 'middle' }
     ws.getRow(nextRow).height = 30
@@ -549,7 +549,7 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
 export async function exportStudiesToExcel() {
   const studies = sortStudiesByStatus((await fetchStudies()) as ExportStudy[])
   if (!studies || studies.length === 0) {
-    throw new Error('Nebyla nalezena žádná studia k exportu.')
+    throw new Error('Nejsou žádná studia k exportu.')
   }
 
   const workbook = new ExcelJS.Workbook()
@@ -636,7 +636,7 @@ export async function exportStudiesToExcel() {
     const subtitleParts = [
       study.type,
       getStudyFormLabel(study.form || ''),
-      `${study.start_year}–${study.end_year || '...'}`,
+      `${study.start_year}–${study.end_year || '…'}`,
       study.graduation_result ? getGraduationResultLabel(study.graduation_result) : null,
     ].filter(Boolean)
 
@@ -691,7 +691,7 @@ export async function exportStudiesToExcel() {
 
     ws.mergeCells(r, 1, r, NUM_COLS)
     const statsCell = ws.getCell(r, 1)
-    statsCell.value = `${stats.total} předmětů  \u2022  ${stats.completed} dokončeno  \u2022  ${stats.completedCredits}/${stats.totalCredits} kreditů`
+    statsCell.value = `${stats.total} ${getCzechSubjectsWord(stats.total)}  \u2022  ${stats.completed} dokončeno  \u2022  ${stats.completedCredits}/${stats.totalCredits} kreditů`
     statsCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
     statsCell.fill = solidFill(C.LIGHT_ACCENT)
     statsCell.alignment = { horizontal: 'center', vertical: 'middle' }
@@ -811,7 +811,7 @@ export async function exportStudiesToExcel() {
     } else {
       ws.mergeCells(nextRow, 1, nextRow, NUM_COLS)
       const emptyCell = ws.getCell(nextRow, 1)
-      emptyCell.value = 'Pro toto studium nebyly nalezeny žádné předměty.'
+      emptyCell.value = 'Studium nemá žádné předměty.'
       emptyCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: C.SUBTLE } }
       emptyCell.alignment = { horizontal: 'center', vertical: 'middle' }
       ws.getRow(nextRow).height = 30
