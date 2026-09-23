@@ -19,7 +19,7 @@ interface OneDriveFilePickerProps {
   onFileSelected: (_file: OneDriveFile) => void
   initialPath?: string
   initialPathName?: string
-  fileExtensions?: string[] // Optional filter for file extensions
+  fileExtensions?: string[]
   allowFolders?: boolean
 }
 
@@ -65,7 +65,6 @@ export function OneDriveFilePicker({
       if (!response.ok) {
         const errorData = await response.json()
         
-        // Handle authentication errors that need re-authentication
         if (errorData.needsReauth) {
           await signIn("microsoft-entra-id")
           return
@@ -76,7 +75,6 @@ export function OneDriveFilePicker({
 
       const { files } = await response.json()
       
-      // Filter files by extension if specified
       let filteredFiles = files
       if (fileExtensions && fileExtensions.length > 0 && !search) {
         filteredFiles = files.filter((file: OneDriveFile) => {
@@ -186,7 +184,6 @@ export function OneDriveFilePicker({
         </Alert>
       )}
 
-      {/* Search Bar */}
       <div className="flex min-w-0 gap-2">
         <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
@@ -208,7 +205,6 @@ export function OneDriveFilePicker({
         )}
       </div>
 
-      {/* Breadcrumb Navigation */}
       {!isSearching && (
         <div className="flex min-w-0 flex-wrap items-center gap-1 text-sm text-muted-foreground">
           {pathHistory.map((crumb, index) => (
@@ -228,7 +224,6 @@ export function OneDriveFilePicker({
         </div>
       )}
 
-      {/* File/Folder List */}
       <div className="max-h-96 min-w-0 space-y-1 overflow-y-auto pr-1">
         {loading ? (
           <div className="space-y-2">

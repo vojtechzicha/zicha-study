@@ -38,10 +38,9 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
       setError(null)
 
       try {
-        // Get all public study notes for this study (MongoDB has embedded linked_subjects/linked_final_exams)
+        // Links are embedded in each note (linked_subjects / linked_final_exams); resolve their names below
         const notesData = await fetchStudyNotes(studyId, true)
 
-        // Get all unique subject and final exam IDs from embedded arrays
         const subjectIds = new Set<string>()
         const finalExamIds = new Set<string>()
         notesData?.forEach((note: any) => {
@@ -53,7 +52,6 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
           })
         })
 
-        // Fetch subject details
         const subjectsMap = new Map<string, SubjectInfo>()
         if (subjectIds.size > 0) {
           const subjectsData = await fetchSubjectsByIds(Array.from(subjectIds)) as SubjectInfo[]
@@ -62,7 +60,6 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
           })
         }
 
-        // Fetch final exam details
         const finalExamsMap = new Map<string, FinalExamInfo>()
         if (finalExamIds.size > 0) {
           const finalExamsData = await fetchFinalExamsByIds(Array.from(finalExamIds)) as FinalExamInfo[]
@@ -71,7 +68,6 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
           })
         }
 
-        // Transform the data to include subject and final exam information
         const transformedNotes: StudyNoteWithSubjects[] = notesData?.map((note: any) => {
           const subjectItems = note.linked_subjects?.map((link: any): StudyNoteSubject | null => {
             const subject = subjectsMap.get(link.subject_id)
@@ -109,11 +105,10 @@ export function PublicStudyNotesSection({ studyId, study }: PublicStudyNotesSect
     loadStudyNotes()
   }, [studyId])
 
-  // Show only first 8 study notes in preview mode
   const displayedNotes = showAll ? studyNotes : studyNotes.slice(0, 8)
 
   if (studyNotes.length === 0 && !loading) {
-    return null // Don't show the section if there are no public study notes
+    return null
   }
 
   return (

@@ -103,7 +103,6 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Cost Summary */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -153,7 +152,6 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
         </CardContent>
       </Card>
 
-      {/* Schedule Timeline */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -244,7 +242,6 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
         </CardContent>
       </Card>
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-primary-100 dark:bg-primary-900/50 border border-primary-200 dark:border-primary-800"></div>

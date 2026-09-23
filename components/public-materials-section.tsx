@@ -46,11 +46,10 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
     loadMaterials()
   }, [studyId])
 
-  // Show only first 3 materials in preview mode
   const displayedMaterials = showAll ? materials : materials.slice(0, 3)
 
   if (materials.length === 0 && !loading) {
-    return null // Don't show the section if there are no public materials
+    return null
   }
 
   return (

@@ -98,7 +98,6 @@ export function StudyNotesDisplaySection({
         return
       }
 
-      // Get all unique subject and final exam IDs from denormalized arrays
       const subjectIds = new Set<string>()
       const finalExamIds = new Set<string>()
       notesData?.forEach((note) => {
@@ -110,7 +109,6 @@ export function StudyNotesDisplaySection({
         })
       })
 
-      // Fetch subject details
       type SubjectEntry = { id: string; name: string; study_id: string }
       const subjectsMap = new Map<string, SubjectEntry>()
       if (subjectIds.size > 0) {
@@ -120,7 +118,6 @@ export function StudyNotesDisplaySection({
         })
       }
 
-      // Fetch final exam details
       type FinalExamEntry = { id: string; name: string; shortcut?: string | null; study_id: string }
       const finalExamsMap = new Map<string, FinalExamEntry>()
       if (finalExamIds.size > 0) {
@@ -130,7 +127,6 @@ export function StudyNotesDisplaySection({
         })
       }
 
-      // Transform the data to include subject and final exam information
       const transformedNotes: StudyNoteWithSubjects[] = (notesData || []).map((note) => {
         const subjectItems = (note.linked_subjects || []).map((link) => {
           const subject = subjectsMap.get(link.subject_id)
@@ -172,10 +168,7 @@ export function StudyNotesDisplaySection({
   useEffect(() => {
     loadStudyNotes()
 
-    // Skip polling for public view
     if (isPublicView) return
-
-    // No cleanup needed for initial load
   }, [loadStudyNotes, isPublicView])
 
   // Refresh periodically when page is visible (only for private views)
@@ -239,10 +232,8 @@ export function StudyNotesDisplaySection({
     return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta)
   })
 
-  // Show only first 8 study notes in preview mode
   const displayedNotes = showAll ? filteredNotes : filteredNotes.slice(0, 8)
 
-  // Don't show the section if there are no notes and it's public view
   if (isPublicView && studyNotes.length === 0 && !loading) {
     return null
   }

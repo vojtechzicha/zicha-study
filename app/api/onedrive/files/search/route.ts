@@ -20,7 +20,6 @@ export async function GET(request: Request) {
     const graphResponse = await makeGraphRequest(graphUrl)
     const data = await graphResponse.json()
 
-    // Process search results - only return files, not folders
     const files = data.value.filter((item: any) =>
       item.file && (
         item.file.mimeType?.includes("pdf") ||

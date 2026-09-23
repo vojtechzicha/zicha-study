@@ -48,7 +48,6 @@ export function SubjectCompletionModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Determine current state based on subject properties
   const currentState = subject.planned ? "planned" : subject.completed ? "completed" : "active"
 
   const isCredit = completionType === "credit"
@@ -64,7 +63,6 @@ export function SubjectCompletionModal({
       [fieldName]: true,
     }
 
-    // Update points and grade if visible for current state
     if (isFieldVisibleForState("points", currentState) && formData.points) {
       updates.points = Number.parseInt(formData.points)
     }
@@ -72,13 +70,12 @@ export function SubjectCompletionModal({
       updates.grade = formData.grade
     }
 
-    // If marking as completed, update completion status and final_date
     if (formData.markAsCompleted) {
       updates.completed = true
       updates.planned = false
       updates.final_date = formData.final_date || new Date().toISOString().split('T')[0]
       
-      // Automatically mark credit and exam as completed if required
+      // Completing a subject implies its required credit/exam are done
       if (requiresCredit(subject.completion_type)) {
         updates.credit_completed = true
       }
@@ -116,7 +113,6 @@ export function SubjectCompletionModal({
             <strong>{subject.name}</strong>
           </div>
 
-          {/* Points */}
           {isFieldVisibleForState("points", currentState) && (
             <div className="space-y-2">
               <Label htmlFor="points">Počet bodů</Label>
@@ -131,7 +127,6 @@ export function SubjectCompletionModal({
             </div>
           )}
 
-          {/* Grade */}
           {isFieldVisibleForState("grade", currentState) && (
             <div className="space-y-2">
               <Label htmlFor="grade">Známka</Label>
@@ -144,7 +139,6 @@ export function SubjectCompletionModal({
             </div>
           )}
 
-          {/* Mark as Completed Option */}
           <div className="flex items-center space-x-2 p-3 border rounded-lg bg-primary-50 dark:bg-primary-950">
             <Checkbox
               id="markAsCompleted"
@@ -168,7 +162,6 @@ export function SubjectCompletionModal({
             </Label>
           </div>
 
-          {/* Final Date (if marking as completed) */}
           {formData.markAsCompleted && (
             <div className="space-y-2">
               <Label htmlFor="final_date">Datum ukončení *</Label>

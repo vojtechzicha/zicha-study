@@ -1,142 +1,122 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
-
-## Development Commands
+## Commands
 
 ```bash
-# Install dependencies (using pnpm)
 pnpm install
-
-# Run development server (port 3001)
-pnpm dev
-
-# Build for production
+pnpm dev          # http://localhost:3000
 pnpm build
-
-# Start production server
-pnpm start
-
-# Run linting
-pnpm lint
-
-# Run linting with auto-fix
+pnpm lint         # must stay clean
 pnpm lint:fix
+pnpm test:run     # Vitest, single run (pnpm test = watch mode)
+pnpm exec tsc --noEmit
 ```
 
-## Architecture Overview
+## Overview
 
-This is a Next.js 15 app with MongoDB Atlas backend for tracking university studies. The application uses:
+A personal tracker for university and high-school studies: Next.js 16 (App Router), React 19, TypeScript,
+MongoDB Atlas, Auth.js (NextAuth v5) with Microsoft Entra ID personal accounts, Tailwind + shadcn/ui, Vitest.
+Study materials and notes live in the user's OneDrive. The UI is in Czech. Deployed on Vercel.
 
-- **Next.js App Router** for pages and routing
-- **NextAuth.js v5** for authentication with Microsoft Entra ID (personal accounts)
-- **MongoDB Atlas** for database (single-user app, auth enforced by NextAuth middleware)
-- **Shadcn/ui** component library (47 pre-built components in components/ui/)
-- **TypeScript** throughout with path aliases (@/ prefix)
-- **Tailwind CSS** for styling with CSS variables
-- **Dynamic Theming** that extracts colors from study logos
-
-## Key Code Structure
+## Code map
 
 ```
-auth.ts                  # NextAuth.js v5 config (Microsoft Entra ID provider, JWT token refresh)
+auth.ts                   Auth.js config: Entra ID provider, ALLOWED_EMAILS check, token refresh
+middleware.ts             subdomain share links → 308 to path form; redirects signed-out users away from /studies, /tasks
 app/
-├── [slug]/              # Public study view (dynamic route)
-├── api/auth/[...nextauth]/ # NextAuth API route handler
-├── studies/             # Protected study management (guarded by middleware)
-│   ├── [id]/           # Individual study routes
-│   │   ├── edit/       # Edit study details
-│   │   ├── settings/   # Study settings
-│   │   └── statistics/ # Study analytics
-│   └── new/            # Create new study
-
+  [slug]/, [slug]/[materialSlug]/   public study, material and note pages
+  studies/[id]/{edit,settings,statistics,notes/[noteId]}, studies/new
+  tasks/, exam-scheduler/           cross-study tasks and the exam scheduler
+  api/                    auth, OneDrive (files, search, picker, share), study-note conversion + media,
+                          Markdown-note media, logos, diplomas, version
 components/
-├── ui/                  # Shadcn/ui components (don't modify)
-└── *.tsx               # Feature components
-
+  ui/                     shadcn/ui, don't modify
+  subjects/               per-kind (university / high school) subject lists, forms and statistics
+  markdown-notes/         TipTap editor for in-app Markdown notes
+  *.tsx                   feature components
 lib/
-├── mongodb/            # MongoDB Atlas connection and data access
-│   ├── connection.ts   # Cached MongoClient singleton (survives HMR)
-│   └── db.ts           # Server-side data access layer (typed async functions for all collections)
-├── actions/            # Next.js Server Actions (client-side data layer)
-│   ├── studies.ts      # Study CRUD operations
-│   ├── subjects.ts     # Subject CRUD operations
-│   ├── materials.ts    # Material and subject material operations
-│   ├── study-notes.ts  # Study notes + linked subjects/exams
-│   ├── final-exams.ts  # Final exam operations
-│   ├── exam-options.ts # Exam scheduler options
-│   └── logos.ts        # Logo upload/delete (stored as Binary in MongoDB)
-└── utils/
-    └── onedrive.ts     # OneDrive token from NextAuth session + Graph API helper
+  mongodb/connection.ts   cached MongoClient
+  mongodb/db.ts           all database access
+  actions/                Server Actions used by client components
+  exam-scheduler/         scheduling algorithm (with tests)
+  constants.ts            enums, labels and badge classes
+  study-kind.ts           university vs high-school terminology
+  highschool/grades.ts    1–5 grading
+  utils/                  OneDrive helpers and backup, share URLs, slugs, Excel export, note conversion
 ```
 
-## Database Schema
+## Data
 
-MongoDB Atlas collections (auth enforced by NextAuth middleware):
+MongoDB collections: `studies`, `subjects`, `final_exams`, `materials`, `subject_materials`, `study_notes`
+(Word, Obsidian and Markdown notes, told apart by `note_type`; linked subjects/exams are denormalized into
+`linked_subjects[]` / `linked_final_exams[]`), `study_notes_cache` and `study_notes_media` (converted HTML and
+images), `study_note_versions` and `markdown_note_media` (Markdown notes), `tasks`, `exam_periods`, `exam_terms`,
+`exam_options`, `app_settings`.
 
-- **studies**: User's university programs (_id, user_id, name, type, years, status, is_public, public_slug, logo_data, logo_mime_type)
-- **subjects**: Courses within studies (_id, study_id, name, semester, credits, subject_type, completion_type, grade, final_date, hours)
-- **final_exams**: State final exams (_id, study_id, name, shortcut, grade, exam_date)
-- **materials**: Study materials from OneDrive (_id, study_id, name, onedrive_id, is_public, public_slug)
-- **subject_materials**: Subject-specific materials (_id, study_id, subject_id, name, onedrive_id)
-- **study_notes**: DOCX study notes with denormalized linked_subjects[] and linked_final_exams[] arrays
-- **study_notes_cache**: Cached HTML conversions (_id, study_note_id, html_content)
-- **study_notes_media**: Extracted images stored as Binary (_id, cache_id, file_path, file_data)
-- **exam_options**: Exam scheduler options (_id, subject_id, date, start_time, duration_minutes)
+Data isn't scoped per user. It is a single-user app: `ALLOWED_EMAILS` in `auth.ts` decides who can sign in.
+Middleware only redirects signed-out users away from `/studies` and `/tasks`; Server Actions don't call `auth()`
+themselves (except in `lib/actions/markdown-notes.ts`).
 
-Note: study_note_subjects and study_note_final_exams join tables from PostgreSQL are denormalized into study_notes.linked_subjects[] and study_notes.linked_final_exams[] arrays.
+## Patterns
 
-## Important Patterns
+1. **Auth**: `useSession()` on the client, `auth()` on the server.
+2. **Data access**: `lib/mongodb/db.ts` in server components and API routes; Server Actions from `lib/actions/`
+   in client components. Never import the MongoDB driver in client code.
+3. **Forms**: controlled components with `useState` and a local `error` string (see `components/task-dialog.tsx`).
+4. **UI components**: reuse `components/ui/` before writing new ones.
+5. **Constants**: every enum-like value (study types, forms, statuses, subject and completion types) is defined
+   once in `lib/constants.ts` and imported. Many of these values are stored in MongoDB; never change a stored value
+   to fix wording, change its display label instead.
+6. **Study kinds**: kind-specific UI goes through the registries in `components/subjects/` and the terminology in
+   `lib/study-kind.ts`, not inline `if (highSchool)` checks.
+7. **Sharing dialogs** (materials, notes, study settings) look and read the same: max-width 500px, address input
+   with live availability check, preview box of the full address, gradient primary button, `dark:` variants.
+   Turning sharing off sets `public_slug` to `null`.
+8. **Share URLs**: build every public link (copy buttons, previews, exports) with `getShareUrl()` /
+   `getShareOrigin()` from `lib/utils/share-url.ts`, never from `window.location.origin`. In production they render
+   `https://<study>.zicha.study/<rest>`, locally `http://localhost:3000/<study>/<rest>`.
+9. **Footer attribution**: owner name, photo, byline and home-link labels come from `lib/site-config.ts`.
+10. **Commit attribution**: when Codex creates a commit, end it with the trailer
+    `Co-authored-by: codex <codex@openai.com>`, exactly.
 
-1. **Authentication**: All /studies/* routes require authentication via NextAuth.js middleware. Use `useSession()` on client, `auth()` on server.
-2. **Data Access**: Use `lib/mongodb/db.ts` functions directly in server components/API routes. Use Server Actions from `lib/actions/` in client components (never import MongoDB driver in client code).
-3. **Forms**: Use react-hook-form with zod validation (see existing forms for patterns)
-4. **UI Components**: Always check components/ui/ for existing components before creating new ones
-5. **Public Sharing**: Studies can be shared via public_slug at /[slug] routes
-6. **Constants**: ALWAYS use centralized constants from `lib/constants.ts` - never hardcode enum values across multiple files. This includes study types, forms, subject types, completion types, etc. All enum-like values must be defined once and imported everywhere.
-7. **Sharing Dialogs Design**: All sharing/publish dialogs (materials, study notes) must follow the same design pattern:
-   - Consistent dialog layout with max-width of 500px
-   - URL slug input with real-time validation and status messages
-   - Visual URL preview in a colored box (blue for valid, red for invalid)
-   - Gradient-styled action buttons (`from-primary-600 to-primary-700`)
-   - Both preview boxes and the dialog contents must have `dark:` variants (see Theming)
-   - Clear visual feedback for URL availability
-   - When disabling public access, clear the public_slug to null
-8. **Footer Attribution**: Use `lib/site-config.ts` for footer owner attribution, profile image path, byline, and footer home-link labels. Do not hardcode deployer-specific attribution in components.
-9. **Public Share URLs**: Always build shareable URLs (clipboard copies, preview boxes, exports) via `getShareUrl()` from `lib/utils/share-url.ts`. It honors `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` + `NEXT_PUBLIC_SHARE_BASE_DOMAIN` so production renders `https://<study>.zicha.study/<rest>` while local stays on `${window.location.origin}/<study>/<rest>`. Never concatenate `window.location.origin` manually for share URLs.
-10. **Commit Attribution**: When Codex creates a commit, use the repo's existing trailer format exactly: `Co-authored-by: codex <codex@openai.com>`. Do not use alternative generated-by wording.
+## UI text (Czech)
 
-## Development Notes
+- Short and plain. No descriptions that repeat a dialog or card title, no helper text that repeats a label, no
+  filler ("úspěšně", "prosím", "vaše"). Required fields are marked `*`; don't also mark optional ones.
+- Errors: "Nepodařilo se uložit předmět." Toasts: title only unless the description adds something.
+- Confirm dialogs: the title asks ("Smazat předmět?"), the description states the consequence
+  ("Předmět „X“ se trvale smaže.").
+- Loading labels: "Ukládání…", "Mazání…", "Načítání…".
+- Say "adresa", never "slug" or "URL adresa". Say "termín", not "deadline".
+- Typography: „…“ quotes, en dash for ranges and separators (`3–50`, `Úprava – X`), the `…` character,
+  a space before units (`5 MB`, `500 Kč`), correct plurals (`czPlural` in `lib/utils/task-format.ts`).
+- Icon-only buttons need an `aria-label`. When a dialog has no `DialogDescription`, pass
+  `aria-describedby={undefined}` to `DialogContent`.
 
-- The project uses ESLint for code quality with Next.js and TypeScript support
-- ESLint is configured with moderate rules to catch common issues without being overly strict
-- Build process ignores ESLint and TypeScript errors (configured in next.config.js)
-- Environment variables are stored in .env / .env.local (MONGODB_URI and MONGODB_DB required); `vercel env pull .env.local` fetches them
-- No test suite is configured
-- The project auto-syncs with v0.dev deployments
+## Study notes
 
-## Study Notes Feature
+Three kinds, all in `study_notes`:
+- **Word**: a DOCX on OneDrive, converted with Mammoth by `/api/study-notes/[slug]/convert`. HTML and extracted
+  images are cached in MongoDB and regenerated when the OneDrive file changes or with `?flush=1`.
+- **Obsidian**: a read-only Markdown file from an Obsidian vault on OneDrive (`lib/utils/obsidian-convert.ts`).
+- **Markdown**: written in the in-app TipTap editor (`components/markdown-notes/`), autosaved with version history.
 
-Study notes allow users to upload DOCX files to OneDrive and display them as beautifully formatted HTML with:
-- On-demand DOCX to HTML conversion using Mammoth.js (Vercel compatible)
-- Math expression rendering with KaTeX
-- Automatic table of contents generation
-- Image extraction and serving
-- Smart caching with OneDrive timestamp comparison
+Math renders with KaTeX; the table of contents is built from headings.
 
-### Architecture
-- API route `/api/study-notes/[slug]/convert` handles DOCX conversion
-- API route `/api/study-notes/[slug]/media/[...path]` serves extracted images
-- Converted HTML and media are cached in database for optimal performance
-- Client-side KaTeX rendering for math expressions
-- Regeneration triggered by OneDrive file changes or ?flush=1 parameter
+## OneDrive
 
-### OneDrive Token Management
-OneDrive access tokens are managed by NextAuth.js:
-- Microsoft OAuth tokens are stored in the NextAuth JWT
-- Token refresh is handled automatically in the `jwt` callback (60s before expiry)
-- Use `getOneDriveToken()` or `makeGraphRequest()` from `lib/utils/onedrive.ts` in API routes
-- The access token is exposed on the session via `session.accessToken`
+Microsoft tokens live in the Auth.js JWT and are refreshed in the `jwt` callback 60 s before expiry. The access
+token is on `session.accessToken`. In API routes use `getOneDriveToken()` / `makeGraphRequest()` from
+`lib/utils/onedrive.ts`. Added materials and notes are copied to a backup folder (`lib/utils/onedrive-cache.ts`,
+"Záloha souborů" in the UI) so public links survive deletion of the original.
+
+## Build and checks
+
+- `next.config.mjs` sets `typescript.ignoreBuildErrors`, so the build won't catch type errors. Run
+  `pnpm exec tsc --noEmit` and add no new errors. Don't edit `components/ui/` to fix type errors.
+- `pnpm lint` must show no errors, and preferably no warnings.
+- Vitest suites live next to the code (`*.test.ts`, `lib/exam-scheduler/__tests__/`).
+- Environment variables: `.env.local` (see `.env.example`); `vercel env pull .env.local` fetches them.
 
 ## Theming: Logo Palette + Dark Mode
 
@@ -276,6 +256,3 @@ content readable, no `bg-white`/`text-gray-*`/hex colours introduced (`grep -nP 
   <span className="bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300">Aktivní</span>
 </div>
 ```
-
-- No new typescript build errors should be added (change previous guidance, make sure we do not change UI components but add error labels)
-- Respect the linter. Is hould show no errors and preferrably no warnings.

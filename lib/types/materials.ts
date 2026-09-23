@@ -14,12 +14,10 @@ export interface Material {
   onedrive_download_url: string | null
   parent_path: string | null
   
-  // Additional metadata
   description: string | null
   category: string | null
   tags: string[] | null
   
-  // Public sharing
   is_public: boolean
   public_slug: string | null
   public_share_url: string | null
@@ -29,7 +27,6 @@ export interface Material {
   cache_onedrive_web_url: string | null
   cache_public_share_url: string | null
 
-  // Timestamps
   created_at: string
   updated_at: string
   last_modified_onedrive: string | null
@@ -52,12 +49,10 @@ export interface SubjectMaterial {
   onedrive_download_url: string | null
   parent_path: string | null
 
-  // Additional metadata
   description: string | null
   category: string | null
   tags: string[] | null
 
-  // Public sharing
   is_public: boolean
   public_slug: string | null
   public_share_url: string | null
@@ -67,7 +62,6 @@ export interface SubjectMaterial {
   cache_onedrive_web_url: string | null
   cache_public_share_url: string | null
 
-  // Timestamps
   created_at: string
   updated_at: string
   last_modified_onedrive: string | null

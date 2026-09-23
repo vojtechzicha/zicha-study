@@ -32,7 +32,6 @@ export function Dashboard({ user }: DashboardProps) {
 
   const loadStudies = useCallback(async () => {
     const data = await fetchStudies()
-    // Sort studies by status priority, then by created_at
     const sortedStudies = sortStudiesByStatus(data)
     setStudies(sortedStudies)
     setLoading(false)
@@ -73,7 +72,6 @@ export function Dashboard({ user }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
-      {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm border-b border-border/40 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 gap-2">
@@ -126,9 +124,7 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -165,7 +161,6 @@ export function Dashboard({ user }: DashboardProps) {
           </Card>
         </div>
 
-        {/* Studies List */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-foreground">Studia</h2>
           <Button
@@ -270,5 +265,4 @@ export function Dashboard({ user }: DashboardProps) {
   )
 }
 
-// Export both default and named export for compatibility
 export default Dashboard

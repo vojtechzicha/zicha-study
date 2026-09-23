@@ -32,10 +32,8 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
   const [notFound, setNotFound] = useState(false)
   const router = useRouter()
 
-  // Update favicon with study logo
   useFavicon(study?.logo_url)
 
-  // Update document title with study name
   useEffect(() => {
     if (study?.name) {
       document.title = `${study.name} – Sledování studií`

@@ -27,7 +27,6 @@ export function StudyStatisticsCards({ subjects, variant = "full", tasksSlot }: 
 function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
   return (
     <>
-      {/* Main Statistics Row */}
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${stats.gpa !== null ? "xl:grid-cols-5" : ""} gap-6 mb-8`}>
         <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -114,7 +113,6 @@ function FullStatisticsCards({ stats }: { stats: StudyStatistics }) {
         </Card>
       </div>
 
-      {/* Progress Overview Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>

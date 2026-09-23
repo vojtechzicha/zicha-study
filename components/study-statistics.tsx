@@ -48,15 +48,12 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
   const [departmentFilter, setDepartmentFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   
-  // Extract and apply theme colors from logo
   useLogoTheme(studyLogoUrl)
 
-  // Extract years and semesters for filtering
   const { years, semesters } = useMemo(() => {
     const semesterSet = new Set(subjects.map((s) => s.semester))
     const yearSet = new Set<string>()
 
-    // Extract years from semesters
     subjects.forEach((subject) => {
       const match = subject.semester.match(/(\d+)\.\s*ročník/i)
       if (match) {
@@ -64,7 +61,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
       }
     })
 
-    // Sort semesters properly (ZS before LS)
+    // ZS (winter) before LS (summer) within each year
     const sortedSemesters = Array.from(semesterSet).sort((a, b) => {
       const getSemesterOrder = (semester: string) => {
         const match = semester.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
@@ -94,10 +91,8 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
 
   const subjectTypes = getSubjectTypeOptions()
 
-  // Filter subjects based on selected filters
   const filteredSubjects = useMemo(() => {
     return subjects.filter((subject) => {
-      // Handle semester/year filtering
       if (semesterFilter !== "all") {
         if (semesterFilter.includes("ročník") && !semesterFilter.includes("ZS") && !semesterFilter.includes("LS")) {
           // Year filter - include both ZS and LS of that year
@@ -108,7 +103,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
             if (!subjectYearMatch || subjectYearMatch[1] !== year) return false
           }
         } else {
-          // Specific semester filter
           if (subject.semester !== semesterFilter) return false
         }
       }
@@ -119,10 +113,8 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     })
   }, [subjects, semesterFilter, departmentFilter, typeFilter])
 
-  // Calculate main statistics
   const stats = useMemo(() => calculateStudyStatistics(filteredSubjects), [filteredSubjects])
 
-  // Statistics by semester
   const semesterStats = useMemo(() => {
     const result: { [key: string]: ReturnType<typeof calculateSemesterStatistics> } = {}
     semesters.forEach((semester) => {
@@ -153,7 +145,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     return result
   }, [filteredSubjects, years])
 
-  // Statistics by department
   const departmentStats = useMemo(() => {
     const stats: { [key: string]: { total: number; completed: number; credits: number; hours: number; completionRate: number } } = {}
 
@@ -178,7 +169,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
     return stats
   }, [filteredSubjects, departments])
 
-  // Statistics by subject type
   const typeStats = useMemo(() => {
     const stats: { [key: string]: any } = {}
 
@@ -214,9 +204,7 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
         onBack={onBack}
       />
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
         <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg mb-8">
           <CardHeader>
             <CardTitle className="text-lg font-bold text-foreground">Filtry</CardTitle>
@@ -282,7 +270,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           </CardContent>
         </Card>
 
-        {/* Main Statistics */}
         <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${stats.gpa !== null ? "xl:grid-cols-5" : ""} gap-6 mb-8`}>
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -371,7 +358,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           )}
         </div>
 
-        {/* Progress Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
@@ -427,7 +413,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           </Card>
         </div>
 
-        {/* Year Overview (when showing all periods) */}
         {semesterFilter === "all" && years.length > 0 && (
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg mb-8">
             <CardHeader>
@@ -467,7 +452,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           </Card>
         )}
 
-        {/* Semester Breakdown */}
         {Object.keys(semesterStats).length > 0 && (
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg mb-8">
             <CardHeader>
@@ -523,7 +507,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           </Card>
         )}
 
-        {/* Department Breakdown */}
         {Object.keys(departmentStats).length > 0 && (
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg mb-8">
             <CardHeader>
@@ -561,7 +544,6 @@ export function StudyStatistics({ subjects, studyName, studyLogoUrl, onBack }: S
           </Card>
         )}
 
-        {/* Subject Type Breakdown */}
         {Object.keys(typeStats).length > 0 && (
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>

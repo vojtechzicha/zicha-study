@@ -16,8 +16,7 @@ export async function GET(
   }
 
   try {
-    // Get the study note by public slug and study_id; private notes are only
-    // served to an authenticated session (mirrors the convert route's auth)
+    // Private notes are only served to a signed-in session (same rule as the convert route)
     let note = await db.getPublicStudyNoteBySlug(slug, studyId || undefined)
 
     if (!note) {
@@ -33,7 +32,6 @@ export async function GET(
 
     const noteId = note._id as string
 
-    // Get the cache record
     const cache = await db.getStudyNotesCache(noteId)
 
     if (!cache) {
@@ -42,7 +40,7 @@ export async function GET(
 
     const cacheId = cache._id as string
 
-    // Construct the file path
+    // Accept paths with or without a leading "media/" segment
     let cleanedSegments = [...pathSegments]
     if (cleanedSegments[0] === 'media' && cleanedSegments.length > 1) {
       cleanedSegments = cleanedSegments.slice(1)
@@ -50,7 +48,6 @@ export async function GET(
 
     const filePath = `media/${cleanedSegments.join('/')}`
 
-    // Get the media file from database
     const mediaFile = await db.getMediaFile(cacheId, filePath)
 
     if (!mediaFile) {
@@ -58,10 +55,9 @@ export async function GET(
       return NextResponse.json({ error: "Media file not found" }, { status: 404 })
     }
 
-    // MongoDB Binary - extract the buffer directly
     let fileBuffer: Buffer
     if (mediaFile.file_data && typeof mediaFile.file_data === 'object' && 'buffer' in mediaFile.file_data) {
-      // MongoDB Binary type
+      // MongoDB Binary
       fileBuffer = Buffer.from(mediaFile.file_data.buffer)
     } else if (Buffer.isBuffer(mediaFile.file_data)) {
       fileBuffer = mediaFile.file_data
@@ -75,7 +71,6 @@ export async function GET(
       return NextResponse.json({ error: "Empty media file" }, { status: 500 })
     }
 
-    // Return the file with appropriate headers
     return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {

@@ -10,12 +10,10 @@ interface PageProps {
 export default async function PublicStudyPage({ params }: PageProps) {
   const { slug } = await params
 
-  // Check if the slug conflicts with reserved routes
   if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
     notFound()
   }
 
-  // Fetch study data
   const rawStudy = await db.getStudyBySlug(slug)
 
   if (!rawStudy) {
@@ -24,7 +22,6 @@ export default async function PublicStudyPage({ params }: PageProps) {
 
   const study = db.normalizeId(rawStudy)!
 
-  // Fetch subjects data
   const rawSubjects = await db.getSubjectsByStudyId(study.id)
   const subjects = db.normalizeIds(rawSubjects)
 
@@ -34,7 +31,6 @@ export default async function PublicStudyPage({ params }: PageProps) {
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
 
-  // Check if the slug conflicts with reserved routes
   if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
     return {
       title: "Stránka nenalezena – Sledování studií",

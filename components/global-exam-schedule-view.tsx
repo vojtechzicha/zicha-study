@@ -97,7 +97,6 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
 
   return (
     <div className="space-y-6">
-      {/* Cost summary */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -131,7 +130,6 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
             </p>
           )}
 
-          {/* Per-study breakdown */}
           {result.perStudy.length > 1 && (
             <div className="mt-4 space-y-2">
               {result.perStudy.map((s) => (
@@ -147,7 +145,6 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
         </CardContent>
       </Card>
 
-      {/* Unschedulable warnings */}
       {result.unschedulable.length > 0 && (
         <div className="p-4 bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800 rounded-lg">
           <div className="flex items-start gap-3">
@@ -172,7 +169,6 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
         </p>
       )}
 
-      {/* Timeline */}
       {result.items.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
@@ -275,7 +271,6 @@ export function GlobalExamScheduleView({ comparison }: GlobalExamScheduleViewPro
 
   return (
     <div className="space-y-4">
-      {/* Optimal-vs-forced banner */}
       {showComparison && (
         <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-start gap-3">

@@ -56,7 +56,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
   const { toast } = useToast()
   const { departments } = useDepartments(study.id)
 
-  // Fetch subjects that can be repeated
   useEffect(() => {
     const loadSubjects = async () => {
       const data = await fetchSubjectsForRepeatSelection(study.id)
@@ -70,7 +69,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
     setLoading(true)
     setError(null)
 
-    // Prepare insert data
     const insertData: any = {
       study_id: study.id,
       semester: formData.semester,
@@ -91,17 +89,14 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
       repeats_subject_id: formData.is_repeat && formData.repeats_subject_id ? formData.repeats_subject_id : null,
     }
 
-    // Set credit and exam completion based on state and completion type
     if (subjectState === "completed") {
-      // If completed, automatically mark credit and exam as completed if required
+      // Completing a subject implies its required credit/exam are done
       insertData.credit_completed = requiresCredit(formData.completion_type)
       insertData.exam_completed = requiresExam(formData.completion_type)
-      // Set final date to today if not provided
       if (!insertData.final_date) {
         insertData.final_date = new Date().toISOString().split('T')[0]
       }
     } else {
-      // Otherwise, start with both uncompleted
       insertData.credit_completed = false
       insertData.exam_completed = false
     }
@@ -109,7 +104,7 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
     const result = await createSubject(insertData)
 
     if (result.error) {
-      // Provide more specific error messages based on error code/message
+      // 23505 = duplicate key (Postgres code kept by lib/actions/subjects.ts)
       let errorMessage = "Nepodařilo se uložit předmět."
 
       if (result.error.code === "23505") {
@@ -140,7 +135,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
           </Alert>
         )}
 
-        {/* Basic Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="semester">Semestr *</Label>
@@ -301,7 +295,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
           />
         </div>
 
-        {/* Final Date for Completed Subjects */}
         {isFieldVisibleForState("final_date", subjectState) && (
           <div className="space-y-2">
             <Label htmlFor="final_date">Datum ukončení *</Label>
@@ -315,7 +308,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
           </div>
         )}
 
-        {/* Subject State Selector */}
         <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
           <Label className="text-sm font-medium">Stav předmětu</Label>
           <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
@@ -334,7 +326,6 @@ export function SubjectForm({ study, onClose, onSuccess }: SubjectFormProps) {
           </RadioGroup>
         </div>
 
-        {/* Repeat Subject Section */}
         <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
           <div className="flex items-center space-x-2">
             <Checkbox

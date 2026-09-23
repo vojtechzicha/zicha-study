@@ -124,7 +124,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   const [showScrollHint, setShowScrollHint] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Filter subjects based on selected filter
   const filteredSubjects = filter === "active"
     ? subjects.filter(s => !s.completed && !s.planned)
     : subjects
@@ -132,17 +131,14 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   // Group subjects by semester so each semester renders once under its own divider row
   const semesterGroups = groupSubjectsForDisplay(hideFilters ? subjects : filteredSubjects)
 
-  // Check if any subject has department or lecturer info
   const hasDetailInfo = subjects.some(s => s.department || s.lecturer)
 
-  // Check scroll position and update indicators
   const checkScroll = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
       setShowLeftIndicator(scrollLeft > 0)
       setShowRightIndicator(scrollLeft < scrollWidth - clientWidth - 1)
 
-      // Hide scroll hint after user has scrolled
       if (scrollLeft > 0) {
         setShowScrollHint(false)
       }
@@ -156,7 +152,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       container.addEventListener('scroll', checkScroll)
       window.addEventListener('resize', checkScroll)
 
-      // Hide scroll hint after 5 seconds
       const timer = setTimeout(() => {
         setShowScrollHint(false)
       }, 5000)
@@ -172,7 +167,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   const handleStateChange = async (subjectId: string, newState: SubjectState) => {
     setActionLoading({ ...actionLoading, [subjectId]: true })
 
-    // Find the subject to get its completion_type
     const subject = subjects.find(s => s.id === subjectId)
     if (!subject) return
 
@@ -181,11 +175,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       completed: newState === "completed",
     }
 
-    // If changing to completed, we need to set a final_date and mark credit/exam as completed
     if (newState === "completed") {
-      updates.final_date = new Date().toISOString().split('T')[0] // Today's date
+      updates.final_date = new Date().toISOString().split('T')[0]
 
-      // Automatically mark credit and exam as completed if required by completion type
+      // Completing a subject implies its required credit/exam are done
       if (requiresCredit(subject.completion_type)) {
         updates.credit_completed = true
       }
@@ -194,7 +187,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
       }
     }
 
-    // If changing away from completed, clear completion-related fields
     if (newState !== "completed") {
       updates.final_date = null
       updates.exam_completed = false
@@ -211,7 +203,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
   }
 
   const handleCheckboxChange = (subject: Subject, field: "credit_completed" | "exam_completed", _checked: boolean) => {
-    // Show completion modal when checking a checkbox
     setCompletionModalSubject(subject)
     setCompletionModalType(field === "credit_completed" ? "credit" : "exam")
     setCompletionModalOpen(true)
@@ -274,7 +265,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
 
   return (
     <div>
-      {/* Filter Buttons - only show when not hidden */}
       {!hideFilters && (
         <div className="flex gap-2 p-4 border-b">
           <Button
@@ -294,16 +284,13 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         </div>
       )}
 
-      {/* Mobile Card View */}
       <div className="lg:hidden">
         <div className="p-4">
           <SubjectTableMobile subjects={hideFilters ? subjects : filteredSubjects} loading={loading} onUpdate={onUpdate} study={study} examSchedulerEnabled={examSchedulerEnabled || study?.exam_scheduler_enabled} />
         </div>
       </div>
 
-      {/* Desktop Table View */}
       <div className="hidden lg:block relative">
-        {/* Scroll indicators - only show when scrolling is possible */}
         {showLeftIndicator && (
           <div className="absolute left-[250px] top-0 bottom-0 w-16 flex items-center pointer-events-none z-30">
             <div className="absolute inset-0 bg-gradient-to-r from-card via-card/90 to-transparent" />
@@ -317,7 +304,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           </div>
         )}
 
-        {/* Scroll hint that appears briefly */}
         {showScrollHint && showRightIndicator && (
           <div className="absolute right-[116px] top-1/2 -translate-y-1/2 animate-pulse pointer-events-none z-40">
             <div className="bg-primary-600 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1 shadow-lg">
@@ -352,7 +338,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
           </TableHeader>
         <TableBody>
           {loading ? (
-            // Skeleton loading rows
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={`skeleton-${index}`}>
                 <TableCell className="sticky left-0 z-20 bg-card min-w-[250px]">
@@ -396,7 +381,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
 
               return (
                 <Fragment key={group.semester}>
-                  {/* Semester divider row */}
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={hasDetailInfo ? 10 : 9} className="bg-primary-50 dark:bg-primary-950 border-y border-primary-200 dark:border-primary-800 p-0">
                       {/* Sticky wrapper keeps the label visible while the table scrolls horizontally */}
@@ -419,7 +403,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                         key={subject.id}
                         className={isSubjectFailed(subject) ? "group bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50" : "group"}
                       >
-                        {/* Subject */}
                         <TableCell className={`sticky left-0 z-20 min-w-[250px] ${isSubjectFailed(subject) ? STICKY_CELL_BG_FAILED : STICKY_CELL_BG}`}>
                           <div>
                             <div className="font-medium flex items-center gap-2">
@@ -436,7 +419,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           </div>
                         </TableCell>
 
-                        {/* Detail - Department and Lecturer */}
                         {hasDetailInfo && (
                           <TableCell className={`text-xs text-muted-foreground max-w-[200px] overflow-hidden pl-6 ${isSubjectFailed(subject) ? STICKY_CELL_BG_FAILED : STICKY_CELL_BG}`}>
                             {(subject.department || subject.lecturer) ? (
@@ -474,15 +456,12 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           </TableCell>
                         )}
 
-                        {/* Type */}
                         <TableCell>
                           {getSubjectTypeBadge(subject.subject_type)}
                         </TableCell>
 
-                        {/* Completion Type */}
                         <TableCell>{getCompletionBadge(subject.completion_type)}</TableCell>
 
-                        {/* Credits and Hours Combined */}
                         <TableCell className="whitespace-nowrap">
                           {(() => {
                             const display = getCreditsAndHoursDisplay(subject.credits, subject.hours)
@@ -508,7 +487,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           })()}
                         </TableCell>
 
-                        {/* Grade and Points Combined */}
                         <TableCell className="whitespace-nowrap">
                           {(() => {
                             const hasGrade = isFieldVisibleForState("grade", subjectState) && subject.grade
@@ -544,12 +522,10 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           })()}
                         </TableCell>
 
-                        {/* Final Date */}
                         <TableCell className="whitespace-nowrap">
                           {isFieldVisibleForState("final_date", subjectState) ? (formatDateCzech(subject.final_date) || "–") : "–"}
                         </TableCell>
 
-                        {/* Credit Completion */}
                         <TableCell>
                           {requiresCredit(subject.completion_type) ? (
                             availableActions.includes("toggleCredit") ? (
@@ -557,7 +533,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                 key={`${subject.id}-credit-${subject.credit_completed}`}
                                 checked={subject.credit_completed}
                                 onCheckedChange={(checked) => {
-                                  // Only allow checking if not already completed
+                                  // One-way: checking opens the completion modal, unchecking is ignored
                                   if (checked && !subject.credit_completed) {
                                     handleCheckboxChange(subject, "credit_completed", checked as boolean)
                                   }
@@ -578,7 +554,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           )}
                         </TableCell>
 
-                        {/* Exam Completion */}
                         <TableCell>
                           {requiresExam(subject.completion_type) ? (
                             availableActions.includes("toggleExam") ? (
@@ -586,7 +561,7 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                                 key={`${subject.id}-exam-${subject.exam_completed}`}
                                 checked={subject.exam_completed}
                                 onCheckedChange={(checked) => {
-                                  // Only allow checking if not already completed
+                                  // One-way: checking opens the completion modal, unchecking is ignored
                                   if (checked && !subject.exam_completed) {
                                     handleCheckboxChange(subject, "exam_completed", checked as boolean)
                                   }
@@ -607,10 +582,8 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                           )}
                         </TableCell>
 
-                        {/* Actions */}
                         <TableCell className={`sticky right-0 z-10 text-right ${isSubjectFailed(subject) ? STICKY_CELL_BG_FAILED : STICKY_CELL_BG}`}>
                           <div className="flex gap-1 justify-end">
-                            {/* Make Active */}
                             {availableActions.includes("makeActive") && (
                               <Button
                                 variant="ghost"
@@ -623,7 +596,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                               </Button>
                             )}
 
-                            {/* Mark Completed */}
                             {availableActions.includes("markCompleted") && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -657,7 +629,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                               </AlertDialog>
                             )}
 
-                            {/* Materials */}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -667,7 +638,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
                               <FolderOpen className="h-4 w-4" />
                             </Button>
 
-                            {/* Edit */}
                             {availableActions.includes("edit") && (
                               <Button
                                 variant="ghost"
@@ -692,7 +662,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         </div>
       </div>
 
-      {/* Edit Modal */}
       {editingSubject && (
         <SubjectEditForm
           subject={editingSubject}
@@ -703,7 +672,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         />
       )}
 
-      {/* Completion Modal */}
       {completionModalSubject && (
         <SubjectCompletionModal
           subject={completionModalSubject}
@@ -721,7 +689,6 @@ export function SubjectTable({ subjects, loading, onUpdate, hideFilters = false,
         />
       )}
 
-      {/* Subject Materials Dialog */}
       <SubjectMaterialsDialog
         subject={materialsDialogSubject}
         study={study}

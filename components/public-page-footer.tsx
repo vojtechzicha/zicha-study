@@ -17,11 +17,9 @@ export function PublicPageFooter({ studyName, studySlug }: PublicPageFooterProps
 
   return (
     <footer className="mt-16 pt-8 pb-6">
-      {/* Thin gradient divider */}
       <div className="mx-auto mb-8 h-px max-w-xs bg-gradient-to-r from-transparent via-primary-300 dark:via-primary-700 to-transparent" />
 
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-between">
-        {/* Author attribution */}
         <div className="flex items-center gap-3.5">
           <div className="relative h-9 w-9 overflow-hidden rounded-full ring-1 ring-primary-200/60 dark:ring-primary-800/60 shadow-sm">
             <Image
@@ -41,7 +39,6 @@ export function PublicPageFooter({ studyName, studySlug }: PublicPageFooterProps
           </div>
         </div>
 
-        {/* Navigation links */}
         <div className="flex items-center gap-4 text-sm">
           {studySlug && studyName && (
             <Link

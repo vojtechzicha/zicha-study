@@ -11,8 +11,7 @@
  *     university scale where 4 is the failing grade. The study average is a
  *     plain (unweighted) arithmetic mean, since high schools have no credits.
  *
- * University grading logic in `lib/grade-utils.ts` is intentionally left
- * untouched; the two scales never share code.
+ * University grading lives in `lib/grade-utils.ts`; the two scales never share code.
  */
 
 export interface HighSchoolGrade {

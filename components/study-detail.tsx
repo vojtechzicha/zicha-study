@@ -87,10 +87,8 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
   const [tasksError, setTasksError] = useState<string | null>(null)
   const router = useRouter()
   
-  // Extract and apply theme colors from logo
   useLogoTheme(currentStudy.logo_url)
   
-  // Update favicon with study logo
   useFavicon(currentStudy.logo_url)
 
   useEffect(() => {
@@ -109,7 +107,6 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
     const data = await fetchSubjectsByStudyId(study.id)
     setSubjects(data)
     setLoading(false)
-    // Trigger exam scheduler to reload exam options
     setExamSchedulerRefreshTrigger(prev => prev + 1)
   }
 
@@ -165,12 +162,10 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
         }
       />
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Diploma Showcase (only renders when study is completed and diploma uploaded) */}
+        {/* Renders only for completed studies with an uploaded diploma */}
         <DiplomaShowcase study={currentStudy} variant="compact" />
 
-        {/* Statistics Cards (with the collapsed tasks card when nothing is due) */}
         <StudyStatsCards
           study={currentStudy}
           subjects={subjects}
@@ -182,19 +177,16 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           }
         />
 
-        {/* Tasks Section (wide view whenever at least one task is listed) */}
         {tasksReady && !tasksCompact && (
           <div className="mb-8">
             <TasksSection studyId={study.id} tasks={tasks} error={tasksError} onReload={loadTasks} />
           </div>
         )}
 
-        {/* Materials Section */}
         <div className="mb-8">
           <MaterialsSection studyId={study.id} study={study} />
         </div>
 
-        {/* Study Notes Section */}
         <div className="mb-8">
           <StudyNotesDisplaySection 
             studyId={study.id} 
@@ -206,7 +198,6 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           />
         </div>
 
-        {/* Final Exams Section */}
         {currentStudy.final_exams_enabled && (
           <div className="mb-8">
             <FinalExamsList
@@ -218,8 +209,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           </div>
         )}
 
-        {/* Exam Scheduler Section (read-only summary; editing lives in the global planner) */}
-        {/* Only active studies participate in the scheduler. */}
+        {/* Read-only summary; periods are edited in the global planner */}
         {currentStudy.exam_scheduler_enabled && currentStudy.status === "active" && (
           <div className="mb-8">
             <StudyExamPeriodsSummary
@@ -230,7 +220,6 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           </div>
         )}
 
-        {/* Subjects Section */}
         <StudySubjectsAdmin study={currentStudy} subjects={subjects} loading={loading} onUpdate={fetchSubjects} />
       </main>
 

@@ -67,7 +67,6 @@ export function HighSchoolSubjectForm({
     setLoading(true)
     setError(null)
 
-    // Build the grades array from the per-period selections.
     let gradeArray: HighSchoolGrade[] = []
     for (const period of periods) {
       const value = grades[period.key]
@@ -144,7 +143,6 @@ export function HighSchoolSubjectForm({
           </div>
         </div>
 
-        {/* Per-pololetí grades */}
         <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
           <Label className="text-sm font-medium">Známky za pololetí</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

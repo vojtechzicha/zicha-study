@@ -31,7 +31,6 @@ export default function StudySettingsPage({ params }: { params: Promise<{ id: st
   const router = useRouter()
   useFavicon(study?.logo_url)
 
-  // Update document title with study name
   useEffect(() => {
     if (study?.name) {
       document.title = `Nastavení – ${study.name}`

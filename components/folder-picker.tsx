@@ -76,7 +76,6 @@ export function FolderPicker({
     }
   }, [])
 
-  // Load folders when dialog opens
   useEffect(() => {
     if (open) {
       setCurrentFolderPath("/drive/root:")
@@ -134,7 +133,6 @@ export function FolderPicker({
             </Alert>
           )}
 
-          {/* Breadcrumb Navigation */}
           <div className="flex items-center gap-1 text-sm text-muted-foreground overflow-x-auto">
             {folderPathHistory.map((crumb, index) => (
               <div key={index} className="flex items-center gap-1">

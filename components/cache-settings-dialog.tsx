@@ -156,7 +156,6 @@ export function CacheSettingsDialog({
               </Alert>
             )}
 
-            {/* Cache folder selection */}
             <div className="space-y-3">
               <Label className="text-base font-medium">Složka pro zálohy</Label>
 
@@ -189,7 +188,6 @@ export function CacheSettingsDialog({
               )}
             </div>
 
-            {/* Sync buttons */}
             <div className="space-y-3 pt-2 border-t">
               <Label className="text-base font-medium">
                 Doplnit zálohy

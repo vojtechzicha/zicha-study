@@ -3,7 +3,7 @@ import * as db from "@/lib/mongodb/db"
 import type { CacheFolderConfig } from "@/lib/types/onedrive"
 
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0"
-const SIMPLE_UPLOAD_MAX_SIZE = 4 * 1024 * 1024 // 4MB
+const SIMPLE_UPLOAD_MAX_SIZE = 4 * 1024 * 1024 // Graph's limit for a simple PUT upload
 type CacheDirectoryType = "materials" | "study-notes"
 
 /**
@@ -22,7 +22,7 @@ export async function getCacheFolderConfig(): Promise<CacheFolderConfig | null> 
 /**
  * Ensure the nested subfolder structure exists inside the cache root.
  * Structure: [Cache Root] / [studyId first 8 chars] / [type]
- * Returns the final folder ID.
+ * Returns the type folder's ID.
  */
 export async function ensureCacheSubfolder(
   studyId: string,
@@ -33,14 +33,12 @@ export async function ensureCacheSubfolder(
     throw new Error("Složka pro zálohy není nastavená.")
   }
 
-  // Create or get study subfolder
   const studyFolderName = studyId.substring(0, 8)
   const studyFolderId = await createFolderIfNotExists(
     config.cache_folder_id,
     studyFolderName
   )
 
-  // Create or get type subfolder
   const typeFolderId = await createFolderIfNotExists(studyFolderId, type)
 
   return typeFolderId
@@ -170,7 +168,8 @@ export async function deleteStudyCacheDirectory(studyId: string): Promise<void> 
 }
 
 /**
- * Create a folder inside a parent. If it already exists, return the existing one.
+ * Create a folder inside a parent (conflictBehavior "replace"). If the POST
+ * fails, fall back to an existing child folder with the same name.
  */
 async function createFolderIfNotExists(
   parentId: string,
@@ -193,7 +192,7 @@ async function createFolderIfNotExists(
     return data.id
   }
 
-  // If conflict (folder exists), find it by listing children
+  // POST failed: look for an existing folder with that name
   const listResponse = await makeGraphRequest(
     `${GRAPH_BASE}/me/drive/items/${parentId}/children?$filter=name eq '${folderName}'`
   )
@@ -209,9 +208,7 @@ async function createFolderIfNotExists(
 }
 
 /**
- * Copy a file to the cache directory.
- * Downloads from original, uploads to cache folder.
- * Returns { cacheOnedriveId, cacheWebUrl }.
+ * Copy a OneDrive file into the study's cache folder as `<docId>_<fileName>`.
  */
 export async function copyFileToCache(
   onedriveId: string,
@@ -222,7 +219,6 @@ export async function copyFileToCache(
 ): Promise<{ cacheOnedriveId: string; cacheWebUrl: string }> {
   const folderId = await ensureCacheSubfolder(studyId, type)
 
-  // Download original file content
   const downloadResponse = await makeGraphRequest(
     `${GRAPH_BASE}/me/drive/items/${onedriveId}/content`
   )
@@ -234,14 +230,11 @@ export async function copyFileToCache(
   const fileBuffer = await downloadResponse.arrayBuffer()
   const cacheFileName = `${docId}_${fileName}`
 
-  // Upload to cache folder
   let uploadData: { id: string; webUrl: string }
 
   if (fileBuffer.byteLength <= SIMPLE_UPLOAD_MAX_SIZE) {
-    // Simple upload for files <= 4MB
     uploadData = await simpleUpload(folderId, cacheFileName, fileBuffer)
   } else {
-    // Upload session for larger files
     uploadData = await sessionUpload(folderId, cacheFileName, fileBuffer)
   }
 
@@ -287,7 +280,6 @@ async function sessionUpload(
 ): Promise<{ id: string; webUrl: string }> {
   const encodedName = encodeURIComponent(fileName)
 
-  // Create upload session
   const sessionResponse = await makeGraphRequest(
     `${GRAPH_BASE}/me/drive/items/${folderId}:/${encodedName}:/createUploadSession`,
     {
@@ -308,7 +300,7 @@ async function sessionUpload(
   const sessionData = await sessionResponse.json()
   const uploadUrl = sessionData.uploadUrl
   const fileSize = buffer.byteLength
-  const chunkSize = 10 * 1024 * 1024 // 10MB chunks
+  const chunkSize = 10 * 1024 * 1024 // Graph requires chunks to be a multiple of 320 KiB
 
   let offset = 0
   let lastResponse: Response | null = null
@@ -342,8 +334,7 @@ async function sessionUpload(
 }
 
 /**
- * Update cache copy from original (when original is newer).
- * Downloads from original, replaces cache file content.
+ * Overwrite the cache copy's content with the original's current content.
  */
 export async function updateCacheFromOriginal(
   originalOnedriveId: string,
@@ -374,8 +365,7 @@ export async function updateCacheFromOriginal(
 }
 
 /**
- * Check if a file exists in OneDrive.
- * Returns existence status and last modified date.
+ * Any failed request (not just a 404) is reported as `exists: false`.
  */
 export async function checkFileExists(
   onedriveId: string
@@ -422,7 +412,7 @@ export async function createCacheShareLink(
     return shareData.link.webUrl
   }
 
-  // Fallback: for personal accounts that don't support anonymous sharing
+  // Personal accounts may not allow anonymous links; fall back to the item's webUrl
   const fileResponse = await makeGraphRequest(
     `${GRAPH_BASE}/me/drive/items/${cacheOnedriveId}`
   )
@@ -464,7 +454,6 @@ export async function findFileByPath(
 
       if (response.ok) {
         const data = await response.json()
-        // Make sure it's a file, not a folder
         if (data.file) {
           return {
             id: data.id,
@@ -475,7 +464,7 @@ export async function findFileByPath(
         }
       }
     } catch {
-      // Path lookup failed, try search
+      // Fall through to search
     }
   }
 
@@ -487,7 +476,7 @@ export async function findFileByPath(
 
     if (response.ok) {
       const data = await response.json()
-      // Find exact filename match
+      // search() is fuzzy; require an exact file name match
       const match = data.value?.find(
         (item: { name: string; file?: unknown }) =>
           item.name === fileName && item.file

@@ -104,7 +104,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
   const handleStateChange = async (subjectId: string, newState: SubjectState) => {
     setActionLoading({ ...actionLoading, [subjectId]: true })
 
-    // Find the subject to get its completion_type
     const subject = subjects.find(s => s.id === subjectId)
     if (!subject) return
 
@@ -113,11 +112,10 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
       completed: newState === "completed",
     }
 
-    // If changing to completed, we need to set a final_date and mark credit/exam as completed
     if (newState === "completed") {
-      updates.final_date = new Date().toISOString().split('T')[0] // Today's date
+      updates.final_date = new Date().toISOString().split('T')[0]
 
-      // Automatically mark credit and exam as completed if required by completion type
+      // Completing a subject implies its required credit/exam are done
       if (requiresCredit(subject.completion_type)) {
         updates.credit_completed = true
       }
@@ -126,7 +124,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
       }
     }
 
-    // If changing away from completed, clear completion-related fields
     if (newState !== "completed") {
       updates.final_date = null
       updates.exam_completed = false
@@ -143,7 +140,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
   }
 
   const handleCheckboxChange = (subject: Subject, field: "credit_completed" | "exam_completed", _checked: boolean) => {
-    // Show completion modal when checking a checkbox
     setCompletionModalSubject(subject)
     setCompletionModalType(field === "credit_completed" ? "credit" : "exam")
     setCompletionModalOpen(true)
@@ -208,7 +204,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
             key={`skeleton-${index}`}
             className="bg-card rounded-lg border p-4 space-y-3"
           >
-            {/* Header skeleton */}
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2">
@@ -227,7 +222,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
               </div>
             </div>
 
-            {/* Completion and Grades skeleton */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Skeleton className="h-3 w-16" />
@@ -239,7 +233,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
               </div>
             </div>
 
-            {/* Footer skeleton */}
             <div className="flex justify-end pt-2 border-t">
               <Skeleton className="h-5 w-20 rounded-full" />
             </div>
@@ -264,7 +257,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
 
         return (
           <div key={group.semester} className="space-y-3">
-            {/* Semester heading */}
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 px-3 py-2">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-700 dark:text-primary-300">
                 {getSemesterHeadingLabel(group.semester)}
@@ -284,7 +276,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                     isSubjectFailed(subject) ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800" : ""
                   }`}
                 >
-                  {/* Header */}
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -329,7 +320,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                       </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex gap-1 ml-2">
                       <TooltipProvider>
                         <Tooltip>
@@ -409,14 +399,12 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                     </div>
                   </div>
 
-                  {/* Detail Info */}
                   {(subject.department || subject.lecturer) && (
                     <div className="text-sm text-muted-foreground">
                       {[subject.department, subject.lecturer].filter(Boolean).join(' • ')}
                     </div>
                   )}
 
-                  {/* Completion and Grades */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Ukončení:</span>
@@ -464,7 +452,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                     )}
                   </div>
 
-                  {/* Completion Checkboxes */}
                   {(requiresCredit(subject.completion_type) || requiresExam(subject.completion_type)) && (
                     <div className="flex gap-4 pt-2 border-t">
                       {requiresCredit(subject.completion_type) && (
@@ -509,7 +496,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
                     </div>
                   )}
 
-                  {/* Status Badge */}
                   <div className="flex justify-end">
                     <Badge className={getSubjectStateColor(subjectState, subject, true)}>
                       {getSubjectStateText(subjectState, subject)}
@@ -522,7 +508,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
         )
       })}
 
-      {/* Edit Modal */}
       {editingSubject && (
         <SubjectEditForm
           subject={editingSubject}
@@ -533,7 +518,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
         />
       )}
 
-      {/* Completion Modal */}
       {completionModalSubject && (
         <SubjectCompletionModal
           subject={completionModalSubject}
@@ -551,7 +535,6 @@ export function SubjectTableMobile({ subjects, loading, onUpdate, study, examSch
         />
       )}
 
-      {/* Materials Dialog */}
       {materialsDialogSubject && (
         <SubjectMaterialsDialog
           subject={materialsDialogSubject}

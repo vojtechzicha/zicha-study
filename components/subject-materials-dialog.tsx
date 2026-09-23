@@ -212,7 +212,6 @@ export function SubjectMaterialsDialog({
 
   const handlePublicToggle = async (material: SubjectMaterial) => {
     if (!material.is_public) {
-      // Generate initial slug from material name
       const initialSlug = createSlug(material.name)
 
       setPublicDialogMaterial(material)
@@ -247,11 +246,9 @@ export function SubjectMaterialsDialog({
       let publicShareUrl = null
 
       if (isPublic) {
-        // Find the material to get its OneDrive ID
         const material = materials.find(m => m.id === materialId)
         if (!material) throw new Error("Materiál nebyl nalezen.")
 
-        // Generate public share link
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
           headers: {
@@ -265,7 +262,6 @@ export function SubjectMaterialsDialog({
         if (!response.ok) {
           const errorData = await response.json()
 
-          // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
             throw new Error("Přístup k OneDrive vypršel. Přihlaste se znovu.")
           }
@@ -363,7 +359,6 @@ export function SubjectMaterialsDialog({
                   </Alert>
                 )}
 
-                {/* Header with search and add button */}
                 <div className="flex items-center gap-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
@@ -383,7 +378,6 @@ export function SubjectMaterialsDialog({
                   </Button>
                 </div>
 
-                {/* Materials table */}
                 <div className="flex-1 overflow-auto border rounded-md">
               {loading ? (
                 <div className="space-y-4 p-4">
@@ -455,7 +449,6 @@ export function SubjectMaterialsDialog({
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {/* Direct OneDrive Link */}
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -471,7 +464,6 @@ export function SubjectMaterialsDialog({
                                 </a>
                               </Button>
 
-                              {/* Dropdown Menu */}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="sm" aria-label="Další akce">
@@ -539,7 +531,6 @@ export function SubjectMaterialsDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Add Material Dialog */}
       {subject && rootSubjectId && (
         <AddMaterialDialog
           studyId={subject.study_id}
@@ -550,7 +541,6 @@ export function SubjectMaterialsDialog({
         />
       )}
 
-      {/* Public Sharing Dialog */}
       <Dialog open={showPublicDialog} onOpenChange={setShowPublicDialog}>
         <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
@@ -579,7 +569,6 @@ export function SubjectMaterialsDialog({
                   required
                 />
               </div>
-              {/* Status Message - Always Visible */}
               {publicSlug && publicSlug.length >= 3 ? (
                 slugAvailable === false ? (
                   <p className="text-sm text-red-600 dark:text-red-400">Adresa je už obsazená</p>
@@ -596,7 +585,6 @@ export function SubjectMaterialsDialog({
               <p className="text-xs text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
             </div>
 
-            {/* URL Preview - Always Visible When Slug Exists */}
             {publicSlug && (
               <div className={`p-4 rounded-lg border ${
                 slugAvailable === true ? 'bg-primary-50 border-primary-200 dark:bg-primary-950 dark:border-primary-800' :

@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Chybí ID souboru v OneDrive." }, { status: 400 })
     }
 
-    // Try to create a public share link for the OneDrive file
     let shareResponse = await makeGraphRequest(
       `https://graph.microsoft.com/v1.0/me/drive/items/${onedriveId}/createLink`,
       {

@@ -82,7 +82,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
       study.working_days && study.working_days.length > 0
         ? study.working_days
         : [...DEFAULT_WORKING_DAYS],
-    // Convert HH:MM:SS to HH:MM for display, empty string if null
+    // Stored as HH:MM:SS; the time input expects HH:MM (empty when unset)
     earliest_arrival_time: study.earliest_arrival_time
       ? study.earliest_arrival_time.substring(0, 5)
       : "",
@@ -166,17 +166,14 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     try {
       let logoUrl: string | undefined = study.logo_url
 
-      // Upload new logo if provided
       if (logoFile) {
         const arrayBuffer = await logoFile.arrayBuffer()
         logoUrl = await uploadLogo(study.id, arrayBuffer, logoFile.type)
       } else if (logoPreview === null && study.logo_url) {
-        // Remove logo if user cleared it
         await removeLogoAction(study.id)
         logoUrl = undefined
       }
 
-      // Upload new diploma if provided
       if (diplomaFile) {
         const arrayBuffer = await diplomaFile.arrayBuffer()
         await uploadDiploma(study.id, arrayBuffer, diplomaFile.type)
@@ -191,7 +188,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
         graduation_result:
           formData.status === STUDY_STATUS.COMPLETED ? formData.graduation_result || null : null,
         logo_url: logoUrl,
-        // Store as null if empty, otherwise as time string
         earliest_arrival_time: formData.earliest_arrival_time || null,
         is_url: formData.is_url || null,
       })
@@ -212,7 +208,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     try {
       await deleteStudyAction(study.id)
 
-      // Navigate back to dashboard
       router.push("/")
     } catch (err) {
       console.error("Delete study error:", err)
@@ -244,7 +239,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </Alert>
               )}
 
-              {/* Logo Upload */}
               <div className="space-y-2">
                 <Label>Logo fakulty</Label>
                 <div className="flex items-start gap-4">
@@ -284,7 +278,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </div>
               </div>
 
-              {/* Study Name - Full Width */}
               <div className="space-y-2">
                 <Label htmlFor="name">Název studia *</Label>
                 <Input
@@ -370,7 +363,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                   </Select>
                 </div>
 
-                {/* Graduation result – only relevant once the study is completed */}
                 {formData.status === STUDY_STATUS.COMPLETED && (
                   <div className="space-y-2">
                     <Label htmlFor="graduation_result">Výsledek studia</Label>
@@ -397,7 +389,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 )}
               </div>
 
-              {/* Diploma Upload */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Award className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -458,7 +449,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </div>
               </div>
 
-              {/* IS URL */}
               <div className="space-y-2">
                 <Label htmlFor="is_url">Stránka studia v informačním systému</Label>
                 <Input
@@ -470,7 +460,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 />
               </div>
 
-              {/* Final Exams Toggle */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
@@ -491,7 +480,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </div>
               </div>
 
-              {/* Tasks Toggle */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
@@ -512,7 +500,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </div>
               </div>
 
-              {/* Exam Scheduler Toggle */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
@@ -533,7 +520,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                   />
                 </div>
 
-                {/* Scheduler Configuration - only show when enabled */}
                 {formData.exam_scheduler_enabled && formData.status === STUDY_STATUS.ACTIVE && (
                   <div className="p-4 border rounded-lg bg-primary-50/30 dark:bg-primary-950/40 space-y-4">
                     <p className="text-sm font-medium text-foreground/80">Doprava a ubytování</p>
@@ -597,7 +583,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       </div>
                     </div>
 
-                    {/* Free-day (weekend) preference */}
                     <div className="pt-2 border-t border-primary-100 dark:border-primary-900 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5 pr-4">
@@ -684,7 +669,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
               </div>
             </form>
 
-            {/* Danger Zone */}
             <div className="mt-8 pt-6 border-t border-border">
               <div className="p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-950/40">
                 <h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">Nebezpečná zóna</h3>

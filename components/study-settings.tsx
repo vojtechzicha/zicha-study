@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { checkSlugAvailability, updateStudy } from "@/lib/actions/studies"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
-import { getShareUrl } from "@/lib/utils/share-url"
+import { getShareUrl, getShareOrigin, isSubdomainShareEnabled } from "@/lib/utils/share-url"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -43,7 +43,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   
-  // Materials folder settings
   const [materialsRootFolder, setMaterialsRootFolder] = useState<MaterialsRootFolder>({
     id: study.materials_root_folder_id || null,
     name: study.materials_root_folder_name || "OneDrive",
@@ -55,7 +54,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
   useEffect(() => {
     if (!slug) {
-      // Generate initial slug from study name
       const initialSlug = createSlug(study.name)
       setSlug(initialSlug)
     }
@@ -67,7 +65,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
       return
     }
 
-    // Check if slug is a reserved route
     if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
       setSlugAvailable(false)
       return
@@ -148,7 +145,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 </Alert>
               )}
 
-              {/* Public Toggle */}
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label className="text-base font-medium">Veřejně dostupné</Label>
@@ -159,11 +155,12 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
               {isPublic && (
                 <>
-                  {/* Slug Input */}
                   <div className="space-y-2">
                     <Label htmlFor="slug">Adresa *</Label>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">{window.location.origin}/</span>
+                      <span className="text-sm text-muted-foreground">
+                        {isSubdomainShareEnabled ? "https://" : `${getShareOrigin()}/`}
+                      </span>
                       <Input
                         id="slug"
                         value={slug}
@@ -174,6 +171,9 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                         }
                         required
                       />
+                      {isSubdomainShareEnabled && (
+                        <span className="text-sm text-muted-foreground">.{new URL(getShareOrigin()).host}</span>
+                      )}
                     </div>
                     {slugAvailable === false && (
                       <p className="text-sm text-red-600 dark:text-red-400">
@@ -186,7 +186,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                     <p className="text-xs text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
                   </div>
 
-                  {/* Description */}
                   <div className="space-y-2">
                     <Label htmlFor="description">Veřejný popis</Label>
                     <Textarea
@@ -198,7 +197,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                     />
                   </div>
 
-                  {/* URL Preview */}
                   {slug && slugAvailable && (
                     <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
                       <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná adresa</Label>
@@ -216,7 +214,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                     </div>
                   )}
 
-                  {/* Privacy Notice */}
                   <Alert>
                     <AlertDescription>
                       Veřejná stránka ukazuje předměty, výsledky a publikované materiály a zápisy. Osobní údaje na ní nejsou.
@@ -225,7 +222,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
                 </>
               )}
 
-              {/* Materials Section */}
               <div className="space-y-4 pt-6 border-t">
                 <div>
                   <h3 className="text-lg font-medium text-foreground mb-2">Materiály</h3>
@@ -272,7 +268,6 @@ export function StudySettings({ study, onClose, onSuccess }: StudySettingsProps)
 
       <TitlePageFooter />
 
-      {/* Folder Picker Dialog */}
       <FolderPicker
         open={showFolderPicker}
         onOpenChange={setShowFolderPicker}

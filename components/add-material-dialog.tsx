@@ -80,7 +80,6 @@ export function AddMaterialDialog({
     }
   }, [studyId])
 
-  // Load study material settings when dialog opens
   useEffect(() => {
     if (isOpen && !settingsLoaded) {
       loadStudyMaterialSettingsData()
@@ -91,7 +90,6 @@ export function AddMaterialDialog({
     setSelectedFile(file)
     setShowFilePicker(false)
 
-    // Pre-fill the name with the file name without extension
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
     setFormData((prev) => ({ ...prev, name: prev.name || nameWithoutExt }))
   }
@@ -142,7 +140,7 @@ export function AddMaterialDialog({
 
       if (result.error) throw new Error(result.error.message)
 
-      // Cache file to OneDrive cache directory (non-blocking)
+      // Not awaited: a failed cache copy must not fail adding the material
       if (result.data?.id) {
         const collection = subjectId ? "subject_materials" : "materials"
         cacheFileToOneDrive(
@@ -184,7 +182,6 @@ export function AddMaterialDialog({
 
     const dotIndex = fileName.lastIndexOf('.')
     if (dotIndex === -1) {
-      // No extension, just truncate
       return `${fileName.substring(0, maxLength - 1)  }…`
     }
 
@@ -193,7 +190,7 @@ export function AddMaterialDialog({
     const availableLength = maxLength - extension.length - 1
 
     if (availableLength <= 0) {
-      // Extension is too long, just show the beginning
+      // The extension alone fills the limit
       return `${fileName.substring(0, maxLength - 1)  }…`
     }
 

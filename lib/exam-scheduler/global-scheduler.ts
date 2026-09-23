@@ -15,9 +15,9 @@
  *
  * For each requirement — a (period, subject) pair — exactly one of its
  * candidate terms must be selected, and that term must fall inside the period
- * window. The scheduler is run twice: once ignoring locks (the OPTIMAL
- * schedule) and once forcing every locked term (the FORCED / official
- * schedule), so the UI can show what a cheaper plan would look like.
+ * window. When any term is locked, the solver runs twice: once forcing every
+ * locked term (the FORCED / official schedule) and once ignoring locks (the
+ * OPTIMAL schedule), so the UI can show what a cheaper plan would look like.
  */
 import {
   ExamWithSubject,
@@ -41,10 +41,10 @@ import { compareDate, parseTimeToMinutes } from "./utils";
 const MAX_BACKTRACK_STEPS = 2_000_000;
 
 // Virtual penalty for leaving a requirement unscheduled. Far larger than any
-// realistic travel/accommodation/PTO cost, so the optimizer always prefers a
-// complete, conflict-free assignment and only drops a requirement when no term
-// can be placed without violating a timing constraint. This guarantees the
-// emitted plan is never internally conflicting — at worst it is incomplete.
+// realistic travel/accommodation/PTO cost, so the optimizer drops as few
+// requirements as possible, and only when none of their terms fit the timing
+// constraints. Together with the conflict guard in solve(), the plan is never
+// internally conflicting — at worst it is incomplete.
 const SKIP_PENALTY = 1_000_000_000;
 
 // ─── Public input/output types ───────────────────────────────────────────────
@@ -386,7 +386,6 @@ function buildResult(
     });
   }
 
-  // Sort merged timeline by date, then type, then time.
   const typeOrder: Record<ScheduleItemType, number> = {
     travel_to: 0,
     accommodation: 1,
@@ -425,9 +424,9 @@ function buildResult(
 
 /**
  * Run the scheduler for one mode (optimal = ignore locks, forced = honor them).
- * Requirements whose locked term falls outside the window, or that have no
- * candidate term inside the window, are reported as unschedulable and left out
- * of the optimization (the rest is still scheduled, best effort).
+ * Terms outside the period window are dropped, locked ones included. A
+ * requirement left with no term is reported as unschedulable and kept out of
+ * the optimization; the rest is still scheduled.
  */
 function runMode(
   requirements: GlobalRequirement[],
@@ -486,8 +485,8 @@ function runMode(
 }
 
 /**
- * Main entry point. Returns both the forced (locks honored) and the optimal
- * (locks ignored) schedules, plus the potential savings of dropping the locks.
+ * Returns the forced (locks honored) and optimal (locks ignored) schedules plus
+ * the savings of dropping the locks. Without locks both are the same result.
  */
 export function generateGlobalSchedule(
   requirements: GlobalRequirement[],

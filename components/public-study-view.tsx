@@ -64,10 +64,8 @@ interface PublicStudyViewProps {
 }
 
 export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
-  // Extract and apply theme colors from logo
   useLogoTheme(study.logo_url)
 
-  // Update favicon with study logo
   useFavicon(study.logo_url)
 
   const getStatusBadge = (status: StudyStatus) => {
@@ -76,7 +74,6 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
-      {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-start space-x-6">
@@ -93,7 +90,6 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                 {getStatusBadge(study.status)}
               </div>
 
-              {/* Study Timeline */}
               <div className="mt-4 bg-card/60 backdrop-blur-sm rounded-lg p-4 border border-border/40">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground/80">Doba studia</span>
@@ -102,7 +98,6 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                   </span>
                 </div>
                 <div className="relative">
-                  {/* Timeline bar */}
                   <div className="h-2 bg-primary-200 dark:bg-primary-800/60 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-300"
@@ -114,7 +109,6 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
                     />
                   </div>
 
-                  {/* Year markers */}
                   <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                     <span>{study.start_year}</span>
                     {study.end_year && (
@@ -155,20 +149,16 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Diploma Showcase (only renders when study is completed and diploma uploaded) */}
+        {/* Renders only for completed studies with an uploaded diploma */}
         <DiplomaShowcase study={study} />
 
-        {/* Statistics Cards */}
         <StudyStatsCards study={study} subjects={subjects} variant="full" />
 
-        {/* Materials Section */}
         <div className="mb-8">
           <PublicMaterialsSection studyId={study.id} study={study} />
         </div>
 
-        {/* Study Notes Section */}
         <div className="mb-8">
           <StudyNotesDisplaySection
             studyId={study.id}
@@ -180,7 +170,6 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
           />
         </div>
 
-        {/* Final Exams Section */}
         {study.final_exams_enabled && (
           <div className="mb-8">
             <FinalExamsList
@@ -192,7 +181,6 @@ export function PublicStudyView({ study, subjects }: PublicStudyViewProps) {
           </div>
         )}
 
-        {/* Subjects */}
         <StudySubjectsPublic study={study} subjects={subjects} />
 
         <PublicPageFooter />

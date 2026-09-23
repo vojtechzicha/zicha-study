@@ -182,13 +182,12 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
         if (grp.subjectId !== subjectId) return grp
         const newTerms = grp.terms.map((t, i) => {
           if (i !== index) return t
-          // Only one term per subject can be locked.
           if (field === "locked" && value === true) {
             return { ...t, locked: true }
           }
           return { ...t, [field]: value }
         })
-        // Enforce single lock per subject group.
+        // Only one term per subject can be locked.
         if (field === "locked" && value === true) {
           return { ...grp, terms: newTerms.map((t, i) => (i === index ? t : { ...t, locked: false })) }
         }
@@ -293,7 +292,6 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Period header fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Studium</Label>
@@ -330,7 +328,6 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
             </div>
           </div>
 
-          {/* Subjects + terms */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold">Předměty a termíny</Label>

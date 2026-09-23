@@ -1,15 +1,10 @@
 /**
- * Study Kind Strategy
+ * `StudyKind` is derived from `study.type`; per-kind terminology lets shared components render
+ * kind-specific copy as data instead of branching on study type inline.
  *
- * A single discriminator (`StudyKind`) derived from `study.type`, plus the
- * per-kind configuration (terminology) that lets shared components render
- * kind-specific copy *as data* instead of branching on study type inline.
- *
- * Components either:
- *   1. dispatch through a kind → component registry (see components/subjects/*), or
- *   2. receive a `StudyTerminology` object and render its strings.
- *
- * This keeps `if (isHighSchool)` out of the UI layer.
+ * Components either dispatch through a kind → component registry (see components/subjects/*)
+ * or receive a `StudyTerminology` object and render its strings, keeping `if (isHighSchool)`
+ * out of the UI layer.
  */
 
 import { STUDY_TYPES } from './constants'
@@ -21,8 +16,7 @@ export const STUDY_KIND = {
 
 export type StudyKind = (typeof STUDY_KIND)[keyof typeof STUDY_KIND]
 
-/** Resolve the kind from a study's `type` string. Anything that is not an
- *  explicit high-school study is treated as a (university-style) study. */
+/** Anything that is not explicitly a high-school study is treated as university-style. */
 export function resolveStudyKind(type: string | null | undefined): StudyKind {
   return type === STUDY_TYPES.HIGH_SCHOOL ? STUDY_KIND.HIGH_SCHOOL : STUDY_KIND.UNIVERSITY
 }
@@ -32,9 +26,8 @@ export function isHighSchool(type: string | null | undefined): boolean {
 }
 
 /**
- * Kind-specific copy for the "final exams" feature, which exists for both
- * university (Státní závěrečná zkouška / SZZ) and high school (Maturitní
- * zkouška / Maturita) studies. Shared components read these strings.
+ * Kind-specific copy, mainly for the final-exams feature: Státní závěrečná zkouška (SZZ) at
+ * university, Maturitní zkouška (Maturita) at high school.
  */
 export interface StudyTerminology {
   finalExamsSectionTitle: string

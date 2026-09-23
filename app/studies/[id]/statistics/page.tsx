@@ -49,7 +49,6 @@ export default function StudyStatisticsPage({ params }: { params: Promise<{ id: 
   const router = useRouter()
   useFavicon(study?.logo_url)
 
-  // Update document title with study name
   useEffect(() => {
     if (study?.name) {
       document.title = `Statistiky – ${study.name}`

@@ -116,7 +116,6 @@ export function SubjectCompletionDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Points */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="points" className="text-right">
               Body
@@ -133,7 +132,6 @@ export function SubjectCompletionDialog({
             />
           </div>
 
-          {/* Grade - only show if relevant */}
           {shouldShowGrade() && (
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="grade" className="text-right">
@@ -154,7 +152,6 @@ export function SubjectCompletionDialog({
             </div>
           )}
 
-          {/* Final Date */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="finalDate" className="text-right">
               Datum

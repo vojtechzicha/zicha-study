@@ -1,10 +1,9 @@
 import NextAuth from "next-auth"
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id"
 
-// Microsoft's well-known tenant GUID for personal accounts (outlook.com, hotmail.com, live.com).
-// Using the GUID directly because:
-//   - /consumers/ discovery returns this GUID as issuer, causing mismatch if we set issuer to ".../consumers/v2.0"
-//   - /common/ endpoint rejects apps registered with "Personal Microsoft accounts only"
+// Tenant GUID for personal Microsoft accounts. /consumers/ discovery reports this GUID as the
+// issuer (so ".../consumers/v2.0" would mismatch), and /common/ rejects apps registered for
+// personal accounts only.
 const MS_CONSUMER_TENANT = "9188040d-6c67-4c5b-b112-36a304b66dad"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -21,40 +20,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  // Preview deployments (e.g. Vercel per-PR builds) get dynamic *.vercel.app
-  // hostnames that cannot all be pre-registered as OAuth redirect URIs in the
-  // Microsoft Entra app. When AUTH_REDIRECT_PROXY_URL is set, Auth.js sends the
-  // OAuth callback to the stable production URL (the only one registered in
-  // Azure) and then forwards the authenticated session back to the originating
-  // preview URL. Set this env var to "https://zicha.study/api/auth" on BOTH the
-  // Production and Preview environments, and share the same AUTH_SECRET across
-  // them. Leave it unset locally. See docs/VERCEL_DEPLOYMENT.md.
+  // Preview deployments have hostnames Entra can't pre-register. With this set, Auth.js sends
+  // the OAuth callback to production and forwards the session back to the preview. Use
+  // "https://www.zicha.study/api/auth" (the www origin: the apex redirects, and the proxy needs
+  // an exact origin match) on both Production and Preview, with a shared AUTH_SECRET. Leave it
+  // unset locally. See docs/VERCEL_DEPLOYMENT.md.
   redirectProxyUrl: process.env.AUTH_REDIRECT_PROXY_URL,
   session: {
     strategy: "jwt",
   },
   callbacks: {
     signIn({ profile }) {
+      // Data isn't scoped per user, so an empty list lets any personal account read and edit everything.
       const allowedEmails = process.env.ALLOWED_EMAILS?.split(",").map((e) => e.trim().toLowerCase()) || []
       if (allowedEmails.length === 0) return true
       const email = profile?.email?.toLowerCase()
       return !!email && allowedEmails.includes(email)
     },
     async jwt({ token, account }) {
-      // On initial sign in, persist the OAuth tokens
+      // First sign-in: keep the Microsoft tokens for OneDrive calls.
       if (account) {
         token.accessToken = account.access_token!
         token.refreshToken = account.refresh_token!
-        token.expiresAt = account.expires_at! * 1000 // Convert to ms
+        token.expiresAt = account.expires_at! * 1000
         return token
       }
 
-      // If token hasn't expired, return it as-is
+      // Refresh 60 s before expiry.
       if (Date.now() < (token.expiresAt as number) - 60_000) {
         return token
       }
 
-      // Token is expired or about to expire, refresh it
       try {
         const params = new URLSearchParams({
           client_id: process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,

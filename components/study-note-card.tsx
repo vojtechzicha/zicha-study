@@ -59,13 +59,12 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (showPublicDialog) {
       setIsPublic(note.is_public)
       setPublicSlug(note.public_slug || "")
       setError(null)
-      // If the note already has a public slug, it's valid since it's the current one
+      // The note's own current slug counts as available
       if (note.is_public && note.public_slug) {
         setSlugAvailable(true)
       } else {
@@ -115,7 +114,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
     setError(null)
 
     try {
-      // When disabling public access, clear the public_slug
       const updateData = {
         is_public: isPublic,
         public_slug: isPublic ? publicSlug : null,
@@ -198,7 +196,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   </Badge>
                 )}
               </div>
-              {/* Show subject info based on current context */}
               {note.subjects && note.subjects.length > 1 && (
                 <div className="flex items-center gap-1 mt-2">
                   <Link className="h-3 w-3 text-muted-foreground/70" />
@@ -208,7 +205,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                       const isViewingPrimaryItem = primaryItem?.id === currentSubjectId
 
                       if (isViewingPrimaryItem) {
-                        // Viewing from primary item - show linked items
                         return note.subjects!
                           .filter(s => !s.is_primary)
                           .map(item => (
@@ -218,7 +214,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                             </Badge>
                           ))
                       } else {
-                        // Viewing from linked item - show primary item
                         return primaryItem ? (
                           <Badge variant="outline" className="text-xs py-0 px-2">
                             {primaryItem.name}
@@ -362,7 +357,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                       required
                     />
                   </div>
-                  {/* Status Message - Always Visible */}
                   {publicSlug && publicSlug.length >= 3 ? (
                     slugAvailable === false ? (
                       <p className="text-sm text-red-600 dark:text-red-400">Adresa je už obsazená</p>
@@ -379,7 +373,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   <p className="text-xs text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
                 </div>
 
-                {/* URL Preview - Always Visible When Slug Exists */}
                 {publicSlug && (
                   <div className={`p-4 rounded-lg border ${
                     slugAvailable === true ? 'bg-primary-50 border-primary-200 dark:bg-primary-950 dark:border-primary-800' :

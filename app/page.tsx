@@ -9,7 +9,7 @@ import { useLogoTheme } from "@/hooks/use-logo-theme"
 export default function HomePage() {
   const { data: session, status } = useSession()
 
-  // Reset theme to default when on dashboard
+  // Clear any study palette left over from a previous page
   useLogoTheme(null)
 
   if (status === "loading") {

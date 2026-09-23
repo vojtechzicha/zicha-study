@@ -5,18 +5,15 @@ export default auth((request: NextRequest & { auth?: { user?: unknown } | null }
   const host = request.headers.get("host")
   const mainDomain = "zicha.study"
 
-  // --- Subdomain routing ---
-  // Only rewrite genuine study subdomains (e.g. "newton.zicha.study"). This must
-  // exclude the apex, "www", and any non-production host such as Vercel preview
-  // deployments (*.vercel.app) and localhost — otherwise every preview request
-  // would be treated as a subdomain and 308-redirected to production.
+  // --- Subdomain routing: newton.zicha.study/x → zicha.study/newton/x ---
+  // Only genuine study subdomains: not the apex or "www", and never non-production
+  // hosts (*.vercel.app previews, localhost), or every preview request would be
+  // 308-redirected to production.
   //
-  // API routes are exempt: they are host-independent (there is no per-study
-  // /api namespace, so prefixing the study path onto them would 404), and a
-  // fetch() issued from a subdomain-hosted tab must get an answer from its own
-  // origin — following the redirect cross-origin fails. /api/version in
-  // particular has to respond on any host so the post-deploy refresh hint
-  // works everywhere.
+  // API routes are exempt: there is no per-study /api namespace (the prefixed path
+  // would 404), and a fetch() from a subdomain tab can't follow a cross-origin
+  // redirect. /api/version in particular must answer on any host for the
+  // post-deploy refresh hint.
   if (
     host &&
     host.endsWith(`.${mainDomain}`) &&

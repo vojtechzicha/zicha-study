@@ -3,8 +3,6 @@
 import * as db from "@/lib/mongodb/db"
 import { EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS } from "@/lib/constants"
 
-// ─── Studies management (enable + configure from the scheduler page) ─────────
-
 // ALL studies with their scheduler config, so the planner page can enable and
 // configure studies without visiting each study's settings.
 export async function fetchSchedulerStudies() {
@@ -45,8 +43,6 @@ export async function updateStudySchedulerSettingsAction(studyId: string, settin
   }
 }
 
-// ─── Global scheduling data ──────────────────────────────────────────────────
-
 export async function fetchGlobalExamSchedulingData() {
   const { studies, periods, terms, subjects } = await db.getGlobalExamSchedulingData()
   return {
@@ -68,8 +64,6 @@ export async function fetchStudyExamPeriods(studyId: string) {
     terms: db.normalizeIds(terms as any[]),
   }
 }
-
-// ─── Periods ─────────────────────────────────────────────────────────────────
 
 export async function createExamPeriodAction(data: Record<string, any>) {
   try {
@@ -97,8 +91,6 @@ export async function deleteExamPeriodAction(id: string) {
     return { error: { message: err?.message || "Nepodařilo se smazat období." } }
   }
 }
-
-// ─── Terms ─────────────────────────────────────────────────────────────────
 
 export async function createExamTermAction(data: Record<string, any>) {
   try {
@@ -146,8 +138,6 @@ export async function removeSubjectFromPeriodAction(periodId: string, subjectId:
   }
 }
 
-// ─── Global break setting ────────────────────────────────────────────────────
-
 export async function fetchInterStudyBreakMinutes() {
   const settings = await db.getAppSettings()
   const value = settings?.inter_study_break_minutes
@@ -163,8 +153,7 @@ export async function saveInterStudyBreakMinutesAction(minutes: number) {
   }
 }
 
-// ─── Upcoming locked terms (homepage / tasks) ────────────────────────────────
-
+// Upcoming locked terms for the homepage and tasks list.
 export async function fetchUpcomingLockedExamTerms(fromDate: string) {
   const rows = await db.getUpcomingLockedExamTerms(fromDate)
   return rows.map((r) => ({

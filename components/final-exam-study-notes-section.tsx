@@ -34,7 +34,7 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
     try {
       const data = await fetchStudyNotesByFinalExamId(finalExamId)
 
-      // Transform the data to match our interface
+      // linked_subjects only carry ids, so the id stands in for the subject name
       const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note: any) => ({
         ...note,
         subjects: note.linked_subjects?.map((ls: any) => ({
@@ -59,7 +59,6 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
     }
   }, [finalExamId, isStudyPublic, loadNotes])
 
-  // Don't show study notes in public view
   if (isStudyPublic) return null
 
   const handleNoteDeleted = (noteId: string) => {

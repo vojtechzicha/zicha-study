@@ -17,7 +17,7 @@ export async function getOneDriveToken(): Promise<string> {
 
 /**
  * Make an authenticated request to the Microsoft Graph API.
- * Throws on missing token.
+ * Throws when there is no usable token (missing or failed refresh).
  */
 export async function makeGraphRequest(
   url: string,

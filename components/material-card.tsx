@@ -97,12 +97,10 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
     if (!isStudyPublic) return
 
     if (!isPublic) {
-      // Generate initial slug from material name
       const initialSlug = createSlug(material.name)
       setPublicSlug(initialSlug)
       setShowPublicDialog(true)
     } else {
-      // Unpublish directly
       await updatePublicStatus(false, null)
     }
   }
@@ -115,7 +113,6 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
       let publicShareUrl = null
 
       if (isPublicNew) {
-        // Generate public share link
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
           headers: {
@@ -129,7 +126,6 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
         if (!response.ok) {
           const errorData = await response.json()
 
-          // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
             throw new Error("Přístup k OneDrive vypršel. Přihlaste se znovu.")
           }
@@ -149,7 +145,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
 
       if (result.error) throw new Error(result.error.message)
 
-      // Create cache share link if publishing and cache exists (non-blocking)
+      // Not awaited: a failed cache share link must not fail publishing
       if (isPublicNew && material.cache_onedrive_id) {
         createCacheShareLinkAction(
           material.id,
@@ -298,7 +294,6 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
         </div>
       </CardContent>
 
-      {/* Public Sharing Dialog */}
       <Dialog open={showPublicDialog} onOpenChange={setShowPublicDialog}>
         <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>

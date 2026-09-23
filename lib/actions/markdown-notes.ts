@@ -50,7 +50,6 @@ export async function createMarkdownNote(input: CreateMarkdownNoteInput) {
   }
 }
 
-// Fetch a Markdown note (with content) for the editor screen.
 export async function fetchMarkdownNote(noteId: string) {
   await requireUser()
   const doc = await db.getStudyNoteById(noteId)

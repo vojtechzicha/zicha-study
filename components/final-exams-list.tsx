@@ -50,7 +50,6 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
       const data = await fetchFinalExams(studyId) as FinalExam[]
       setFinalExams(data || [])
 
-      // Check which exams have study notes
       if (data && data.length > 0) {
         const examIds = data.map((exam) => exam.id)
         const idsWithNotes = await fetchFinalExamIdsWithNotes(examIds)
@@ -143,7 +142,6 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
             </div>
           ) : (
             <>
-              {/* Mobile Card View */}
               <div className="md:hidden p-4 space-y-3">
                 {finalExams.map((exam) => (
                   <Collapsible key={exam.id} open={expandedExamId === exam.id} onOpenChange={(open) => setExpandedExamId(open ? exam.id : null)}>
@@ -237,7 +235,6 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                       </div>
                     </div>
                     
-                    {/* Expand button for study notes - only show in non-public view */}
                     {!isPublic && (
                       <>
                         <div className="flex justify-between items-center pt-3 mt-3 border-t">
@@ -281,7 +278,6 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
               ))}
               </div>
 
-              {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>

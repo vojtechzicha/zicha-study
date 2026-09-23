@@ -9,7 +9,6 @@ export async function GET() {
     return NextResponse.json({ error: 'Nejste přihlášeni.' }, { status: 401 })
   }
 
-  // Rate limiting
   const rateLimitResult = checkRateLimit(`onedrive-picker:session`, RATE_LIMITS.ONEDRIVE_FILES)
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult.resetTime)

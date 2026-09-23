@@ -1,7 +1,6 @@
-// Study status types and utilities
 import { STUDY_STATUS, StudyStatus, getStudyStatusLabel, getCompletionTypeShortCode } from './constants'
 
-// Re-export the type for backward compatibility
+// Re-exported so existing imports from status-utils keep working
 export type { StudyStatus }
 
 export interface Study {
@@ -42,7 +41,6 @@ export interface Subject {
   is_repeat?: boolean
 }
 
-// Status styling utilities
 export const getStatusColor = (status: StudyStatus): string => {
   switch (status) {
     case STUDY_STATUS.ACTIVE:
@@ -86,23 +84,21 @@ export const getStatusPriority = (status: StudyStatus): number => {
   }
 }
 
-// Subject state types
 export type SubjectState = "planned" | "active" | "completed" | "failed"
 
-// Check if a subject is failed (grade starts with F, 4, or -)
+// Completed with a failing grade (starting with F, 4 or -)
 export const isSubjectFailed = (subject: Pick<Subject, 'completed' | 'grade'>): boolean => {
   if (!subject.completed || !subject.grade) return false
   const g = subject.grade.toUpperCase()
   return g.startsWith('F') || g.startsWith('4') || g.startsWith('-')
 }
 
-// Get grade badge configuration.
-// The colours live in `className` (not inline styles) so they can carry `dark:`
-// variants; `style` is kept for backwards compatibility with the consumers.
+// Colours live in `className` (not inline styles) so they can carry `dark:` variants;
+// `style` is always empty and only kept for existing consumers.
 export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'completed' | 'grade'>) => {
   const style: Record<string, string> = {}
 
-  // Failed state has precedence - darker red for failed
+  // Failure takes precedence over the grade value
   if (isSubjectFailed(subject)) {
     return {
       className: "border bg-red-600 text-white border-red-700",
@@ -112,7 +108,6 @@ export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'compl
 
   const gradeUpper = grade.toUpperCase()
 
-  // Deep green for 1/A
   if (gradeUpper === '1' || gradeUpper === 'A') {
     return {
       className: "border bg-emerald-600 text-white border-emerald-700",
@@ -120,7 +115,6 @@ export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'compl
     }
   }
 
-  // Light green for 1-/B
   if (gradeUpper === '1-' || gradeUpper === 'B') {
     return {
       className:
@@ -129,7 +123,6 @@ export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'compl
     }
   }
 
-  // Yellow for 2, 2-/C
   if (gradeUpper === '2' || gradeUpper === '2-' || gradeUpper === 'C') {
     return {
       className:
@@ -138,7 +131,7 @@ export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'compl
     }
   }
 
-  // Orange for poor grades (D, E, 3-9) - different from failed
+  // Poor but passing grades; failures were handled above
   if (/^[3-9]/.test(gradeUpper) || gradeUpper === 'D' || gradeUpper === 'E') {
     return {
       className:
@@ -147,7 +140,7 @@ export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'compl
     }
   }
 
-  // Blue for any other (including Z)
+  // Anything else, e.g. Z (započteno)
   return {
     className:
       "border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",
@@ -155,27 +148,23 @@ export const getGradeBadgeConfig = (grade: string, subject: Pick<Subject, 'compl
   }
 }
 
-// Get Czech plural form for points
+// Czech plurals: 1 → singular, 2–4 → nominative plural, otherwise genitive plural
 export const getCzechPointsWord = (points: number): string => {
   return points === 1 ? 'bod' : points >= 2 && points <= 4 ? 'body' : 'bodů'
 }
 
-// Get Czech plural form for hours
 export const getCzechHoursWord = (hours: number): string => {
   return hours === 1 ? 'hodina' : hours >= 2 && hours <= 4 ? 'hodiny' : 'hodin'
 }
 
-// Get Czech plural form for credits
 export const getCzechCreditsWord = (credits: number): string => {
   return credits === 1 ? 'kredit' : credits >= 2 && credits <= 4 ? 'kredity' : 'kreditů'
 }
 
-// Get Czech plural form for subjects
 export const getCzechSubjectsWord = (count: number): string => {
   return count === 1 ? 'předmět' : count >= 2 && count <= 4 ? 'předměty' : 'předmětů'
 }
 
-// Get credits and hours display data
 export const getCreditsAndHoursDisplay = (credits: number, hours?: number) => {
   const hasCredits = credits !== undefined && credits !== null
   const hasHours = hours !== undefined && hours !== null && hours > 0
@@ -211,7 +200,7 @@ export const getCreditsAndHoursDisplay = (credits: number, hours?: number) => {
   return { type: 'none' as const }
 }
 
-// Get credits and hours display for mobile (with labels)
+// Like getCreditsAndHoursDisplay, but also returns creditsText for the mobile layout
 export const getCreditsAndHoursDisplayMobile = (credits: number, hours?: number) => {
   const hasCredits = credits !== undefined && credits !== null
   const hasHours = hours !== undefined && hours !== null && hours > 0
@@ -249,7 +238,6 @@ export const getCreditsAndHoursDisplayMobile = (credits: number, hours?: number)
   return { type: 'none' as const }
 }
 
-// Subject status utilities
 export const getSubjectStatus = (subject: Subject): SubjectState => {
   if (subject.planned) return "planned"
   if (subject.completed) return "completed"
@@ -271,7 +259,6 @@ export const getSubjectStatusPriority = (subject: Subject): number => {
 }
 
 export const getSubjectStateText = (state: SubjectState, subject?: Subject): string => {
-  // Check if subject is failed (completed with grade starting with F)
   if (state === "completed" && subject && isSubjectFailed(subject)) {
     return "Neúspěšný"
   }
@@ -289,7 +276,6 @@ export const getSubjectStateText = (state: SubjectState, subject?: Subject): str
 }
 
 export const getSubjectStateColor = (state: SubjectState, subject?: Subject, isPublic: boolean = false): string => {
-  // Check if subject is failed (completed with grade starting with F)
   if (state === "completed" && subject && isSubjectFailed(subject)) {
     // More subtle styling for public views
     if (isPublic) {
@@ -310,7 +296,6 @@ export const getSubjectStateColor = (state: SubjectState, subject?: Subject, isP
   }
 }
 
-// Field visibility based on subject state
 export const isFieldVisibleForState = (field: string, state: SubjectState): boolean => {
   switch (state) {
     case "planned":
@@ -320,14 +305,12 @@ export const isFieldVisibleForState = (field: string, state: SubjectState): bool
       // Active subjects can have points but not final_date (until completed)
       return field !== "final_date"
     case "completed":
-      // Completed subjects can have all fields
       return true
     default:
       return true
   }
 }
 
-// Completion type utilities
 export const requiresCredit = (completionType: string): boolean => {
   if (completionType === "Ostatní") return false
   return completionType.includes("Zápočet") || completionType.includes("Zp")
@@ -338,11 +321,8 @@ export const requiresExam = (completionType: string): boolean => {
   return completionType.includes("Zkouška") || completionType.includes("Zk")
 }
 
-// Get completion type badge configuration.
-// Colours are Tailwind classes (with `dark:` variants) rather than inline
-// styles; `style` stays as an empty object for the existing consumers.
+// Colours are Tailwind classes (with `dark:` variants); `style` stays empty for existing consumers.
 export const getCompletionBadgeConfig = (completionType: string) => {
-  // Convert database/form values to short codes using the centralized mapping
   const shortType = getCompletionTypeShortCode(completionType)
   const style: Record<string, string> = {}
 
@@ -399,13 +379,10 @@ export const getCompletionBadgeConfig = (completionType: string) => {
   }
 }
 
-// Get subject state badge configuration.
-// Colours are Tailwind classes (with `dark:` variants) rather than inline
-// styles; `style` stays as an empty object for the existing consumers.
+// Colours are Tailwind classes (with `dark:` variants); `style` stays empty for existing consumers.
 export const getSubjectStateBadgeConfig = (state: SubjectState, subject?: Pick<Subject, 'completed' | 'grade'>, isPublic: boolean = false) => {
   const style: Record<string, string> = {}
 
-  // Check if subject is failed (completed with grade starting with F)
   if (state === "completed" && subject && isSubjectFailed(subject)) {
     // More subtle styling for public views
     if (isPublic) {
@@ -505,7 +482,6 @@ export const getAvailableActions = (
   }
 }
 
-// Sorting utilities
 export const sortStudiesByStatus = <T extends Pick<Study, 'status' | 'name'>>(studies: T[]): T[] => {
   return studies.sort((a, b) => {
     const priorityA = getStatusPriority(a.status)
@@ -515,14 +491,12 @@ export const sortStudiesByStatus = <T extends Pick<Study, 'status' | 'name'>>(st
       return priorityA - priorityB
     }
     
-    // If same priority, sort alphabetically by name
     return a.name.localeCompare(b.name)
   })
 }
 
 export const sortSubjectsByStatus = (subjects: Subject[]): Subject[] => {
   return subjects.sort((a, b) => {
-    // First sort by status priority
     const priorityA = getSubjectStatusPriority(a)
     const priorityB = getSubjectStatusPriority(b)
     
@@ -530,17 +504,14 @@ export const sortSubjectsByStatus = (subjects: Subject[]): Subject[] => {
       return priorityA - priorityB
     }
     
-    // Then by semester
     if (a.semester !== b.semester) {
       return a.semester.localeCompare(b.semester)
     }
     
-    // Then by subject type
     if (a.subject_type !== b.subject_type) {
       return a.subject_type.localeCompare(b.subject_type)
     }
     
-    // Finally by name
     return a.name.localeCompare(b.name)
   })
 }

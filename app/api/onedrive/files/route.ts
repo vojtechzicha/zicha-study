@@ -10,18 +10,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Nejste přihlášeni." }, { status: 401 })
   }
 
-  // Rate limiting
   const rateLimitResult = checkRateLimit(`onedrive-files:session`, RATE_LIMITS.ONEDRIVE_FILES)
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult.resetTime)
   }
 
   try {
-    // Parse query parameters
     const url = new URL(request.url)
     const path = url.searchParams.get('path') || '/drive/root:'
 
-    // Validate path parameter to prevent path traversal attacks
+    // Only the drive root or an item ID; rejects arbitrary paths (path traversal)
     const validPathPatterns = [
       /^\/drive\/root:$/,
       /^\/drive\/items\/[a-zA-Z0-9!]+$/,
@@ -35,7 +33,6 @@ export async function GET(request: Request) {
       )
     }
 
-    // Build Microsoft Graph API URL
     let graphUrl: string
     if (path === '/drive/root:') {
       graphUrl = 'https://graph.microsoft.com/v1.0/me/drive/root/children'
@@ -60,7 +57,6 @@ export async function GET(request: Request) {
       )
     }
 
-    // Process all items (folders and files)
     const items: OneDriveProcessedItem[] = data.value
       .map((item: OneDriveItem): OneDriveProcessedItem | null => {
         if (item.folder) {
@@ -103,7 +99,6 @@ export async function GET(request: Request) {
       })
       .filter((item: OneDriveProcessedItem | null): item is OneDriveProcessedItem => item !== null)
 
-    // Sort folders first, then files
     items.sort((a, b) => {
       const aIsFolder = 'folder' in a
       const bIsFolder = 'folder' in b

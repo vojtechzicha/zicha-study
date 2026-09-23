@@ -22,7 +22,7 @@ interface Study {
 interface StudyHeaderProps {
   study?: Study
   title?: string
-  subtitle?: string  // Reserved for future use
+  subtitle?: string  // shown under the title when no `study` is passed
   logoUrl?: string | null
   onBack: () => void
   actions?: React.ReactNode

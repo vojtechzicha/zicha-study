@@ -54,7 +54,6 @@ interface StudyMaterialSettingsData {
   materials_root_folder_path?: string
 }
 
-// Generate a unique slug for the study note
 const generateUniqueSlug = () => {
   const timestamp = Date.now()
   const random = Math.random().toString(36).substring(2, 8)
@@ -131,7 +130,6 @@ export function AddStudyNoteDialog({
     }
   }, [studyId])
 
-  // Load study material settings when dialog opens
   useEffect(() => {
     if (isOpen && !settingsLoaded) {
       loadStudyMaterialSettingsData()
@@ -146,11 +144,9 @@ export function AddStudyNoteDialog({
       saveLastObsidianFolder(file.parentReference?.path)
     }
 
-    // Pre-fill the name with the file name without extension
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
     setFormData((prev) => ({ ...prev, name: prev.name || nameWithoutExt }))
 
-    // Generate initial slug if not set
     if (!publicSlug) {
       const initialSlug = createSlug(nameWithoutExt)
       setPublicSlug(initialSlug)
@@ -201,7 +197,6 @@ export function AddStudyNoteDialog({
     try {
       const fileExtension = selectedFile.name.split(".").pop()
 
-      // Check the file format matches the note kind
       if (!fileExtension || !allowedExtensions.includes(fileExtension.toLowerCase())) {
         throw new Error(
           isObsidian
@@ -234,14 +229,13 @@ export function AddStudyNoteDialog({
 
       const insertedNote = result.data
 
-      // Create the primary link using server action
       if (isFinalExam) {
         await linkFinalExamToNoteAction(insertedNote.id, subjectId, true)
       } else {
         await linkSubjectToNoteAction(insertedNote.id, subjectId, true)
       }
 
-      // Cache file to OneDrive cache directory (non-blocking)
+      // Not awaited: a failed cache copy must not fail adding the note
       cacheFileToOneDrive(
         insertedNote.id,
         selectedFile.id,

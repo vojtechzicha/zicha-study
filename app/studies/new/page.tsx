@@ -10,7 +10,6 @@ export default function NewStudyPage() {
   const { status } = useSession()
   const router = useRouter()
 
-  // Set document title
   useEffect(() => {
     document.title = "Nové studium – Sledování studií"
   }, [])

@@ -77,7 +77,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
       try {
         const notesData = await fetchStudyNotes(studyId) as RawStudyNoteFromMongo[]
 
-        // Get all unique subject and final exam IDs from denormalized arrays
         const subjectIds = new Set<string>()
         const finalExamIds = new Set<string>()
         notesData?.forEach((note) => {
@@ -89,7 +88,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           })
         })
 
-        // Fetch subject details
         type SubjectEntry = { id: string; name: string; study_id: string }
         const subjectsMap = new Map<string, SubjectEntry>()
         if (subjectIds.size > 0) {
@@ -99,7 +97,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           })
         }
 
-        // Fetch final exam details
         type FinalExamEntry = { id: string; name: string; shortcut?: string | null; study_id: string }
         const finalExamsMap = new Map<string, FinalExamEntry>()
         if (finalExamIds.size > 0) {
@@ -109,7 +106,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           })
         }
 
-        // Transform the data to include subject and final exam information
         const transformedNotes: StudyNoteWithSubjects[] = (notesData || []).map((note) => {
           const subjectItems = (note.linked_subjects || []).map((link) => {
             const subject = subjectsMap.get(link.subject_id)
@@ -158,7 +154,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
     let intervalId: NodeJS.Timeout | null = null
 
     const startPolling = () => {
-      // Poll every 5 seconds when visible
       intervalId = setInterval(() => {
         if (!document.hidden) {
           loadStudyNotes(true) // silent refresh
@@ -177,13 +172,11 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
       if (document.hidden) {
         stopPolling()
       } else {
-        // Refresh immediately when page becomes visible
         loadStudyNotes(true) // silent refresh
         startPolling()
       }
     }
 
-    // Start polling if page is visible
     if (!document.hidden) {
       startPolling()
     }
@@ -197,7 +190,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
   }, [loadStudyNotes])
 
 
-  // Filter notes based on search query
   const filteredNotes = studyNotes.filter(note => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -208,7 +200,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
     )
   })
 
-  // Show only first 8 study notes in preview mode
   const displayedNotes = showAll ? filteredNotes : filteredNotes.slice(0, 8)
 
   return (

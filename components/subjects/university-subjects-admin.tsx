@@ -15,7 +15,6 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
   const [searchQuery, setSearchQuery] = useState("")
   const [showActiveOnly, setShowActiveOnly] = useState(false)
 
-  // Filter subjects based on search query and active filter
   const filteredSubjects = useMemo(() => {
     let filtered = subjects
 
@@ -63,7 +62,6 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
                 </p>
               )}
             </div>
-            {/* Search Input with Filter and Add button - Right side on desktop, below on mobile */}
             <div className="w-full md:w-auto relative flex gap-2 items-center">
               <div className="flex-1 md:flex-initial md:w-64 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
@@ -103,7 +101,6 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
         </CardContent>
       </Card>
 
-      {/* Subject Form Modal */}
       <Dialog open={showSubjectForm} onOpenChange={setShowSubjectForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
           <SubjectForm study={study as any} onSuccess={handleSubjectAdded} onClose={() => setShowSubjectForm(false)} />

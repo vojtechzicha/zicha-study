@@ -109,7 +109,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
 
   const handlePublicToggle = async (material: Material) => {
     if (!material.is_public) {
-      // Open dialog to let user choose the slug
       const initialSlug = createSlug(material.name)
       setPublishingMaterial(material)
       setPublicSlug(initialSlug)
@@ -141,7 +140,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
       let publicShareUrl = null
 
       if (isPublic) {
-        // Generate public share link
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
           headers: {
@@ -155,7 +153,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
         if (!response.ok) {
           const errorData = await response.json()
 
-          // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
             throw new Error("Přístup k OneDrive vypršel. Přihlaste se znovu.")
           }
@@ -175,7 +172,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
 
       if (result.error) throw new Error(result.error.message)
 
-      // Create cache share link if publishing and cache exists (non-blocking)
+      // Not awaited: a failed cache share link must not fail publishing
       if (isPublic && material.cache_onedrive_id) {
         createCacheShareLinkAction(
           material.id,
@@ -306,7 +303,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {/* Direct OneDrive Link */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -322,7 +318,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                         </a>
                       </Button>
 
-                      {/* Dropdown Menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" aria-label="Další akce">
@@ -382,7 +377,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
         </Table>
       </div>
 
-      {/* Public Sharing Dialog */}
       <Dialog
         open={publishingMaterial !== null}
         onOpenChange={(open) => {

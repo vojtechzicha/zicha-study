@@ -56,12 +56,10 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
     try {
       const data = await fetchStudyNotesBySubjectId(subjectId) as RawStudyNoteFromMongo[]
 
-      // Transform the data to match our interface
-      // The notes now have linked_subjects array embedded
       const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note) => {
         const subjects: StudyNoteSubject[] = (note.linked_subjects || []).map((link) => ({
           id: link.subject_id,
-          name: "", // Name not available from denormalized data, but not needed here
+          name: "", // not stored on the link; unused here
           study_id: note.study_id,
           is_primary: link.is_primary
         }))

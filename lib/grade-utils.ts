@@ -7,21 +7,19 @@ import {
   getCompletionTypeShortCode,
 } from './constants'
 
-// Minimum subject fields needed for grade calculation
 export type GradeCalculationSubject = Pick<Subject, 'completion_type' | 'credits' | 'points' | 'grade'> & {
   id?: string
   is_repeat?: boolean
   repeats_subject_id?: string | null
 }
 
-// Convert letter grade to numeric value
+// Maps a grade to the Czech 1–4 scale. Accepts numeric grades with an optional minus
+// ('2-' = 2.5) and ECTS letters; F/FX and '0' count as nedostatečně (4).
 export function gradeToNumber(grade: string): number | null {
   if (!grade || grade === '-') return null
   
-  // Handle F grades (Czech ECTS: nedostatečně = 4)
   if (grade === '0' || grade.startsWith('F')) return 4.0
   
-  // Handle numeric grades with optional minus
   const numericMatch = grade.match(/^(\d)(-)?$/)
   if (numericMatch) {
     const baseGrade = parseInt(numericMatch[1])
@@ -29,7 +27,6 @@ export function gradeToNumber(grade: string): number | null {
     return baseGrade + (hasMinus ? 0.5 : 0)
   }
   
-  // Handle letter grades (Czech ECTS scale)
   const gradeMap: Record<string, number> = {
     'A': 1.0,   // výborně
     'B': 1.5,   // velmi dobře
@@ -41,19 +38,17 @@ export function gradeToNumber(grade: string): number | null {
   return gradeMap[grade.toUpperCase()] || null
 }
 
-// Check if subject should be included in average calculation
 export function shouldIncludeInAverage(subject: GradeCalculationSubject): boolean {
-  // Skip subjects with "Zápočet" type (credit only)
+  // Zápočet (Zp) is pass/fail credit only, never graded
   if (getCompletionTypeShortCode(subject.completion_type) === COMPLETION_TYPES.CREDIT) return false
   
-  // Skip if no valuation (no points and no grade)
   if (!subject.points && !subject.grade) return false
   
-  // Include if has points or valid grade
   return true
 }
 
-// Convert ECTS grade to US GPA points
+// ECTS grade → US GPA points. Czech numeric grades go through GPA_GRADE_ALIASES;
+// pass/fail and withdrawn grades (GPA_EXCLUDED_GRADES) return null.
 export function gradeToGpaPoints(grade: string): number | null {
   const normalizedGrade = grade.trim().toUpperCase()
   if (!normalizedGrade) return null
@@ -79,8 +74,8 @@ export function shouldIncludeInGpa(subject: GradeCalculationSubject): boolean {
   return gradeToGpaPoints(subject.grade || '') !== null
 }
 
-// Return only subjects that are not superseded by another subject's repeats_subject_id.
-// Mirrors getCurrentSubjects in statistics-utils so chain handling stays consistent.
+// Drops subjects superseded by a repeat (another subject's repeats_subject_id).
+// Mirrors getCurrentSubjects in lib/utils/statistics-utils.ts; keep them consistent.
 function getCurrentGradeSubjects(subjects: GradeCalculationSubject[]): GradeCalculationSubject[] {
   const supersededIds = new Set(
     subjects
@@ -100,14 +95,11 @@ export interface AverageResult {
   gradeValue?: number | null
 }
 
-// Determine which type of average to calculate
 export function getAverageType(subjects: GradeCalculationSubject[]): AverageType {
   const relevantSubjects = getCurrentGradeSubjects(subjects).filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return 'none'
   
-  // Check if any subject has points
   const hasPoints = relevantSubjects.some(s => s.points && s.points > 0)
-  // Check if any subject has grades
   const hasGrades = relevantSubjects.some(s => s.grade && gradeToNumber(s.grade) !== null)
   
   // If both points and grades exist in the study, always show both averages
@@ -121,7 +113,8 @@ export function getAverageType(subjects: GradeCalculationSubject[]): AverageType
   return 'none'
 }
 
-// Calculate weighted average for grades
+// Credit-weighted grade average. Subjects scored in points are skipped unless
+// includeSubjectsWithPoints is set.
 export function calculateWeightedGradeAverage(subjects: GradeCalculationSubject[], includeSubjectsWithPoints: boolean = false): number | null {
   const relevantSubjects = getCurrentGradeSubjects(subjects).filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return null
@@ -130,7 +123,6 @@ export function calculateWeightedGradeAverage(subjects: GradeCalculationSubject[
   let totalCredits = 0
 
   for (const subject of relevantSubjects) {
-    // Skip subjects with points unless we're explicitly including them
     if (!includeSubjectsWithPoints && subject.points && subject.points > 0) continue
 
     const numericGrade = gradeToNumber(subject.grade || '')
@@ -144,7 +136,7 @@ export function calculateWeightedGradeAverage(subjects: GradeCalculationSubject[
   return totalWeightedGrade / totalCredits
 }
 
-// Calculate weighted average for points
+// Credit-weighted points average
 export function calculateWeightedPointsAverage(subjects: GradeCalculationSubject[]): number | null {
   const relevantSubjects = getCurrentGradeSubjects(subjects).filter(shouldIncludeInAverage)
   if (relevantSubjects.length === 0) return null
@@ -183,7 +175,6 @@ export function calculateGpa(subjects: GradeCalculationSubject[]): number | null
   return totalWeightedGpa / totalCredits
 }
 
-// Main function to calculate average with type detection
 export function calculateAverage(subjects: GradeCalculationSubject[]): AverageResult {
   const avgType = getAverageType(subjects)
   
@@ -191,10 +182,10 @@ export function calculateAverage(subjects: GradeCalculationSubject[]): AverageRe
     case 'both':
       return {
         type: 'both',
-        value: null, // Not used when both are present
+        value: null, // unused for 'both'; see pointsValue / gradeValue
         label: 'Vážený průměr',
         pointsValue: calculateWeightedPointsAverage(subjects),
-        gradeValue: calculateWeightedGradeAverage(subjects, true) // Include subjects with points when calculating grades for 'both' mode
+        gradeValue: calculateWeightedGradeAverage(subjects, true) // subjects with points still count if they also have a grade
       }
     case 'points':
       return {
@@ -217,17 +208,15 @@ export function calculateAverage(subjects: GradeCalculationSubject[]): AverageRe
   }
 }
 
-// Filter subjects by semester
 export function filterSubjectsBySemester(subjects: Subject[], semester: string): Subject[] {
   if (!semester || semester === 'all') return subjects
   return subjects.filter(s => s.semester === semester)
 }
 
-// Get unique semesters from subjects
+// Sorted "N. ročník ZS/LS": by year, then ZS (winter) before LS (summer); others by Czech collation
 export function getUniqueSemesters(subjects: Subject[]): string[] {
   const semesters = [...new Set(subjects.map(s => s.semester))]
   return semesters.sort((a, b) => {
-    // Extract year and semester type for proper sorting
     const aMatch = a.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
     const bMatch = b.match(/(\d+)\.\s*ročník\s*(ZS|LS)/i)
     
@@ -237,7 +226,6 @@ export function getUniqueSemesters(subjects: Subject[]): string[] {
       
       if (aYear !== bYear) return aYear - bYear
       
-      // ZS comes before LS
       return aMatch[2] === 'ZS' ? -1 : 1
     }
     

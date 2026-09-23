@@ -22,7 +22,7 @@ export function addHeadingIdsAndBuildToc($: CheerioAPI): string {
   $('h1, h2, h3').each((_, el) => {
     const element = $(el)
     const text = element.text()
-    if (!text) return // Skip empty headings
+    if (!text) return
 
     const level = parseInt(el.tagName.substring(1), 10)
     const id = text
@@ -41,7 +41,7 @@ export function addHeadingIdsAndBuildToc($: CheerioAPI): string {
 function buildTocHtml(entries: TocEntry[]): string {
   if (entries.length === 0) return ''
   let html = '<ul>'
-  // Start level should be the minimum level found, not hardcoded to 1
+  // Nest relative to the shallowest heading, which need not be h1
   let lastLevel = Math.min(...entries.map(e => e.level))
   html += `<li><a href="#${entries[0].id}">${escapeHtml(entries[0].text)}</a></li>`
 
@@ -76,31 +76,24 @@ export async function applyStudyNoteTemplate(options: {
   // Function replacers throughout: string replacements would interpret "$&"
   // and similar patterns inside the injected content.
 
-  // Handle TOC conditional
   if (tocHtml) {
-    // Replace the TOC placeholder and remove the conditional markers
     finalHtml = finalHtml.replace('$toc$', () => tocHtml)
     finalHtml = finalHtml.replace(/\$if\(toc\)\$([\s\S]*?)\$endif\$/g, '$1')
   } else {
-    // Remove the entire TOC section when no TOC
     finalHtml = finalHtml.replace(/\$if\(toc\)\$([\s\S]*?)\$endif\$/g, '')
   }
 
-  // Handle title conditional
   if (title) {
-    // Replace the title placeholder and remove the conditional markers
     finalHtml = finalHtml.replace('$title$', () => escapeHtml(title))
     finalHtml = finalHtml.replace(/\$if\(title\)\$([\s\S]*?)\$endif\$/g, '$1')
   } else {
-    // Remove the entire title section when no title
     finalHtml = finalHtml.replace(/\$if\(title\)\$([\s\S]*?)\$endif\$/g, '')
   }
 
-  // Clean up any remaining unreplaced template placeholders BEFORE injecting
-  // the body, so literal "$word$" text inside the note content is preserved
+  // Strip leftover placeholders BEFORE injecting the body, so literal "$word$"
+  // text inside the note content is preserved.
   finalHtml = finalHtml.replace(/\$(?!body\$)[a-zA-Z]+\$/g, '')
 
-  // Inject the main content
   finalHtml = finalHtml.replace('$body$', () => bodyHtml)
 
   return finalHtml

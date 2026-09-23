@@ -55,7 +55,6 @@ interface Subject {
 export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps) {
   const typedSubjects = subjects as unknown as Subject[]
 
-  // Group subjects by semester with averages
   const subjectsBySemester = useMemo(() => {
     const grouped: { [key: string]: { subjects: Subject[]; average: AverageResult; gpa: number | null } } = {}
     const sortedSubjects = sortSubjects(typedSubjects)

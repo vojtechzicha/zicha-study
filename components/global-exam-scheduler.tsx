@@ -358,7 +358,6 @@ export function GlobalExamScheduler() {
           </Card>
         ) : (
           <>
-            {/* Studies management: enable + configure directly from the planner */}
             <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -411,7 +410,6 @@ export function GlobalExamScheduler() {
               </Card>
             ) : (
               <>
-            {/* Settings + run */}
             <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="py-4 flex flex-wrap items-center gap-4 justify-between">
                 <div className="flex items-center gap-3">
@@ -453,7 +451,6 @@ export function GlobalExamScheduler() {
               </CardContent>
             </Card>
 
-            {/* Periods list */}
             <section className="space-y-4">
               {studies.map((study) => {
                 const studyPeriods = periodsByStudy.get(study.id) || []
@@ -560,7 +557,6 @@ export function GlobalExamScheduler() {
               )}
             </section>
 
-            {/* Schedule result */}
             {comparison && <GlobalExamScheduleView comparison={comparison} />}
               </>
             )}

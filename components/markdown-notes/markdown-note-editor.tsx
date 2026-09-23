@@ -175,7 +175,6 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      {/* Header */}
       <header className="flex items-center gap-3 border-b px-4 py-2">
         <Button variant="ghost" size="sm" onClick={handleBack} className="shrink-0">
           <ArrowLeft className="mr-1 h-4 w-4" />
@@ -203,12 +202,10 @@ export function MarkdownNoteEditor({ note, studyId, studySlug }: MarkdownNoteEdi
       </header>
 
       <div className="flex min-h-0 flex-1">
-        {/* TOC sidebar */}
         <aside className="hidden w-64 shrink-0 overflow-y-auto border-r bg-muted/50 p-3 md:block">
           <NoteToc editor={editor} onNavigate={() => setTab("editor")} />
         </aside>
 
-        {/* Main panel */}
         <main className="flex min-w-0 flex-1 flex-col">
           <Tabs value={tab} onValueChange={handleTabChange} className="flex min-h-0 flex-1 flex-col">
             <TabsList className="m-2 self-start">

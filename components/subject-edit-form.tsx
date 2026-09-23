@@ -91,7 +91,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
   const { toast } = useToast()
   const { departments } = useDepartments(subject.study_id)
 
-  // Fetch exam options when dialog opens
   useEffect(() => {
     const loadExamOptions = async () => {
       if (!examSchedulerEnabled || examOptionsLoaded) return
@@ -116,7 +115,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     }
   }, [open, examSchedulerEnabled, subject.id, examOptionsLoaded])
 
-  // Fetch subjects that can be repeated
   useEffect(() => {
     const loadSubjects = async () => {
       const data = await fetchSubjectsForRepeatSelection(subject.study_id, subject.id)
@@ -132,7 +130,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     setLoading(true)
     setError(null)
 
-    // Prepare update data
     const updateData: any = {
       semester: formData.semester,
       abbreviation: formData.abbreviation || null,
@@ -152,7 +149,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       repeats_subject_id: formData.is_repeat && formData.repeats_subject_id ? formData.repeats_subject_id : null,
     }
 
-    // If marking as completed, automatically mark credit and exam as completed if required
+    // Completing a subject implies its required credit/exam are done
     if (subjectState === "completed") {
       if (requiresCredit(formData.completion_type)) {
         updateData.credit_completed = true
@@ -160,16 +157,13 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       if (requiresExam(formData.completion_type)) {
         updateData.exam_completed = true
       }
-      // Set final date to today if not provided
       if (!updateData.final_date) {
         updateData.final_date = new Date().toISOString().split('T')[0]
       }
     } else if (subjectState === "active") {
-      // For active subjects, preserve the checkbox states
       updateData.exam_completed = formData.exam_completed
       updateData.credit_completed = formData.credit_completed
     } else {
-      // For planned subjects, clear completion fields
       updateData.exam_completed = false
       updateData.credit_completed = false
     }
@@ -177,7 +171,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     const result = await updateSubject(subject.id, updateData)
 
     if (result.error) {
-      // Provide more specific error messages based on error code/message
+      // 23505 = duplicate key (Postgres code kept by lib/actions/subjects.ts)
       let errorMessage = "Nepodařilo se uložit předmět."
 
       if (result.error.code === "23505") {
@@ -191,7 +185,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       return
     }
 
-    // Save exam options if exam scheduler is enabled
     if (examSchedulerEnabled) {
       try {
         const validOptions = examOptions.filter(opt => opt.date)
@@ -248,7 +241,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </Alert>
               )}
 
-              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="semester">Semestr *</Label>
@@ -409,7 +401,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 />
               </div>
 
-              {/* Exam Options Section - only show when exam scheduler is enabled */}
               {examSchedulerEnabled && (
                 <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                   <div className="flex items-center gap-2">
@@ -427,7 +418,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </div>
               )}
 
-              {/* Final Date for Completed Subjects */}
               {isFieldVisibleForState("final_date", subjectState) && (
                 <div className="space-y-2">
                   <Label htmlFor="final_date">Datum ukončení *</Label>
@@ -441,7 +431,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </div>
               )}
 
-              {/* Subject State Selector */}
               <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                 <Label className="text-sm font-medium">Stav předmětu</Label>
                 <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
@@ -460,7 +449,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </RadioGroup>
               </div>
 
-              {/* Credit and Exam Completion Toggles */}
               {subjectState === "active" && (
                 <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                   <Label className="text-sm font-medium">Průběžné plnění</Label>
@@ -509,7 +497,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </div>
               )}
 
-              {/* Repeat Subject Section */}
               <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                 <div className="flex items-center space-x-2">
                   <Checkbox

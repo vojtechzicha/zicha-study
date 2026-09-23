@@ -11,8 +11,8 @@ import {
 import type { CacheFolderConfig } from "@/lib/types/onedrive"
 
 /**
- * Cache a file to the OneDrive cache directory.
- * Updates the DB document with cache_onedrive_id and cache_onedrive_web_url.
+ * Copies the file into the OneDrive cache folder and stores cache_onedrive_id
+ * and cache_onedrive_web_url on the document.
  */
 export async function cacheFileToOneDrive(
   docId: string,
@@ -30,7 +30,6 @@ export async function cacheFileToOneDrive(
 
     const result = await copyFileToCache(onedriveId, fileName, studyId, docId, type)
 
-    // Update the document with cache fields
     if (collection === "materials") {
       await db.updateMaterial(docId, {
         cache_onedrive_id: result.cacheOnedriveId,
@@ -85,16 +84,10 @@ export async function createCacheShareLinkAction(
   }
 }
 
-/**
- * Fetch app settings (cache folder config).
- */
 export async function fetchAppSettings(): Promise<CacheFolderConfig | null> {
   return getCacheFolderConfig()
 }
 
-/**
- * Update app settings (cache folder config).
- */
 export async function updateAppSettings(data: {
   cache_folder_id: string | null
   cache_folder_name: string
@@ -112,9 +105,9 @@ interface SyncResult {
 }
 
 /**
- * Sync all existing documents to the cache directory.
- * For each material/study note with onedrive_id but no cache_onedrive_id,
- * copies the file to cache. For public materials, also creates cache share links.
+ * Copies every material/study note that has an onedrive_id but no
+ * cache_onedrive_id into the cache folder, and creates cache share links for
+ * public materials. Documents whose original file is gone are skipped.
  */
 export async function syncAllToCache(): Promise<SyncResult> {
   const config = await getCacheFolderConfig()
@@ -124,7 +117,6 @@ export async function syncAllToCache(): Promise<SyncResult> {
 
   const result: SyncResult = { total: 0, synced: 0, failed: 0, skipped: 0, errors: [] }
 
-  // Gather all documents that need caching
   const collections = [
     { name: "materials" as const, type: "materials" as const },
     { name: "subject_materials" as const, type: "materials" as const },
@@ -141,7 +133,6 @@ export async function syncAllToCache(): Promise<SyncResult> {
       const fileName = doc.file_name as string
       const studyId = doc.study_id as string
 
-      // Check if original still exists
       const { exists } = await checkFileExists(onedriveId)
       if (!exists) {
         result.skipped++
@@ -152,7 +143,6 @@ export async function syncAllToCache(): Promise<SyncResult> {
       try {
         const cacheResult = await copyFileToCache(onedriveId, fileName, studyId, docId, type)
 
-        // Update document
         const updateData: Record<string, string> = {
           cache_onedrive_id: cacheResult.cacheOnedriveId,
           cache_onedrive_web_url: cacheResult.cacheWebUrl,
@@ -166,7 +156,6 @@ export async function syncAllToCache(): Promise<SyncResult> {
           await db.updateStudyNote(docId, updateData)
         }
 
-        // For public materials, create cache share link
         if (
           (collectionName === "materials" || collectionName === "subject_materials") &&
           doc.is_public
@@ -191,7 +180,7 @@ export async function syncAllToCache(): Promise<SyncResult> {
         )
       }
 
-      // Rate limit: 500ms between operations
+      // Throttle Graph API requests.
       await new Promise((resolve) => setTimeout(resolve, 500))
     }
   }
@@ -229,13 +218,11 @@ export async function syncByFilename(): Promise<SyncResult> {
       const studyId = doc.study_id as string
       const parentPath = (doc.parent_path as string) || null
 
-      // Skip if original ID still works
       const { exists } = await checkFileExists(onedriveId)
       if (exists) continue
 
       result.total++
 
-      // Try to find the file by path/name
       const found = await findFileByPath(parentPath, fileName)
 
       if (!found) {
@@ -243,13 +230,12 @@ export async function syncByFilename(): Promise<SyncResult> {
         result.errors.push(
           `${collectionName}/${docId}: „${fileName}“ v OneDrive není`
         )
-        // Rate limit between search requests
+        // Throttle Graph API requests.
         await new Promise((resolve) => setTimeout(resolve, 300))
         continue
       }
 
       try {
-        // Update the document with the new onedrive_id
         const idUpdate: Record<string, string> = {
           onedrive_id: found.id,
           onedrive_web_url: found.webUrl,
@@ -266,7 +252,6 @@ export async function syncByFilename(): Promise<SyncResult> {
           await db.updateStudyNote(docId, idUpdate)
         }
 
-        // Now copy to cache using the new ID
         const cacheResult = await copyFileToCache(found.id, fileName, studyId, docId, type)
 
         const cacheUpdate: Record<string, string> = {
@@ -282,7 +267,6 @@ export async function syncByFilename(): Promise<SyncResult> {
           await db.updateStudyNote(docId, cacheUpdate)
         }
 
-        // For public materials, create cache share link
         if (
           (collectionName === "materials" || collectionName === "subject_materials") &&
           doc.is_public
@@ -307,7 +291,7 @@ export async function syncByFilename(): Promise<SyncResult> {
         )
       }
 
-      // Rate limit: 500ms between operations
+      // Throttle Graph API requests.
       await new Promise((resolve) => setTimeout(resolve, 500))
     }
   }

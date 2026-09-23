@@ -27,9 +27,6 @@ interface SubjectExams {
   exams: ExamWithSubject[];
 }
 
-/**
- * Prepare exams with computed end times and subject info
- */
 function prepareExams(subjects: Subject[], exams: Exam[]): ExamWithSubject[] {
   const subjectMap = new Map(subjects.map((s) => [s.id, s]));
 
@@ -48,9 +45,7 @@ function prepareExams(subjects: Subject[], exams: Exam[]): ExamWithSubject[] {
   });
 }
 
-/**
- * Group exams by subject and filter out completed subjects
- */
+/** Skips completed subjects. */
 function groupExamsBySubject(
   subjects: Subject[],
   exams: ExamWithSubject[]
@@ -61,7 +56,7 @@ function groupExamsBySubject(
   for (const subject of incompleteSubjects) {
     const subjectExams = exams.filter((e) => e.subjectId === subject.id);
     if (subjectExams.length === 0) {
-      // Subject has no exams - this is an error condition
+      // generateSchedule already rejects incomplete subjects without exams.
       continue;
     }
     result.push({ subject, exams: subjectExams });
@@ -71,10 +66,10 @@ function groupExamsBySubject(
 }
 
 /**
- * Sort exams by preference (earlier first, online preferred).
- * When preferFreeDayExams is on, PTO-free options (online, or in-person on a
- * non-working day) are explored first. This only affects exploration order and
- * tie-breaking; the chosen optimum is still decided by the schedule score.
+ * Exploration order: earlier first, then online first, then by start time.
+ * With preferFreeDayExams, PTO-free options (online, or in-person on a
+ * non-working day) come first. Only affects search order and ties (the first
+ * schedule found at the best score wins); the optimum is decided by the score.
  */
 function sortExamsByPreference(
   exams: ExamWithSubject[],
@@ -90,29 +85,27 @@ function sortExamsByPreference(
     !e.isOnline && isWorkingDay(e.date, workingDays);
 
   return [...exams].sort((a, b) => {
-    // When preferring free days, explore PTO-free options first
     if (preferFreeDay) {
       const aPto = needsPto(a);
       const bPto = needsPto(b);
       if (aPto !== bPto) return aPto ? 1 : -1;
     }
 
-    // First by date
     const dateCompare = compareDate(a.date, b.date);
     if (dateCompare !== 0) return dateCompare;
 
-    // Then prefer online
     if (a.isOnline !== b.isOnline) {
       return a.isOnline ? -1 : 1;
     }
 
-    // Then by start time
     return a.startTime.localeCompare(b.startTime);
   });
 }
 
 /**
- * Main scheduling algorithm using backtracking with branch-and-bound
+ * Exhaustive backtracking with branch-and-bound: picks one exam per subject and
+ * minimizes calculateScheduleScore. Pruning is valid because the score never
+ * decreases when an exam is added.
  */
 function findOptimalSchedule(
   subjectExams: SubjectExams[],
@@ -125,7 +118,7 @@ function findOptimalSchedule(
     return { exams: [], cost: 0 };
   }
 
-  // Sort subjects by number of exams (most constrained first)
+  // Most constrained (fewest exams) first, for earlier pruning.
   const sortedSubjects = [...subjectExams].sort(
     (a, b) => a.exams.length - b.exams.length
   );
@@ -138,7 +131,6 @@ function findOptimalSchedule(
     currentExams: ExamWithSubject[],
     currentCost: number
   ): void {
-    // Base case: all subjects assigned
     if (subjectIndex === sortedSubjects.length) {
       if (currentCost < bestCost) {
         bestCost = currentCost;
@@ -147,7 +139,6 @@ function findOptimalSchedule(
       return;
     }
 
-    // Pruning: if current cost already exceeds best, skip
     if (currentCost >= bestCost) {
       return;
     }
@@ -156,21 +147,17 @@ function findOptimalSchedule(
     const sortedExams = sortExamsByPreference(exams, config);
 
     for (const exam of sortedExams) {
-      // Check if this exam conflicts with current schedule
       if (!canAddExam(exam, currentExams)) {
         continue;
       }
 
-      // Calculate new score with this exam added (money + PTO penalty)
       const newExams = [...currentExams, exam];
       const newCost = calculateScheduleScore(newExams, config);
 
-      // Pruning: skip if already worse than best
       if (newCost >= bestCost) {
         continue;
       }
 
-      // Recurse
       backtrack(subjectIndex + 1, newExams, newCost);
     }
   }
@@ -185,8 +172,8 @@ function findOptimalSchedule(
 }
 
 /**
- * Build schedule items from selected exams for display
- * Uses trip segments: each segment represents a contiguous stay in the city
+ * Display timeline for the selected exams: travel, accommodation and exam
+ * items, one travel pair per trip segment.
  */
 export function buildScheduleItems(
   exams: ExamWithSubject[],
@@ -200,7 +187,6 @@ export function buildScheduleItems(
   const offlineDays = days.filter((d) => d.hasOfflineExam);
   const items: ScheduleItem[] = [];
 
-  // Whether an in-person exam on a given date requires a PTO day
   const preferFreeDay = !!config.preferFreeDayExams;
   const workingDays =
     config.workingDays && config.workingDays.length > 0
@@ -209,7 +195,6 @@ export function buildScheduleItems(
   const requiresPto = (exam: ExamWithSubject, date: string) =>
     preferFreeDay && !exam.isOnline && isWorkingDay(date, workingDays);
 
-  // If no offline exams, just add online exam items
   if (offlineDays.length === 0) {
     for (const day of days) {
       const sortedExams = [...day.exams].sort((a, b) =>
@@ -231,17 +216,14 @@ export function buildScheduleItems(
     return items;
   }
 
-  // Build trip segments (decides when to go home vs stay based on cost)
   const segments = buildTripSegments(offlineDays, config);
 
-  // For each segment, add travel and accommodation items
   for (const segment of segments) {
     const firstDay = segment.days[0];
     const lastDay = segment.days[segment.days.length - 1];
 
-    // Add travel_to on arrival day
     if (firstDay.needsAccommodationBefore) {
-      // Arrive day before, travel in the afternoon
+      // Arrive the day before, travelling in the afternoon.
       items.push({
         type: "travel_to",
         date: segment.arrivalDate,
@@ -250,7 +232,7 @@ export function buildScheduleItems(
         cost: config.travelCostOneWay,
       });
     } else {
-      // Arrive same day, calculate travel start based on first exam
+      // Same-day arrival: leave travelDurationHours before the first in-person exam.
       const firstOfflineExam = [...firstDay.exams]
         .filter((e) => !e.isOnline)
         .sort((a, b) => a.startTime.localeCompare(b.startTime))[0];
@@ -274,7 +256,6 @@ export function buildScheduleItems(
       }
     }
 
-    // Add accommodation nights from the segment
     for (const nightDate of segment.accommodationNights) {
       const nextDateStr = getNextDay(nightDate);
       items.push({
@@ -285,9 +266,8 @@ export function buildScheduleItems(
       });
     }
 
-    // Add travel_from on departure day
     if (lastDay.needsAccommodationAfter) {
-      // Leave next day morning
+      // Leave the next morning.
       items.push({
         type: "travel_from",
         date: segment.departureDate,
@@ -296,7 +276,7 @@ export function buildScheduleItems(
         cost: config.travelCostOneWay,
       });
     } else {
-      // Leave same day after last exam
+      // Leave right after the last in-person exam.
       const lastOfflineExam = [...lastDay.exams]
         .filter((e) => !e.isOnline)
         .sort((a, b) => b.endTime.localeCompare(a.endTime))[0];
@@ -313,7 +293,6 @@ export function buildScheduleItems(
     }
   }
 
-  // Add all exams (including online)
   for (const day of days) {
     const sortedExams = [...day.exams].sort((a, b) =>
       a.startTime.localeCompare(b.startTime)
@@ -332,7 +311,6 @@ export function buildScheduleItems(
     }
   }
 
-  // Sort items by date, then by type order, then by time
   const typeOrder: Record<ScheduleItemType, number> = { travel_to: 0, accommodation: 1, exam: 2, travel_from: 3 };
   items.sort((a, b) => {
     const dateCompare = compareDate(a.date, b.date);
@@ -351,7 +329,8 @@ export function buildScheduleItems(
 }
 
 /**
- * Main entry point: generate optimal exam schedule
+ * Picks one exam term per incomplete subject, minimizing travel + accommodation
+ * cost (plus the PTO penalty when preferFreeDayExams is on).
  */
 export function generateSchedule(
   subjects: Subject[],
@@ -360,7 +339,6 @@ export function generateSchedule(
 ): ScheduleResult {
   const fullConfig: SchedulerConfig = { ...DEFAULT_CONFIG, ...config };
 
-  // Check for subjects without exams that aren't complete
   const incompleteSubjects = subjects.filter((s) => !s.isComplete);
   const subjectsWithExams = new Set(exams.map((e) => e.subjectId));
 
@@ -386,7 +364,6 @@ export function generateSchedule(
     };
   }
 
-  // If all subjects are complete, return empty schedule
   if (incompleteSubjects.length === 0) {
     return {
       success: true,
@@ -403,11 +380,9 @@ export function generateSchedule(
     };
   }
 
-  // Prepare and group exams
   const preparedExams = prepareExams(subjects, exams);
   const subjectExams = groupExamsBySubject(subjects, preparedExams);
 
-  // Find optimal schedule
   const result = findOptimalSchedule(subjectExams, fullConfig);
 
   if (result === null) {
@@ -437,8 +412,7 @@ export function generateSchedule(
     success: true,
     items,
     selectedExams,
-    // User-facing total is the real monetary cost, not the optimization score
-    // (which may include the virtual PTO penalty).
+    // Real money, not the optimization score (which includes the PTO penalty).
     totalCost: breakdown.totalCost,
     breakdown: {
       travelCost: breakdown.travelCost,

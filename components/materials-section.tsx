@@ -72,7 +72,6 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
     loadMaterials()
   }
 
-  // Show only first 3 materials in preview mode
   const displayedMaterials = showAll ? materials : materials.slice(0, 3)
 
   return (

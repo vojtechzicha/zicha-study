@@ -68,10 +68,8 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
   const subjectData = subject || note.subjects?.[0]
   const studyData = study || subjectData?.studies
 
-  // Extract and apply theme colors from study logo
   useLogoTheme(studyData?.logo_url || study?.logo_url)
 
-  // Update favicon with study logo
   useFavicon(studyData?.logo_url || study?.logo_url)
 
   const formatDate = (dateString: string) => {
@@ -84,7 +82,6 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
-      {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
@@ -126,10 +123,8 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
-          {/* Note Info Card */}
           <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -191,7 +186,6 @@ export function StudyNoteDisplay({ note, subject, study, flush }: StudyNoteDispl
             </CardContent>
           </Card>
 
-          {/* Document Content Area */}
           {note.public_slug && (
             <StudyNoteContent
               slug={note.public_slug}
