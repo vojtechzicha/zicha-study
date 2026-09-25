@@ -7,7 +7,7 @@ import { uploadDiploma, removeDiploma as removeDiplomaAction } from "@/lib/actio
 import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, getGraduationResultOptions, getGraduationResultLabel, STUDY_STATUS, EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS, WEEKDAY_OPTIONS, type StudyStatus } from "@/lib/constants"
 import { getStudyTerminology } from "@/lib/study-kind"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -82,7 +82,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
       study.working_days && study.working_days.length > 0
         ? study.working_days
         : [...DEFAULT_WORKING_DAYS],
-    // Convert HH:MM:SS to HH:MM for display, empty string if null
+    // Stored as HH:MM:SS; the time input expects HH:MM (empty when unset)
     earliest_arrival_time: study.earliest_arrival_time
       ? study.earliest_arrival_time.substring(0, 5)
       : "",
@@ -103,11 +103,11 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError("Logo musí být menší než 5MB")
+        setError("Logo musí být menší než 5 MB.")
         return
       }
       if (!file.type.startsWith("image/")) {
-        setError("Logo musí být obrázek")
+        setError("Logo musí být obrázek.")
         return
       }
       setLogoFile(file)
@@ -128,13 +128,13 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     if (file) {
       const diplomaNoun = getStudyTerminology(formData.type).diplomaNoun
       if (file.size > 10 * 1024 * 1024) {
-        setError(`${diplomaNoun} musí být menší než 10 MB`)
+        setError(`${diplomaNoun} musí být menší než 10 MB.`)
         return
       }
       const isPdf = file.type === "application/pdf"
       const isImage = file.type.startsWith("image/")
       if (!isPdf && !isImage) {
-        setError(`${diplomaNoun} musí být PDF nebo obrázek`)
+        setError(`${diplomaNoun} musí být PDF nebo obrázek.`)
         return
       }
       setDiplomaFile(file)
@@ -166,17 +166,14 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     try {
       let logoUrl: string | undefined = study.logo_url
 
-      // Upload new logo if provided
       if (logoFile) {
         const arrayBuffer = await logoFile.arrayBuffer()
         logoUrl = await uploadLogo(study.id, arrayBuffer, logoFile.type)
       } else if (logoPreview === null && study.logo_url) {
-        // Remove logo if user cleared it
         await removeLogoAction(study.id)
         logoUrl = undefined
       }
 
-      // Upload new diploma if provided
       if (diplomaFile) {
         const arrayBuffer = await diplomaFile.arrayBuffer()
         await uploadDiploma(study.id, arrayBuffer, diplomaFile.type)
@@ -191,7 +188,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
         graduation_result:
           formData.status === STUDY_STATUS.COMPLETED ? formData.graduation_result || null : null,
         logo_url: logoUrl,
-        // Store as null if empty, otherwise as time string
         earliest_arrival_time: formData.earliest_arrival_time || null,
         is_url: formData.is_url || null,
       })
@@ -199,7 +195,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
       onSuccess()
     } catch (err) {
       console.error("Upload error:", err)
-      setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
+      setError(err instanceof Error ? err.message : "Nepodařilo se uložit studium.")
     } finally {
       setLoading(false)
     }
@@ -212,11 +208,10 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
     try {
       await deleteStudyAction(study.id)
 
-      // Navigate back to dashboard
       router.push("/")
     } catch (err) {
       console.error("Delete study error:", err)
-      setError(err instanceof Error ? err.message : "Nastala chyba při mazání studia")
+      setError(err instanceof Error ? err.message : "Nepodařilo se smazat studium.")
     } finally {
       setDeleting(false)
     }
@@ -228,12 +223,11 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
         <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={onClose} aria-label="Zpět">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
                 <CardTitle className="text-2xl font-bold text-foreground">Upravit studium</CardTitle>
-                <CardDescription className="text-muted-foreground">Upravte informace o vašem studiu</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -245,7 +239,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </Alert>
               )}
 
-              {/* Logo Upload */}
               <div className="space-y-2">
                 <Label>Logo fakulty</Label>
                 <div className="flex items-start gap-4">
@@ -254,7 +247,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={logoPreview || "/placeholder.svg"}
-                        alt="Logo preview"
+                        alt="Náhled loga"
                         className="w-16 h-16 object-contain border rounded"
                       />
                       <Button
@@ -263,6 +256,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                         size="sm"
                         className="absolute -top-2 -right-2 h-6 w-6 p-0"
                         onClick={removeLogo}
+                        aria-label="Odebrat logo"
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -279,14 +273,13 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       onChange={handleLogoChange}
                       className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-950 dark:file:text-primary-300 dark:hover:file:bg-primary-900/60 file:cursor-pointer"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG, GIF do 5MB</p>
+                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG, GIF do 5 MB</p>
                   </div>
                 </div>
               </div>
 
-              {/* Study Name - Full Width */}
               <div className="space-y-2">
-                <Label htmlFor="name">Název studijního programu *</Label>
+                <Label htmlFor="name">Název studia *</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -350,7 +343,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                     onChange={(e) =>
                       setFormData({ ...formData, end_year: e.target.value ? Number.parseInt(e.target.value) : "" })
                     }
-                    placeholder="Volitelné"
                   />
                 </div>
 
@@ -371,7 +363,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                   </Select>
                 </div>
 
-                {/* Graduation result – only relevant once the study is completed */}
                 {formData.status === STUDY_STATUS.COMPLETED && (
                   <div className="space-y-2">
                     <Label htmlFor="graduation_result">Výsledek studia</Label>
@@ -392,13 +383,12 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      „S vyznamenáním“ zobrazí {getStudyTerminology(formData.type).diplomaNoun.toLowerCase()} v slavnostním červeném provedení.
+                      „S vyznamenáním“ zobrazí {getStudyTerminology(formData.type).diplomaNoun.toLowerCase()} ve slavnostním červeném provedení.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Diploma Upload */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Award className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -431,6 +421,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                         size="sm"
                         className="absolute -top-2 -right-2 h-6 w-6 p-0"
                         onClick={removeDiplomaLocal}
+                        aria-label={`Odebrat ${getStudyTerminology(formData.type).diplomaNoun.toLowerCase()}`}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -451,27 +442,24 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       {diplomaFileName ? (
                         <span className="text-amber-700 dark:text-amber-300 font-medium">{diplomaFileName}</span>
                       ) : (
-                        "PDF nebo obrázek do 10MB"
+                        "PDF nebo obrázek do 10 MB"
                       )}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* IS URL */}
               <div className="space-y-2">
-                <Label htmlFor="is_url">URL stránky v informačním systému</Label>
+                <Label htmlFor="is_url">Stránka studia v informačním systému</Label>
                 <Input
                   id="is_url"
                   type="url"
                   value={formData.is_url}
                   onChange={(e) => setFormData({ ...formData, is_url: e.target.value })}
-                  placeholder="https://is.muni.cz/studium/..."
+                  placeholder="https://is.muni.cz/studium/…"
                 />
-                <p className="text-xs text-muted-foreground">Odkaz na stránku studia v informačním systému školy (volitelné)</p>
               </div>
 
-              {/* Final Exams Toggle */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
@@ -492,7 +480,6 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </div>
               </div>
 
-              {/* Tasks Toggle */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
@@ -500,7 +487,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                       Úkoly
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Evidence deadlinů a termínů k tomuto studiu (viditelné pouze pro vás)
+                      Termíny a úkoly ke studiu. Vidíte je jen vy.
                     </p>
                   </div>
                   <Switch
@@ -513,18 +500,15 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                 </div>
               </div>
 
-              {/* Exam Scheduler Toggle */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-primary-50/50 dark:bg-primary-950/50">
                   <div className="space-y-0.5">
                     <Label htmlFor="exam-scheduler" className="text-base font-medium">
                       Plánovač zkoušek
                     </Label>
-                    <p className="text-sm text-muted-foreground">
-                      {formData.status === STUDY_STATUS.ACTIVE
-                        ? "Automatický plánovač optimálních termínů zkoušek"
-                        : "Plánovač lze zapnout pouze u aktivního studia"}
-                    </p>
+                    {formData.status !== STUDY_STATUS.ACTIVE && (
+                      <p className="text-sm text-muted-foreground">Plánovač lze zapnout jen u aktivního studia.</p>
+                    )}
                   </div>
                   <Switch
                     id="exam-scheduler"
@@ -536,10 +520,9 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                   />
                 </div>
 
-                {/* Scheduler Configuration - only show when enabled */}
                 {formData.exam_scheduler_enabled && formData.status === STUDY_STATUS.ACTIVE && (
                   <div className="p-4 border rounded-lg bg-primary-50/30 dark:bg-primary-950/40 space-y-4">
-                    <p className="text-sm font-medium text-foreground/80">Nastavení plánovače</p>
+                    <p className="text-sm font-medium text-foreground/80">Doprava a ubytování</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="transit_duration">Doba cesty (hodiny)</Label>
@@ -555,7 +538,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                             transit_duration_hours: parseFloat(e.target.value) || 4
                           })}
                         />
-                        <p className="text-xs text-muted-foreground">Jednosměrná cesta do školy</p>
+                        <p className="text-xs text-muted-foreground">Jedním směrem.</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="earliest_arrival">Nejdřívější příjezd</Label>
@@ -569,7 +552,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                           })}
                           placeholder="08:50"
                         />
-                        <p className="text-xs text-muted-foreground">Kdy nejdříve můžete být ve škole (volitelné)</p>
+                        <p className="text-xs text-muted-foreground">Kdy nejdříve můžete být ve škole.</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="transit_cost">Cena cesty (Kč)</Label>
@@ -583,7 +566,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                             transit_cost_one_way: parseInt(e.target.value) || 0
                           })}
                         />
-                        <p className="text-xs text-muted-foreground">Jednosměrná cesta</p>
+                        <p className="text-xs text-muted-foreground">Jedním směrem.</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="accommodation_cost">Ubytování/noc (Kč)</Label>
@@ -597,11 +580,9 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                             accommodation_cost_per_night: parseInt(e.target.value) || 0
                           })}
                         />
-                        <p className="text-xs text-muted-foreground">Cena za noc u školy</p>
                       </div>
                     </div>
 
-                    {/* Free-day (weekend) preference */}
                     <div className="pt-2 border-t border-primary-100 dark:border-primary-900 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5 pr-4">
@@ -609,7 +590,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                             Upřednostnit volné dny
                           </Label>
                           <p className="text-xs text-muted-foreground">
-                            Prezenční zkoušky v pracovní dny vyžadují dovolenou. Plánovač je penalizuje a dá přednost termínům ve volných dnech (např. o víkendu), pokud se to vyplatí.
+                            Prezenční zkouška v pracovní den znamená dovolenou. Plánovač takové termíny penalizuje a dá přednost volným dnům, pokud se to vyplatí.
                           </p>
                         </div>
                         <Switch
@@ -636,9 +617,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                                 pto_day_cost: parseInt(e.target.value) || 0
                               })}
                             />
-                            <p className="text-xs text-muted-foreground">
-                              Kolik vás stojí jeden den dovolené. Vyšší hodnota = silnější preference volných dní.
-                            </p>
+                            <p className="text-xs text-muted-foreground">Čím vyšší cena, tím víc plánovač upřednostní volné dny.</p>
                           </div>
 
                           <div className="space-y-2">
@@ -667,9 +646,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                                 )
                               })}
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              Dny, kdy pracujete. Zkoušky v ostatní (volné) dny nejsou penalizovány.
-                            </p>
+                            <p className="text-xs text-muted-foreground">Zkoušky v ostatních dnech plánovač nepenalizuje.</p>
                           </div>
                         </div>
                       )}
@@ -684,7 +661,7 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
                   disabled={loading}
                   className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
-                  {loading ? "Ukládání..." : "Uložit změny"}
+                  {loading ? "Ukládání…" : "Uložit změny"}
                 </Button>
                 <Button type="button" variant="outline" onClick={onClose}>
                   Zrušit
@@ -692,25 +669,24 @@ export function StudyEditForm({ study, onClose, onSuccess }: StudyEditFormProps)
               </div>
             </form>
 
-            {/* Danger Zone */}
             <div className="mt-8 pt-6 border-t border-border">
               <div className="p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-950/40">
                 <h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">Nebezpečná zóna</h3>
                 <p className="text-sm text-red-700 dark:text-red-300 mb-4">
-                  Smazání studia je nevratné. Budou odstraněny všechny předměty a veškerá data spojená s tímto studiem včetně nahraného loga.
+                  Smaže se studium včetně všech předmětů, dat a loga.
                 </p>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm" disabled={deleting}>
                       <Trash2 className="mr-2 h-4 w-4" />
-                      {deleting ? "Mazání..." : "Smazat studium"}
+                      {deleting ? "Mazání…" : "Smazat studium"}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Opravdu chcete smazat toto studium?</AlertDialogTitle>
+                      <AlertDialogTitle>Smazat studium?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Tato akce je nevratná. Studium &quot;{study.name}&quot; a všechny jeho předměty budou trvale odstraněny.
+                        Studium „{study.name}“ a všechna jeho data se trvale smažou.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -5,7 +5,7 @@ import { createStudy } from "@/lib/actions/studies"
 import { useToast } from "@/hooks/use-toast"
 import { getStudyTypeOptions, getStudyFormOptions, getStudyFormLabel, getStudyStatusOptions, getStudyStatusLabel, STUDY_STATUS, type StudyStatus } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -52,18 +52,15 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
         end_year: formData.end_year ? Number.parseInt(formData.end_year) : null,
         status: formData.status,
       })
-      toast({
-        title: "Studium vytvořeno",
-        description: `Studium "${formData.name}" bylo úspěšně vytvořeno.`,
-      })
+      toast({ title: "Studium vytvořeno" })
       onSuccess()
     } catch (err: any) {
-      let errorMessage = "Chyba při ukládání studia. Zkuste to prosím znovu."
+      let errorMessage = "Nepodařilo se uložit studium."
 
       if (err?.message?.includes("Duplicate") || err?.code === 11000) {
         errorMessage = "Studium s tímto názvem již existuje."
       } else if (err?.message) {
-        errorMessage = `Chyba při ukládání: ${err.message}`
+        errorMessage = `Nepodařilo se uložit studium: ${err.message}`
       }
 
       setError(errorMessage)
@@ -83,8 +80,7 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
 
         <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-foreground">Přidat nové studium</CardTitle>
-            <CardDescription>Vyplňte základní informace o vašem studiu</CardDescription>
+            <CardTitle className="text-2xl font-bold text-foreground">Nové studium</CardTitle>
           </CardHeader>
           <CardContent>
             {error && (
@@ -148,7 +144,7 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="end_year">Rok konce (volitelné)</Label>
+                  <Label htmlFor="end_year">Rok konce</Label>
                   <Input
                     id="end_year"
                     type="number"
@@ -187,7 +183,7 @@ export function StudyForm({ onClose, onSuccess }: StudyFormProps) {
                   className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {loading ? "Ukládání..." : "Uložit studium"}
+                  {loading ? "Ukládání…" : "Uložit studium"}
                 </Button>
               </div>
             </form>

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { StudyLogo } from "./study-logo"
 import { getStatusColor, getStatusText, StudyStatus } from "@/lib/status-utils"
-import { getGraduationResultLabel } from "@/lib/constants"
+import { getGraduationResultLabel, getStudyFormLabel } from "@/lib/constants"
 
 interface Study {
   id: string
@@ -22,7 +22,7 @@ interface Study {
 interface StudyHeaderProps {
   study?: Study
   title?: string
-  subtitle?: string  // Reserved for future use
+  subtitle?: string  // shown under the title when no `study` is passed
   logoUrl?: string | null
   onBack: () => void
   actions?: React.ReactNode
@@ -54,7 +54,7 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
                     <>
                       <span>{study.type}</span>
                       <span className="hidden sm:inline">•</span>
-                      <span>{study.form}</span>
+                      <span>{getStudyFormLabel(study.form)}</span>
                       <span className="hidden sm:inline">•</span>
                       {getStatusBadge(study.status)}
                       {study.graduation_result && (
@@ -78,6 +78,8 @@ export function StudyHeader({ study, title, subtitle, logoUrl, onBack, actions }
                             href={study.is_url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            aria-label="Informační systém školy"
+                            title="Informační systém školy"
                             className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
                           >
                             <span className="hidden sm:inline">IS</span>

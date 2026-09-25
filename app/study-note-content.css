@@ -7,13 +7,11 @@
 }
 
 
-/* Container for the entire study note */
 .study-note-container {
   position: relative;
   min-height: 600px;
 }
 
-/* Layout wrapper for ToC and content */
 .study-note-layout {
   display: grid;
   grid-template-columns: 220px 1fr;
@@ -22,7 +20,6 @@
   position: relative;
 }
 
-/* When there's no ToC, use single column layout */
 .study-note-layout:not(:has(.study-note-toc)) {
   grid-template-columns: 1fr;
 }
@@ -112,7 +109,6 @@
   overflow: hidden;
 }
 
-/* Remove any default padding/margin from TOC element */
 #TOC {
   margin: 0;
   padding: 0;
@@ -161,12 +157,11 @@
   margin: 0 auto;
 }
 
-/* When ToC is collapsed */
 .study-note-layout:has(.study-note-toc.collapsed) {
   grid-template-columns: 48px 1fr;
 }
 
-/* Reset pandoc's default styles */
+/* Neutralise a <body> element embedded in the converted HTML */
 .study-note-content body {
   margin: 0;
   padding: 0;
@@ -176,7 +171,6 @@
   font-family: inherit;
 }
 
-/* Ensure proper list styling in article content */
 .study-note-article ul,
 .study-note-article ol {
   list-style-position: outside;
@@ -192,7 +186,7 @@
   color: hsl(var(--foreground));
 }
 
-/* Typography - matching app design language */
+/* Typography */
 .study-note-content h1,
 .study-note-content h2,
 .study-note-content h3,
@@ -206,7 +200,6 @@
   line-height: 1.2;
 }
 
-/* Document title - distinctive style */
 .study-note-title {
   font-size: 2rem;
   font-weight: 700;
@@ -222,7 +215,6 @@
   border-bottom-color: hsl(var(--primary-800, 217 91% 30%));
 }
 
-/* Override heading font for ToC */
 .study-note-toc h1,
 .study-note-toc h2,
 .study-note-toc h3,
@@ -285,8 +277,7 @@
   text-align: justify;
 }
 
-/* Table of Contents */
-/* Hide bullets in ToC */
+/* Table of contents */
 .study-note-toc ul,
 #TOC ul {
   list-style: none !important;
@@ -307,7 +298,6 @@
   margin-bottom: 0.125rem;
 }
 
-/* Keep bullets in content area */
 .study-note-content #TOC ul {
   list-style: none;
   padding-left: 0;
@@ -364,7 +354,6 @@
   border-left-color: hsl(var(--primary-400, 217 70% 76%));
 }
 
-/* Nested TOC items */
 .study-note-toc ul ul a,
 #TOC ul ul a {
   font-size: 0.75rem;
@@ -376,7 +365,7 @@
   padding-left: 2.5rem;
 }
 
-/* TOC numbering - optional */
+/* TOC numbering */
 #TOC > ul {
   counter-reset: toc-section;
 }
@@ -426,7 +415,6 @@
   opacity: 1 !important;
 }
 
-/* Force list style for nested elements */
 .study-note-content ul > li {
   list-style: disc outside !important;
 }
@@ -435,7 +423,7 @@
   list-style: decimal outside !important;
 }
 
-/* Ensure bullets are visible in content but NOT in TOC */
+/* Bullets in the content, none in the TOC */
 .study-note-article ul,
 .study-note-main ul:not(#TOC ul) {
   list-style: disc outside !important;
@@ -448,7 +436,6 @@
   padding-left: 2.5rem !important;
 }
 
-/* Override any list styles in ToC */
 .study-note-toc ul li::before,
 .study-note-toc ul li::marker,
 #TOC ul li::before,
@@ -691,7 +678,7 @@
   color: hsl(var(--foreground));
 }
 
-/* Pandoc math spans */
+/* Math spans emitted by the DOCX converter */
 .study-note-content span.math {
   display: inline-block;
 }
@@ -702,7 +689,6 @@
   margin: 1rem 0;
 }
 
-/* Ensure math content is visible */
 .study-note-content .math,
 .study-note-content .katex-mathml {
   color: hsl(var(--foreground));

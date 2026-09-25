@@ -1,10 +1,4 @@
-/**
- * Application Constants
- *
- * This file contains all enum values, constants, and configuration options
- * used throughout the application. This ensures consistency and makes
- * maintenance easier by having a single source of truth.
- */
+// Single source of truth for enum-like values; import from here instead of hardcoding them.
 
 // Reserved routes that should not be accessible as public study slugs
 const RESERVED_ROUTES_TUPLE = [
@@ -25,10 +19,9 @@ const RESERVED_ROUTES_TUPLE = [
 
 export type ReservedRoute = (typeof RESERVED_ROUTES_TUPLE)[number]
 
-// Export as readonly string[] for .includes() compatibility
+// Widened to readonly string[] so .includes() accepts any string
 export const RESERVED_ROUTES: readonly string[] = RESERVED_ROUTES_TUPLE
 
-// Study Note Types
 // 'word'     → legacy notes backed by a OneDrive DOCX file (Mammoth → HTML)
 // 'markdown' → native Markdown notes edited in the in-app WYSIWYG editor
 // 'obsidian' → read-only Markdown notes backed by a OneDrive .md file
@@ -50,7 +43,7 @@ export const getNoteType = (note: { note_type?: string | null } | null | undefin
       : NOTE_TYPES.WORD
 
 // Effective "last change" timestamp for a note, regardless of type.
-// Word notes track changes via OneDrive; Markdown notes via content edits.
+// OneDrive-backed notes (Word, Obsidian) track changes via OneDrive; Markdown notes via content edits.
 export const getNoteEffectiveDate = (note: {
   last_modified_onedrive?: string | null
   content_updated_at?: string | null
@@ -66,7 +59,6 @@ export const getNoteEffectiveDate = (note: {
 // Maximum number of historical versions retained per Markdown note.
 export const MARKDOWN_NOTE_MAX_VERSIONS = 50
 
-// Study Types
 export const STUDY_TYPES = {
   HIGH_SCHOOL: 'Střední škola',
   BACHELOR: 'Bakalářské',
@@ -78,7 +70,6 @@ export const STUDY_TYPES = {
 
 export type StudyType = (typeof STUDY_TYPES)[keyof typeof STUDY_TYPES]
 
-// Study Forms
 export const STUDY_FORMS = {
   FULL_TIME: 'prezenční',
   PART_TIME: 'kombinovaný',
@@ -87,7 +78,6 @@ export const STUDY_FORMS = {
 
 export type StudyForm = (typeof STUDY_FORMS)[keyof typeof STUDY_FORMS]
 
-// Study Status
 export const STUDY_STATUS = {
   ACTIVE: 'active',
   COMPLETED: 'completed',
@@ -99,7 +89,6 @@ export const STUDY_STATUS = {
 
 export type StudyStatus = (typeof STUDY_STATUS)[keyof typeof STUDY_STATUS]
 
-// Subject Types
 export const SUBJECT_TYPES = {
   MANDATORY: 'Povinný',
   MANDATORY_ELECTIVE: 'Povinně volitelný',
@@ -109,7 +98,6 @@ export const SUBJECT_TYPES = {
 
 export type SubjectType = (typeof SUBJECT_TYPES)[keyof typeof SUBJECT_TYPES]
 
-// Subject Completion Types
 export const COMPLETION_TYPES = {
   EXAM: 'Zk',
   CREDIT: 'Zp',
@@ -142,7 +130,7 @@ export const GPA_GRADE_ALIASES = {
 
 export const GPA_EXCLUDED_GRADES = ['Z', 'ZP', 'P', 'W', '-'] as const
 
-// Completion Type Mapping - maps full completion type strings to short codes
+// Full completion-type labels → short codes
 export const COMPLETION_TYPE_MAPPING = {
   // Form values (used when creating new subjects)
   'Zápočet (Zp)': COMPLETION_TYPES.CREDIT,
@@ -151,39 +139,34 @@ export const COMPLETION_TYPE_MAPPING = {
   'Zápočet + Zkouška (Zp+Zk)': 'Zp+Zk',
   'Ostatní': COMPLETION_TYPES.OTHER,
   
-  // Database values (what's actually stored, including multi-line strings)
+  // Database values, stored with line breaks
   'Zápočet\n(Zp)': COMPLETION_TYPES.CREDIT,
   'Klasifikovaný zápočet\n(KZp)': COMPLETION_TYPES.CREDIT_EXAM, 
   'Zkouška\n(Zk)': COMPLETION_TYPES.EXAM,
   'Zápočet +\nZkouška\n(Zp+Zk)': 'Zp+Zk',
 } as const
 
-// Helper functions to get arrays for form options
 export const getStudyTypeOptions = () => Object.values(STUDY_TYPES)
 export const getStudyFormOptions = () => Object.values(STUDY_FORMS)
 export const getStudyStatusOptions = () => Object.values(STUDY_STATUS)
 export const getSubjectTypeOptions = () => Object.values(SUBJECT_TYPES)
 export const getCompletionTypeOptions = () => Object.values(COMPLETION_TYPES)
 
-// Helper function to get short code from full completion type string
 export const getCompletionTypeShortCode = (completionType: string): string => {
-  // First try exact match with the mapping
   const exactMatch = COMPLETION_TYPE_MAPPING[completionType as keyof typeof COMPLETION_TYPE_MAPPING]
   if (exactMatch) {
     return exactMatch
   }
   
-  // Fallback: try to extract short code from parentheses (handles variations)
+  // Fallback for unmapped variants: take the code in parentheses
   const regexMatch = completionType.match(/\(([^)]+)\)/)
   if (regexMatch && regexMatch[1]) {
     return regexMatch[1]
   }
   
-  // If no match found, return the original string
   return completionType
 }
 
-// Subject type configuration for UI rendering
 export const SUBJECT_TYPE_CONFIG = {
   [SUBJECT_TYPES.MANDATORY]: {
     color: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
@@ -211,7 +194,6 @@ export const SUBJECT_TYPE_CONFIG = {
   },
 } as const
 
-// Helper function to get subject type config
 export const getSubjectTypeConfig = (type: string) => {
   return (
     SUBJECT_TYPE_CONFIG[type as keyof typeof SUBJECT_TYPE_CONFIG] || {
@@ -223,7 +205,6 @@ export const getSubjectTypeConfig = (type: string) => {
   )
 }
 
-// Helper functions to get display labels
 export const getStudyTypeLabel = (type: string): string => {
   return Object.values(STUDY_TYPES).includes(type as StudyType) ? type : STUDY_TYPES.OTHER
 }
@@ -264,13 +245,12 @@ export const getGraduationResultOptions = () => Object.values(GRADUATION_RESULTS
 export const isGraduationWithHonors = (result?: string | null): boolean =>
   result === GRADUATION_RESULTS.PASSED_WITH_HONORS
 
-// Capitalized label for display (values are stored lowercase, matching the official wording)
+// Values are stored lowercase (the official wording); capitalise for display
 export const getGraduationResultLabel = (result?: string | null): string => {
   if (!result) return ''
   return result.charAt(0).toUpperCase() + result.slice(1)
 }
 
-// Material Categories
 export const MATERIAL_CATEGORIES = {
   SYLLABUS: 'Sylabus',
   STUDY_MATERIALS: 'Studijní materiály',
@@ -283,10 +263,9 @@ export const MATERIAL_CATEGORIES = {
 
 export type MaterialCategory = (typeof MATERIAL_CATEGORIES)[keyof typeof MATERIAL_CATEGORIES]
 
-// Helper function to get material category options
 export const getMaterialCategoryOptions = () => Object.values(MATERIAL_CATEGORIES)
 
-// Final Exam (Státní závěrečná zkouška) related types
+// Státní závěrečná zkouška (state final exam)
 export interface FinalExam {
   id: string
   study_id: string
@@ -300,7 +279,6 @@ export interface FinalExam {
   updated_at: string
 }
 
-// Extended Study interface to include final_exams_enabled and exam_scheduler
 export interface StudyWithFinalExams {
   id: string
   user_id: string
@@ -326,7 +304,6 @@ export interface StudyWithFinalExams {
   updated_at: string
 }
 
-// Exam Scheduler Defaults
 export const EXAM_SCHEDULER_DEFAULTS = {
   TRANSIT_DURATION_HOURS: 4,
   TRANSIT_COST_ONE_WAY: 200,
@@ -390,7 +367,6 @@ export const WEEKDAY_OPTIONS = [
   { value: 0, label: 'Ne' },
 ] as const
 
-// Exam duration options for UI
 export const EXAM_DURATION_OPTIONS = [
   { value: 60, label: '1 hodina' },
   { value: 90, label: '1,5 hodiny' },
@@ -400,7 +376,6 @@ export const EXAM_DURATION_OPTIONS = [
   { value: 240, label: '4 hodiny' },
 ] as const
 
-// Helper to get exam duration options
 export const getExamDurationOptions = () => [...EXAM_DURATION_OPTIONS]
 
 // ─── Tasks ──────────────────────────────────────────────────────────────────

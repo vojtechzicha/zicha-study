@@ -41,7 +41,7 @@ export function StudyLogo({ logoUrl, studyName, size = "md", className }: StudyL
       >
         <Image
           src={logoUrl || "/placeholder.svg"}
-          alt={`${studyName} logo`}
+          alt={`Logo – ${studyName}`}
           fill
           className="object-contain"
           onError={() => setImageError(true)}

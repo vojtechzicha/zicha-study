@@ -1,7 +1,5 @@
 /**
- * Task Utility Functions
- *
- * Centralized logic for deciding which tasks the study detail shows inline
+ * Logic for deciding which tasks the study detail shows inline
  * and which stay behind the "Zobrazit všechny" dialog.
  */
 

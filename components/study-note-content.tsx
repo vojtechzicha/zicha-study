@@ -31,13 +31,12 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
       const response = await fetch(url)
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || "Failed to load study note")
+        throw new Error(data.error || "Nepodařilo se načíst zápis.")
       }
 
       const data = await response.json()
       setCacheKey(data.cacheKey)
 
-      // Pass cache info to parent
       if (onCacheInfo) {
         onCacheInfo({
           onedriveLastModified: data.onedriveLastModified,
@@ -45,20 +44,17 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
         })
       }
 
-      // Set the document title if available
       if (data.title) {
         setTitle(data.title)
-        document.title = `${data.title} - Studijní zápis`
+        document.title = `${data.title} – Studijní zápis`
       }
 
-      // Process HTML to update image URLs
       let processedHtml = data.html
       if (data.mediaPath) {
-        // Replace all image src attributes that contain "media/"
         processedHtml = processedHtml.replace(
           /src="([^"]*media\/[^"]+)"/g,
           (match: string, path: string) => {
-            // Remove any absolute path prefix and just get the media/filename part
+            // Keep only the `media/<file>` part, dropping any absolute prefix
             const mediaPath = path.includes('media/') ? path.substring(path.indexOf('media/')) : path
             return `src="/api/study-notes/${slug}/media/${mediaPath}?studyId=${studyId}&key=${data.cacheKey}"`
           }
@@ -67,7 +63,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
 
       setContent(processedHtml)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      setError(err instanceof Error ? err.message : "Nepodařilo se načíst zápis.")
     } finally {
       setLoading(false)
     }
@@ -81,7 +77,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
     if (!content || !contentRef.current) return
 
     const loadKatexAndRender = async () => {
-      // Load KaTeX CSS if not already loaded
       if (!document.getElementById("katex-css")) {
         const katexCSS = document.createElement("link")
         katexCSS.id = "katex-css"
@@ -92,7 +87,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
         document.head.appendChild(katexCSS)
       }
 
-      // Load KaTeX JS if not already loaded
       if (!katexLoadedRef.current) {
         const script = document.createElement("script")
         script.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
@@ -105,7 +99,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
           document.head.appendChild(script)
         })
 
-        // Load auto-render addon
         const autoRenderScript = document.createElement("script")
         autoRenderScript.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
         autoRenderScript.integrity = "sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05"
@@ -122,10 +115,9 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
         katexLoadedRef.current = true
       }
 
-      // Wait a bit for scripts to initialize
+      // Give the freshly loaded scripts time to initialize
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      // Render math
       if (window.renderMathInElement && contentRef.current) {
         window.renderMathInElement(contentRef.current, {
           delimiters: [
@@ -151,7 +143,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
         })
       }
 
-      // Process Pandoc's math spans if auto-render didn't catch them
+      // Fallback for Pandoc-style `span.math` elements that auto-render missed
       if (window.katex && contentRef.current) {
         const mathSpans = contentRef.current.querySelectorAll('span.math')
         mathSpans.forEach(span => {
@@ -173,10 +165,8 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
         })
       }
 
-      // Set up ToC navigation if present
       setupTocNavigation()
       
-      // Add ToC toggle functionality
       if (contentRef.current) {
         const toggleBtn = contentRef.current.querySelector('.toc-toggle')
         const toc = contentRef.current.querySelector('.study-note-toc')
@@ -184,20 +174,17 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
         if (toggleBtn && toc) {
           const handleToggle = () => {
             toc.classList.toggle('collapsed')
-            // Save state to localStorage
             const isCollapsed = toc.classList.contains('collapsed')
             localStorage.setItem('study-note-toc-collapsed', isCollapsed.toString())
           }
           
           toggleBtn.addEventListener('click', handleToggle)
           
-          // Restore saved state
           const savedState = localStorage.getItem('study-note-toc-collapsed')
           if (savedState === 'true') {
             toc.classList.add('collapsed')
           }
           
-          // Cleanup
           return () => {
             toggleBtn.removeEventListener('click', handleToggle)
           }
@@ -214,7 +201,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
     const toc = contentRef.current.querySelector("#TOC")
     if (!toc) return
 
-    // Add click handlers to ToC links
     const tocLinks = toc.querySelectorAll("a")
     const clickHandler = (e: Event) => {
       e.preventDefault()
@@ -235,7 +221,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
       link.addEventListener("click", clickHandler)
     })
 
-    // Set up scroll spy for active section highlighting
     const sections = contentRef.current.querySelectorAll("h1[id], h2[id], h3[id], h4[id]")
     const observerOptions = {
       root: null,
@@ -246,28 +231,23 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          // Remove all active classes
           tocLinks.forEach(link => link.classList.remove("active"))
           
-          // Add active class to current section's link
           const activeLink = toc.querySelector(`a[href="#${entry.target.id}"]`)
           if (activeLink) {
             activeLink.classList.add("active")
             
-            // Always scroll the active link to the center of ToC if possible
+            // Keep the active link centred in the ToC
             const tocContent = activeLink.closest(".toc-content")
             if (tocContent) {
-              // Calculate the scroll position to center the active link
               const linkRect = activeLink.getBoundingClientRect()
               const tocRect = tocContent.getBoundingClientRect()
               const linkRelativeTop = linkRect.top - tocRect.top + tocContent.scrollTop
               const linkHeight = linkRect.height
               const tocHeight = tocRect.height
               
-              // Calculate target scroll position to center the link
               const targetScrollTop = linkRelativeTop - (tocHeight / 2) + (linkHeight / 2)
               
-              // Smoothly scroll to the target position
               tocContent.scrollTo({
                 top: targetScrollTop,
                 behavior: "smooth"
@@ -281,7 +261,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
     const observer = new IntersectionObserver(observerCallback, observerOptions)
     sections.forEach(section => observer.observe(section))
 
-    // Cleanup function
     return () => {
       tocLinks.forEach(link => {
         link.removeEventListener("click", clickHandler)
@@ -295,7 +274,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
       <Card className="min-h-[600px] flex items-center justify-center">
         <CardContent className="flex flex-col items-center gap-4 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Načítám studijní zápis...</p>
+          <p className="text-muted-foreground">Načítání zápisu…</p>
         </CardContent>
       </Card>
     )
@@ -314,7 +293,7 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Obsah studijního zápisu není k dispozici.</AlertDescription>
+        <AlertDescription>Obsah zápisu není k dispozici.</AlertDescription>
       </Alert>
     )
   }
@@ -330,7 +309,6 @@ export function StudyNoteContent({ slug, studyId, flush, onCacheInfo }: StudyNot
   )
 }
 
-// Extend window type for KaTeX
 declare global {
   // eslint-disable-next-line no-unused-vars
   interface Window {

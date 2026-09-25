@@ -66,7 +66,7 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
 
   const addLink = () => {
     const prev = editor.getAttributes("link").href as string | undefined
-    const url = window.prompt("Odkaz (URL):", prev || "https://")
+    const url = window.prompt("Adresa odkazu:", prev || "https://")
     if (url === null) return
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run()
@@ -80,19 +80,19 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
     try {
       md = await navigator.clipboard.readText()
     } catch {
-      md = window.prompt("Vložte Markdown text:") || ""
+      md = window.prompt("Vložte text v Markdownu:") || ""
     }
     if (!md.trim()) return
     editor.chain().focus().insertContent(markdownToEditorHtml(md)).run()
   }
 
   const addInlineMath = () => {
-    const latex = window.prompt("Inline LaTeX:", "x^2")
+    const latex = window.prompt("Vzorec v řádku (LaTeX):", "x^2")
     if (latex) editor.chain().focus().insertInlineMath({ latex }).run()
   }
 
   const addBlockMath = () => {
-    const latex = window.prompt("Blokový LaTeX:", "\\int_0^1 x^2\\,dx")
+    const latex = window.prompt("Blokový vzorec (LaTeX):", "\\int_0^1 x^2\\,dx")
     if (latex) editor.chain().focus().insertBlockMath({ latex }).run()
   }
 
@@ -145,7 +145,7 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
       <Toggle size="sm" pressed={editor.isActive("orderedList")} onPressedChange={() => editor.chain().focus().toggleOrderedList().run()} aria-label="Číslovaný seznam">
         <ListOrdered className="h-4 w-4" />
       </Toggle>
-      <Toggle size="sm" pressed={editor.isActive("taskList")} onPressedChange={() => editor.chain().focus().toggleTaskList().run()} aria-label="Úkoly">
+      <Toggle size="sm" pressed={editor.isActive("taskList")} onPressedChange={() => editor.chain().focus().toggleTaskList().run()} aria-label="Seznam úkolů">
         <ListChecks className="h-4 w-4" />
       </Toggle>
       <Toggle size="sm" pressed={editor.isActive("blockquote")} onPressedChange={() => editor.chain().focus().toggleBlockquote().run()} aria-label="Citace">
@@ -173,10 +173,10 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
       >
         <TableIcon className="h-4 w-4" />
       </Button>
-      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={addInlineMath} aria-label="Inline matematika">
+      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={addInlineMath} aria-label="Vzorec v řádku">
         <Sigma className="h-4 w-4" />
       </Button>
-      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={addBlockMath} aria-label="Bloková matematika">
+      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={addBlockMath} aria-label="Blokový vzorec">
         <Sigma className="h-4 w-4" />
         <span className="ml-0.5 text-[10px]">∑</span>
       </Button>
@@ -186,10 +186,10 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
       <Button type="button" size="sm" variant="ghost" className="h-8 px-2" disabled={uploading} onClick={() => imageInput.current?.click()} aria-label="Obrázek">
         {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
       </Button>
-      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" disabled={uploading} onClick={() => annotateInput.current?.click()} aria-label="Kreslení / anotace">
+      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" disabled={uploading} onClick={() => annotateInput.current?.click()} aria-label="Kreslit do obrázku">
         <Pencil className="h-4 w-4" />
       </Button>
-      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => editor.chain().focus().insertDoodle().run()} aria-label="Prázdné kreslení">
+      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => editor.chain().focus().insertDoodle().run()} aria-label="Nová kresba">
         <Pencil className="h-4 w-4" />
         <span className="ml-0.5 text-[10px]">+</span>
       </Button>
@@ -206,7 +206,7 @@ export function EditorToolbar({ editor, noteId }: EditorToolbarProps) {
       <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => editor.chain().focus().undo().run()} aria-label="Zpět">
         <Undo2 className="h-4 w-4" />
       </Button>
-      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => editor.chain().focus().redo().run()} aria-label="Vpřed">
+      <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => editor.chain().focus().redo().run()} aria-label="Znovu">
         <Redo2 className="h-4 w-4" />
       </Button>
 

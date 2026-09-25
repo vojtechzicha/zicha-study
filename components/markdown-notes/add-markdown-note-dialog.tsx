@@ -68,7 +68,7 @@ export function AddMarkdownNoteDialog({
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      setError("Zadejte název zápisu")
+      setError("Vyplňte název.")
       return
     }
     setLoading(true)
@@ -81,7 +81,7 @@ export function AddMarkdownNoteDialog({
         isPublic,
         publicSlug: isPublic ? slug : null,
       })
-      if (res.error || !res.data) throw new Error(res.error?.message || "Nepodařilo se vytvořit zápis")
+      if (res.error || !res.data) throw new Error(res.error?.message || "Nepodařilo se vytvořit zápis.")
 
       const newId = res.data.id
       if (isFinalExam) {
@@ -94,7 +94,7 @@ export function AddMarkdownNoteDialog({
       onClose()
       router.push(`/studies/${studyId}/notes/${newId}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nepodařilo se vytvořit zápis")
+      setError(err instanceof Error ? err.message : "Nepodařilo se vytvořit zápis.")
       setLoading(false)
     }
   }
@@ -105,7 +105,7 @@ export function AddMarkdownNoteDialog({
         <DialogHeader>
           <DialogTitle>Nový Markdown zápis</DialogTitle>
           <DialogDescription>
-            Vytvořte zápis psaný přímo v aplikaci (bez Wordu na OneDrive).
+            Zápis se píše přímo v aplikaci, bez souboru na OneDrive.
           </DialogDescription>
         </DialogHeader>
 
@@ -133,24 +133,23 @@ export function AddMarkdownNoteDialog({
               id="md-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Volitelný popis"
               rows={2}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="md-pub">Publikovat ihned</Label>
-              <p className="text-sm text-muted-foreground">Zpřístupnit přes veřejný odkaz</p>
+              <Label htmlFor="md-pub">Veřejně dostupné</Label>
+              <p className="text-sm text-muted-foreground">Uvidí ho kdokoli s odkazem.</p>
             </div>
             <Switch id="md-pub" checked={isPublic} onCheckedChange={setIsPublic} />
           </div>
 
           {isPublic && (
             <div className="space-y-2">
-              <Label htmlFor="md-add-slug">URL adresa *</Label>
+              <Label htmlFor="md-add-slug">Adresa *</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{getShareUrl(studySlug || "study-slug")}/</span>
+                <span className="text-sm text-muted-foreground">{getShareUrl(studySlug || "studium")}/</span>
                 <Input
                   id="md-add-slug"
                   value={slug}
@@ -166,14 +165,14 @@ export function AddMarkdownNoteDialog({
               </div>
               {slug && slug.length >= 3 ? (
                 available === false ? (
-                  <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">Adresa je už obsazená</p>
                 ) : available === true ? (
-                  <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
+                  <p className="text-sm text-green-600 dark:text-green-400">Adresa je volná</p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Kontroluje se dostupnost…</p>
+                  <p className="text-sm text-muted-foreground">Kontrola dostupnosti…</p>
                 )
               ) : (
-                <p className="text-sm text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+                <p className="text-sm text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
               )}
             </div>
           )}

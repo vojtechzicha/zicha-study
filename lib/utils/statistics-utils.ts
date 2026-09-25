@@ -1,13 +1,6 @@
-/**
- * Statistics Utility Functions
- *
- * Centralized utilities for calculating study statistics.
- */
-
 import { calculateAverage, calculateGpa, type AverageResult } from '@/lib/grade-utils'
 import { isSubjectFailed } from '@/lib/status-utils'
 
-// Subject interface for statistics calculation
 export interface StatisticsSubject {
   id: string
   semester: string
@@ -36,9 +29,7 @@ export function getCurrentSubjects<T extends { id: string; repeats_subject_id?: 
   return subjects.filter(s => !supersededIds.has(s.id))
 }
 
-// Comprehensive study statistics
 export interface StudyStatistics {
-  // Subject counts
   total: number
   completed: number
   creditsCompleted: number
@@ -46,28 +37,26 @@ export interface StudyStatistics {
   remainingCredits: number
   remainingExams: number
 
-  // Credit/Hour totals
   totalCredits: number
   completedCredits: number
   totalHours: number
   completedHours: number
 
-  // Rates
+  // Percentages (0–100)
   completionRate: number
   creditCompletionRate: number
   examCompletionRate: number
 
-  // Counts for rate calculation
+  // Denominators of the credit/exam rates
   totalSubjectsWithCredits: number
   totalSubjectsWithExams: number
 
-  // Average
   average: AverageResult
   gpa: number | null
 }
 
 /**
- * Calculate comprehensive study statistics
+ * Superseded repeat attempts are excluded from all figures; failed subjects never count as completed.
  */
 export function calculateStudyStatistics(subjects: StatisticsSubject[]): StudyStatistics {
   const current = getCurrentSubjects(subjects)
@@ -128,7 +117,6 @@ export function calculateStudyStatistics(subjects: StatisticsSubject[]): StudySt
   }
 }
 
-// Simple statistics for study detail view
 export interface SimpleStudyStatistics {
   total: number
   completed: number
@@ -138,9 +126,7 @@ export interface SimpleStudyStatistics {
   gpa: number | null
 }
 
-/**
- * Calculate simple study statistics (for study detail view)
- */
+/** Reduced statistics for the study detail view. */
 export function calculateSimpleStatistics(subjects: StatisticsSubject[]): SimpleStudyStatistics {
   const current = getCurrentSubjects(subjects)
   const passingSubjects = current.filter((s) => s.completed && !isSubjectFailed(s))
@@ -157,7 +143,6 @@ export function calculateSimpleStatistics(subjects: StatisticsSubject[]): Simple
   }
 }
 
-// Semester statistics
 export interface SemesterStatistics {
   total: number
   completed: number
@@ -169,7 +154,7 @@ export interface SemesterStatistics {
 }
 
 /**
- * Calculate statistics for a specific semester.
+ * Statistics for one semester (or all subjects when `semester` is omitted).
  * Pass the FULL subject list so the current-set filter sees the cross-semester chains;
  * the per-semester filter happens after that.
  */
@@ -200,9 +185,6 @@ export function calculateSemesterStatistics(
   }
 }
 
-/**
- * Calculate statistics grouped by semester
- */
 export function calculateStatisticsBySemester(
   subjects: StatisticsSubject[]
 ): Record<string, SemesterStatistics> {

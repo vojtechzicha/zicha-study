@@ -5,15 +5,13 @@ import { useState, useEffect } from "react"
 import { extractDominantColor, generateColorTheme, type ExtractedColor } from "@/lib/color-extraction"
 
 /**
- * Fallback palette used when a page has no logo to theme from.
+ * Palette for pages that mount this hook without a logo.
  *
- * KEEP IN SYNC with the `:root` `--primary-*` fallbacks in app/globals.css —
- * those cover pages that never mount this hook (login, tasks, exam scheduler),
- * this object covers pages that mount it without a logo.
+ * KEEP IN SYNC with the `:root` `--primary-*` fallbacks in app/globals.css, which
+ * cover pages that never mount the hook (login, tasks, exam scheduler).
  *
- * Values are bare, SPACE-separated HSL components so that Tailwind can emit both
- * `hsl(var(--primary-900))` and `hsl(var(--primary-900) / 0.5)`; the legacy
- * comma form is invalid inside the alpha syntax the dark-mode utilities use.
+ * Values are bare, space-separated HSL so `hsl(var(--primary-900) / 0.5)` (Tailwind
+ * opacity modifiers) stays valid; the comma form breaks it.
  */
 const DEFAULT_THEME: Record<string, string> = {
   "--primary": "217 91% 60%",
@@ -36,13 +34,11 @@ const DEFAULT_THEME: Record<string, string> = {
 }
 
 /**
- * `--primary` is set inline on <html>, which beats the `.dark {}` rule, so the
- * matching foreground has to be derived from the logo colour as well — a dark
- * logo colour needs white text on it, a light one needs near-black.
+ * `--primary` is set inline on <html>, which beats the `.dark {}` rule, so its
+ * foreground must be derived from the logo colour too.
  *
- * Decided on relative luminance (`ExtractedColor.isLight`, computed from RGB),
- * not HSL lightness: a saturated yellow or lime has L ≈ 50 % yet is very
- * bright, and white text on it would be unreadable.
+ * Uses relative luminance (`ExtractedColor.isLight`), not HSL lightness: a
+ * saturated yellow or lime has L ≈ 50 % yet is too bright for white text.
  */
 function primaryForegroundFor(isLight: boolean): string {
   return isLight ? "0 0% 9%" : "0 0% 100%"
@@ -56,21 +52,20 @@ function applyTheme(theme: Record<string, string>) {
 }
 
 /**
- * Hook to extract colors from logo and apply theme
+ * Extracts the logo's dominant colour and writes the `--primary-*` palette inline
+ * on <html>. Without a logo, applies DEFAULT_THEME.
  */
 export function useLogoTheme(logoUrl?: string | null) {
   const [extractedColor, setExtractedColor] = useState<ExtractedColor | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // NOTE: no "skip if the url did not change" ref guard here. The dependency
-  // array already de-duplicates runs for an unchanged `logoUrl`, and such a
-  // guard is actively wrong under React Strict Mode: the dev-only
-  // mount → cleanup → mount cycle cancels the first extraction and then makes
-  // the second run bail out on the ref, so the palette is never applied.
+  // No "skip if the url did not change" ref guard: the dependency array already
+  // de-duplicates, and under Strict Mode the dev-only mount → cleanup → mount cycle
+  // would cancel the first extraction and skip the second, so the palette would
+  // never be applied.
   useEffect(() => {
     if (!logoUrl) {
-      // Reset to default theme
       applyTheme(DEFAULT_THEME)
       setExtractedColor(null)
       setError(null)

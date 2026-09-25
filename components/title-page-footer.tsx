@@ -14,7 +14,7 @@ const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME || ""
 const buildTimeLabel = process.env.NEXT_PUBLIC_BUILD_TIME_LABEL || ""
 const commitTitle = [
   `commit ${fullCommitSha}`,
-  buildTimeLabel ? `built ${buildTimeLabel}` : null,
+  buildTimeLabel ? `sestaveno ${buildTimeLabel}` : null,
   buildTime && buildTime !== buildTimeLabel ? buildTime : null,
 ].filter(Boolean).join("\n")
 

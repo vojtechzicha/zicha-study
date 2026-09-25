@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { updateSubject } from "@/lib/actions/subjects"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -48,7 +48,6 @@ export function SubjectCompletionModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Determine current state based on subject properties
   const currentState = subject.planned ? "planned" : subject.completed ? "completed" : "active"
 
   const isCredit = completionType === "credit"
@@ -64,7 +63,6 @@ export function SubjectCompletionModal({
       [fieldName]: true,
     }
 
-    // Update points and grade if visible for current state
     if (isFieldVisibleForState("points", currentState) && formData.points) {
       updates.points = Number.parseInt(formData.points)
     }
@@ -72,13 +70,12 @@ export function SubjectCompletionModal({
       updates.grade = formData.grade
     }
 
-    // If marking as completed, update completion status and final_date
     if (formData.markAsCompleted) {
       updates.completed = true
       updates.planned = false
       updates.final_date = formData.final_date || new Date().toISOString().split('T')[0]
       
-      // Automatically mark credit and exam as completed if required
+      // Completing a subject implies its required credit/exam are done
       if (requiresCredit(subject.completion_type)) {
         updates.credit_completed = true
       }
@@ -90,7 +87,7 @@ export function SubjectCompletionModal({
     const result = await updateSubject(subject.id, updates)
 
     if (result.error) {
-      setError("Chyba při ukládání. Zkuste to prosím znovu.")
+      setError("Nepodařilo se uložit předmět.")
       setLoading(false)
     } else {
       onSuccess()
@@ -100,12 +97,9 @@ export function SubjectCompletionModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="sr-only">
-            Doplňte průběžné výsledky pro předmět {subject.name} a uložte splnění.
-          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -119,7 +113,6 @@ export function SubjectCompletionModal({
             <strong>{subject.name}</strong>
           </div>
 
-          {/* Points */}
           {isFieldVisibleForState("points", currentState) && (
             <div className="space-y-2">
               <Label htmlFor="points">Počet bodů</Label>
@@ -130,12 +123,10 @@ export function SubjectCompletionModal({
                 onChange={(e) => setFormData({ ...formData, points: e.target.value })}
                 min="0"
                 max="100"
-                placeholder="počet bodů"
               />
             </div>
           )}
 
-          {/* Grade */}
           {isFieldVisibleForState("grade", currentState) && (
             <div className="space-y-2">
               <Label htmlFor="grade">Známka</Label>
@@ -148,7 +139,6 @@ export function SubjectCompletionModal({
             </div>
           )}
 
-          {/* Mark as Completed Option */}
           <div className="flex items-center space-x-2 p-3 border rounded-lg bg-primary-50 dark:bg-primary-950">
             <Checkbox
               id="markAsCompleted"
@@ -172,7 +162,6 @@ export function SubjectCompletionModal({
             </Label>
           </div>
 
-          {/* Final Date (if marking as completed) */}
           {formData.markAsCompleted && (
             <div className="space-y-2">
               <Label htmlFor="final_date">Datum ukončení *</Label>
@@ -196,7 +185,7 @@ export function SubjectCompletionModal({
               className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
               <Save className="mr-2 h-4 w-4" />
-              {loading ? "Ukládání..." : "Uložit"}
+              {loading ? "Ukládání…" : "Uložit"}
             </Button>
           </div>
         </form>

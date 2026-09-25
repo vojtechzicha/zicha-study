@@ -32,13 +32,11 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
   const [notFound, setNotFound] = useState(false)
   const router = useRouter()
 
-  // Update favicon with study logo
   useFavicon(study?.logo_url)
 
-  // Update document title with study name
   useEffect(() => {
     if (study?.name) {
-      document.title = `${study.name} - Studijní přehled`
+      document.title = `${study.name} – Sledování studií`
     }
   }, [study?.name])
 
@@ -72,7 +70,7 @@ export default function StudyDetailPage({ params }: { params: Promise<{ id: stri
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-background">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">Studium nenalezeno</h1>
-          <p className="text-muted-foreground">Požadované studium neexistuje nebo k němu nemáte přístup.</p>
+          <p className="text-muted-foreground">Studium neexistuje nebo k němu nemáte přístup.</p>
         </div>
       </div>
     )

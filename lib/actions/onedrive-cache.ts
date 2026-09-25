@@ -11,8 +11,8 @@ import {
 import type { CacheFolderConfig } from "@/lib/types/onedrive"
 
 /**
- * Cache a file to the OneDrive cache directory.
- * Updates the DB document with cache_onedrive_id and cache_onedrive_web_url.
+ * Copies the file into the OneDrive cache folder and stores cache_onedrive_id
+ * and cache_onedrive_web_url on the document.
  */
 export async function cacheFileToOneDrive(
   docId: string,
@@ -30,7 +30,6 @@ export async function cacheFileToOneDrive(
 
     const result = await copyFileToCache(onedriveId, fileName, studyId, docId, type)
 
-    // Update the document with cache fields
     if (collection === "materials") {
       await db.updateMaterial(docId, {
         cache_onedrive_id: result.cacheOnedriveId,
@@ -85,16 +84,10 @@ export async function createCacheShareLinkAction(
   }
 }
 
-/**
- * Fetch app settings (cache folder config).
- */
 export async function fetchAppSettings(): Promise<CacheFolderConfig | null> {
   return getCacheFolderConfig()
 }
 
-/**
- * Update app settings (cache folder config).
- */
 export async function updateAppSettings(data: {
   cache_folder_id: string | null
   cache_folder_name: string
@@ -112,19 +105,18 @@ interface SyncResult {
 }
 
 /**
- * Sync all existing documents to the cache directory.
- * For each material/study note with onedrive_id but no cache_onedrive_id,
- * copies the file to cache. For public materials, also creates cache share links.
+ * Copies every material/study note that has an onedrive_id but no
+ * cache_onedrive_id into the cache folder, and creates cache share links for
+ * public materials. Documents whose original file is gone are skipped.
  */
 export async function syncAllToCache(): Promise<SyncResult> {
   const config = await getCacheFolderConfig()
   if (!config?.cache_folder_id) {
-    return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Cache folder not configured"] }
+    return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Složka pro zálohy není nastavená."] }
   }
 
   const result: SyncResult = { total: 0, synced: 0, failed: 0, skipped: 0, errors: [] }
 
-  // Gather all documents that need caching
   const collections = [
     { name: "materials" as const, type: "materials" as const },
     { name: "subject_materials" as const, type: "materials" as const },
@@ -141,18 +133,16 @@ export async function syncAllToCache(): Promise<SyncResult> {
       const fileName = doc.file_name as string
       const studyId = doc.study_id as string
 
-      // Check if original still exists
       const { exists } = await checkFileExists(onedriveId)
       if (!exists) {
         result.skipped++
-        result.errors.push(`${collectionName}/${docId}: original file no longer exists in OneDrive`)
+        result.errors.push(`${collectionName}/${docId}: původní soubor už v OneDrive není`)
         continue
       }
 
       try {
         const cacheResult = await copyFileToCache(onedriveId, fileName, studyId, docId, type)
 
-        // Update document
         const updateData: Record<string, string> = {
           cache_onedrive_id: cacheResult.cacheOnedriveId,
           cache_onedrive_web_url: cacheResult.cacheWebUrl,
@@ -166,7 +156,6 @@ export async function syncAllToCache(): Promise<SyncResult> {
           await db.updateStudyNote(docId, updateData)
         }
 
-        // For public materials, create cache share link
         if (
           (collectionName === "materials" || collectionName === "subject_materials") &&
           doc.is_public
@@ -179,7 +168,7 @@ export async function syncAllToCache(): Promise<SyncResult> {
               await db.updateSubjectMaterial(docId, { cache_public_share_url: shareUrl })
             }
           } catch {
-            result.errors.push(`${collectionName}/${docId}: cached but share link creation failed`)
+            result.errors.push(`${collectionName}/${docId}: zálohováno, ale nepodařilo se vytvořit veřejný odkaz`)
           }
         }
 
@@ -187,11 +176,11 @@ export async function syncAllToCache(): Promise<SyncResult> {
       } catch (error) {
         result.failed++
         result.errors.push(
-          `${collectionName}/${docId}: ${error instanceof Error ? error.message : "unknown error"}`
+          `${collectionName}/${docId}: ${error instanceof Error ? error.message : "neznámá chyba"}`
         )
       }
 
-      // Rate limit: 500ms between operations
+      // Throttle Graph API requests.
       await new Promise((resolve) => setTimeout(resolve, 500))
     }
   }
@@ -207,7 +196,7 @@ export async function syncAllToCache(): Promise<SyncResult> {
 export async function syncByFilename(): Promise<SyncResult> {
   const config = await getCacheFolderConfig()
   if (!config?.cache_folder_id) {
-    return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Cache folder not configured"] }
+    return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Složka pro zálohy není nastavená."] }
   }
 
   const result: SyncResult = { total: 0, synced: 0, failed: 0, skipped: 0, errors: [] }
@@ -229,27 +218,24 @@ export async function syncByFilename(): Promise<SyncResult> {
       const studyId = doc.study_id as string
       const parentPath = (doc.parent_path as string) || null
 
-      // Skip if original ID still works
       const { exists } = await checkFileExists(onedriveId)
       if (exists) continue
 
       result.total++
 
-      // Try to find the file by path/name
       const found = await findFileByPath(parentPath, fileName)
 
       if (!found) {
         result.skipped++
         result.errors.push(
-          `${collectionName}/${docId}: "${fileName}" not found in OneDrive`
+          `${collectionName}/${docId}: „${fileName}“ v OneDrive není`
         )
-        // Rate limit between search requests
+        // Throttle Graph API requests.
         await new Promise((resolve) => setTimeout(resolve, 300))
         continue
       }
 
       try {
-        // Update the document with the new onedrive_id
         const idUpdate: Record<string, string> = {
           onedrive_id: found.id,
           onedrive_web_url: found.webUrl,
@@ -266,7 +252,6 @@ export async function syncByFilename(): Promise<SyncResult> {
           await db.updateStudyNote(docId, idUpdate)
         }
 
-        // Now copy to cache using the new ID
         const cacheResult = await copyFileToCache(found.id, fileName, studyId, docId, type)
 
         const cacheUpdate: Record<string, string> = {
@@ -282,7 +267,6 @@ export async function syncByFilename(): Promise<SyncResult> {
           await db.updateStudyNote(docId, cacheUpdate)
         }
 
-        // For public materials, create cache share link
         if (
           (collectionName === "materials" || collectionName === "subject_materials") &&
           doc.is_public
@@ -295,7 +279,7 @@ export async function syncByFilename(): Promise<SyncResult> {
               await db.updateSubjectMaterial(docId, { cache_public_share_url: shareUrl })
             }
           } catch {
-            result.errors.push(`${collectionName}/${docId}: cached but share link failed`)
+            result.errors.push(`${collectionName}/${docId}: zálohováno, ale nepodařilo se vytvořit veřejný odkaz`)
           }
         }
 
@@ -303,11 +287,11 @@ export async function syncByFilename(): Promise<SyncResult> {
       } catch (error) {
         result.failed++
         result.errors.push(
-          `${collectionName}/${docId}: ${error instanceof Error ? error.message : "unknown error"}`
+          `${collectionName}/${docId}: ${error instanceof Error ? error.message : "neznámá chyba"}`
         )
       }
 
-      // Rate limit: 500ms between operations
+      // Throttle Graph API requests.
       await new Promise((resolve) => setTimeout(resolve, 500))
     }
   }

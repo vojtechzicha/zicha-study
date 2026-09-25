@@ -45,7 +45,7 @@ export function HighSchoolSubjectsAdmin({ study, subjects, loading, onUpdate }: 
   const handleDelete = async (id: string) => {
     const { error } = await deleteSubjectAction(id)
     if (error) {
-      toast({ title: "Chyba", description: error.message, variant: "destructive" })
+      toast({ title: "Nepodařilo se smazat předmět", description: error.message, variant: "destructive" })
       return
     }
     toast({ title: "Předmět smazán" })
@@ -54,12 +54,12 @@ export function HighSchoolSubjectsAdmin({ study, subjects, loading, onUpdate }: 
 
   const renderActions = (subject: MatrixSubject) => (
     <div className="flex justify-end gap-1">
-      <Button size="sm" variant="ghost" onClick={() => setEditingSubject(subject as HighSchoolSubject)}>
+      <Button size="sm" variant="ghost" onClick={() => setEditingSubject(subject as HighSchoolSubject)} aria-label="Upravit">
         <Edit className="h-4 w-4" />
       </Button>
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button size="sm" variant="ghost" className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30">
+          <Button size="sm" variant="ghost" className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30" aria-label="Smazat">
             <Trash2 className="h-4 w-4" />
           </Button>
         </AlertDialogTrigger>
@@ -67,7 +67,7 @@ export function HighSchoolSubjectsAdmin({ study, subjects, loading, onUpdate }: 
           <AlertDialogHeader>
             <AlertDialogTitle>Smazat předmět?</AlertDialogTitle>
             <AlertDialogDescription>
-              Opravdu chcete smazat předmět &quot;{subject.name}&quot;? Tato akce je nevratná.
+              Předmět „{subject.name}“ se trvale smaže.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -93,6 +93,7 @@ export function HighSchoolSubjectsAdmin({ study, subjects, loading, onUpdate }: 
             <Button
               onClick={() => setShowAddForm(true)}
               size="sm"
+              aria-label="Přidat předmět"
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -114,7 +115,7 @@ export function HighSchoolSubjectsAdmin({ study, subjects, loading, onUpdate }: 
       </Card>
 
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
           <HighSchoolSubjectForm
             study={study}
             periods={periods}
@@ -125,7 +126,7 @@ export function HighSchoolSubjectsAdmin({ study, subjects, loading, onUpdate }: 
       </Dialog>
 
       <Dialog open={Boolean(editingSubject)} onOpenChange={(open) => !open && setEditingSubject(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
           {editingSubject && (
             <HighSchoolSubjectForm
               study={study}
