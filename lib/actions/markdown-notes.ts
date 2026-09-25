@@ -1,23 +1,12 @@
 "use server"
 
 import * as db from "@/lib/mongodb/db"
-import { auth } from "@/auth"
+import { requireUser } from "@/lib/auth-guard"
 import { NOTE_TYPES, MARKDOWN_NOTE_MAX_VERSIONS } from "@/lib/constants"
 import type { NoteContentJSON } from "@/lib/types/markdown-notes"
 
 // An empty TipTap/ProseMirror document.
 const EMPTY_DOC: NoteContentJSON = { type: "doc", content: [{ type: "paragraph" }] }
-
-async function requireUser() {
-  const session = await auth()
-  if (!session) {
-    throw new Error("Nejste přihlášeni.")
-  }
-  return {
-    email: session.user?.email ?? null,
-    name: session.user?.name ?? null,
-  }
-}
 
 interface CreateMarkdownNoteInput {
   studyId: string

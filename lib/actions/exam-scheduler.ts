@@ -1,11 +1,13 @@
 "use server"
 
 import * as db from "@/lib/mongodb/db"
+import { requireUser } from "@/lib/auth-guard"
 import { EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS } from "@/lib/constants"
 
 // ALL studies with their scheduler config, so the planner page can enable and
 // configure studies without visiting each study's settings.
 export async function fetchSchedulerStudies() {
+  await requireUser()
   const docs = await db.getStudies()
   const studies = db.normalizeIds(docs as any[])
   return studies.map((s: any) => ({
@@ -28,6 +30,7 @@ export async function fetchSchedulerStudies() {
 
 export async function updateStudySchedulerSettingsAction(studyId: string, settings: Record<string, any>) {
   try {
+    await requireUser()
     // The scheduler may only be enabled on active studies. Guard server-side so
     // a non-active study can never be opted in, even if the client tries.
     if (settings.exam_scheduler_enabled === true) {
@@ -44,6 +47,7 @@ export async function updateStudySchedulerSettingsAction(studyId: string, settin
 }
 
 export async function fetchGlobalExamSchedulingData() {
+  await requireUser()
   const { studies, periods, terms, subjects } = await db.getGlobalExamSchedulingData()
   return {
     studies: db.normalizeIds(studies as any[]),
@@ -55,6 +59,7 @@ export async function fetchGlobalExamSchedulingData() {
 
 // Periods + terms for a single study (read-only summary on the study detail).
 export async function fetchStudyExamPeriods(studyId: string) {
+  await requireUser()
   await db.migrateExamOptionsToPeriods()
   const periods = await db.getExamPeriodsByStudyId(studyId)
   const periodIds = periods.map((p: any) => String(p._id))
@@ -67,6 +72,7 @@ export async function fetchStudyExamPeriods(studyId: string) {
 
 export async function createExamPeriodAction(data: Record<string, any>) {
   try {
+    await requireUser()
     const doc = await db.createExamPeriod(data)
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
@@ -76,6 +82,7 @@ export async function createExamPeriodAction(data: Record<string, any>) {
 
 export async function updateExamPeriodAction(id: string, data: Record<string, any>) {
   try {
+    await requireUser()
     await db.updateExamPeriod(id, data)
     return { error: null }
   } catch (err: any) {
@@ -85,6 +92,7 @@ export async function updateExamPeriodAction(id: string, data: Record<string, an
 
 export async function deleteExamPeriodAction(id: string) {
   try {
+    await requireUser()
     await db.deleteExamPeriod(id)
     return { error: null }
   } catch (err: any) {
@@ -94,6 +102,7 @@ export async function deleteExamPeriodAction(id: string) {
 
 export async function createExamTermAction(data: Record<string, any>) {
   try {
+    await requireUser()
     const doc = await db.createExamTerm(data)
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
@@ -103,6 +112,7 @@ export async function createExamTermAction(data: Record<string, any>) {
 
 export async function updateExamTermAction(id: string, data: Record<string, any>) {
   try {
+    await requireUser()
     await db.updateExamTerm(id, data)
     return { error: null }
   } catch (err: any) {
@@ -112,6 +122,7 @@ export async function updateExamTermAction(id: string, data: Record<string, any>
 
 export async function deleteExamTermAction(id: string) {
   try {
+    await requireUser()
     await db.deleteExamTerm(id)
     return { error: null }
   } catch (err: any) {
@@ -121,6 +132,7 @@ export async function deleteExamTermAction(id: string) {
 
 export async function toggleExamTermLockAction(id: string, locked: boolean) {
   try {
+    await requireUser()
     await db.setExamTermLocked(id, locked)
     return { error: null }
   } catch (err: any) {
@@ -131,6 +143,7 @@ export async function toggleExamTermLockAction(id: string, locked: boolean) {
 // Remove a subject from a period entirely (drops all its candidate terms).
 export async function removeSubjectFromPeriodAction(periodId: string, subjectId: string) {
   try {
+    await requireUser()
     await db.deleteExamTermsByPeriodAndSubject(periodId, subjectId)
     return { error: null }
   } catch (err: any) {
@@ -139,6 +152,7 @@ export async function removeSubjectFromPeriodAction(periodId: string, subjectId:
 }
 
 export async function fetchInterStudyBreakMinutes() {
+  await requireUser()
   const settings = await db.getAppSettings()
   const value = settings?.inter_study_break_minutes
   return typeof value === "number" ? value : EXAM_SCHEDULER_DEFAULTS.INTER_STUDY_BREAK_MINUTES
@@ -146,6 +160,7 @@ export async function fetchInterStudyBreakMinutes() {
 
 export async function saveInterStudyBreakMinutesAction(minutes: number) {
   try {
+    await requireUser()
     await db.upsertAppSettings({ inter_study_break_minutes: Math.max(0, Math.round(minutes)) })
     return { error: null }
   } catch (err: any) {
@@ -155,6 +170,7 @@ export async function saveInterStudyBreakMinutesAction(minutes: number) {
 
 // Upcoming locked terms for the homepage and tasks list.
 export async function fetchUpcomingLockedExamTerms(fromDate: string) {
+  await requireUser()
   const rows = await db.getUpcomingLockedExamTerms(fromDate)
   return rows.map((r) => ({
     term: db.normalizeId(r.term) as any,
