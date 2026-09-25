@@ -170,20 +170,29 @@ export async function deleteStudyCacheDirectory(studyId: string): Promise<void> 
 }
 
 /**
- * Create a folder inside a parent. If it already exists, return the existing one.
+ * Return the ID of the child folder `folderName` inside `parentId`, creating it only when missing.
+ *
+ * An existing folder is looked up and reused as-is, never re-created, so the cache copies inside it
+ * (and the share links stored for them) stay intact. Creation uses conflictBehavior "fail"; a 409
+ * means the folder appeared in the meantime (e.g. a concurrent backup), so it is looked up again.
  */
 async function createFolderIfNotExists(
   parentId: string,
   folderName: string
 ): Promise<string> {
+  const existingFolderId = await findChildFolder(parentId, folderName)
+  if (existingFolderId) {
+    return existingFolderId
+  }
+
   const response = await makeGraphRequest(
-    `${GRAPH_BASE}/me/drive/items/${parentId}/children`,
+    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(parentId)}/children`,
     {
       method: "POST",
       body: JSON.stringify({
         name: folderName,
         folder: {},
-        "@microsoft.graph.conflictBehavior": "replace",
+        "@microsoft.graph.conflictBehavior": "fail",
       }),
     }
   )
@@ -193,15 +202,10 @@ async function createFolderIfNotExists(
     return data.id
   }
 
-  // If conflict (folder exists), find it by listing children
-  const listResponse = await makeGraphRequest(
-    `${GRAPH_BASE}/me/drive/items/${parentId}/children?$filter=name eq '${folderName}'`
-  )
-
-  if (listResponse.ok) {
-    const listData = await listResponse.json()
-    if (listData.value?.length > 0) {
-      return listData.value[0].id
+  if (response.status === 409) {
+    const concurrentFolderId = await findChildFolder(parentId, folderName)
+    if (concurrentFolderId) {
+      return concurrentFolderId
     }
   }
 
