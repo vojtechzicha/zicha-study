@@ -103,6 +103,17 @@ export async function getStudiesWithPublicSlug() {
   return c.find({ public_slug: { $ne: null } }).sort({ created_at: -1 }).toArray()
 }
 
+// Subset of the given study ids whose study is published (is_public).
+export async function getPublicStudyIds(studyIds: string[]): Promise<Set<string>> {
+  if (studyIds.length === 0) return new Set()
+  const c = await col("studies")
+  const docs = await c.find(
+    { _id: { $in: studyIds as any[] }, is_public: true },
+    { projection: { _id: 1 } }
+  ).toArray()
+  return new Set(docs.map((d) => String(d._id)))
+}
+
 // ─── Subjects ───────────────────────────────────────────────────────────────
 
 export async function getSubjectsByStudyId(studyId: string, sort?: Record<string, 1 | -1>) {
@@ -572,11 +583,11 @@ export async function getLinkedFinalExamIds(noteId: string) {
 }
 
 // Check which final exams have study notes linked
-export async function getFinalExamIdsWithNotes(examIds: string[]) {
+export async function getFinalExamIdsWithNotes(examIds: string[], publicOnly = false) {
   const c = await col("study_notes")
-  const results = await c.distinct("linked_final_exams.final_exam_id", {
-    "linked_final_exams.final_exam_id": { $in: examIds }
-  })
+  const filter: Filter<any> = { "linked_final_exams.final_exam_id": { $in: examIds } }
+  if (publicOnly) filter.is_public = true
+  const results = await c.distinct("linked_final_exams.final_exam_id", filter)
   return new Set(results as string[])
 }
 

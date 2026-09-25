@@ -1,6 +1,7 @@
 "use server"
 
 import * as db from "@/lib/mongodb/db"
+import { requireUser } from "@/lib/auth-guard"
 import {
   copyFileToCache,
   createCacheShareLink,
@@ -23,6 +24,7 @@ export async function cacheFileToOneDrive(
   collection: "materials" | "subject_materials" | "study_notes"
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await requireUser()
     const config = await getCacheFolderConfig()
     if (!config?.cache_folder_id) {
       return { success: false, error: "Cache folder not configured" }
@@ -67,6 +69,7 @@ export async function createCacheShareLinkAction(
   collection: "materials" | "subject_materials"
 ): Promise<{ success: boolean; shareUrl?: string; error?: string }> {
   try {
+    await requireUser()
     const shareUrl = await createCacheShareLink(cacheOnedriveId)
 
     if (collection === "materials") {
@@ -89,6 +92,7 @@ export async function createCacheShareLinkAction(
  * Fetch app settings (cache folder config).
  */
 export async function fetchAppSettings(): Promise<CacheFolderConfig | null> {
+  await requireUser()
   return getCacheFolderConfig()
 }
 
@@ -100,6 +104,7 @@ export async function updateAppSettings(data: {
   cache_folder_name: string
   cache_folder_path: string
 }): Promise<void> {
+  await requireUser()
   await db.upsertAppSettings(data)
 }
 
@@ -117,6 +122,7 @@ interface SyncResult {
  * copies the file to cache. For public materials, also creates cache share links.
  */
 export async function syncAllToCache(): Promise<SyncResult> {
+  await requireUser()
   const config = await getCacheFolderConfig()
   if (!config?.cache_folder_id) {
     return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Cache folder not configured"] }
@@ -205,6 +211,7 @@ export async function syncAllToCache(): Promise<SyncResult> {
  * then copies to cache.
  */
 export async function syncByFilename(): Promise<SyncResult> {
+  await requireUser()
   const config = await getCacheFolderConfig()
   if (!config?.cache_folder_id) {
     return { total: 0, synced: 0, failed: 0, skipped: 0, errors: ["Cache folder not configured"] }
