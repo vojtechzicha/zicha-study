@@ -71,7 +71,6 @@ export function StudyNoteOverviewCard({
             )}
           </div>
           <div className="flex-1 min-w-0">
-            {/* Name with tooltip - always show tooltip on hover */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -93,7 +92,6 @@ export function StudyNoteOverviewCard({
               </span>
             </div>
 
-            {/* Linked subjects/exams */}
             {showSubjectNames && note.subjects && note.subjects.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {note.subjects.slice(0, 2).map(subject => (
@@ -110,7 +108,6 @@ export function StudyNoteOverviewCard({
               </div>
             )}
 
-            {/* Public status */}
             {showPublicBadge && note.is_public && (
               <Badge variant="secondary" className="text-xs mt-2">
                 <Globe className="h-3 w-3 mr-1" />

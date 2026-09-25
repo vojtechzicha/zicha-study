@@ -27,7 +27,7 @@ export async function createMaterial(data: Record<string, any>) {
     const doc = await db.createMaterial(data)
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
-    return { data: null, error: { message: err?.message || "Unknown error" } }
+    return { data: null, error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -37,7 +37,7 @@ export async function createSubjectMaterial(data: Record<string, any>) {
     const doc = await db.createSubjectMaterial(data)
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
-    return { data: null, error: { message: err?.message || "Unknown error" } }
+    return { data: null, error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -47,7 +47,7 @@ export async function updateMaterialAction(id: string, data: Record<string, any>
     await db.updateMaterial(id, data)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -63,7 +63,7 @@ export async function deleteMaterialAction(id: string) {
     await db.deleteMaterial(id)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -95,7 +95,7 @@ export async function deleteSubjectMaterialAction(id: string) {
     await db.deleteSubjectMaterial(id)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -105,6 +105,6 @@ export async function updateSubjectMaterialAction(id: string, data: Record<strin
     await db.updateSubjectMaterial(id, data)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Neznámá chyba." } }
   }
 }

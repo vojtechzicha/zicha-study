@@ -50,7 +50,6 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
       const data = await fetchFinalExams(studyId) as FinalExam[]
       setFinalExams(data || [])
 
-      // Check which exams have study notes
       if (data && data.length > 0) {
         const examIds = data.map((exam) => exam.id)
         const idsWithNotes = await fetchFinalExamIdsWithNotes(examIds)
@@ -143,7 +142,6 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
             </div>
           ) : (
             <>
-              {/* Mobile Card View */}
               <div className="md:hidden p-4 space-y-3">
                 {finalExams.map((exam) => (
                   <Collapsible key={exam.id} open={expandedExamId === exam.id} onOpenChange={(open) => setExpandedExamId(open ? exam.id : null)}>
@@ -199,6 +197,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                               size="sm"
                               variant="ghost"
                               onClick={() => setEditingExam(exam)}
+                              aria-label="Upravit"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -208,6 +207,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                   size="sm"
                                   variant="ghost"
                                   className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                  aria-label="Smazat"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -216,7 +216,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>{t.finalExamDeleteTitle}</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Opravdu chcete smazat předmět &quot;{exam.name}&quot;? Tato akce je nevratná.
+                                    {t.finalExamSubjectNoun} „{exam.name}“ se trvale smaže.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -235,7 +235,6 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                       </div>
                     </div>
                     
-                    {/* Expand button for study notes - only show in non-public view */}
                     {!isPublic && (
                       <>
                         <div className="flex justify-between items-center pt-3 mt-3 border-t">
@@ -279,7 +278,6 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
               ))}
               </div>
 
-              {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -327,7 +325,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                             <span className="text-muted-foreground/70">–</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-center">{exam.exam_date ? formatDateCzech(exam.exam_date) : <span className="text-muted-foreground/70">-</span>}</TableCell>
+                        <TableCell className="text-center">{exam.exam_date ? formatDateCzech(exam.exam_date) : <span className="text-muted-foreground/70">–</span>}</TableCell>
                         {isPublic && (
                           <TableCell className="text-center">
                             {(() => {
@@ -348,6 +346,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setExpandedExamId(expandedExamId === exam.id ? null : exam.id)}
+                                aria-label={expandedExamId === exam.id ? "Skrýt studijní zápisy" : "Zobrazit studijní zápisy"}
                               >
                                 {expandedExamId === exam.id ? (
                                   <ChevronDown className="h-4 w-4" />
@@ -359,6 +358,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setEditingExam(exam)}
+                                aria-label="Upravit"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -368,6 +368,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                     size="sm"
                                     variant="ghost"
                                     className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                    aria-label="Smazat"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -376,7 +377,7 @@ export function FinalExamsList({ studyId, isPublic = false, studySlug, terminolo
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>{t.finalExamDeleteTitle}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Opravdu chcete smazat předmět &quot;{exam.name}&quot;? Tato akce je nevratná.
+                                      {t.finalExamSubjectNoun} „{exam.name}“ se trvale smaže.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

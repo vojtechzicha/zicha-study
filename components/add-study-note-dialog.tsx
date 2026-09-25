@@ -31,7 +31,7 @@ import {
 import { cacheFileToOneDrive } from "@/lib/actions/onedrive-cache"
 import type { OneDriveFile } from "@/lib/types/materials"
 import type { StudyNoteFormData } from "@/lib/types/study-notes"
-import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
+import { OneDriveFilePicker, OneDriveFilePickerLoading } from "@/components/onedrive-file-picker"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { getShareUrl } from "@/lib/utils/share-url"
 import { NOTE_TYPES } from "@/lib/constants"
@@ -54,7 +54,17 @@ interface StudyMaterialSettingsData {
   materials_root_folder_path?: string
 }
 
-// Generate a unique slug for the study note
+// Module-level so the picker gets a stable array: a new one on every render
+// would re-trigger its initial folder load
+const NOTE_KIND_EXTENSIONS = {
+  word: ["docx", "doc"],
+  obsidian: ["md"],
+} as const
+const NOTE_KIND_PICKER_EXTENSIONS = {
+  word: NOTE_KIND_EXTENSIONS.word.map((ext) => `.${ext}`),
+  obsidian: NOTE_KIND_EXTENSIONS.obsidian.map((ext) => `.${ext}`),
+}
+
 const generateUniqueSlug = () => {
   const timestamp = Date.now()
   const random = Math.random().toString(36).substring(2, 8)
@@ -101,7 +111,7 @@ export function AddStudyNoteDialog({
   onSuccess,
 }: AddStudyNoteDialogProps) {
   const isObsidian = noteKind === "obsidian"
-  const allowedExtensions = isObsidian ? ["md"] : ["docx", "doc"]
+  const allowedExtensions: readonly string[] = NOTE_KIND_EXTENSIONS[noteKind]
   const fileFormatLabel = isObsidian ? "Markdown (.md)" : "DOCX"
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -131,7 +141,6 @@ export function AddStudyNoteDialog({
     }
   }, [studyId])
 
-  // Load study material settings when dialog opens
   useEffect(() => {
     if (isOpen && !settingsLoaded) {
       loadStudyMaterialSettingsData()
@@ -146,11 +155,9 @@ export function AddStudyNoteDialog({
       saveLastObsidianFolder(file.parentReference?.path)
     }
 
-    // Pre-fill the name with the file name without extension
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
     setFormData((prev) => ({ ...prev, name: prev.name || nameWithoutExt }))
 
-    // Generate initial slug if not set
     if (!publicSlug) {
       const initialSlug = createSlug(nameWithoutExt)
       setPublicSlug(initialSlug)
@@ -181,17 +188,17 @@ export function AddStudyNoteDialog({
 
   const handleSubmit = async () => {
     if (!selectedFile) {
-      setError("Nejprve vyberte soubor z OneDrive")
+      setError("Vyberte soubor z OneDrive.")
       return
     }
 
     if (!formData.name?.trim()) {
-      setError("Název je povinný")
+      setError("Vyplňte název.")
       return
     }
 
     if (isPublic && (!publicSlug?.trim() || slugAvailable === false)) {
-      setError("Zadejte platnou a dostupnou URL")
+      setError("Zadejte platnou a volnou adresu.")
       return
     }
 
@@ -201,12 +208,11 @@ export function AddStudyNoteDialog({
     try {
       const fileExtension = selectedFile.name.split(".").pop()
 
-      // Check the file format matches the note kind
       if (!fileExtension || !allowedExtensions.includes(fileExtension.toLowerCase())) {
         throw new Error(
           isObsidian
-            ? "Obsidian zápisy musí být ve formátu Markdown (.md)"
-            : "Studijní zápisy musí být ve formátu DOCX"
+            ? "Zápis z Obsidianu musí být soubor Markdown (.md)."
+            : "Zápis musí být soubor DOCX."
         )
       }
 
@@ -230,18 +236,17 @@ export function AddStudyNoteDialog({
 
       const result = await createStudyNote(noteData)
 
-      if (result.error || !result.data) throw new Error(result.error?.message || "Failed to create note")
+      if (result.error || !result.data) throw new Error(result.error?.message || "Nepodařilo se přidat zápis.")
 
       const insertedNote = result.data
 
-      // Create the primary link using server action
       if (isFinalExam) {
         await linkFinalExamToNoteAction(insertedNote.id, subjectId, true)
       } else {
         await linkSubjectToNoteAction(insertedNote.id, subjectId, true)
       }
 
-      // Cache file to OneDrive cache directory (non-blocking)
+      // Not awaited: a failed cache copy must not fail adding the note
       cacheFileToOneDrive(
         insertedNote.id,
         selectedFile.id,
@@ -254,7 +259,7 @@ export function AddStudyNoteDialog({
       onSuccess()
       handleClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nepodařilo se přidat studijní zápis")
+      setError(err instanceof Error ? err.message : "Nepodařilo se přidat zápis.")
     } finally {
       setLoading(false)
     }
@@ -281,18 +286,18 @@ export function AddStudyNoteDialog({
 
     const dotIndex = fileName.lastIndexOf('.')
     if (dotIndex === -1) {
-      return `${fileName.substring(0, maxLength - 3)  }...`
+      return `${fileName.substring(0, maxLength - 1)  }…`
     }
 
     const extension = fileName.substring(dotIndex)
     const nameWithoutExt = fileName.substring(0, dotIndex)
-    const availableLength = maxLength - extension.length - 3
+    const availableLength = maxLength - extension.length - 1
 
     if (availableLength <= 0) {
-      return `${fileName.substring(0, maxLength - 3)  }...`
+      return `${fileName.substring(0, maxLength - 1)  }…`
     }
 
-    return `${nameWithoutExt.substring(0, availableLength)  }...${  extension}`
+    return `${nameWithoutExt.substring(0, availableLength)  }…${  extension}`
   }
 
   return (
@@ -300,16 +305,16 @@ export function AddStudyNoteDialog({
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
-            {showFilePicker ? "Vyberte studijní zápis" : "Přidat studijní zápis"}
+            {showFilePicker ? "Výběr souboru" : "Přidat zápis"}
           </DialogTitle>
           <DialogDescription>
             {showFilePicker
               ? isObsidian
-                ? "Vyberte Markdown soubor z vašeho Obsidian vaultu"
-                : "Vyberte DOCX soubor se studijními zápisy"
+                ? "Soubor Markdown (.md) z Obsidian vaultu."
+                : "Soubor ve formátu DOCX."
               : isFinalExam
-                ? `Přidejte studijní zápis ke státní zkoušce (pouze ${fileFormatLabel} formát)`
-                : `Přidejte studijní zápis k předmětu (pouze ${fileFormatLabel} formát)`
+                ? `Zápis ke státní zkoušce, jen ve formátu ${fileFormatLabel}.`
+                : `Zápis k předmětu, jen ve formátu ${fileFormatLabel}.`
             }
           </DialogDescription>
         </DialogHeader>
@@ -322,7 +327,11 @@ export function AddStudyNoteDialog({
             </Alert>
           )}
 
-          {showFilePicker ? (
+          {showFilePicker && !isObsidian && !settingsLoaded ? (
+            // The start folder comes from the study settings: mounting the
+            // picker before they load would open it at the drive root
+            <OneDriveFilePickerLoading />
+          ) : showFilePicker ? (
             (() => {
               // Obsidian vaults live outside the study folder: start at the
               // last used vault folder (or the drive root), not the study's
@@ -339,7 +348,7 @@ export function AddStudyNoteDialog({
                   onFileSelected={handleFileSelected}
                   initialPath={initialPath}
                   initialPathName={initialPathName}
-                  fileExtensions={allowedExtensions.map((ext) => `.${ext}`)}
+                  fileExtensions={NOTE_KIND_PICKER_EXTENSIONS[noteKind]}
                 />
               )
             })()
@@ -347,15 +356,15 @@ export function AddStudyNoteDialog({
             <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
               <p className="text-sm text-muted-foreground mb-4">
                 {isObsidian
-                  ? "Vyberte Markdown soubor z vašeho OneDrive (Obsidian vault)"
-                  : "Vyberte DOCX soubor z vašeho OneDrive"}
+                  ? "Vyberte soubor Markdown z OneDrive (Obsidian vault)."
+                  : "Vyberte soubor DOCX z OneDrive."}
               </p>
               <Button
                 onClick={handleOpenFilePicker}
                 disabled={loading}
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
-                {loading ? "Načítání..." : "Vybrat z OneDrive"}
+                {loading ? "Načítání…" : "Vybrat z OneDrive"}
               </Button>
             </div>
           ) : (
@@ -384,7 +393,7 @@ export function AddStudyNoteDialog({
                   disabled={loading}
                   className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
-                  {loading ? "Načítání..." : "Změnit"}
+                  {loading ? "Načítání…" : "Změnit"}
                 </Button>
               </div>
 
@@ -394,7 +403,7 @@ export function AddStudyNoteDialog({
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Např. Zápis z přednášky - kapitola 1"
+                  placeholder="Např. Zápis z přednášky – kapitola 1"
                 />
               </div>
 
@@ -404,7 +413,6 @@ export function AddStudyNoteDialog({
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Volitelný popis studijního zápisu..."
                   rows={3}
                 />
               </div>
@@ -414,7 +422,7 @@ export function AddStudyNoteDialog({
                   <div className="space-y-0.5">
                     <Label htmlFor="public">Veřejně dostupné</Label>
                     <p className="text-sm text-muted-foreground">
-                      Povolit přístup k zápisu pomocí veřejného odkazu
+                      Uvidí ho kdokoli s odkazem.
                     </p>
                   </div>
                   <Switch
@@ -426,7 +434,7 @@ export function AddStudyNoteDialog({
 
                 {isPublic && (
                   <div className="space-y-2">
-                    <Label htmlFor="slug">Veřejná URL</Label>
+                    <Label htmlFor="slug">Adresa</Label>
                     <Input
                       id="slug"
                       value={publicSlug}
@@ -440,13 +448,13 @@ export function AddStudyNoteDialog({
                       placeholder="unikatni-nazev"
                     />
                     {publicSlug && slugAvailable === false && (
-                      <p className="text-sm text-red-600 dark:text-red-400">Tato URL je již použita</p>
+                      <p className="text-sm text-red-600 dark:text-red-400">Adresa je už obsazená</p>
                     )}
                     {publicSlug && slugAvailable === true && (
-                      <p className="text-sm text-green-600 dark:text-green-400">Tato URL je dostupná</p>
+                      <p className="text-sm text-green-600 dark:text-green-400">Adresa je volná</p>
                     )}
                     <p className="text-sm text-muted-foreground">
-                      Zápis bude dostupný na: {getShareUrl(studySlug || "study-slug", publicSlug || "...")}
+                      Veřejná adresa: {getShareUrl(studySlug || "studium", publicSlug || "…")}
                     </p>
                   </div>
                 )}
@@ -470,7 +478,7 @@ export function AddStudyNoteDialog({
                 disabled={loading || !selectedFile || !formData.name?.trim() || (isPublic && (!publicSlug?.trim() || slugAvailable === false))}
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
-                {loading ? "Přidávání..." : "Přidat zápis"}
+                {loading ? "Přidávání…" : "Přidat zápis"}
               </Button>
             </>
           )}

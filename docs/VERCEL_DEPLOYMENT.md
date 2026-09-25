@@ -1,145 +1,51 @@
-# Vercel Deployment Notes
+# Deploying on Vercel
 
-## Deployment Customization
+The app uses Vercel's Git integration. There is no `vercel.json` and no deploy workflow in GitHub Actions. Pushes to `main` build production. Every other branch, including pull request branches, builds a preview deployment. Vercel comments the preview URL on the pull request. Keep Preview Deployments enabled under Settings > Git.
 
-Before deploying a fork, review `lib/site-config.ts`. Footer attribution and footer home-link labels are centralized there so each deployment can use its own owner name, profile image, short byline, and site label without editing footer components.
+Before you deploy a fork, update the footer attribution in `lib/site-config.ts` (see the README). If you use your own domain, also change `zicha.study` in `middleware.ts`, and use your domain wherever this document says `zicha.study`.
 
-Profile images should live in `public/` and be referenced with an absolute public path such as `/profile.jpg`.
+## Environment variables
 
-## Preview deployments (per-PR)
-
-Every pull request gets its own preview deployment so changes can be reviewed
-in a running app before they reach `main`/production. This relies on Vercel's
-native Git integration — no GitHub Action is required.
-
-### One-time Vercel setup
-
-1. In the Vercel project, **Settings → Git**, connect the GitHub repository and
-   keep "Preview Deployments" enabled (on by default). Vercel then builds every
-   push to a non-production branch and comments the preview URL on the PR.
-2. Production builds from the production branch (`main`); all other branches
-   build as Preview.
-
-### Environment variables by environment
-
-Set these in **Settings → Environment Variables** and scope each one to the
-right environment(s). Preview deployments intentionally point at the **same
-MongoDB database** as production (this is a single-user app), so a preview can
-read/write live data — keep that in mind when testing destructive changes.
+Set these under Settings > Environment Variables. Preview deployments use the same MongoDB database as production. Anything you do on a preview changes live data.
 
 | Variable | Production | Preview | Notes |
 | --- | --- | --- | --- |
-| `MONGODB_URI` | ✅ | ✅ (same value) | Shared database, per request. |
-| `MONGODB_DB` | ✅ | ✅ (same value) | |
-| `AUTH_SECRET` | ✅ | ✅ (**same value**) | Must be identical — the proxy signs/verifies state with it. |
-| `AUTH_MICROSOFT_ENTRA_ID_ID` | ✅ | ✅ (same value) | Same Azure app for both. |
-| `AUTH_MICROSOFT_ENTRA_ID_SECRET` | ✅ | ✅ (same value) | |
-| `ALLOWED_EMAILS` | ✅ | ✅ (same value) | |
-| `AUTH_REDIRECT_PROXY_URL` | ✅ `https://www.zicha.study/api/auth` | ✅ `https://www.zicha.study/api/auth` | Enables OAuth on dynamic preview URLs. Must be the canonical origin (`www`) — see caution below. |
-| `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` | `true` | leave **unset** | Previews use path-form share URLs. |
-| `NEXT_PUBLIC_SHARE_BASE_DOMAIN` | `zicha.study` | leave **unset** | |
+| `MONGODB_URI` | required | same value | |
+| `MONGODB_DB` | optional | same value | Defaults to `zicha-study`. |
+| `AUTH_SECRET` | required | same value | Must be identical in both environments, because the redirect proxy verifies the OAuth state with it. |
+| `AUTH_MICROSOFT_ENTRA_ID_ID` | required | same value | Same Entra app in both environments. |
+| `AUTH_MICROSOFT_ENTRA_ID_SECRET` | required | same value | |
+| `ALLOWED_EMAILS` | set it | same value | If it is empty, any Microsoft personal account can sign in and edit all data. |
+| `AUTH_REDIRECT_PROXY_URL` | `https://www.zicha.study/api/auth` | `https://www.zicha.study/api/auth` | Lets previews sign in. See below. |
+| `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` | `true` | unset | Previews show path-form share links. |
+| `NEXT_PUBLIC_SHARE_BASE_DOMAIN` | `zicha.study` | unset | |
 
-### Authentication on previews (how it works)
+Vercel applies changed variables only to new builds, so redeploy after you change one. For `NEXT_PUBLIC_*` variables this matters twice: their values are compiled into the client bundle at build time.
 
-Microsoft Entra ID only accepts pre-registered OAuth **redirect URIs**, but
-preview deployments get dynamic hostnames like
-`zicha-study-git-<branch>-<scope>.vercel.app`. Registering each is impractical.
+You do not need to set the build metadata variables (`NEXT_PUBLIC_COMMIT_SHA`, `NEXT_PUBLIC_BUILD_TIME`). `next.config.mjs` reads the commit from `VERCEL_GIT_COMMIT_SHA`.
 
-Instead the app uses the Auth.js **redirect proxy** (`redirectProxyUrl` in
-`auth.ts`, fed by `AUTH_REDIRECT_PROXY_URL`):
+## Sign-in on preview deployments
 
-1. A user signs in on a preview deployment. Auth.js stores the preview's URL in
-   the OAuth `state` and sends Microsoft the **production** callback URL.
-2. Microsoft redirects back to `https://www.zicha.study/api/auth/callback/microsoft-entra-id`.
-3. Production recognizes itself as the proxy, verifies the `state` with the
-   shared `AUTH_SECRET`, and forwards the authenticated session back to the
-   originating preview URL.
+Entra ID accepts only redirect URIs that are registered in advance. Preview hostnames such as `zicha-study-git-<branch>-<scope>.vercel.app` change with every branch. To avoid registering each one, the app uses the Auth.js redirect proxy (`redirectProxyUrl` in `auth.ts`, set from `AUTH_REDIRECT_PROXY_URL`):
 
-Requirements for this to work:
+1. You sign in on a preview. Auth.js puts the preview URL into the OAuth `state` and gives Microsoft the production callback URL.
+2. Microsoft redirects to `https://www.zicha.study/api/auth/callback/microsoft-entra-id`.
+3. Production verifies the `state` with the shared `AUTH_SECRET` and forwards the session back to the preview.
 
-- `AUTH_REDIRECT_PROXY_URL` set to `https://www.zicha.study/api/auth` on **both**
-  Production and Preview, and production redeployed so it picks up the value
-  (Vercel applies env vars only to new builds). Production is the deployment
-  that receives the callback and does the forwarding, so it must have the var.
-- **The same `AUTH_SECRET`** across Production and Preview.
-- The Entra app registration must list the redirect URI
-  `https://www.zicha.study/api/auth/callback/microsoft-entra-id`.
+For this to work:
 
-> **Caution — canonical origin / no redirects.** Auth.js treats the current
-> deployment as "the proxy" only when `new URL(AUTH_REDIRECT_PROXY_URL).origin`
-> **exactly equals** the incoming request origin (`@auth/core` `init.js`). The
-> apex `zicha.study` 307-redirects to `www.zicha.study`, so if the proxy URL or
-> the Azure redirect URI uses the apex, Microsoft's callback lands on `www`
-> after a redirect, the origins no longer match, the proxy step is skipped, and
-> sign-in fails with `?error=Configuration` on
-> `https://www.zicha.study/api/auth/error`. Always use the canonical `www`
-> origin (the one that answers with 200 and no redirect) in both the env var
-> and the Azure redirect URI.
+- `AUTH_REDIRECT_PROXY_URL` must be set on both Production and Preview. Production handles the callback, so it needs the value too.
+- `AUTH_SECRET` must be the same in both environments.
+- The Entra app must list `https://www.zicha.study/api/auth/callback/microsoft-entra-id` as a redirect URI.
 
-### Middleware note
+Use the `www` origin in both the variable and the Azure redirect URI. Auth.js acts as the proxy only when the origin of `AUTH_REDIRECT_PROXY_URL` exactly matches the origin of the incoming request. The apex `zicha.study` redirects (307) to `www.zicha.study`. If you use the apex, the callback arrives on `www`, the origins differ, and sign-in fails with `error=Configuration`.
 
-`middleware.ts` only rewrites genuine `*.zicha.study` study subdomains. Preview
-hosts (`*.vercel.app`) and `localhost` are explicitly excluded, so a preview
-deployment serves its own pages instead of 308-redirecting to production.
+`middleware.ts` handles only real `*.zicha.study` subdomains. On a preview host or on localhost it serves the page itself and does not redirect to production.
 
-## Public share URLs
+## Share URL domains
 
-Production deployments render share-link previews using the study slug
-as a single subdomain (e.g. `https://newton.zicha.study/mat`). The
-behavior is controlled by two `NEXT_PUBLIC_*` variables that are
-inlined at build time:
+For subdomain share links (`https://newton.zicha.study/mat`) to work, add a wildcard domain `*.zicha.study` to the same Vercel project. `middleware.ts` answers requests on a study subdomain with a 308 redirect to the path form, for example `https://zicha.study/newton/mat`. It skips `www` and `/api/*` requests.
 
-| Variable | Production | Preview / Local |
-| --- | --- | --- |
-| `NEXT_PUBLIC_USE_SUBDOMAIN_SHARE_URLS` | `true` | unset (path form) |
-| `NEXT_PUBLIC_SHARE_BASE_DOMAIN` | `zicha.study` | unset |
+## Upload size
 
-Set them once in the Vercel dashboard (or via
-`vercel env add NAME production`). Because they are inlined at build
-time, changing them only takes effect after the next production build.
-
-### DNS / middleware
-
-For the subdomain form to resolve, the apex domain needs a wildcard
-record (`*.zicha.study`) routed to the same Vercel project. Incoming
-requests are caught by `middleware.ts`, which rewrites
-`<slug>.zicha.study/<rest>` to `/<slug>/<rest>` before any route
-matching. The middleware also supports the legacy multi-level form
-(`mat.newton.zicha.study` → `/newton/mat`) for back-compat with older
-copied links.
-
-### Code rule
-
-Components must build public URLs through `getShareUrl()` in
-`lib/utils/share-url.ts` so the path/subdomain switch stays centralized.
-Avoid hand-built `${window.location.origin}/...` strings for shareable
-URLs.
-
-## Study Notes DOCX Conversion
-
-The study notes feature uses Mammoth.js for converting DOCX files to HTML, which is fully compatible with Vercel's deployment environment.
-
-### How it works:
-
-1. **Local Development**: Full functionality with on-demand conversion
-2. **Vercel Production**: Full functionality with on-demand conversion
-   - Converts DOCX files to HTML using Mammoth.js
-   - Caches conversions in the database for performance
-   - Supports regeneration with `?flush=1` parameter
-
-### Features:
-
-1. **Automatic conversion**: DOCX files are converted on-demand when accessed
-2. **Smart caching**: Checks OneDrive timestamps to determine if regeneration is needed
-3. **Media handling**: Extracts and stores images from DOCX files
-4. **TOC generation**: Automatically generates table of contents from headings
-
-### Database caching:
-
-All converted documents are stored in the database with:
-- HTML content
-- Media files (images) 
-- Metadata (title, timestamps)
-- Cache keys for versioning
-
-This provides optimal performance while maintaining the ability to regenerate content when source files are updated.
+Logos and diploma scans are uploaded through Server Actions. The body limit is 4 MB (`serverActions.bodySizeLimit` in `next.config.mjs`), which is below Vercel's request limit of about 4.5 MB. Larger files fail.

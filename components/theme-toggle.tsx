@@ -7,14 +7,14 @@ import { useAppTheme } from "@/hooks/use-app-theme"
 import { cn } from "@/lib/utils"
 
 export interface ThemeToggleProps {
-  /** `sm` renders a tighter 8x8 button, for dense headers and footers. */
+  /** `sm` renders a tighter 8x8 button, for the footers. */
   size?: "sm" | "default"
   className?: string
 }
 
 /**
- * One-click light/dark switch. Rendered in every app shell header (and in the
- * public footers) so the theme is reachable from any screen.
+  * One-click light/dark switch. Rendered only in the two page footers
+  * (`TitlePageFooter`, `PublicPageFooter`), so every full-page screen gets one.
  *
  * Shows the theme it switches *to*: a moon while light is active, a sun while
  * dark is active.
@@ -23,7 +23,7 @@ export function ThemeToggle({ size = "default", className }: ThemeToggleProps) {
   const { theme, toggleTheme, mounted } = useAppTheme()
 
   const isDark = theme === "dark"
-  const label = isDark ? "Světlý motiv" : "Tmavý motiv"
+  const label = isDark ? "Přepnout na světlý motiv" : "Přepnout na tmavý motiv"
   const iconClassName = size === "sm" ? "h-4 w-4" : "h-[1.15rem] w-[1.15rem]"
 
   const buttonClassName = cn(
@@ -33,7 +33,7 @@ export function ThemeToggle({ size = "default", className }: ThemeToggleProps) {
   )
 
   // Until hydration finishes the active theme is unknown; reserve the exact
-  // same box so the header does not shift once the real icon appears.
+  // same box so the footer does not shift once the real icon appears.
   if (!mounted) {
     return <span aria-hidden="true" className={cn("inline-block shrink-0", buttonClassName)} />
   }

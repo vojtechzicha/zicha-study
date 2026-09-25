@@ -77,7 +77,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
       try {
         const notesData = await fetchStudyNotes(studyId) as RawStudyNoteFromMongo[]
 
-        // Get all unique subject and final exam IDs from denormalized arrays
         const subjectIds = new Set<string>()
         const finalExamIds = new Set<string>()
         notesData?.forEach((note) => {
@@ -89,7 +88,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           })
         })
 
-        // Fetch subject details
         type SubjectEntry = { id: string; name: string; study_id: string }
         const subjectsMap = new Map<string, SubjectEntry>()
         if (subjectIds.size > 0) {
@@ -99,7 +97,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           })
         }
 
-        // Fetch final exam details
         type FinalExamEntry = { id: string; name: string; shortcut?: string | null; study_id: string }
         const finalExamsMap = new Map<string, FinalExamEntry>()
         if (finalExamIds.size > 0) {
@@ -109,7 +106,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           })
         }
 
-        // Transform the data to include subject and final exam information
         const transformedNotes: StudyNoteWithSubjects[] = (notesData || []).map((note) => {
           const subjectItems = (note.linked_subjects || []).map((link) => {
             const subject = subjectsMap.get(link.subject_id)
@@ -123,7 +119,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
             const exam = finalExamsMap.get(link.final_exam_id)
             return exam ? {
               id: exam.id,
-              name: `${exam.shortcut ? `${exam.shortcut} - ` : ""}${exam.name}`,
+              name: `${exam.shortcut ? `${exam.shortcut} – ` : ""}${exam.name}`,
               study_id: exam.study_id,
               is_primary: link.is_primary,
               is_final_exam: true
@@ -139,7 +135,7 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
         setStudyNotes(transformedNotes)
       } catch (err) {
         if (!silent) {
-          setError("Nepodařilo se načíst studijní zápisy")
+          setError("Nepodařilo se načíst zápisy.")
         }
         console.error(err)
       } finally {
@@ -158,7 +154,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
     let intervalId: NodeJS.Timeout | null = null
 
     const startPolling = () => {
-      // Poll every 5 seconds when visible
       intervalId = setInterval(() => {
         if (!document.hidden) {
           loadStudyNotes(true) // silent refresh
@@ -177,13 +172,11 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
       if (document.hidden) {
         stopPolling()
       } else {
-        // Refresh immediately when page becomes visible
         loadStudyNotes(true) // silent refresh
         startPolling()
       }
     }
 
-    // Start polling if page is visible
     if (!document.hidden) {
       startPolling()
     }
@@ -197,7 +190,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
   }, [loadStudyNotes])
 
 
-  // Filter notes based on search query
   const filteredNotes = studyNotes.filter(note => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -208,7 +200,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
     )
   })
 
-  // Show only first 8 study notes in preview mode
   const displayedNotes = showAll ? filteredNotes : filteredNotes.slice(0, 8)
 
   return (
@@ -217,16 +208,13 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
         <div className="flex justify-between items-start gap-4">
           <div className="flex-1">
             <CardTitle className="text-xl font-bold text-foreground">Studijní zápisy</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Všechny studijní zápisy napříč předměty
-            </p>
           </div>
           {studyNotes.length > 0 && (
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
               <Input
                 type="text"
-                placeholder="Hledat zápisy..."
+                placeholder="Hledat zápisy…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-9"
@@ -253,10 +241,10 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
           <div className="text-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
-              Zatím nejsou přidány žádné studijní zápisy
+              Zatím žádné zápisy
             </h3>
             <p className="text-muted-foreground">
-              Studijní zápisy můžete přidat v jednotlivých předmětech
+              Zápisy se přidávají u jednotlivých předmětů.
             </p>
           </div>
         ) : filteredNotes.length === 0 ? (
@@ -265,9 +253,6 @@ export function StudyNotesOverviewSection({ studyId, study }: StudyNotesOverview
             <h3 className="text-lg font-medium text-foreground mb-2">
               Žádné zápisy neodpovídají vyhledávání
             </h3>
-            <p className="text-muted-foreground">
-              Zkuste změnit vyhledávací dotaz
-            </p>
           </div>
         ) : !showAll ? (
           <div className="space-y-4">

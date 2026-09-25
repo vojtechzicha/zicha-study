@@ -5,7 +5,7 @@ interface MongoClientCache {
   promise: Promise<MongoClient> | null
 }
 
-// Use globalThis to persist across HMR in development
+// Cached on globalThis so dev HMR reuses one client instead of opening new connections
 const globalWithMongo = globalThis as typeof globalThis & {
   _mongoClientCache?: MongoClientCache
 }

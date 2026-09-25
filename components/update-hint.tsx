@@ -74,8 +74,7 @@ export function UpdateHint() {
       className="fixed bottom-6 left-1/2 z-50 flex w-[min(92vw,560px)] -translate-x-1/2 items-center gap-3 rounded-lg border border-primary-200 bg-card px-4 py-3 shadow-lg dark:border-primary-800"
     >
       <span className="text-sm leading-relaxed text-foreground/80">
-        Mezitím vyšla nová verze aplikace. Obnovte stránku, ať pracujete s tou
-        aktuální.
+        Vyšla nová verze aplikace.
       </span>
       <Button
         type="button"

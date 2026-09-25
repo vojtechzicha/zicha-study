@@ -16,6 +16,7 @@ import {
   Palmtree
 } from "lucide-react"
 import type { ScheduleResult, ScheduleItem } from "@/lib/exam-scheduler"
+import { czPlural } from "@/lib/utils/task-format"
 
 interface ExamScheduleViewProps {
   result: ScheduleResult
@@ -91,7 +92,7 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
     return (
       <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40">
         <CardContent className="pt-6">
-          <p className="text-green-700 dark:text-green-300">Všechny předměty jsou dokončené. Není třeba plánovat zkoušky.</p>
+          <p className="text-green-700 dark:text-green-300">Všechny předměty jsou dokončené, není co plánovat.</p>
         </CardContent>
       </Card>
     )
@@ -102,7 +103,6 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Cost Summary */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -123,7 +123,7 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
                 {formatCurrency(result.breakdown.travelCost)}
               </p>
               <p className="text-sm text-muted-foreground">
-                {result.breakdown.travelTrips} cest
+                {result.breakdown.travelTrips} {czPlural(result.breakdown.travelTrips, "cesta", "cesty", "cest")}
               </p>
             </div>
             <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/40 rounded-lg">
@@ -131,14 +131,14 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
                 {formatCurrency(result.breakdown.accommodationCost)}
               </p>
               <p className="text-sm text-muted-foreground">
-                {result.breakdown.accommodationNights} nocí
+                {result.breakdown.accommodationNights} {czPlural(result.breakdown.accommodationNights, "noc", "noci", "nocí")}
               </p>
             </div>
             <div className="text-center p-3 bg-green-50 dark:bg-green-950/40 rounded-lg">
               <p className="text-xl font-semibold text-green-700 dark:text-green-300">
                 {result.selectedExams.length}
               </p>
-              <p className="text-sm text-muted-foreground">zkoušek</p>
+              <p className="text-sm text-muted-foreground">{czPlural(result.selectedExams.length, "zkouška", "zkoušky", "zkoušek")}</p>
             </div>
           </div>
           {result.breakdown.ptoDays > 0 && (
@@ -152,7 +152,6 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
         </CardContent>
       </Card>
 
-      {/* Schedule Timeline */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -198,7 +197,7 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
                           </div>
                           <div className="flex items-center gap-2 text-sm mt-1">
                             <Clock className="h-3 w-3" />
-                            <span>{item.startTime} - {item.endTime}</span>
+                            <span>{item.startTime}–{item.endTime}</span>
                             {item.exam.note && (
                               <span className="text-muted-foreground">• {item.exam.note}</span>
                             )}
@@ -243,7 +242,6 @@ export function ExamScheduleView({ result }: ExamScheduleViewProps) {
         </CardContent>
       </Card>
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-primary-100 dark:bg-primary-900/50 border border-primary-200 dark:border-primary-800"></div>

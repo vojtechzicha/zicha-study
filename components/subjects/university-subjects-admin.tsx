@@ -15,7 +15,6 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
   const [searchQuery, setSearchQuery] = useState("")
   const [showActiveOnly, setShowActiveOnly] = useState(false)
 
-  // Filter subjects based on search query and active filter
   const filteredSubjects = useMemo(() => {
     let filtered = subjects
 
@@ -57,18 +56,17 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
                 <BookOpen className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                 <CardTitle className="text-xl font-bold text-foreground">Předměty</CardTitle>
               </div>
-              <p className="text-sm text-muted-foreground mt-1 ml-7">
-                {searchQuery || showActiveOnly
-                  ? `Zobrazeno ${filteredSubjects.length} z ${subjects.length} předmětů`
-                  : "Přehled všech předmětů ve studiu"}
-              </p>
+              {(searchQuery || showActiveOnly) && (
+                <p className="text-sm text-muted-foreground mt-1 ml-7">
+                  {`Zobrazeno ${filteredSubjects.length} z ${subjects.length} předmětů`}
+                </p>
+              )}
             </div>
-            {/* Search Input with Filter and Add button - Right side on desktop, below on mobile */}
             <div className="w-full md:w-auto relative flex gap-2 items-center">
               <div className="flex-1 md:flex-initial md:w-64 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
                 <Input
-                  placeholder="Hledat v předmětech..."
+                  placeholder="Hledat v předmětech…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 h-10"
@@ -82,13 +80,14 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
                     ? "bg-primary-600 text-white border-primary-600 hover:bg-primary-700"
                     : "text-muted-foreground hover:bg-primary-100 dark:hover:bg-primary-900/60 hover:text-foreground"
                 }`}
-                title={showActiveOnly ? "Zobrazit všechny předměty" : "Zobrazit pouze aktivní předměty"}
+                title={showActiveOnly ? "Zobrazit všechny předměty" : "Zobrazit jen aktivní předměty"}
               >
                 <Filter className={`h-4 w-4 ${showActiveOnly ? "text-white" : "text-muted-foreground"}`} />
               </Button>
               <Button
                 onClick={() => setShowSubjectForm(true)}
                 size="sm"
+                aria-label="Přidat předmět"
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -102,9 +101,8 @@ export function UniversitySubjectsAdmin({ study, subjects, loading, onUpdate }: 
         </CardContent>
       </Card>
 
-      {/* Subject Form Modal */}
       <Dialog open={showSubjectForm} onOpenChange={setShowSubjectForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
           <SubjectForm study={study as any} onSuccess={handleSubjectAdded} onClose={() => setShowSubjectForm(false)} />
         </DialogContent>
       </Dialog>

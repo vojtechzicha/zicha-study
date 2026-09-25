@@ -47,24 +47,21 @@ export async function updateStudy(id: string, data: Record<string, any>) {
 }
 
 export async function deleteStudy(id: string) {
-  // Cascade: delete all related data
+  // MongoDB has no cascading deletes, so every dependent collection is cleared here
   const db = await getDb()
 
-  // Get study notes for this study to cascade media/cache
   const studyNotes = await db.collection("study_notes").find({ study_id: id }).toArray()
   const noteIds = studyNotes.map((n) => n._id)
   const subjects = await db.collection("subjects").find({ study_id: id }).toArray()
   const subjectIds = subjects.map((s) => s._id)
 
   if (noteIds.length > 0) {
-    // Delete study notes cache and media
     const caches = await db.collection("study_notes_cache").find({ study_note_id: { $in: noteIds } }).toArray()
     const cacheIds = caches.map((c) => c._id)
     if (cacheIds.length > 0) {
       await db.collection("study_notes_media").deleteMany({ cache_id: { $in: cacheIds } })
     }
     await db.collection("study_notes_cache").deleteMany({ study_note_id: { $in: noteIds } })
-    // Markdown note versions and inline media
     await db.collection("study_note_versions").deleteMany({ note_id: { $in: noteIds } })
     await db.collection("markdown_note_media").deleteMany({ note_id: { $in: noteIds } })
   }
@@ -76,12 +73,10 @@ export async function deleteStudy(id: string) {
   await db.collection("subject_materials").deleteMany({ study_id: id })
   await db.collection("tasks").deleteMany({ study_id: id })
 
-  // Delete exam options for subjects in this study
   if (subjectIds.length > 0) {
     await db.collection("exam_options").deleteMany({ subject_id: { $in: subjectIds } })
   }
 
-  // Delete exam periods and terms for this study
   await db.collection("exam_terms").deleteMany({ study_id: id })
   await db.collection("exam_periods").deleteMany({ study_id: id })
 
@@ -167,10 +162,10 @@ async function assertNoRepeatCycle(studyId: string, selfId: string, startId: str
   let cursor: string | null = startId
   while (cursor) {
     if (cursor === selfId) {
-      throw new Error("Repeat chain would create a cycle")
+      throw new Error("Opakování by vytvořilo cyklus.")
     }
     if (visited.has(cursor)) {
-      throw new Error("Repeat chain already contains a cycle")
+      throw new Error("Řetězec opakování už obsahuje cyklus.")
     }
     visited.add(cursor)
     const next = await c.findOne(
@@ -214,7 +209,7 @@ export async function deleteSubject(id: string) {
   )
   if (referenced) {
     const label = referenced.abbreviation ? `${referenced.abbreviation} – ${referenced.name}` : referenced.name
-    throw new Error(`Předmět nelze smazat, protože jej opakuje "${label}". Nejprve upravte nebo smažte opakování.`)
+    throw new Error(`Předmět nelze smazat, protože ho opakuje „${label}“. Nejdřív upravte nebo smažte opakování.`)
   }
   await db.collection("exam_options").deleteMany({ subject_id: id })
   await db.collection("exam_terms").deleteMany({ subject_id: id })
@@ -470,13 +465,11 @@ export async function updateStudyNote(id: string, data: Record<string, any>) {
 
 export async function deleteStudyNote(id: string) {
   const db = await getDb()
-  // Cascade: delete cache and media
   const cache = await db.collection("study_notes_cache").findOne({ study_note_id: id })
   if (cache) {
     await db.collection("study_notes_media").deleteMany({ cache_id: cache._id })
     await db.collection("study_notes_cache").deleteOne({ _id: cache._id })
   }
-  // Markdown note versions and inline media
   await db.collection("study_note_versions").deleteMany({ note_id: id })
   await db.collection("markdown_note_media").deleteMany({ note_id: id })
   await db.collection("study_notes").deleteOne({ _id: id as any })
@@ -495,7 +488,7 @@ export async function checkStudyNoteSlugAvailability(slug: string, studyId: stri
   return !note && !mat && !subMat
 }
 
-// Slug availability check across all note tables (global)
+// Unlike checkStudyNoteSlugAvailability, checks study_notes only, but across all studies
 export async function checkNoteSlugGlobalAvailability(slug: string, excludeId?: string) {
   const c = await col("study_notes")
   const filter: Filter<any> = { public_slug: slug }
@@ -504,7 +497,7 @@ export async function checkNoteSlugGlobalAvailability(slug: string, excludeId?: 
   return !existing
 }
 
-// ─── Study Notes: Linked Subjects (denormalized) ───────────────────────────
+// ─── Study Notes: linked subjects / final exams (denormalized arrays on the note) ───
 
 export async function linkSubjectToNote(noteId: string, subjectId: string, isPrimary = false) {
   const c = await col("study_notes")
@@ -556,33 +549,28 @@ export async function unlinkFinalExamFromNote(noteId: string, finalExamId: strin
   )
 }
 
-// Replaces RPC: get_subject_study_notes_with_details
 export async function getStudyNotesBySubjectId(subjectId: string) {
   const c = await col("study_notes")
   return c.find({ "linked_subjects.subject_id": subjectId }).sort({ created_at: -1 }).toArray()
 }
 
-// Replaces RPC: get_final_exam_study_notes
 export async function getStudyNotesByFinalExamId(finalExamId: string) {
   const c = await col("study_notes")
   return c.find({ "linked_final_exams.final_exam_id": finalExamId }).sort({ created_at: -1 }).toArray()
 }
 
-// Get linked subject IDs for a note
 export async function getLinkedSubjectIds(noteId: string) {
   const c = await col("study_notes")
   const note = await c.findOne({ _id: noteId as any }, { projection: { linked_subjects: 1 } })
   return (note?.linked_subjects || []).map((l: any) => l.subject_id)
 }
 
-// Get linked final exam IDs for a note
 export async function getLinkedFinalExamIds(noteId: string) {
   const c = await col("study_notes")
   const note = await c.findOne({ _id: noteId as any }, { projection: { linked_final_exams: 1 } })
   return (note?.linked_final_exams || []).map((l: any) => l.final_exam_id)
 }
 
-// Check which final exams have study notes linked
 export async function getFinalExamIdsWithNotes(examIds: string[], publicOnly = false) {
   const c = await col("study_notes")
   const filter: Filter<any> = { "linked_final_exams.final_exam_id": { $in: examIds } }
@@ -640,7 +628,6 @@ export async function getMediaFile(cacheId: string, filePath: string) {
 
 // ─── Markdown Notes: Content ────────────────────────────────────────────────
 
-// Returns just the editor content payload for a note.
 export async function getMarkdownNoteContent(noteId: string) {
   const c = await col("study_notes")
   return c.findOne(
@@ -851,10 +838,10 @@ export async function setExamTermLocked(id: string, locked: boolean) {
 }
 
 /**
- * Aggregate everything the global scheduler needs: studies that have the exam
- * scheduler enabled (with their transit/accommodation/PTO config), all their
- * periods, all terms within those periods, and the subjects those terms refer
- * to (for names/abbreviations). Returns raw docs; the action layer normalizes.
+ * Everything the global scheduler needs: active studies with the exam scheduler enabled (with
+ * their transit/accommodation/PTO config), their periods, the terms in those periods, and the
+ * studies' subjects (for names/abbreviations). Runs the one-time exam_options migration first.
+ * Returns raw docs; the action layer normalizes.
  */
 export async function getGlobalExamSchedulingData() {
   await migrateExamOptionsToPeriods()
@@ -896,9 +883,9 @@ export async function getGlobalExamSchedulingData() {
 }
 
 /**
- * Upcoming locked exam terms (across all scheduler-enabled studies), with study
- * + subject + period metadata, for the homepage / tasks view. Only locked terms
- * are concrete commitments; candidate terms are not yet scheduled.
+ * Upcoming locked exam terms of active scheduler-enabled studies, with study, subject and
+ * period metadata, for the homepage / tasks view. Only locked terms are commitments;
+ * unlocked ones are still just candidates.
  */
 export async function getUpcomingLockedExamTerms(fromDate: string) {
   const termsCol = await col("exam_terms")
@@ -954,7 +941,6 @@ export async function migrateExamOptionsToPeriods() {
       .toArray()
     const subjectToStudy = new Map(subjects.map((s) => [String(s._id), String(s.study_id)]))
 
-    // Group options by study.
     const byStudy = new Map<string, any[]>()
     for (const opt of options) {
       const studyId = subjectToStudy.get(opt.subject_id)
@@ -1086,10 +1072,7 @@ export async function upsertAppSettings(data: Record<string, any>) {
   )
 }
 
-/**
- * Get documents from a collection that have onedrive_id but no cache_onedrive_id.
- * Used for bulk migration/sync to cache.
- */
+/** Documents with an onedrive_id but no cache_onedrive_id yet, for bulk cache sync. */
 export async function getDocumentsNeedingCache(
   collectionName: "materials" | "subject_materials" | "study_notes"
 ) {
@@ -1126,10 +1109,8 @@ export async function getCacheOneDriveIdsByStudyId(studyId: string) {
 }
 
 // ─── ID normalization helper ────────────────────────────────────────────────
-// MongoDB documents use _id, but the app expects id.
-// This helper converts _id to id for all documents returned from queries.
-// It also strips Binary fields (logo_data, diploma_data, file_data) that can't be serialized
-// when passed from Server Components to Client Components.
+// Maps Mongo's _id to the app's id, and strips the logo_data / diploma_data Binary fields,
+// which can't be serialized from Server Components to Client Components.
 
 export function normalizeId<T extends Record<string, any>>(doc: T | null): (Omit<T, '_id'> & { id: string }) | null {
   if (!doc) return null

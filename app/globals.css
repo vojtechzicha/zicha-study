@@ -50,18 +50,13 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
 
     /*
-     * Fallback logo-theme palette, used on every page that never calls
-     * useLogoTheme (login, tasks, global exam scheduler, ...) so that the
-     * Tailwind `primary-50..950` utilities always resolve to something.
+     * Fallback logo palette for pages that never call useLogoTheme (login, tasks,
+     * global exam scheduler), so `primary-50..950` always resolve.
+     * KEEP IN SYNC with DEFAULT_THEME in hooks/use-logo-theme.ts.
      *
-     * KEEP IN SYNC with DEFAULT_THEME in hooks/use-logo-theme.ts — that hook is
-     * the single source of truth; these are only the static fallbacks.
-     *
-     * Values are bare, SPACE-separated HSL components (no `hsl()` wrapper), the
-     * same shape as the shadcn tokens above. Tailwind emits both
-     * `hsl(var(--primary-900))` and `hsl(var(--primary-900) / 0.5)`, and only the
-     * space-separated form is valid inside the second (alpha) syntax — which the
-     * dark-mode utilities (`dark:bg-primary-900/50`, ...) rely on.
+     * Bare, space-separated HSL like the shadcn tokens: Tailwind emits
+     * `hsl(var(--primary-900) / 0.5)` for opacity modifiers (`dark:bg-primary-900/50`),
+     * which is invalid with the comma form.
      */
     --primary-50: 217 50% 96%;
     --primary-100: 217 55% 94%;
@@ -123,19 +118,17 @@ body {
 }
 
 /* ─── Switch track in dark mode ───────────────────────────────────────────────
- * components/ui/switch.tsx paints its unchecked track with `bg-primary-200`,
- * a very light tint that reads as a white pill on the dark surfaces. shadcn
- * components must not be edited, so the dark tint lives here and follows the
- * usual mapping from the theming rules (`bg-primary-200` → `primary-800/60`).
+ * components/ui/switch.tsx paints the unchecked track `bg-primary-200`, a white
+ * pill on dark surfaces. shadcn components must not be edited, so the usual
+ * dark mapping (`bg-primary-200` → `primary-800/60`) lives here.
  */
 .dark [role="switch"][data-state="unchecked"] {
   background-color: hsl(var(--primary-800, 217 91% 24%) / 0.6);
 }
 
 /* ─── Print: always light ─────────────────────────────────────────────────────
- * Printing from a dark-mode tab would otherwise put light text on white paper.
- * Force the light tokens whenever the page is printed; component-level print
- * rules (app/study-note-content.css) build on the same values.
+ * Printing from a dark tab would put light text on white paper, so force the
+ * light tokens. Print rules in app/study-note-content.css build on these.
  */
 @media print {
   .dark {
@@ -250,7 +243,6 @@ body {
 .tiptap-note th { background: hsl(var(--muted)); font-weight: 600; }
 .tiptap-note .tiptap-mathematics-render[data-type="block-math"] { display: block; margin: 0.75rem 0; text-align: center; }
 .tiptap-note .tiptap-mathematics-render--editable { cursor: pointer; }
-/* Placeholder for the empty editor */
 .tiptap-note p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
@@ -258,9 +250,8 @@ body {
   pointer-events: none;
   height: 0;
 }
-/* Printing from a dark tab: the global print block above restores the light
-   tokens, but these `.dark`-scoped Markdown rules are more specific and would
-   keep their dark tints. Reset them to the light values. */
+/* The global print block restores light tokens, but these `.dark`-scoped rules
+   are more specific and would keep their dark tints. */
 @media print {
   .dark .tiptap-note blockquote {
     border-left-color: hsl(var(--primary-200, 214 95% 93%));

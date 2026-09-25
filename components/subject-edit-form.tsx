@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Save, Trash2, CalendarDays } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -91,7 +91,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
   const { toast } = useToast()
   const { departments } = useDepartments(subject.study_id)
 
-  // Fetch exam options when dialog opens
   useEffect(() => {
     const loadExamOptions = async () => {
       if (!examSchedulerEnabled || examOptionsLoaded) return
@@ -116,7 +115,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     }
   }, [open, examSchedulerEnabled, subject.id, examOptionsLoaded])
 
-  // Fetch subjects that can be repeated
   useEffect(() => {
     const loadSubjects = async () => {
       const data = await fetchSubjectsForRepeatSelection(subject.study_id, subject.id)
@@ -132,7 +130,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     setLoading(true)
     setError(null)
 
-    // Prepare update data
     const updateData: any = {
       semester: formData.semester,
       abbreviation: formData.abbreviation || null,
@@ -152,7 +149,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       repeats_subject_id: formData.is_repeat && formData.repeats_subject_id ? formData.repeats_subject_id : null,
     }
 
-    // If marking as completed, automatically mark credit and exam as completed if required
+    // Completing a subject implies its required credit/exam are done
     if (subjectState === "completed") {
       if (requiresCredit(formData.completion_type)) {
         updateData.credit_completed = true
@@ -160,16 +157,13 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       if (requiresExam(formData.completion_type)) {
         updateData.exam_completed = true
       }
-      // Set final date to today if not provided
       if (!updateData.final_date) {
         updateData.final_date = new Date().toISOString().split('T')[0]
       }
     } else if (subjectState === "active") {
-      // For active subjects, preserve the checkbox states
       updateData.exam_completed = formData.exam_completed
       updateData.credit_completed = formData.credit_completed
     } else {
-      // For planned subjects, clear completion fields
       updateData.exam_completed = false
       updateData.credit_completed = false
     }
@@ -177,13 +171,13 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     const result = await updateSubject(subject.id, updateData)
 
     if (result.error) {
-      // Provide more specific error messages based on error code/message
-      let errorMessage = "Chyba při ukládání předmětu. Zkuste to prosím znovu."
+      // 23505 = duplicate key (Postgres code kept by lib/actions/subjects.ts)
+      let errorMessage = "Nepodařilo se uložit předmět."
 
       if (result.error.code === "23505") {
-        errorMessage = "Předmět s touto kombinací názvu a semestru již existuje."
+        errorMessage = "Předmět s tímto názvem a semestrem už existuje."
       } else if (result.error.message) {
-        errorMessage = `Chyba při ukládání: ${result.error.message}`
+        errorMessage = `Nepodařilo se uložit předmět. ${result.error.message}`
       }
 
       setError(errorMessage)
@@ -191,7 +185,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       return
     }
 
-    // Save exam options if exam scheduler is enabled
     if (examSchedulerEnabled) {
       try {
         const validOptions = examOptions.filter(opt => opt.date)
@@ -207,10 +200,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       }
     }
 
-    toast({
-      title: "Předmět uložen",
-      description: `Předmět "${formData.name}" byl úspěšně aktualizován.`,
-    })
+    toast({ title: "Předmět uložen" })
     setLoading(false)
     onSuccess()
   }
@@ -222,33 +212,27 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     const result = await deleteSubjectAction(subject.id)
 
     if (result.error) {
-      let errorMessage = "Chyba při mazání předmětu. Zkuste to prosím znovu."
+      let errorMessage = "Nepodařilo se smazat předmět."
 
       if (result.error.message) {
-        errorMessage = `Chyba při mazání: ${result.error.message}`
+        errorMessage = `Nepodařilo se smazat předmět. ${result.error.message}`
       }
 
       setError(errorMessage)
       setDeleting(false)
     } else {
-      toast({
-        title: "Předmět smazán",
-        description: `Předmět "${subject.name}" byl úspěšně smazán.`,
-      })
+      toast({ title: "Předmět smazán" })
       onSuccess()
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">
             Úprava předmětu {subject.abbreviation}
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            Upravte údaje předmětu, jeho stav, termíny zkoušek a další nastavení.
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 p-1">
               {error && (
@@ -257,7 +241,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </Alert>
               )}
 
-              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="semester">Semestr *</Label>
@@ -366,7 +349,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                     onChange={(e) => setFormData({ ...formData, hours: Number.parseInt(e.target.value) || 0 })}
                     min="0"
                     max="200"
-                    placeholder="volitelné"
                   />
                 </div>
               </div>
@@ -382,7 +364,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                       onChange={(e) => setFormData({ ...formData, points: e.target.value })}
                       min="0"
                       max="100"
-                      placeholder="volitelné"
                     />
                   </div>
                 )}
@@ -416,11 +397,10 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   value={formData.department}
                   onChange={(value) => setFormData({ ...formData, department: value })}
                   departments={departments}
-                  placeholder="Vyberte nebo zadejte katedru..."
+                  placeholder="Vyberte nebo zadejte katedru…"
                 />
               </div>
 
-              {/* Exam Options Section - only show when exam scheduler is enabled */}
               {examSchedulerEnabled && (
                 <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                   <div className="flex items-center gap-2">
@@ -438,7 +418,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </div>
               )}
 
-              {/* Final Date for Completed Subjects */}
               {isFieldVisibleForState("final_date", subjectState) && (
                 <div className="space-y-2">
                   <Label htmlFor="final_date">Datum ukončení *</Label>
@@ -452,29 +431,24 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </div>
               )}
 
-              {/* Subject State Selector */}
               <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                 <Label className="text-sm font-medium">Stav předmětu</Label>
                 <RadioGroup value={subjectState} onValueChange={(value) => setSubjectState(value as SubjectState)}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="planned" id="planned" />
                     <Label htmlFor="planned" className="cursor-pointer">{getSubjectStateText("planned")}</Label>
-                    <span className="text-xs text-muted-foreground">- ještě nebyl zahájen</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="active" id="active" />
                     <Label htmlFor="active" className="cursor-pointer">{getSubjectStateText("active")}</Label>
-                    <span className="text-xs text-muted-foreground">- probíhá</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="completed" id="completed" />
                     <Label htmlFor="completed" className="cursor-pointer">{getSubjectStateText("completed")}</Label>
-                    <span className="text-xs text-muted-foreground">- ukončený</span>
                   </div>
                 </RadioGroup>
               </div>
 
-              {/* Credit and Exam Completion Toggles */}
               {subjectState === "active" && (
                 <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                   <Label className="text-sm font-medium">Průběžné plnění</Label>
@@ -523,7 +497,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                 </div>
               )}
 
-              {/* Repeat Subject Section */}
               <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -550,7 +523,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                       <SelectContent>
                         {availableSubjects.map((subject) => (
                           <SelectItem key={subject.id} value={subject.id}>
-                            {subject.semester} - {subject.abbreviation ? `${subject.abbreviation} - ` : ''}{subject.name}
+                            {subject.semester} – {subject.abbreviation ? `${subject.abbreviation} – ` : ''}{subject.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -571,14 +544,14 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   <AlertDialogTrigger asChild>
                     <Button type="button" variant="destructive" disabled={deleting}>
                       <Trash2 className="mr-2 h-4 w-4" />
-                      {deleting ? "Mazání..." : "Smazat"}
+                      {deleting ? "Mazání…" : "Smazat"}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Smazat předmět?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Opravdu chcete smazat předmět &quot;{subject.name}&quot;? Tato akce je nevratná.
+                        Předmět „{subject.name}“ se trvale smaže.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -604,7 +577,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {loading ? "Ukládání..." : "Uložit změny"}
+                  {loading ? "Ukládání…" : "Uložit změny"}
                 </Button>
               </div>
         </form>

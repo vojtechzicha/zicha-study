@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -44,10 +43,10 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
     setError(null)
 
     try {
-      if (!formData.title.trim()) throw new Error("Název úkolu je povinný")
-      if (!formData.deadline) throw new Error("Termín je povinný")
+      if (!formData.title.trim()) throw new Error("Vyplňte název.")
+      if (!formData.deadline) throw new Error("Vyplňte termín.")
       if (formData.start_date && formData.start_date > formData.deadline) {
-        throw new Error("Začátek nemůže být po termínu")
+        throw new Error("Začátek nemůže být po termínu.")
       }
 
       const data = {
@@ -71,7 +70,7 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
 
       onSave()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
+      setError(err instanceof Error ? err.message : "Nepodařilo se uložit úkol.")
     } finally {
       setLoading(false)
     }
@@ -79,7 +78,7 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
 
   const handleDelete = async () => {
     if (!task) return
-    if (!confirm("Opravdu chcete odstranit tento úkol?")) return
+    if (!confirm("Smazat tento úkol?")) return
 
     setDeleting(true)
     setError(null)
@@ -88,22 +87,17 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
       if (deleteError) throw new Error(deleteError.message)
       onSave()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nastala chyba při mazání")
+      setError(err instanceof Error ? err.message : "Nepodařilo se smazat úkol.")
       setDeleting(false)
     }
   }
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{task ? "Upravit úkol" : "Přidat úkol"}</DialogTitle>
-            <DialogDescription>
-              {task
-                ? "Upravte informace o úkolu"
-                : "Vyplňte informace o novém úkolu"}
-            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -131,7 +125,7 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
                 id="task-description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Volitelný popis, poznámka, odkaz..."
+                placeholder="Poznámka, odkaz…"
                 rows={3}
               />
             </div>
@@ -145,7 +139,6 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
                   value={formData.start_date}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 />
-                <p className="text-xs text-muted-foreground">Volitelné</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="task-deadline">Termín *</Label>
@@ -183,7 +176,7 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
                 disabled={deleting || loading}
               >
                 <Trash2 className="mr-1.5 h-4 w-4" />
-                {deleting ? "Mažu..." : "Smazat"}
+                {deleting ? "Mazání…" : "Smazat"}
               </Button>
             ) : (
               <span />
@@ -197,7 +190,7 @@ export function TaskDialog({ studyId, task, onClose, onSave }: TaskDialogProps) 
                 disabled={loading || deleting}
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
               >
-                {loading ? "Ukládání..." : task ? "Uložit" : "Přidat"}
+                {loading ? "Ukládání…" : task ? "Uložit" : "Přidat"}
               </Button>
             </div>
           </DialogFooter>

@@ -18,6 +18,7 @@ import {
   isSubjectFailed,
   getGradeBadgeConfig,
   getCzechPointsWord,
+  getCzechCreditsWord,
   getCreditsAndHoursDisplay,
   getSubjectStateBadgeConfig,
 } from "@/lib/status-utils"
@@ -54,7 +55,6 @@ interface Subject {
 export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps) {
   const typedSubjects = subjects as unknown as Subject[]
 
-  // Group subjects by semester with averages
   const subjectsBySemester = useMemo(() => {
     const grouped: { [key: string]: { subjects: Subject[]; average: AverageResult; gpa: number | null } } = {}
     const sortedSubjects = sortSubjects(typedSubjects)
@@ -126,19 +126,19 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                   <div className="text-xs text-muted-foreground mt-1">
                     {semesterData.average.type === "both" ? (
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
-                        <span>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : "-"}</span>
-                        <span>Známky: {semesterData.average.gradeValue ? semesterData.average.gradeValue.toFixed(2) : "-"}</span>
+                        <span>Body: {semesterData.average.pointsValue ? semesterData.average.pointsValue.toFixed(2) : "–"}</span>
+                        <span>Známky: {semesterData.average.gradeValue ? semesterData.average.gradeValue.toFixed(2) : "–"}</span>
                         {semesterData.gpa !== null && <span>GPA: {semesterData.gpa.toFixed(2)}</span>}
                       </div>
                     ) : semesterData.average.type !== "none" ? (
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
                         <span>
-                          {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : "-"}
+                          {semesterData.average.label}: {semesterData.average.value ? semesterData.average.value.toFixed(2) : "–"}
                         </span>
                         {semesterData.gpa !== null && <span>GPA: {semesterData.gpa.toFixed(2)}</span>}
                       </div>
                     ) : (
-                      <div>GPA: {semesterData.gpa?.toFixed(2) ?? "-"}</div>
+                      <div>GPA: {semesterData.gpa?.toFixed(2) ?? "–"}</div>
                     )}
                   </div>
                 )}
@@ -147,7 +147,10 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                 <span>
                   {semesterData.subjects.filter((s) => s.completed).length}/{semesterData.subjects.length} dokončeno
                 </span>
-                <span>{semesterData.subjects.filter((s) => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)} kreditů</span>
+                {(() => {
+                  const credits = semesterData.subjects.filter((s) => !s.is_repeat).reduce((sum, s) => sum + s.credits, 0)
+                  return <span>{credits} {getCzechCreditsWord(credits)}</span>
+                })()}
               </div>
             </div>
           </CardHeader>
@@ -169,7 +172,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                 <TableBody>
                   {semesterData.subjects.map((subject) => (
                     <TableRow key={subject.id} className="hover:bg-primary-50 dark:hover:bg-primary-900/40">
-                      <TableCell className="font-mono text-sm">{subject.abbreviation || "-"}</TableCell>
+                      <TableCell className="font-mono text-sm">{subject.abbreviation || "–"}</TableCell>
                       <TableCell className="text-sm">
                         <div>
                           <div className="flex items-center gap-2">
@@ -193,7 +196,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                         {(() => {
                           const display = getCreditsAndHoursDisplay(subject.credits, subject.hours)
 
-                          if (display.type === "none") return "-"
+                          if (display.type === "none") return "–"
 
                           if (display.type === "both") {
                             return (
@@ -226,7 +229,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                           const hasPoints = isFieldVisibleForState("points", subjectState) && subject.points
 
                           if (!hasGrade && !hasPoints) {
-                            return <span className="text-muted-foreground/70">-</span>
+                            return <span className="text-muted-foreground/70">–</span>
                           }
 
                           if (hasGrade && hasPoints) {
@@ -273,7 +276,7 @@ export function UniversitySubjectsPublic({ subjects }: StudySubjectsPublicProps)
                           return isFieldVisibleForState("final_date", subjectState) && subject.final_date ? (
                             <span className="text-sm">{formatDateCzech(subject.final_date)}</span>
                           ) : (
-                            <span className="text-muted-foreground/70">-</span>
+                            <span className="text-muted-foreground/70">–</span>
                           )
                         })()}
                       </TableCell>

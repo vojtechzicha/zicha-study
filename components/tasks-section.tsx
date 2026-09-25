@@ -131,7 +131,7 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
             <p className="text-xs text-muted-foreground mt-1">
               {counts.completed > 0
                 ? getCompletedTasksLabel(counts.completed)
-                : "Zatím žádné deadliny k vyřízení"}
+                : "Zatím žádné termíny"}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button
@@ -150,7 +150,7 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
                   onClick={() => setShowAllDialog(true)}
                   className="h-7 px-2 text-xs text-muted-foreground"
                 >
-                  Zobrazit vše ({tasks.length})
+                  Zobrazit všechny ({tasks.length})
                   <ChevronRight className="ml-1 h-3.5 w-3.5" />
                 </Button>
               )}
@@ -173,12 +173,10 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
                 <ListChecks className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                 <CardTitle className="text-xl font-bold text-foreground">Úkoly</CardTitle>
               </div>
-              <p className="ml-7 mt-1 text-sm text-muted-foreground">
-                Deadliny, termíny a věci k vyřízení
-              </p>
             </div>
             <Button
               onClick={() => setShowAddDialog(true)}
+              aria-label="Přidat úkol"
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               size="sm"
             >
@@ -201,9 +199,6 @@ export function TasksSection({ studyId, tasks, error, onReload, compact = false 
             <div className="rounded-xl border border-dashed border-border bg-muted/50 px-6 py-10 text-center">
               <ListChecks className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70" />
               <p className="text-sm font-medium text-foreground">Zatím žádné úkoly</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Klikněte na „Přidat úkol“ a začněte si evidovat deadliny.
-              </p>
             </div>
           ) : (
             <div className="space-y-3">

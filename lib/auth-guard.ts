@@ -6,7 +6,7 @@ import { auth } from "@/auth"
 // session itself. Deliberately NOT a "use server" module, so these helpers are
 // never exposed as callable actions.
 
-export const UNAUTHORIZED_MESSAGE = "Neautorizováno"
+export const UNAUTHORIZED_MESSAGE = "Nejste přihlášeni."
 
 export class UnauthorizedError extends Error {
   constructor() {

@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Sledování studií",
-  description: "Aplikace pro sledování univerzitních studií",
+  description: "Přehled vysokoškolského a středoškolského studia: předměty, známky, materiály a zápisy.",
   icons: {
     icon: [
       {

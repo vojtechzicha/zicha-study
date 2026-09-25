@@ -1,10 +1,8 @@
-// Configurable scheduler settings
 export interface SchedulerConfig {
   travelCostOneWay: number;
   travelDurationHours: number;
   accommodationCostPerNight: number;
-  // Optional: direct earliest arrival time (HH:MM format)
-  // If provided, overrides the computed arrival from travelDurationHours
+  // HH:MM. Overrides the arrival time computed from travelDurationHours.
   earliestArrivalTime?: string;
   // When true, in-person exams that fall on a working day are penalized by
   // ptoDayCost so the optimizer prefers free-day (e.g. weekend) terms.
@@ -15,30 +13,25 @@ export interface SchedulerConfig {
   workingDays?: number[];
 }
 
-// Default constants (used if no config provided)
 export const DEFAULT_CONFIG: SchedulerConfig = {
   travelCostOneWay: 200, // CZK
   travelDurationHours: 4,
   accommodationCostPerNight: 2000, // CZK
-  // earliestArrivalTime: undefined - will be computed from travelDurationHours
   preferFreeDayExams: false,
   ptoDayCost: 5500, // CZK per PTO day
   workingDays: [1, 2, 3, 4, 5], // Mon-Fri
 };
 
-// Computed time thresholds based on travel duration
+// Same-day trip window: leave home no earlier than 05:30, be back home by 22:30.
 export function computeTimeThresholds(config: SchedulerConfig): {
   earliestSameDayArrival: string;
   latestSameDayDeparture: string;
 } {
   let earliestSameDayArrival: string;
 
-  // If direct arrival time is provided, use it; otherwise compute from travel duration
   if (config.earliestArrivalTime) {
     earliestSameDayArrival = config.earliestArrivalTime;
   } else {
-    // If travel takes 4 hours, earliest you can arrive is 4 hours after midnight start
-    // Assuming you leave at 5:30 AM, you arrive at 9:30 AM
     const travelMinutes = config.travelDurationHours * 60;
     const departureTime = 5 * 60 + 30; // 5:30 AM
     const arrivalMinutes = departureTime + travelMinutes;
@@ -47,8 +40,6 @@ export function computeTimeThresholds(config: SchedulerConfig): {
     earliestSameDayArrival = `${arrivalHour.toString().padStart(2, "0")}:${arrivalMin.toString().padStart(2, "0")}`;
   }
 
-  // For departure, if you need to be home by 10:30 PM and travel takes 4 hours,
-  // you must leave by 6:30 PM
   const travelMinutes = config.travelDurationHours * 60;
   const homeTime = 22 * 60 + 30; // 10:30 PM
   const latestDepartureMinutes = homeTime - travelMinutes;
@@ -59,7 +50,6 @@ export function computeTimeThresholds(config: SchedulerConfig): {
   return { earliestSameDayArrival, latestSameDayDeparture };
 }
 
-// Input types
 export interface Subject {
   id: string;
   shortcut: string;
@@ -82,7 +72,6 @@ export interface ExamWithSubject extends Exam {
   endTime: string; // Computed HH:MM
 }
 
-// Scheduling types
 export interface ScheduleDay {
   date: string;
   exams: ExamWithSubject[];
@@ -132,13 +121,12 @@ export interface ScheduleResult {
   error?: string;
 }
 
-// Algorithm internal types
 export interface ScheduleCandidate {
   exams: ExamWithSubject[];
   cost: number;
 }
 
-// Trip segment - represents a contiguous stay in the city
+// A contiguous stay in the exam city.
 export interface TripSegment {
   arrivalDate: string; // Day you travel TO the city
   departureDate: string; // Day you travel FROM the city

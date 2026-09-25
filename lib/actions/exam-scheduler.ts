@@ -4,8 +4,6 @@ import * as db from "@/lib/mongodb/db"
 import { requireUser } from "@/lib/auth-guard"
 import { EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS } from "@/lib/constants"
 
-// ─── Studies management (enable + configure from the scheduler page) ─────────
-
 // ALL studies with their scheduler config, so the planner page can enable and
 // configure studies without visiting each study's settings.
 export async function fetchSchedulerStudies() {
@@ -38,17 +36,15 @@ export async function updateStudySchedulerSettingsAction(studyId: string, settin
     if (settings.exam_scheduler_enabled === true) {
       const study = await db.getStudyById(studyId)
       if (!study || (study as any).status !== "active") {
-        return { error: { message: "Plánovač zkoušek lze zapnout pouze u aktivního studia." } }
+        return { error: { message: "Plánovač zkoušek lze zapnout jen u aktivního studia." } }
       }
     }
     await db.updateStudy(studyId, settings)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se uložit nastavení plánovače." } }
   }
 }
-
-// ─── Global scheduling data ──────────────────────────────────────────────────
 
 export async function fetchGlobalExamSchedulingData() {
   await requireUser()
@@ -74,15 +70,13 @@ export async function fetchStudyExamPeriods(studyId: string) {
   }
 }
 
-// ─── Periods ─────────────────────────────────────────────────────────────────
-
 export async function createExamPeriodAction(data: Record<string, any>) {
   try {
     await requireUser()
     const doc = await db.createExamPeriod(data)
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
-    return { data: null, error: { message: err?.message || "Unknown error" } }
+    return { data: null, error: { message: err?.message || "Nepodařilo se vytvořit období." } }
   }
 }
 
@@ -92,7 +86,7 @@ export async function updateExamPeriodAction(id: string, data: Record<string, an
     await db.updateExamPeriod(id, data)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se uložit období." } }
   }
 }
 
@@ -102,11 +96,9 @@ export async function deleteExamPeriodAction(id: string) {
     await db.deleteExamPeriod(id)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se smazat období." } }
   }
 }
-
-// ─── Terms ─────────────────────────────────────────────────────────────────
 
 export async function createExamTermAction(data: Record<string, any>) {
   try {
@@ -114,7 +106,7 @@ export async function createExamTermAction(data: Record<string, any>) {
     const doc = await db.createExamTerm(data)
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
-    return { data: null, error: { message: err?.message || "Unknown error" } }
+    return { data: null, error: { message: err?.message || "Nepodařilo se přidat termín." } }
   }
 }
 
@@ -124,7 +116,7 @@ export async function updateExamTermAction(id: string, data: Record<string, any>
     await db.updateExamTerm(id, data)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se uložit termín." } }
   }
 }
 
@@ -134,7 +126,7 @@ export async function deleteExamTermAction(id: string) {
     await db.deleteExamTerm(id)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se smazat termín." } }
   }
 }
 
@@ -144,7 +136,7 @@ export async function toggleExamTermLockAction(id: string, locked: boolean) {
     await db.setExamTermLocked(id, locked)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se změnit zámek termínu." } }
   }
 }
 
@@ -155,11 +147,9 @@ export async function removeSubjectFromPeriodAction(periodId: string, subjectId:
     await db.deleteExamTermsByPeriodAndSubject(periodId, subjectId)
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se odebrat předmět z období." } }
   }
 }
-
-// ─── Global break setting ────────────────────────────────────────────────────
 
 export async function fetchInterStudyBreakMinutes() {
   await requireUser()
@@ -174,12 +164,11 @@ export async function saveInterStudyBreakMinutesAction(minutes: number) {
     await db.upsertAppSettings({ inter_study_break_minutes: Math.max(0, Math.round(minutes)) })
     return { error: null }
   } catch (err: any) {
-    return { error: { message: err?.message || "Unknown error" } }
+    return { error: { message: err?.message || "Nepodařilo se uložit pauzu mezi studii." } }
   }
 }
 
-// ─── Upcoming locked terms (homepage / tasks) ────────────────────────────────
-
+// Upcoming locked terms for the homepage and tasks list.
 export async function fetchUpcomingLockedExamTerms(fromDate: string) {
   await requireUser()
   const rows = await db.getUpcomingLockedExamTerms(fromDate)

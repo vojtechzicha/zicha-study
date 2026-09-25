@@ -29,14 +29,14 @@ export function TaskStateChips({ counts, className, showCompleted = true }: Task
             )}
           >
             <span className={cn("h-1.5 w-1.5 rounded-full", config.dotClass)} />
-            {counts[state]} {config.label.toLowerCase()}
+            {config.label}: {counts[state]}
           </span>
         )
       })}
       {showCompleted && counts.completed > 0 && (
         <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-          {counts.completed} dokončeno
+          Dokončeno: {counts.completed}
         </span>
       )}
     </div>
