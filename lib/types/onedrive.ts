@@ -1,10 +1,3 @@
-/**
- * OneDrive TypeScript Types
- *
- * Proper interfaces for OneDrive/Microsoft Graph API responses.
- */
-
-// Parent reference for file/folder location
 export interface OneDriveParentReference {
   driveId?: string
   driveType?: string
@@ -12,7 +5,6 @@ export interface OneDriveParentReference {
   path?: string
 }
 
-// File information
 export interface OneDriveFileInfo {
   mimeType: string
   hashes?: {
@@ -22,12 +14,11 @@ export interface OneDriveFileInfo {
   }
 }
 
-// Folder information
 export interface OneDriveFolderInfo {
   childCount: number
 }
 
-// Base item from Microsoft Graph API
+// Raw driveItem as returned by Microsoft Graph
 export interface OneDriveItem {
   id: string
   name: string
@@ -41,7 +32,7 @@ export interface OneDriveItem {
   "@microsoft.graph.downloadUrl"?: string
 }
 
-// Processed folder item for folder picker
+// Folder-picker item; id is null for the drive root
 export interface OneDriveFolderItem {
   id: string | null
   name: string
@@ -53,7 +44,6 @@ export interface OneDriveFolderItem {
   isRoot?: boolean
 }
 
-// Processed file item
 export interface OneDriveFileItem {
   id: string
   name: string
@@ -66,17 +56,14 @@ export interface OneDriveFileItem {
   parentReference?: OneDriveParentReference
 }
 
-// Combined processed item (can be folder or file)
 export type OneDriveProcessedItem = OneDriveFolderItem | OneDriveFileItem
 
-// Microsoft Graph API list response
 export interface OneDriveListResponse {
   value: OneDriveItem[]
   "@odata.nextLink"?: string
   "@odata.context"?: string
 }
 
-// Error response from Microsoft Graph API
 export interface OneDriveError {
   code: string
   message: string
@@ -87,7 +74,6 @@ export interface OneDriveError {
   }
 }
 
-// Microsoft Graph API error response
 export interface OneDriveErrorResponse {
   error: OneDriveError
 }
@@ -98,7 +84,6 @@ export interface FolderPathHistoryItem {
   path: string
 }
 
-// Materials root folder state
 export interface MaterialsRootFolder {
   id: string | null
   name: string
@@ -112,17 +97,14 @@ export interface CacheFolderConfig {
   cache_folder_path: string
 }
 
-// Type guard to check if an item is a folder
 export function isOneDriveFolder(item: OneDriveItem): boolean {
   return !!item.folder
 }
 
-// Type guard to check if an item is a file
 export function isOneDriveFile(item: OneDriveItem): boolean {
   return !!item.file
 }
 
-// Type guard to check if response is an error
 export function isOneDriveError(response: OneDriveListResponse | OneDriveErrorResponse): response is OneDriveErrorResponse {
   return 'error' in response
 }

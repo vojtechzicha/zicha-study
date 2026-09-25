@@ -16,7 +16,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -60,13 +59,12 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (showPublicDialog) {
       setIsPublic(note.is_public)
       setPublicSlug(note.public_slug || "")
       setError(null)
-      // If the note already has a public slug, it's valid since it's the current one
+      // The note's own current slug counts as available
       if (note.is_public && note.public_slug) {
         setSlugAvailable(true)
       } else {
@@ -116,7 +114,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
     setError(null)
 
     try {
-      // When disabling public access, clear the public_slug
       const updateData = {
         is_public: isPublic,
         public_slug: isPublic ? publicSlug : null,
@@ -129,14 +126,14 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
       setShowPublicDialog(false)
       if (onUpdate) onUpdate()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nepodařilo se aktualizovat nastavení")
+      setError(err instanceof Error ? err.message : "Nepodařilo se uložit nastavení sdílení.")
     } finally {
       setLoading(false)
     }
   }
 
   const handleDelete = async () => {
-    if (!confirm("Opravdu chcete smazat tento studijní zápis?")) return
+    if (!confirm("Smazat tento zápis?")) return
 
     setLoading(true)
     try {
@@ -199,7 +196,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   </Badge>
                 )}
               </div>
-              {/* Show subject info based on current context */}
               {note.subjects && note.subjects.length > 1 && (
                 <div className="flex items-center gap-1 mt-2">
                   <Link className="h-3 w-3 text-muted-foreground/70" />
@@ -209,7 +205,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                       const isViewingPrimaryItem = primaryItem?.id === currentSubjectId
 
                       if (isViewingPrimaryItem) {
-                        // Viewing from primary item - show linked items
                         return note.subjects!
                           .filter(s => !s.is_primary)
                           .map(item => (
@@ -219,7 +214,6 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                             </Badge>
                           ))
                       } else {
-                        // Viewing from linked item - show primary item
                         return primaryItem ? (
                           <Badge variant="outline" className="text-xs py-0 px-2">
                             {primaryItem.name}
@@ -238,6 +232,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
+                  aria-label="Další akce"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="h-4 w-4" />
@@ -265,7 +260,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenInOneDrive(); }}>
                       <ExternalLink className="h-4 w-4 mr-2" />
-                      {isObsidian ? "Otevřít MD v OneDrive" : "Otevřít DOCX v OneDrive"}
+                      Otevřít v OneDrive
                     </DropdownMenuItem>
                   </>
                 )}
@@ -283,7 +278,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                     {copied ? (
                       <>
                         <Check className="h-4 w-4 mr-2" />
-                        Zkopírováno!
+                        Zkopírováno
                       </>
                     ) : (
                       <>
@@ -309,17 +304,11 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
       </Card>
 
       <Dialog open={showPublicDialog} onOpenChange={setShowPublicDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
-              {isPublic ? "Nastavení sdílení studijního zápisu" : "Publikovat studijní zápis"}
+              {isPublic ? "Nastavení sdílení zápisu" : "Publikovat zápis"}
             </DialogTitle>
-            <DialogDescription>
-              {isPublic
-                ? "Upravte nastavení veřejného sdílení tohoto studijního zápisu"
-                : `Nastavte veřejný odkaz pro tento zápis. Bude dostupný na adrese /${studySlug || "study-slug"}/{publicSlug || "url-zapisu"}`
-              }
-            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -333,7 +322,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
               <div className="space-y-0.5">
                 <Label htmlFor="public">Veřejně dostupné</Label>
                 <p className="text-sm text-muted-foreground">
-                  Povolit přístup k zápisu pomocí veřejného odkazu
+                  Uvidí ho kdokoli s odkazem.
                 </p>
               </div>
               <Switch
@@ -346,9 +335,9 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
             {isPublic && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="slug">URL adresa *</Label>
+                  <Label htmlFor="slug">Adresa *</Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">{getShareUrl(studySlug || "study-slug")}/</span>
+                    <span className="text-sm text-muted-foreground">{getShareUrl(studySlug || "studium")}/</span>
                     <Input
                       id="slug"
                       value={publicSlug ?? ""}
@@ -368,24 +357,22 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                       required
                     />
                   </div>
-                  {/* Status Message - Always Visible */}
                   {publicSlug && publicSlug.length >= 3 ? (
                     slugAvailable === false ? (
-                      <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná pro toto studium</p>
+                      <p className="text-sm text-red-600 dark:text-red-400">Adresa je už obsazená</p>
                     ) : slugAvailable === true ? (
-                      <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
+                      <p className="text-sm text-green-600 dark:text-green-400">Adresa je volná</p>
                     ) : (
-                      <p className="text-sm text-muted-foreground">Kontroluje se dostupnost...</p>
+                      <p className="text-sm text-muted-foreground">Kontrola dostupnosti…</p>
                     )
                   ) : publicSlug && publicSlug.length > 0 ? (
-                    <p className="text-sm text-orange-600 dark:text-orange-400">URL adresa musí mít alespoň 3 znaky</p>
+                    <p className="text-sm text-orange-600 dark:text-orange-400">Adresa musí mít aspoň 3 znaky</p>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Zadejte URL adresu</p>
+                    <p className="text-sm text-muted-foreground">Zadejte adresu</p>
                   )}
-                  <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+                  <p className="text-xs text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
                 </div>
 
-                {/* URL Preview - Always Visible When Slug Exists */}
                 {publicSlug && (
                   <div className={`p-4 rounded-lg border ${
                     slugAvailable === true ? 'bg-primary-50 border-primary-200 dark:bg-primary-950 dark:border-primary-800' :
@@ -397,11 +384,11 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
                       slugAvailable === false ? 'text-red-900 dark:text-red-200' :
                       'text-foreground/80'
                     }`}>
-                      Veřejná URL adresa:
+                      Veřejná adresa
                     </Label>
                     <div className="flex items-center gap-2 mt-2">
                       <code className="flex-1 p-2 bg-card rounded border text-sm">
-                        {getShareUrl(studySlug || "study-slug", publicSlug)}
+                        {getShareUrl(studySlug || "studium", publicSlug)}
                       </code>
                     </div>
                   </div>
@@ -419,7 +406,7 @@ export function StudyNoteCard({ note, onDelete, onUpdate, studySlug, isStudyPubl
               disabled={loading || (isPublic && (!publicSlug || publicSlug.length < 3 || slugAvailable === false))}
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
-              {loading ? (isPublic ? "Publikování..." : "Ukládání...") : (isPublic ? "Publikovat" : "Uložit")}
+              {loading ? (isPublic ? "Publikování…" : "Ukládání…") : (isPublic ? "Publikovat" : "Uložit")}
             </Button>
           </div>
         </DialogContent>

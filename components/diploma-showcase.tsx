@@ -101,7 +101,6 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
         className="group relative block w-full overflow-hidden rounded-2xl text-left shadow-[0_25px_50px_-12px_rgba(10,20,50,0.45)] transition-transform duration-500 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
         aria-label={`Zobrazit ${term.diplomaNoun.toLowerCase()}`}
       >
-        {/* Layered background */}
         <div
           className="absolute inset-0"
           style={{ background: theme.bg }}
@@ -126,22 +125,18 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
         <div className="pointer-events-none absolute inset-4 rounded-xl border border-amber-300/25" aria-hidden />
         <div className="pointer-events-none absolute inset-[22px] rounded-[10px] border border-amber-300/10" aria-hidden />
 
-        {/* Corner flourishes */}
         <CornerFlourish className="absolute top-3 left-3" />
         <CornerFlourish className="absolute top-3 right-3" rotate={90} />
         <CornerFlourish className="absolute bottom-3 right-3" rotate={180} />
         <CornerFlourish className="absolute bottom-3 left-3" rotate={270} />
 
-        {/* Content */}
         <div className="relative flex flex-col items-center gap-4 px-8 py-12 text-center sm:gap-5 sm:py-14 md:gap-6 md:py-16">
-          {/* Eyebrow */}
           <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.42em] text-amber-300/80 sm:text-xs">
             <span className="h-px w-10 bg-gradient-to-r from-transparent to-amber-300/60" />
             <span>{term.diplomaConferred}</span>
             <span className="h-px w-10 bg-gradient-to-l from-transparent to-amber-300/60" />
           </div>
 
-          {/* Honors ribbon (červený diplom) */}
           {honors && (
             <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/50 bg-gradient-to-r from-rose-950/60 via-rose-900/40 to-rose-950/60 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-amber-100 shadow-[0_0_22px_rgba(244,63,94,0.3)] sm:text-xs">
               <Award className="h-3.5 w-3.5 text-amber-200" />
@@ -149,14 +144,12 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
             </div>
           )}
 
-          {/* Ornamental divider with seal */}
           <div className="relative flex items-center justify-center gap-4">
             <DividerLine side="left" />
             <WaxSeal seal={theme.seal} glow={theme.glow} />
             <DividerLine side="right" />
           </div>
 
-          {/* Study name (now the hero) */}
           <h2
             className="max-w-3xl font-[450] italic leading-[1.05] text-amber-50 drop-shadow-[0_2px_18px_rgba(255,210,120,0.25)]"
             style={{ fontSize: "clamp(1.9rem, 4vw, 3.2rem)", letterSpacing: "0.005em" }}
@@ -164,7 +157,6 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
             {study.name}
           </h2>
 
-          {/* Metadata row */}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] uppercase tracking-[0.3em] text-amber-200/75 sm:text-xs">
             <span>{study.type}</span>
             <span className="text-amber-300/40">◆</span>
@@ -184,7 +176,6 @@ export function DiplomaShowcase({ study, variant = "ceremonial" }: DiplomaShowca
             )}
           </div>
 
-          {/* CTA */}
           <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-amber-200/5 px-5 py-2 text-[11px] font-medium uppercase tracking-[0.26em] text-amber-100 backdrop-blur-sm transition-all duration-300 group-hover:border-amber-200/80 group-hover:bg-amber-200/10 group-hover:text-amber-50 sm:text-xs">
             <Maximize2 className="h-3 w-3" />
             Otevřít {term.diplomaNoun.toLowerCase()}
@@ -342,6 +333,7 @@ function DiplomaViewer({
             <a
               href={study.diploma_url!}
               download
+              aria-label="Stáhnout"
               className="inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/5 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.2em] text-amber-100 transition-colors hover:border-amber-200/70 hover:bg-amber-200/10 hover:text-amber-50"
             >
               <Download className="h-3.5 w-3.5" />
@@ -356,13 +348,13 @@ function DiplomaViewer({
               <iframe
                 src={`${study.diploma_url}#toolbar=0&navpanes=0&view=FitH`}
                 className="h-[80vh] w-full max-w-5xl rounded-lg border border-amber-200/10 bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
-                title={`${term.diplomaNoun} ${study.name}`}
+                title={`${term.diplomaNoun} – ${study.name}`}
               />
             ) : isImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={study.diploma_url!}
-                alt={`${term.diplomaNoun} ${study.name}`}
+                alt={`${term.diplomaNoun} – ${study.name}`}
                 className="max-h-[80vh] w-auto max-w-full rounded-lg border border-amber-200/10 bg-white object-contain shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
               />
             ) : (
@@ -405,7 +397,6 @@ function WaxSeal({ seal, glow }: { seal: string; glow: string }) {
         className="absolute inset-0 rounded-full blur-md"
         style={{ background: glow }}
       />
-      {/* Seal disc */}
       <div
         className="relative flex h-12 w-12 items-center justify-center rounded-full shadow-[inset_0_2px_4px_rgba(255,255,255,0.35),inset_0_-2px_5px_rgba(60,30,0,0.5),0_4px_10px_rgba(0,0,0,0.4)]"
         style={{ background: seal }}

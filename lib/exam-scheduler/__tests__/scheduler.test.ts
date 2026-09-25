@@ -121,7 +121,6 @@ describe("generateSchedule", () => {
       { id: "s2", shortcut: "DB", name: "Databases", isComplete: false },
     ];
     const exams: Exam[] = [
-      // Subject 1: two options
       {
         id: "e1",
         subjectId: "s1",
@@ -140,7 +139,7 @@ describe("generateSchedule", () => {
         durationMinutes: 60,
         isOnline: false,
       },
-      // Subject 2: same day as e1 option - should prefer this to save travel
+      // Same day as e1, so pairing them saves a trip.
       {
         id: "e3",
         subjectId: "s2",
@@ -166,11 +165,10 @@ describe("generateSchedule", () => {
     expect(result.success).toBe(true);
     expect(result.selectedExams).toHaveLength(2);
 
-    // Should pick e1 and e3 (same day) for cheaper travel
     const selectedIds = result.selectedExams.map((e) => e.id).sort();
     expect(selectedIds).toEqual(["e1", "e3"]);
 
-    // Cost should be just one day's travel (400 CZK = 2 trips)
+    // One round trip (2 × 200).
     expect(result.totalCost).toBe(400);
   });
 
@@ -214,7 +212,6 @@ describe("generateSchedule", () => {
     expect(result.success).toBe(true);
     expect(result.selectedExams).toHaveLength(2);
 
-    // Should pick e1 and e3 (non-conflicting)
     const selectedIds = result.selectedExams.map((e) => e.id).sort();
     expect(selectedIds).toEqual(["e1", "e3"]);
   });
@@ -272,7 +269,6 @@ describe("generateSchedule", () => {
     expect(result.success).toBe(true);
     expect(result.items.length).toBeGreaterThan(0);
 
-    // Should have travel_to, exam, travel_from
     const types = result.items.map((i) => i.type);
     expect(types).toContain("travel_to");
     expect(types).toContain("exam");
@@ -299,12 +295,11 @@ describe("generateSchedule", () => {
 
     expect(result.success).toBe(true);
     expect(result.breakdown.accommodationNights).toBe(1);
-    // FIXED: Need travel TO (to arrive day before) AND travel FROM (to leave after exam)
+    // Arrive the day before, leave after the exam.
     expect(result.breakdown.travelTrips).toBe(2);
-    expect(result.totalCost).toBe(2000 + 400); // FIXED: accommodation + 2 trips
+    expect(result.totalCost).toBe(2000 + 400);
   });
 
-  // NEW TEST: Verify schedule items include travel_to BEFORE accommodation
   it("generates travel_to before accommodation for early morning exam", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "ALG", name: "Algorithms", isComplete: false },
@@ -332,19 +327,15 @@ describe("generateSchedule", () => {
     expect(types).toContain("exam");
     expect(types).toContain("travel_from");
 
-    // Find travel_to and accommodation items
     const travelToIndex = result.items.findIndex((i) => i.type === "travel_to");
     const accommodationIndex = result.items.findIndex((i) => i.type === "accommodation");
 
-    // Travel_to should come before accommodation in the sorted schedule
     expect(travelToIndex).toBeLessThan(accommodationIndex);
 
-    // Travel_to should be on the day before exam
     const travelTo = result.items.find((i) => i.type === "travel_to");
     expect(travelTo?.date).toBe("2025-01-09");
   });
 
-  // NEW TEST: Handle consecutive early morning exam days
   it("handles multi-day consecutive early morning exams", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "ALG", name: "Algorithms", isComplete: false },
@@ -382,7 +373,6 @@ describe("generateSchedule", () => {
     expect(result.totalCost).toBe(2 * 2000 + 400); // 2 nights + 2 trips
   });
 
-  // NEW TEST: Late exam requiring overnight after
   it("generates correct schedule for late exam requiring overnight after", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "ALG", name: "Algorithms", isComplete: false },
@@ -393,7 +383,7 @@ describe("generateSchedule", () => {
         subjectId: "s1",
         note: null,
         date: "2025-01-10",
-        startTime: "19:00", // Late exam
+        startTime: "19:00",
         durationMinutes: 120, // Ends at 21:00
         isOnline: false,
       },
@@ -411,7 +401,6 @@ describe("generateSchedule", () => {
     expect(travelFrom?.date).toBe("2025-01-11"); // Travel home next day
   });
 
-  // NEW TEST: Use custom config
   it("respects custom config for travel and accommodation costs", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "ALG", name: "Algorithms", isComplete: false },
@@ -442,8 +431,8 @@ describe("generateSchedule", () => {
     expect(result.totalCost).toBe(700);
   });
 
-  // REGRESSION TEST: User scenario - two exams on same day at 8:30 and 15:30
-  // with 400 CZK/4h travel (200 CZK one way) and 500 CZK accommodation
+  // Reported scenario: exams at 8:30 and 15:30 on one day, 4 h travel at
+  // 200 CZK one way, 500 CZK per night.
   it("handles user scenario: two exams on same day with early start", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "MAT", name: "Matematika", isComplete: false },
@@ -481,41 +470,35 @@ describe("generateSchedule", () => {
     expect(result.success).toBe(true);
     expect(result.selectedExams).toHaveLength(2);
 
-    // Should need accommodation before (8:30 is too early for same-day travel with 4h trip)
+    // 8:30 is before the 9:30 same-day arrival, so one night before.
     expect(result.breakdown.accommodationNights).toBe(1);
-    expect(result.breakdown.travelTrips).toBe(2); // Travel to + travel from
+    expect(result.breakdown.travelTrips).toBe(2);
 
     // Expected cost: 400 CZK (2 trips * 200) + 500 CZK (1 night) = 900 CZK
     expect(result.breakdown.travelCost).toBe(400);
     expect(result.breakdown.accommodationCost).toBe(500);
     expect(result.totalCost).toBe(900);
 
-    // Verify schedule items are in correct order
     const types = result.items.map((i) => i.type);
     const travelToIndex = types.indexOf("travel_to");
     const accommodationIndex = types.indexOf("accommodation");
     const firstExamIndex = types.indexOf("exam");
     const travelFromIndex = types.indexOf("travel_from");
 
-    // Order should be: travel_to, accommodation, exams, travel_from
     expect(travelToIndex).toBeLessThan(accommodationIndex);
     expect(accommodationIndex).toBeLessThan(firstExamIndex);
     expect(firstExamIndex).toBeLessThan(travelFromIndex);
 
-    // travel_to should be on Jan 16 (day before exam)
     const travelTo = result.items.find((i) => i.type === "travel_to");
     expect(travelTo?.date).toBe("2025-01-16");
 
-    // accommodation should be for night of Jan 16-17
     const accommodation = result.items.find((i) => i.type === "accommodation");
     expect(accommodation?.date).toBe("2025-01-16");
 
-    // travel_from should be on Jan 17 (same day as exams, after they end)
     const travelFrom = result.items.find((i) => i.type === "travel_from");
     expect(travelFrom?.date).toBe("2025-01-17");
   });
 
-  // REGRESSION TEST: Ensure no orphan accommodation (accommodation without travel before)
   it("never generates accommodation without travel_to before it", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "ALG", name: "Algorithms", isComplete: false },
@@ -526,7 +509,7 @@ describe("generateSchedule", () => {
         subjectId: "s1",
         note: null,
         date: "2025-01-17",
-        startTime: "07:00", // Very early
+        startTime: "07:00",
         durationMinutes: 60,
         isOnline: false,
       },
@@ -536,7 +519,6 @@ describe("generateSchedule", () => {
 
     expect(result.success).toBe(true);
 
-    // If there's accommodation, there must be travel_to
     const hasAccommodation = result.items.some((i) => i.type === "accommodation");
     const hasTravelTo = result.items.some((i) => i.type === "travel_to");
 
@@ -544,7 +526,6 @@ describe("generateSchedule", () => {
       expect(hasTravelTo).toBe(true);
     }
 
-    // travel_to should always come before or on the same day as first accommodation
     const travelTo = result.items.find((i) => i.type === "travel_to");
     const firstAccommodation = result.items.find((i) => i.type === "accommodation");
 
@@ -553,7 +534,6 @@ describe("generateSchedule", () => {
     }
   });
 
-  // REGRESSION TEST: Gap between exam days - should go home if cheaper
   it("handles gap between exam days - goes home if cheaper than staying", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "MAT", name: "Matematika", isComplete: false },
@@ -600,7 +580,6 @@ describe("generateSchedule", () => {
     expect(result.breakdown.accommodationNights).toBe(0);
     expect(result.totalCost).toBe(800);
 
-    // Should have two separate trip segments
     const travelTos = result.items.filter((i) => i.type === "travel_to");
     const travelFroms = result.items.filter((i) => i.type === "travel_from");
 
@@ -608,7 +587,6 @@ describe("generateSchedule", () => {
     expect(travelFroms).toHaveLength(2); // Travel from on Jan 10 and Jan 14
   });
 
-  // REGRESSION TEST: Gap between exam days - should stay if cheaper
   it("handles gap between exam days - stays if cheaper than going home", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "MAT", name: "Matematika", isComplete: false },
@@ -656,7 +634,6 @@ describe("generateSchedule", () => {
     expect(result.totalCost).toBe(600);
   });
 
-  // REGRESSION TEST: Custom earliest arrival time allows early morning exams without accommodation
   it("respects custom earliestArrivalTime for early morning exams", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "ALG", name: "Algorithms", isComplete: false },
@@ -667,7 +644,7 @@ describe("generateSchedule", () => {
         subjectId: "s1",
         note: null,
         date: "2025-01-10",
-        startTime: "09:00", // 9:00 AM exam
+        startTime: "09:00",
         durationMinutes: 90,
         isOnline: false,
       },
@@ -682,7 +659,7 @@ describe("generateSchedule", () => {
     });
 
     expect(defaultResult.success).toBe(true);
-    expect(defaultResult.breakdown.accommodationNights).toBe(1); // Needs overnight
+    expect(defaultResult.breakdown.accommodationNights).toBe(1);
     expect(defaultResult.totalCost).toBe(2400); // 400 travel + 2000 accommodation
 
     // With custom earliestArrivalTime of 08:50, same-day travel is possible
@@ -690,15 +667,14 @@ describe("generateSchedule", () => {
       travelCostOneWay: 200,
       travelDurationHours: 4,
       accommodationCostPerNight: 2000,
-      earliestArrivalTime: "08:50", // Can arrive by 8:50 AM
+      earliestArrivalTime: "08:50",
     });
 
     expect(customResult.success).toBe(true);
-    expect(customResult.breakdown.accommodationNights).toBe(0); // No overnight needed
+    expect(customResult.breakdown.accommodationNights).toBe(0);
     expect(customResult.totalCost).toBe(400); // Just 2 trips, no accommodation
   });
 
-  // REGRESSION TEST: earliestArrivalTime affects exam scheduling optimization
   it("prefers earlier exam date when earliestArrivalTime makes it feasible", () => {
     const subjects: Subject[] = [
       { id: "s1", shortcut: "ACJ", name: "Anglický jazyk", isComplete: false },
@@ -748,11 +724,10 @@ describe("generateSchedule", () => {
     expect(result.success).toBe(true);
     expect(result.selectedExams).toHaveLength(2);
 
-    // Should pick e1 (Jan 10) and e3 (Jan 10) - both on same day = cheapest
+    // Both Jan 10 exams share one trip.
     const selectedIds = result.selectedExams.map((e) => e.id).sort();
     expect(selectedIds).toEqual(["e1", "e3"]);
 
-    // Cost: just one trip (2 ways = 400 CZK), no accommodation needed
     expect(result.breakdown.travelTrips).toBe(2);
     expect(result.breakdown.accommodationNights).toBe(0);
     expect(result.totalCost).toBe(400);

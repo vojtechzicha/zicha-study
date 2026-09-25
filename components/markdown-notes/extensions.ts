@@ -32,7 +32,7 @@ export function getNoteExtensions(options?: { placeholder?: string }): Extension
     ...mathExtensions,
     Doodle,
     Placeholder.configure({
-      placeholder: options?.placeholder ?? "Začněte psát… (Markdown zkratky, $latex$, /table)",
+      placeholder: options?.placeholder ?? "Začněte psát… (zkratky Markdownu, $LaTeX$)",
     }),
   ]
 }

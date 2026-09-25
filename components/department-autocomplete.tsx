@@ -30,7 +30,7 @@ export function DepartmentAutocomplete({
   value,
   onChange,
   departments,
-  placeholder = "Vyberte nebo zadejte katedru...",
+  placeholder = "Vyberte nebo zadejte katedru…",
   disabled = false,
 }: DepartmentAutocompleteProps) {
   const [open, setOpen] = React.useState(false)
@@ -66,7 +66,7 @@ export function DepartmentAutocomplete({
       <PopoverContent className="w-full p-0" align="start">
         <Command>
           <CommandInput 
-            placeholder="Hledat katedru..." 
+            placeholder="Hledat katedru…" 
             value={inputValue}
             onValueChange={handleInputChange}
           />
@@ -77,10 +77,10 @@ export function DepartmentAutocomplete({
                   className="px-2 py-1.5 text-sm cursor-pointer hover:bg-accent"
                   onClick={() => handleSelect(inputValue)}
                 >
-                  Použít &quot;{inputValue}&quot;
+                  Použít „{inputValue}“
                 </div>
               ) : (
-                "Žádná katedra nenalezena."
+                "Zatím žádné katedry"
               )}
             </CommandEmpty>
             <CommandGroup>

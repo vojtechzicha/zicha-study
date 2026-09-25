@@ -6,10 +6,9 @@ import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate
 export async function GET() {
   const session = await auth()
   if (!session?.accessToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Nejste přihlášeni.' }, { status: 401 })
   }
 
-  // Rate limiting
   const rateLimitResult = checkRateLimit(`onedrive-picker:session`, RATE_LIMITS.ONEDRIVE_FILES)
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult.resetTime)
@@ -47,9 +46,9 @@ export async function GET() {
     return NextResponse.json({ files })
   } catch (error) {
     if (error instanceof Error && error.message.includes('token')) {
-      return NextResponse.json({ error: error.message, needsReauth: true }, { status: 401 })
+      return NextResponse.json({ error: 'Přístup k OneDrive vypršel. Přihlaste se znovu.', needsReauth: true }, { status: 401 })
     }
 
-    return NextResponse.json({ error: 'Failed to access OneDrive files' }, { status: 500 })
+    return NextResponse.json({ error: 'Nepodařilo se načíst soubory z OneDrive.' }, { status: 500 })
   }
 }

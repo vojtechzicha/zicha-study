@@ -23,7 +23,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -110,7 +109,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
 
   const handlePublicToggle = async (material: Material) => {
     if (!material.is_public) {
-      // Open dialog to let user choose the slug
       const initialSlug = createSlug(material.name)
       setPublishingMaterial(material)
       setPublicSlug(initialSlug)
@@ -127,7 +125,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
   const handlePublishSubmit = async () => {
     if (!publishingMaterial) return
     if (!publicSlug || slugAvailable === false) {
-      setPublishError("Zadejte platný a dostupný slug")
+      setPublishError("Zadejte platnou a volnou adresu.")
       return
     }
 
@@ -142,7 +140,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
       let publicShareUrl = null
 
       if (isPublic) {
-        // Generate public share link
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
           headers: {
@@ -156,12 +153,11 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
         if (!response.ok) {
           const errorData = await response.json()
 
-          // Handle authentication errors that need re-authentication
           if (errorData.needsReauth) {
-            throw new Error("Přístup k OneDrive vypršel. Prosím, přihlaste se znovu.")
+            throw new Error("Přístup k OneDrive vypršel. Přihlaste se znovu.")
           }
 
-          throw new Error(errorData.error || "Failed to create public share link")
+          throw new Error(errorData.error || "Nepodařilo se vytvořit veřejný odkaz.")
         }
 
         const { shareUrl } = await response.json()
@@ -176,7 +172,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
 
       if (result.error) throw new Error(result.error.message)
 
-      // Create cache share link if publishing and cache exists (non-blocking)
+      // Not awaited: a failed cache share link must not fail publishing
       if (isPublic && material.cache_onedrive_id) {
         createCacheShareLinkAction(
           material.id,
@@ -190,7 +186,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
       setPublicSlug("")
       setSlugAvailable(null)
     } catch (err) {
-      setPublishError(err instanceof Error ? err.message : "Nastala chyba při ukládání")
+      setPublishError(err instanceof Error ? err.message : "Nepodařilo se změnit publikování materiálu.")
       console.error("Error updating public status:", err)
     } finally {
       setPublishLoading(false)
@@ -241,7 +237,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
         <Input
-          placeholder="Hledat v materiálech..."
+          placeholder="Hledat v materiálech…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -254,7 +250,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
             <TableRow>
               <TableHead>Název</TableHead>
               <TableHead>Kategorie</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Stav</TableHead>
               <TableHead>Velikost</TableHead>
               <TableHead>Přidáno</TableHead>
               <TableHead className="text-right">Akce</TableHead>
@@ -264,7 +260,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
             {filteredMaterials.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {searchQuery ? "Žádné materiály neodpovídají vyhledávání" : "Zatím nejsou přidány žádné materiály"}
+                  {searchQuery ? "Hledání neodpovídá žádný materiál" : "Zatím žádné materiály"}
                 </TableCell>
               </TableRow>
             ) : (
@@ -307,7 +303,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {/* Direct OneDrive Link */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -323,10 +318,9 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                         </a>
                       </Button>
 
-                      {/* Dropdown Menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" aria-label="Další akce">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -354,7 +348,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                               {material.is_public && studySlug && material.public_slug && (
                                 <DropdownMenuItem onClick={() => copyPublicUrl(material)}>
                                   {copied === material.id ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                                  {copied === material.id ? "Zkopírováno!" : "Kopírovat veřejný odkaz"}
+                                  {copied === material.id ? "Zkopírováno" : "Kopírovat odkaz"}
                                 </DropdownMenuItem>
                               )}
                             </>
@@ -383,7 +377,6 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
         </Table>
       </div>
 
-      {/* Public Sharing Dialog */}
       <Dialog
         open={publishingMaterial !== null}
         onOpenChange={(open) => {
@@ -395,12 +388,9 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
           }
         }}
       >
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Publikovat materiál</DialogTitle>
-            <DialogDescription>
-              Nastavte veřejný odkaz pro tento materiál. Bude dostupný na adrese /{studySlug}/{publicSlug}
-            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -411,14 +401,14 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="public-slug">URL adresa *</Label>
+              <Label htmlFor="public-slug">Adresa *</Label>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">{getShareUrl(studySlug)}/</span>
                 <Input
                   id="public-slug"
                   value={publicSlug}
                   onChange={(e) => handleSlugChange(e.target.value)}
-                  placeholder="material-name"
+                  placeholder="nazev-materialu"
                   className={
                     slugAvailable === false ? "border-red-500" : slugAvailable === true ? "border-green-500" : ""
                   }
@@ -426,17 +416,17 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                 />
               </div>
               {slugAvailable === false && (
-                <p className="text-sm text-red-600 dark:text-red-400">Tato URL adresa již není dostupná pro toto studium</p>
+                <p className="text-sm text-red-600 dark:text-red-400">Adresa je už obsazená</p>
               )}
               {slugAvailable === true && publicSlug && (
-                <p className="text-sm text-green-600 dark:text-green-400">URL adresa je dostupná</p>
+                <p className="text-sm text-green-600 dark:text-green-400">Adresa je volná</p>
               )}
-              <p className="text-xs text-muted-foreground">Pouze písmena, čísla, pomlčky a podtržítka. 3-50 znaků.</p>
+              <p className="text-xs text-muted-foreground">Písmena, číslice, pomlčky a podtržítka, 3–50 znaků.</p>
             </div>
 
             {publicSlug && slugAvailable && (
               <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
-                <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná URL adresa:</Label>
+                <Label className="text-sm font-medium text-primary-900 dark:text-primary-100">Veřejná adresa</Label>
                 <div className="flex items-center gap-2 mt-2">
                   <code className="flex-1 p-2 bg-card rounded border text-sm">
                     {getShareUrl(studySlug, publicSlug)}
@@ -464,7 +454,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
               disabled={publishLoading || !publicSlug || slugAvailable === false}
               className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
             >
-              {publishLoading ? "Publikování..." : "Publikovat"}
+              {publishLoading ? "Publikování…" : "Publikovat"}
             </Button>
           </div>
         </DialogContent>

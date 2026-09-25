@@ -3,7 +3,7 @@ import { fetchStudies } from '@/lib/actions/studies'
 import { fetchSubjectsByStudyId } from '@/lib/actions/subjects'
 import { fetchFinalExams } from '@/lib/actions/final-exams'
 import { getStudyStatusLabel, getStudyFormLabel, getGraduationResultLabel, type StudyStatus } from '@/lib/constants'
-import { sortStudiesByStatus } from '@/lib/status-utils'
+import { sortStudiesByStatus, getCzechSubjectsWord } from '@/lib/status-utils'
 import { getShareUrl } from '@/lib/utils/share-url'
 import { STUDY_KIND, resolveStudyKind, getStudyTerminology } from '@/lib/study-kind'
 import { calculateStudyStatistics, type StatisticsSubject } from '@/lib/utils/statistics-utils'
@@ -16,7 +16,6 @@ import {
   type HighSchoolSubjectLike,
 } from '@/lib/highschool/grades'
 
-// Study type for export
 interface ExportStudy {
   id: string
   name: string
@@ -32,7 +31,6 @@ interface ExportStudy {
   created_at?: string | Date | null
 }
 
-// Subject type for export
 interface ExportSubject {
   id: string
   semester: string
@@ -55,7 +53,6 @@ interface ExportSubject {
   repeats_subject_id?: string | null
 }
 
-// Final exam type for export
 interface ExportFinalExam {
   id: string
   shortcut?: string
@@ -66,8 +63,7 @@ interface ExportFinalExam {
   examination_committee_head?: string
 }
 
-// ── Color Palette (ARGB format for ExcelJS) ─────────────────────────────────
-
+// ARGB colours (ExcelJS format)
 const C = {
   DARK: 'FF1B2A4A',
   ACCENT: 'FF2E86AB',
@@ -95,8 +91,6 @@ const STATUS_COLORS: Record<string, string> = {
   intended: C.WARNING,
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
 function compareSemesters(a: string, b: string): number {
   const parse = (s: string) => {
     const m = s.match(/^(\d+)\.\s*ročník\s*(ZS|LS)$/i)
@@ -120,8 +114,6 @@ function bdr(style: 'thin' | 'medium', color: string) {
 const thinBdr = bdr('thin', C.BORDER)
 const cellBorders = { top: thinBdr, bottom: thinBdr, left: thinBdr, right: thinBdr }
 
-// ── Logo Fetching ───────────────────────────────────────────────────────────
-
 async function fetchLogoBuffer(logoUrl: string): Promise<{ buffer: ArrayBuffer; extension: 'png' | 'jpeg' | 'gif' } | null> {
   try {
     const response = await fetch(logoUrl)
@@ -137,8 +129,6 @@ async function fetchLogoBuffer(logoUrl: string): Promise<{ buffer: ArrayBuffer; 
     return null
   }
 }
-
-// ── Table Column Definitions ────────────────────────────────────────────────
 
 const COLS = [
   { header: '#',               width: 5,  align: 'center' as const, wrap: false },
@@ -162,8 +152,6 @@ const COLS = [
 const NUM_COLS = COLS.length
 const MAX_WORKSHEET_NAME_LENGTH = 31
 
-// ── Grade Color Map ─────────────────────────────────────────────────────────
-
 function getGradeColor(grade: string): string {
   if (['A', '1'].includes(grade)) return C.SUCCESS
   if (['B', '2'].includes(grade)) return C.BLUE
@@ -173,8 +161,6 @@ function getGradeColor(grade: string): string {
   if (['F', 'FN', '5'].includes(grade)) return C.DANGER
   return C.DARK_TEXT
 }
-
-// ── Worksheet name helpers ──────────────────────────────────────────────────
 
 function sanitizeWorksheetName(name: string): string {
   return name
@@ -230,8 +216,6 @@ function getUniqueWorksheetName(study: ExportStudy, usedNames: Set<string>): str
   return name
 }
 
-// ── Shared row helpers ──────────────────────────────────────────────────────
-
 function writeFooter(ws: ExcelJS.Worksheet, startRow: number, numCols: number, publicSlug?: string | null): number {
   let r = startRow
   ws.getRow(r).height = 8
@@ -249,8 +233,6 @@ function writeFooter(ws: ExcelJS.Worksheet, startRow: number, numCols: number, p
   footerCell.alignment = { horizontal: 'right', vertical: 'middle' }
   return r
 }
-
-// ── High-school sheet (subjects × pololetí matrix) ──────────────────────────
 
 interface HighSchoolSheetCtx {
   ws: ExcelJS.Worksheet
@@ -287,12 +269,12 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
 
   const hasLogo = logoImageId !== undefined
 
-  // ── Row 1: Dark accent bar ──
+  // Row 1: dark accent bar
   let r = 1
   for (let c = 1; c <= numCols; c++) ws.getCell(r, c).fill = solidFill(C.DARK)
   ws.getRow(r).height = 6
 
-  // ── Row 2: Study name ──
+  // Row 2: study name
   r = 2
   ws.mergeCells(r, 1, r, numCols)
   const nameCell = ws.getCell(r, 1)
@@ -304,12 +286,12 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
     ws.addImage(logoImageId, { tl: { col: 0.1, row: 0.8 }, ext: { width: 44, height: 44 } })
   }
 
-  // ── Row 3: Subtitle + status badge ──
+  // Row 3: subtitle + status badge
   r = 3
   const subtitleParts = [
     study.type,
     getStudyFormLabel(study.form || ''),
-    `${study.start_year}–${study.end_year || '...'}`,
+    `${study.start_year}–${study.end_year || '…'}`,
     study.graduation_result ? getGraduationResultLabel(study.graduation_result) : null,
   ].filter(Boolean)
   const statusSpan = Math.min(2, numCols - 1)
@@ -326,16 +308,15 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
   statusCell.alignment = { horizontal: 'center', vertical: 'middle' }
   ws.getRow(r).height = 24
 
-  // ── Row 4: Accent divider ──
+  // Row 4: accent divider, row 5: spacer
   r = 4
   for (let c = 1; c <= numCols; c++) ws.getCell(r, c).border = { bottom: bdr('medium', C.ACCENT) }
   ws.getRow(r).height = 8
 
-  // ── Row 5: Spacer ──
   r = 5
   ws.getRow(r).height = 6
 
-  // ── Row 6: URL ──
+  // Row 6: public URL
   r = 6
   if (publicSlug) {
     const url = getShareUrl(publicSlug)
@@ -347,23 +328,22 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
   }
   ws.getRow(r).height = 20
 
-  // ── Row 7: Summary (study average) ──
+  // Row 7: summary (study average), row 8: spacer
   r = 7
   const avg = overallAverage(hsSubjects)
   ws.mergeCells(r, 1, r, numCols)
   const statsCell = ws.getCell(r, 1)
-  statsCell.value = `${sorted.length} předmětů  •  studijní průměr ${avg !== null ? avg.toFixed(2) : '–'}`
+  statsCell.value = `${sorted.length} ${getCzechSubjectsWord(sorted.length)}  •  studijní průměr ${avg !== null ? avg.toFixed(2) : '–'}`
   statsCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
   statsCell.fill = solidFill(C.LIGHT_ACCENT)
   statsCell.alignment = { horizontal: 'center', vertical: 'middle' }
   statsCell.border = { top: bdr('thin', C.ACCENT), bottom: bdr('thin', C.ACCENT) }
   ws.getRow(r).height = 24
 
-  // ── Row 8: Spacer ──
   r = 8
   ws.getRow(r).height = 8
 
-  // ── Row 9: Table header ──
+  // Row 9: table header (frozen pane below it)
   r = 9
   const darkBdr = bdr('thin', C.DARK)
   const headerCells: { col: number; text: string; align: 'left' | 'center' }[] = [
@@ -382,7 +362,6 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
   })
   ws.getRow(r).height = 24
 
-  // ── Subject rows ──
   let nextRow = 10
   if (sorted.length > 0) {
     sorted.forEach((subj, i) => {
@@ -428,7 +407,6 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
 
     nextRow = 10 + sorted.length
 
-    // Period-average row
     const avgRow = nextRow
     const labelC = ws.getCell(avgRow, SUBJECT_COL)
     labelC.value = 'Průměr pololetí'
@@ -459,14 +437,14 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
   } else {
     ws.mergeCells(nextRow, 1, nextRow, numCols)
     const emptyCell = ws.getCell(nextRow, 1)
-    emptyCell.value = 'Pro toto studium nebyly nalezeny žádné předměty.'
+    emptyCell.value = 'Studium nemá žádné předměty.'
     emptyCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: C.SUBTLE } }
     emptyCell.alignment = { horizontal: 'center', vertical: 'middle' }
     ws.getRow(nextRow).height = 30
     nextRow++
   }
 
-  // ── Maturita (final exams) section ──
+  // Maturita (final exams) section
   if (finalExams.length > 0) {
     const GRADE_COL = FIRST_PERIOD_COL
     const DATE_COL = FIRST_PERIOD_COL + 1
@@ -535,7 +513,6 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
     nextRow = r
   }
 
-  // ── Footer + sheet settings ──
   writeFooter(ws, nextRow, numCols, publicSlug)
   ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 9, topLeftCell: 'B10', activeCell: 'B10' }]
   ws.pageSetup.orientation = 'landscape'
@@ -544,12 +521,10 @@ function buildHighSchoolSheet({ ws, study, subjects, finalExams, publicSlug, log
   ws.pageSetup.fitToHeight = 0
 }
 
-// ── Main Export Function ────────────────────────────────────────────────────
-
 export async function exportStudiesToExcel() {
   const studies = sortStudiesByStatus((await fetchStudies()) as ExportStudy[])
   if (!studies || studies.length === 0) {
-    throw new Error('Nebyla nalezena žádná studia k exportu.')
+    throw new Error('Nejsou žádná studia k exportu.')
   }
 
   const workbook = new ExcelJS.Workbook()
@@ -567,7 +542,6 @@ export async function exportStudiesToExcel() {
       continue
     }
 
-    // Fetch final exams
     try {
       const rawExams = await fetchFinalExams(study.id)
       finalExams = (rawExams || []) as unknown as ExportFinalExam[]
@@ -578,7 +552,6 @@ export async function exportStudiesToExcel() {
     const publicSlug = study.is_public ? study.public_slug : null
     const ws = workbook.addWorksheet(getUniqueWorksheetName(study, usedWorksheetNames))
 
-    // Fetch logo image if available (shared across study kinds)
     let logoImageId: number | undefined
     if (study.logo_url) {
       const logoData = await fetchLogoBuffer(study.logo_url)
@@ -597,23 +570,21 @@ export async function exportStudiesToExcel() {
       continue
     }
 
-    // Sort subjects: semester order (ZS before LS), then alphabetically
     subjects.sort((a, b) => {
       const sc = compareSemesters(a.semester, b.semester)
       return sc !== 0 ? sc : a.name.localeCompare(b.name)
     })
 
-    // Set column widths
     COLS.forEach((col, i) => { ws.getColumn(i + 1).width = col.width })
 
     let r: number
 
-    // ── Row 1: Dark accent bar ──────────────────────────────────────────
+    // Row 1: dark accent bar
     r = 1
     for (let c = 1; c <= NUM_COLS; c++) ws.getCell(r, c).fill = solidFill(C.DARK)
     ws.getRow(r).height = 6
 
-    // ── Row 2: Study name ───────────────────────────────────────────────
+    // Row 2: study name
     r = 2
     const hasLogo = logoImageId !== undefined
     ws.mergeCells(r, 1, r, NUM_COLS)
@@ -623,7 +594,7 @@ export async function exportStudiesToExcel() {
     nameCell.alignment = { horizontal: 'left', vertical: 'middle', indent: hasLogo ? 5 : 0 }
     ws.getRow(r).height = 32
 
-    // Place logo in header area (left side, overlapping rows 1-3)
+    // Logo sits on the left over rows 1–3; the indents on rows 2–3 leave room for it
     if (hasLogo && logoImageId !== undefined) {
       ws.addImage(logoImageId, {
         tl: { col: 0.1, row: 0.8 },
@@ -631,12 +602,12 @@ export async function exportStudiesToExcel() {
       })
     }
 
-    // ── Row 3: Subtitle + status badge ──────────────────────────────────
+    // Row 3: subtitle + status badge
     r = 3
     const subtitleParts = [
       study.type,
       getStudyFormLabel(study.form || ''),
-      `${study.start_year}–${study.end_year || '...'}`,
+      `${study.start_year}–${study.end_year || '…'}`,
       study.graduation_result ? getGraduationResultLabel(study.graduation_result) : null,
     ].filter(Boolean)
 
@@ -654,18 +625,17 @@ export async function exportStudiesToExcel() {
     statusCell.alignment = { horizontal: 'center', vertical: 'middle' }
     ws.getRow(r).height = 24
 
-    // ── Row 4: Accent divider ───────────────────────────────────────────
+    // Row 4: accent divider, row 5: spacer
     r = 4
     for (let c = 1; c <= NUM_COLS; c++) {
       ws.getCell(r, c).border = { bottom: bdr('medium', C.ACCENT) }
     }
     ws.getRow(r).height = 8
 
-    // ── Row 5: Spacer ───────────────────────────────────────────────────
     r = 5
     ws.getRow(r).height = 6
 
-    // ── Row 6: URL + metadata ───────────────────────────────────────────
+    // Row 6: public URL + metadata
     r = 6
     if (publicSlug) {
       const url = getShareUrl(publicSlug)
@@ -683,7 +653,7 @@ export async function exportStudiesToExcel() {
     metaCell.alignment = { horizontal: 'right', vertical: 'middle' }
     ws.getRow(r).height = 20
 
-    // ── Row 7: Summary statistics bar ───────────────────────────────────
+    // Row 7: summary statistics bar, row 8: spacer
     r = 7
     // Same semantics as the web app (calculateStudyStatistics): superseded
     // repeat attempts and failed subjects don't count toward earned credits.
@@ -691,18 +661,17 @@ export async function exportStudiesToExcel() {
 
     ws.mergeCells(r, 1, r, NUM_COLS)
     const statsCell = ws.getCell(r, 1)
-    statsCell.value = `${stats.total} předmětů  \u2022  ${stats.completed} dokončeno  \u2022  ${stats.completedCredits}/${stats.totalCredits} kreditů`
+    statsCell.value = `${stats.total} ${getCzechSubjectsWord(stats.total)}  \u2022  ${stats.completed} dokončeno  \u2022  ${stats.completedCredits}/${stats.totalCredits} kreditů`
     statsCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: C.ACCENT } }
     statsCell.fill = solidFill(C.LIGHT_ACCENT)
     statsCell.alignment = { horizontal: 'center', vertical: 'middle' }
     statsCell.border = { top: bdr('thin', C.ACCENT), bottom: bdr('thin', C.ACCENT) }
     ws.getRow(r).height = 24
 
-    // ── Row 8: Spacer ───────────────────────────────────────────────────
     r = 8
     ws.getRow(r).height = 8
 
-    // ── Row 9: Table header ─────────────────────────────────────────────
+    // Row 9: table header (frozen pane below it)
     r = 9
     const darkBdr = bdr('thin', C.DARK)
     COLS.forEach((col, i) => {
@@ -715,7 +684,6 @@ export async function exportStudiesToExcel() {
     })
     ws.getRow(r).height = 28
 
-    // ── Subject data rows ───────────────────────────────────────────────
     let nextRow = 10
 
     if (subjects.length > 0) {
@@ -726,7 +694,7 @@ export async function exportStudiesToExcel() {
         const subj = subjects[i]
         r = 10 + rowOffset
 
-        // Semester group separator
+        // Semester separator row before the first subject of each semester
         if (subj.semester !== prevSemester && subj.semester) {
           ws.mergeCells(r, 1, r, NUM_COLS)
           const semCell = ws.getCell(r, 1)
@@ -811,21 +779,19 @@ export async function exportStudiesToExcel() {
     } else {
       ws.mergeCells(nextRow, 1, nextRow, NUM_COLS)
       const emptyCell = ws.getCell(nextRow, 1)
-      emptyCell.value = 'Pro toto studium nebyly nalezeny žádné předměty.'
+      emptyCell.value = 'Studium nemá žádné předměty.'
       emptyCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: C.SUBTLE } }
       emptyCell.alignment = { horizontal: 'center', vertical: 'middle' }
       ws.getRow(nextRow).height = 30
       nextRow++
     }
 
-    // ── Final Exams (SZZ) section ─────────────────────────────────────────
+    // Final exams (SZZ) section
     if (finalExams.length > 0) {
-      // Spacer
       r = nextRow
       ws.getRow(r).height = 12
       r++
 
-      // SZZ section header
       ws.mergeCells(r, 1, r, NUM_COLS)
       const szzTitleCell = ws.getCell(r, 1)
       szzTitleCell.value = `  ${getStudyTerminology(study.type).finalExamsSectionTitle}`
@@ -835,7 +801,7 @@ export async function exportStudiesToExcel() {
       ws.getRow(r).height = 26
       r++
 
-      // SZZ column sub-headers
+      // Aligned to the subject table's COLS; null leaves that column blank
       const szzHeaders: (string | null)[] = [
         '#', 'Zkratka', 'Předmět', null, null, null, null, null,
         null, null, null, null, 'Hodnocení', 'Datum', 'Zkoušející', 'Předseda komise',
@@ -851,7 +817,6 @@ export async function exportStudiesToExcel() {
       ws.getRow(r).height = 22
       r++
 
-      // SZZ data rows
       for (let i = 0; i < finalExams.length; i++) {
         const exam = finalExams[i]
         const isAlt = i % 2 === 0
@@ -889,10 +854,8 @@ export async function exportStudiesToExcel() {
       nextRow = r
     }
 
-    // ── Footer ────────────────────────────────────────────────────────────
     writeFooter(ws, nextRow, NUM_COLS, publicSlug)
 
-    // ── Sheet settings ────────────────────────────────────────────────────
     ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 9, topLeftCell: 'A10', activeCell: 'A10' }]
     ws.pageSetup.orientation = 'landscape'
     ws.pageSetup.fitToPage = true
@@ -900,7 +863,6 @@ export async function exportStudiesToExcel() {
     ws.pageSetup.fitToHeight = 0
   }
 
-  // ── Generate and download ───────────────────────────────────────────────
   const fileName = `sledovani_studii_export_${new Date().toISOString().split('T')[0]}.xlsx`
   const buffer = await workbook.xlsx.writeBuffer()
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })

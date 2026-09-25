@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -12,14 +12,26 @@ import {
 } from "@/components/ui/tooltip"
 import { FileText, AlertCircle, Search, X, Folder, ChevronRight, File } from "lucide-react"
 import { signIn } from "next-auth/react"
+import { czPlural } from "@/lib/utils/task-format"
 import type { OneDriveFile } from "@/lib/types/materials"
 
 interface OneDriveFilePickerProps {
   onFileSelected: (_file: OneDriveFile) => void
   initialPath?: string
   initialPathName?: string
-  fileExtensions?: string[] // Optional filter for file extensions
+  fileExtensions?: string[]
   allowFolders?: boolean
+}
+
+/** Placeholder rows shown while a listing (or the picker's start folder) loads. */
+export function OneDriveFilePickerLoading() {
+  return (
+    <div className="space-y-2">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-12 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
+      ))}
+    </div>
+  )
 }
 
 export function OneDriveFilePicker({
@@ -46,8 +58,12 @@ export function OneDriveFilePicker({
   )
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
+  // Only the latest request may update the list: an older listing that
+  // resolves late (e.g. the drive root) must not replace a newer one
+  const latestRequestRef = useRef(0)
 
   const loadFiles = useCallback(async (path: string, search?: string) => {
+    const requestId = ++latestRequestRef.current
     setLoading(true)
     setError(null)
     
@@ -60,22 +76,22 @@ export function OneDriveFilePicker({
         method: "GET",
         headers: { "Content-Type": "application/json" },
       })
+      if (requestId !== latestRequestRef.current) return
 
       if (!response.ok) {
         const errorData = await response.json()
         
-        // Handle authentication errors that need re-authentication
         if (errorData.needsReauth) {
           await signIn("microsoft-entra-id")
           return
         }
         
-        throw new Error(errorData.error || "Nepodařilo se načíst soubory z OneDrive")
+        throw new Error(errorData.error || "Nepodařilo se načíst soubory z OneDrive.")
       }
 
       const { files } = await response.json()
+      if (requestId !== latestRequestRef.current) return
       
-      // Filter files by extension if specified
       let filteredFiles = files
       if (fileExtensions && fileExtensions.length > 0 && !search) {
         filteredFiles = files.filter((file: OneDriveFile) => {
@@ -94,9 +110,12 @@ export function OneDriveFilePicker({
         setCurrentPath(path)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nastala chyba při načítání souborů")
+      if (requestId !== latestRequestRef.current) return
+      setError(err instanceof Error ? err.message : "Nepodařilo se načíst soubory z OneDrive.")
     } finally {
-      setLoading(false)
+      if (requestId === latestRequestRef.current) {
+        setLoading(false)
+      }
     }
   }, [fileExtensions])
 
@@ -162,18 +181,18 @@ export function OneDriveFilePicker({
     
     const dotIndex = fileName.lastIndexOf('.')
     if (dotIndex === -1) {
-      return `${fileName.substring(0, maxLength - 3)  }...`
+      return `${fileName.substring(0, maxLength - 1)  }…`
     }
     
     const extension = fileName.substring(dotIndex)
     const nameWithoutExt = fileName.substring(0, dotIndex)
-    const availableLength = maxLength - extension.length - 3
+    const availableLength = maxLength - extension.length - 1
     
     if (availableLength <= 0) {
-      return `${fileName.substring(0, maxLength - 3)  }...`
+      return `${fileName.substring(0, maxLength - 1)  }…`
     }
     
-    return `${nameWithoutExt.substring(0, availableLength)  }...${  extension}`
+    return `${nameWithoutExt.substring(0, availableLength)  }…${  extension}`
   }
 
   return (
@@ -185,12 +204,11 @@ export function OneDriveFilePicker({
         </Alert>
       )}
 
-      {/* Search Bar */}
       <div className="flex min-w-0 gap-2">
         <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 h-4 w-4" />
           <Input
-            placeholder="Hledat soubory..."
+            placeholder="Hledat soubory…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -201,13 +219,12 @@ export function OneDriveFilePicker({
           Hledat
         </Button>
         {isSearching && (
-          <Button variant="outline" onClick={handleClearSearch} className="flex-shrink-0">
+          <Button variant="outline" onClick={handleClearSearch} className="flex-shrink-0" aria-label="Zrušit hledání">
             <X className="h-4 w-4" />
           </Button>
         )}
       </div>
 
-      {/* Breadcrumb Navigation */}
       {!isSearching && (
         <div className="flex min-w-0 flex-wrap items-center gap-1 text-sm text-muted-foreground">
           {pathHistory.map((crumb, index) => (
@@ -227,17 +244,12 @@ export function OneDriveFilePicker({
         </div>
       )}
 
-      {/* File/Folder List */}
       <div className="max-h-96 min-w-0 space-y-1 overflow-y-auto pr-1">
         {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
-            ))}
-          </div>
+          <OneDriveFilePickerLoading />
         ) : availableFiles.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
-            {isSearching ? "Žádné soubory neodpovídají hledání" : "Žádné soubory nebyly nalezeny"}
+            {isSearching ? "Hledání neodpovídá žádný soubor" : "Žádné soubory"}
           </p>
         ) : (
           availableFiles.map((item) => (
@@ -268,7 +280,7 @@ export function OneDriveFilePicker({
                 </TooltipProvider>
                 <p className="text-sm text-muted-foreground">
                   {item.folder 
-                    ? `${item.folder.childCount || 0} položek`
+                    ? `${item.folder.childCount || 0} ${czPlural(item.folder.childCount || 0, "položka", "položky", "položek")}`
                     : item.size ? formatFileSize(item.size) : ''
                   }
                 </p>

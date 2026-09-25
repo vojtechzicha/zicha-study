@@ -7,21 +7,19 @@ import type { OneDriveItem, OneDriveProcessedItem, OneDriveFolderItem, OneDriveF
 export async function GET(request: Request) {
   const session = await auth()
   if (!session?.accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Nejste přihlášeni." }, { status: 401 })
   }
 
-  // Rate limiting
   const rateLimitResult = checkRateLimit(`onedrive-files:session`, RATE_LIMITS.ONEDRIVE_FILES)
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult.resetTime)
   }
 
   try {
-    // Parse query parameters
     const url = new URL(request.url)
     const path = url.searchParams.get('path') || '/drive/root:'
 
-    // Validate path parameter to prevent path traversal attacks
+    // Only the drive root or an item ID; rejects arbitrary paths (path traversal)
     const validPathPatterns = [
       /^\/drive\/root:$/,
       /^\/drive\/items\/[a-zA-Z0-9!]+$/,
@@ -30,12 +28,11 @@ export async function GET(request: Request) {
     const isValidPath = validPathPatterns.some(pattern => pattern.test(path))
     if (!isValidPath) {
       return NextResponse.json(
-        { error: "Invalid path parameter" },
+        { error: "Neplatná cesta ke složce." },
         { status: 400 }
       )
     }
 
-    // Build Microsoft Graph API URL
     let graphUrl: string
     if (path === '/drive/root:') {
       graphUrl = 'https://graph.microsoft.com/v1.0/me/drive/root/children'
@@ -49,18 +46,17 @@ export async function GET(request: Request) {
     if (!data || !data.value) {
       if (data?.error?.code === 'itemNotFound') {
         return NextResponse.json(
-          { error: "Folder not found or no access permission" },
+          { error: "Složka neexistuje nebo k ní nemáte přístup." },
           { status: 404 }
         )
       }
 
       return NextResponse.json(
-        { error: data?.error?.message || "Invalid response from OneDrive" },
+        { error: data?.error?.message || "OneDrive vrátil neplatnou odpověď." },
         { status: 500 }
       )
     }
 
-    // Process all items (folders and files)
     const items: OneDriveProcessedItem[] = data.value
       .map((item: OneDriveItem): OneDriveProcessedItem | null => {
         if (item.folder) {
@@ -103,7 +99,6 @@ export async function GET(request: Request) {
       })
       .filter((item: OneDriveProcessedItem | null): item is OneDriveProcessedItem => item !== null)
 
-    // Sort folders first, then files
     items.sort((a, b) => {
       const aIsFolder = 'folder' in a
       const bIsFolder = 'folder' in b
@@ -116,13 +111,13 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message.includes('token')) {
       return NextResponse.json(
-        { error: error.message, needsReauth: true },
+        { error: "Přístup k OneDrive vypršel. Přihlaste se znovu.", needsReauth: true },
         { status: 401 }
       )
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to access OneDrive files" },
+      { error: error instanceof Error ? error.message : "Nepodařilo se načíst soubory z OneDrive." },
       { status: 500 }
     )
   }

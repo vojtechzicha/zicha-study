@@ -19,7 +19,7 @@ export function LoginForm() {
     try {
       await signIn("microsoft-entra-id", { callbackUrl: "/" })
     } catch {
-      setError("Chyba při přihlašování. Zkuste to prosím znovu.")
+      setError("Nepodařilo se přihlásit.")
       setLoading(false)
     }
   }
@@ -35,7 +35,7 @@ export function LoginForm() {
             <div>
               <CardTitle className="text-2xl font-bold text-foreground">Sledování studií</CardTitle>
               <CardDescription className="text-muted-foreground mt-2">
-                Přihlaste se pomocí Microsoft osobního účtu
+                Použijte osobní účet Microsoft.
               </CardDescription>
             </div>
           </CardHeader>
@@ -54,7 +54,7 @@ export function LoginForm() {
               <svg className="mr-2 h-5 w-5" viewBox="0 0 23 23" fill="currentColor">
                 <path d="M11 11H0V0h11v11zm0 12H0V12h11v11zm12-12H12V0h11v11zm0 12H12V12h11v11z" />
               </svg>
-              {loading ? "Přihlašování..." : "Přihlásit se přes Microsoft"}
+              {loading ? "Přihlašování…" : "Přihlásit se přes Microsoft"}
             </Button>
           </CardContent>
         </Card>

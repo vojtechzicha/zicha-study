@@ -44,18 +44,18 @@ export function coerceNoteContent(value: unknown): NoteContentJSON | null {
   return null
 }
 
-// A stored snapshot of a Markdown note's content (newest 50 retained per note).
+// A stored snapshot of a Markdown note's content (newest MARKDOWN_NOTE_MAX_VERSIONS kept per note).
 export interface MarkdownNoteVersion {
   id: string
   note_id: string
   content_json: NoteContentJSON
   created_at: string
-  // Identity of whoever produced the snapshot (multi-user allow-list aware).
+  // Who produced the snapshot; several users may be on the ALLOWED_EMAILS list.
   created_by_email?: string | null
   created_by_name?: string | null
 }
 
-// Lightweight version descriptor used by the History list (no heavy content).
+// Version without content_json, for the History list.
 export interface MarkdownNoteVersionMeta {
   id: string
   note_id: string
@@ -64,7 +64,6 @@ export interface MarkdownNoteVersionMeta {
   created_by_name?: string | null
 }
 
-// The note shape the Markdown editor screen works with.
 export interface MarkdownNoteEditorData {
   id: string
   study_id: string

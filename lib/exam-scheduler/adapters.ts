@@ -1,6 +1,6 @@
 import type { Subject as SchedulerSubject, Exam as SchedulerExam, SchedulerConfig } from "./types";
 
-// Tracker types (from the main app)
+// Record shapes from the study tracker (snake_case, as stored).
 export interface TrackerSubject {
   id: string;
   study_id: string;
@@ -39,16 +39,13 @@ export interface TrackerStudy {
 }
 
 /**
- * Check if a subject requires scheduling (any completion type except "Other")
- * This includes: Zk (exam), Zp (credit), KZp (classified credit), Kl (assessment), Zp+Zk (credit+exam)
+ * Every completion type except "-" (Other) or empty needs a term:
+ * Zk (exam), Zp (credit), KZp (classified credit), Kl (assessment), Zp+Zk.
  */
 function requiresScheduling(completionType: string): boolean {
   return completionType !== '-' && completionType !== '';
 }
 
-/**
- * Convert a tracker subject to scheduler subject
- */
 export function mapTrackerSubjectToSchedulerSubject(
   subject: TrackerSubject
 ): SchedulerSubject {
@@ -56,23 +53,16 @@ export function mapTrackerSubjectToSchedulerSubject(
     id: subject.id,
     shortcut: subject.abbreviation || subject.name.substring(0, 5).toUpperCase(),
     name: subject.name,
-    // Mark as complete if: completed, planned, or doesn't require scheduling
     isComplete: subject.completed || subject.planned === true || !requiresScheduling(subject.completion_type),
   };
 }
 
-/**
- * Convert multiple tracker subjects to scheduler subjects
- */
 export function mapTrackerSubjectsToSchedulerSubjects(
   subjects: TrackerSubject[]
 ): SchedulerSubject[] {
   return subjects.map(mapTrackerSubjectToSchedulerSubject);
 }
 
-/**
- * Convert exam options to scheduler exams
- */
 export function mapExamOptionsToSchedulerExams(
   examOptions: ExamOption[]
 ): SchedulerExam[] {
@@ -80,7 +70,7 @@ export function mapExamOptionsToSchedulerExams(
     id: option.id,
     subjectId: option.subject_id,
     date: option.date,
-    // Handle both HH:MM:SS and HH:MM formats
+    // Stored as HH:MM:SS or HH:MM.
     startTime: option.start_time.substring(0, 5),
     durationMinutes: option.duration_minutes,
     isOnline: option.is_online,
@@ -88,9 +78,6 @@ export function mapExamOptionsToSchedulerExams(
   }));
 }
 
-/**
- * Create scheduler config from study settings
- */
 export function createSchedulerConfigFromStudy(
   study: TrackerStudy
 ): SchedulerConfig {
@@ -98,7 +85,7 @@ export function createSchedulerConfigFromStudy(
     travelCostOneWay: study.transit_cost_one_way,
     travelDurationHours: study.transit_duration_hours,
     accommodationCostPerNight: study.accommodation_cost_per_night,
-    // Convert HH:MM:SS to HH:MM if provided, undefined if null/empty
+    // HH:MM:SS -> HH:MM; null/empty means compute from travel duration.
     earliestArrivalTime: study.earliest_arrival_time
       ? study.earliest_arrival_time.substring(0, 5)
       : undefined,
@@ -111,9 +98,6 @@ export function createSchedulerConfigFromStudy(
   };
 }
 
-/**
- * Helper to group exam options by subject
- */
 export function groupExamOptionsBySubject(
   examOptions: ExamOption[]
 ): Map<string, ExamOption[]> {

@@ -1,7 +1,5 @@
-// Main algorithm export
 export { generateSchedule, buildScheduleItems } from "./scheduler";
 
-// Global (multi-study) scheduler
 export { generateGlobalSchedule } from "./global-scheduler";
 export type {
   GlobalStudyConfig,
@@ -13,7 +11,6 @@ export type {
   UnschedulableRequirement,
 } from "./global-scheduler";
 
-// Types
 export type {
   Subject,
   Exam,
@@ -25,10 +22,8 @@ export type {
   SchedulerConfig,
 } from "./types";
 
-// Config defaults
 export { DEFAULT_CONFIG, computeTimeThresholds } from "./types";
 
-// Adapters for converting between tracker and scheduler types
 export {
   mapTrackerSubjectToSchedulerSubject,
   mapTrackerSubjectsToSchedulerSubjects,
@@ -43,6 +38,6 @@ export type {
   TrackerStudy,
 } from "./adapters";
 
-// Utilities (for testing and advanced use)
+// Exported for tests and advanced use.
 export { calculateCost, calculatePtoPenalty, calculateScheduleScore, buildScheduleDays } from "./cost-calculator";
 export { hasConflict, canAddExam, isValidCombination } from "./conflict-detector";

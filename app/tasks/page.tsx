@@ -22,6 +22,7 @@ import {
   type TaskState,
 } from "@/lib/constants"
 import { useLogoTheme } from "@/hooks/use-logo-theme"
+import { czPlural } from "@/lib/utils/task-format"
 import { cn } from "@/lib/utils"
 
 interface TaskWithStudy {
@@ -145,7 +146,7 @@ export default function TasksPage() {
               </div>
               <div className="min-w-0">
                 <h1 className="text-xl font-bold text-foreground leading-tight">Úkoly</h1>
-                <p className="text-sm text-muted-foreground">Souhrn napříč všemi studii</p>
+                <p className="text-sm text-muted-foreground">Ze všech studií</p>
               </div>
             </div>
           </div>
@@ -168,7 +169,7 @@ export default function TasksPage() {
                 <ListChecks className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70" />
                 <p className="text-sm font-medium text-foreground">Zatím žádné úkoly</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Otevřete některé studium níže a přidejte první úkol.
+                  Úkol přidáte u některého ze studií níže.
                 </p>
               </div>
             ) : (
@@ -257,7 +258,7 @@ export default function TasksPage() {
                   Žádné studium nemá zapnuté úkoly
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Zapněte úkoly v nastavení studia, abyste mohli evidovat deadliny.
+                  Úkoly se zapínají v nastavení studia.
                 </p>
                 <Button
                   onClick={() => router.push("/")}
@@ -291,11 +292,12 @@ export default function TasksPage() {
                           {study.name}
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          {active === 0 ? "žádné aktivní úkoly" : `${active} aktivních`}
+                          {active === 0 ? "žádné aktivní úkoly" : `${active} ${czPlural(active, "aktivní úkol", "aktivní úkoly", "aktivních úkolů")}`}
                         </p>
                       </div>
                       <Button
                         size="sm"
+                        aria-label="Přidat úkol"
                         onClick={(e) => {
                           e.stopPropagation()
                           router.push(`/studies/${study.id}?addTask=1`)

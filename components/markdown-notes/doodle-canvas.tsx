@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Pencil, Eraser, Undo2, Trash2 } from "lucide-react"
 
 const PEN_COLORS = ["#1f2937", "#dc2626", "#2563eb", "#16a34a", "#d97706"]
+const PEN_COLOR_NAMES = ["Černá", "Červená", "Modrá", "Zelená", "Oranžová"]
 const PEN_SIZES = [2, 4, 8]
 
 // Convert a perfect-freehand outline into an SVG path string.
@@ -123,6 +124,7 @@ export function DoodleCanvas({ scene, editable, onChange }: DoodleCanvasProps) {
             variant={tool === "pen" ? "default" : "outline"}
             className="h-7 px-2"
             onClick={() => setTool("pen")}
+            aria-label="Pero"
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
@@ -132,15 +134,16 @@ export function DoodleCanvas({ scene, editable, onChange }: DoodleCanvasProps) {
             variant={tool === "eraser" ? "default" : "outline"}
             className="h-7 px-2"
             onClick={() => setTool("eraser")}
+            aria-label="Guma"
           >
             <Eraser className="h-3.5 w-3.5" />
           </Button>
           <div className="flex items-center gap-1">
-            {PEN_COLORS.map((c) => (
+            {PEN_COLORS.map((c, i) => (
               <button
                 key={c}
                 type="button"
-                aria-label={`Barva ${c}`}
+                aria-label={`Barva: ${PEN_COLOR_NAMES[i]}`}
                 onClick={() => { setColor(c); setTool("pen") }}
                 className={`h-5 w-5 rounded-full border ${color === c ? "ring-2 ring-offset-1 ring-offset-background ring-primary-500" : ""}`}
                 style={{ backgroundColor: c }}
@@ -152,7 +155,7 @@ export function DoodleCanvas({ scene, editable, onChange }: DoodleCanvasProps) {
               <button
                 key={s}
                 type="button"
-                aria-label={`Tloušťka ${s}`}
+                aria-label={`Tloušťka: ${s}`}
                 onClick={() => { setSize(s); setTool("pen") }}
                 className={`flex h-6 w-6 items-center justify-center rounded border ${size === s ? "border-primary-500 bg-primary-50 dark:bg-primary-900/40" : "border-border"}`}
               >
@@ -161,10 +164,10 @@ export function DoodleCanvas({ scene, editable, onChange }: DoodleCanvasProps) {
             ))}
           </div>
           <div className="ml-auto flex items-center gap-1">
-            <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={undo}>
+            <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={undo} aria-label="Vrátit tah">
               <Undo2 className="h-3.5 w-3.5" />
             </Button>
-            <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={clear}>
+            <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={clear} aria-label="Smazat kresbu">
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>

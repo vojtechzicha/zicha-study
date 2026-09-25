@@ -52,11 +52,9 @@ describe("calculateCost", () => {
   });
 
   it("calculates travel cost for same-day possible exam (starts after 9:30, ends before 18:30)", () => {
-    // Exam from 10:00 to 11:00 - can travel same day
     const exam = createExam("e1", "2025-01-10", "10:00", 60, false);
     const result = calculateCost([exam], DEFAULT_CONFIG);
 
-    // Should have 2 one-way trips (to and from)
     expect(result.travelTrips).toBe(2);
     expect(result.travelCost).toBe(2 * DEFAULT_CONFIG.travelCostOneWay);
     expect(result.accommodationNights).toBe(0);
@@ -64,63 +62,55 @@ describe("calculateCost", () => {
   });
 
   it("calculates accommodation before for early exam (starts before 9:30)", () => {
-    // Exam at 8:00 - too early for same-day travel
     const exam = createExam("e1", "2025-01-10", "08:00", 60, false);
     const result = calculateCost([exam], DEFAULT_CONFIG);
 
-    // FIXED: Should need travel TO (day before) + accommodation night before + travel FROM
+    // Travel there the day before, one night, travel home after the exam.
     expect(result.accommodationNights).toBe(1);
     expect(result.accommodationCost).toBe(DEFAULT_CONFIG.accommodationCostPerNight);
-    expect(result.travelTrips).toBe(2); // FIXED: travel to AND from
-    expect(result.totalCost).toBe(2000 + 400); // FIXED: accommodation + 2 trips
+    expect(result.travelTrips).toBe(2);
+    expect(result.totalCost).toBe(2000 + 400);
   });
 
   it("calculates accommodation after for late exam (ends after 18:30)", () => {
-    // Exam from 17:00 to 19:00 - too late to travel home
     const exam = createExam("e1", "2025-01-10", "17:00", 120, false);
     const result = calculateCost([exam], DEFAULT_CONFIG);
 
-    // FIXED: Should need travel TO + exam + accommodation night after + travel FROM (next day)
+    // Travel there, one night after the exam, travel home the next day.
     expect(result.accommodationNights).toBe(1);
-    expect(result.travelTrips).toBe(2); // FIXED: travel to AND from
-    expect(result.totalCost).toBe(400 + 2000); // FIXED: 2 trips + accommodation
+    expect(result.travelTrips).toBe(2);
+    expect(result.totalCost).toBe(400 + 2000);
   });
 
   it("calculates both accommodations for exam spanning both thresholds", () => {
-    // Exam from 08:00 to 19:00 - too early AND too late
     const exam = createExam("e1", "2025-01-10", "08:00", 660, false);
     const result = calculateCost([exam], DEFAULT_CONFIG);
 
-    // Should need accommodation before AND after + 2 travel trips (arrive day before, leave day after)
+    // Arrive the day before, leave the day after.
     expect(result.accommodationNights).toBe(2);
-    expect(result.travelTrips).toBe(2); // Travel to (day before), travel from (day after)
+    expect(result.travelTrips).toBe(2);
     expect(result.totalCost).toBe(2 * 2000 + 400);
   });
 
   it("handles multiple exams on same day correctly", () => {
-    // Two exams on same day, both in the "same-day travel" window
     const exam1 = createExam("e1", "2025-01-10", "10:00", 60, false);
     const exam2 = createExam("e2", "2025-01-10", "14:00", 60, false);
     const result = calculateCost([exam1, exam2], DEFAULT_CONFIG);
 
-    // Should only count travel once (to and from for the day)
     expect(result.travelTrips).toBe(2);
     expect(result.totalCost).toBe(400);
   });
 
   it("handles mixed online and offline on same day", () => {
-    // One online, one offline
     const onlineExam = createExam("e1", "2025-01-10", "10:00", 60, true);
     const offlineExam = createExam("e2", "2025-01-10", "14:00", 60, false);
     const result = calculateCost([onlineExam, offlineExam], DEFAULT_CONFIG);
 
-    // Online doesn't affect travel, only offline matters
     expect(result.travelTrips).toBe(2);
     expect(result.totalCost).toBe(400);
   });
 
   it("consolidates accommodation across consecutive early morning exam days", () => {
-    // Two days with early morning exams (8:00) - need to stay overnight before each
     const exam1 = createExam("e1", "2025-01-10", "08:00", 60, false);
     const exam2 = createExam("e2", "2025-01-11", "08:00", 60, false);
     const result = calculateCost([exam1, exam2], DEFAULT_CONFIG);

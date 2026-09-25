@@ -32,9 +32,9 @@ export async function createSubject(data: Record<string, any>) {
     return { data: db.normalizeId(doc), error: null }
   } catch (err: any) {
     if (err?.code === 11000) {
-      return { data: null, error: { code: "23505", message: "Duplicate entry" } }
+      return { data: null, error: { code: "23505", message: "Záznam už existuje." } }
     }
-    return { data: null, error: { code: "UNKNOWN", message: err?.message || "Unknown error" } }
+    return { data: null, error: { code: "UNKNOWN", message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -44,9 +44,9 @@ export async function updateSubject(id: string, data: Record<string, any>) {
     return { error: null }
   } catch (err: any) {
     if (err?.code === 11000) {
-      return { error: { code: "23505", message: "Duplicate entry" } }
+      return { error: { code: "23505", message: "Záznam už existuje." } }
     }
-    return { error: { code: "UNKNOWN", message: err?.message || "Unknown error" } }
+    return { error: { code: "UNKNOWN", message: err?.message || "Neznámá chyba." } }
   }
 }
 
@@ -55,7 +55,7 @@ export async function deleteSubjectAction(id: string) {
     await db.deleteSubject(id)
     return { error: null }
   } catch (err: any) {
-    return { error: { code: "UNKNOWN", message: err?.message || "Unknown error" } }
+    return { error: { code: "UNKNOWN", message: err?.message || "Neznámá chyba." } }
   }
 }
 

@@ -2,7 +2,6 @@
  * Normalizes Czech diacritics and creates a valid slug
  */
 export function createSlug(text: string): string {
-  // Czech diacritics mapping
   const czechMap: Record<string, string> = {
     'á': 'a', 'Á': 'a',
     'č': 'c', 'Č': 'c',
@@ -21,13 +20,11 @@ export function createSlug(text: string): string {
     'ž': 'z', 'Ž': 'z'
   }
   
-  // Replace Czech characters
   let normalized = text
   for (const [czech, latin] of Object.entries(czechMap)) {
     normalized = normalized.replace(new RegExp(czech, 'g'), latin)
   }
   
-  // Convert to lowercase and clean up
   return normalized
     .toLowerCase()
     .replace(/[^a-z0-9\s-_]/g, '') // Remove non-alphanumeric except spaces, hyphens, underscores

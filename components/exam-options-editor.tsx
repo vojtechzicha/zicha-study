@@ -54,7 +54,7 @@ export function ExamOptionsEditor({ options, onChange, disabled }: ExamOptionsEd
   return (
     <div className="space-y-3">
       {options.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">Zatím nejsou přidány žádné termíny zkoušek.</p>
+        <p className="text-sm text-muted-foreground italic">Zatím žádné termíny zkoušek</p>
       ) : (
         <div className="space-y-3">
           {options.map((option, index) => (
@@ -69,6 +69,7 @@ export function ExamOptionsEditor({ options, onChange, disabled }: ExamOptionsEd
                   variant="ghost"
                   size="sm"
                   onClick={() => removeOption(index)}
+                  aria-label="Odebrat termín"
                   disabled={disabled}
                   className="h-8 w-8 p-0 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                 >
@@ -150,7 +151,6 @@ export function ExamOptionsEditor({ options, onChange, disabled }: ExamOptionsEd
                 <Input
                   value={option.note}
                   onChange={(e) => updateOption(index, "note", e.target.value)}
-                  placeholder="volitelná poznámka k termínu"
                   disabled={disabled}
                   className="h-9"
                 />

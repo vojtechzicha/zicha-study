@@ -63,7 +63,7 @@ export function HighSchoolGradeMatrix({ subjects, periods, renderActions }: High
   if (subjects.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        Zatím nebyly přidány žádné předměty.
+        Zatím žádné předměty
       </div>
     )
   }
@@ -120,7 +120,6 @@ export function HighSchoolGradeMatrix({ subjects, periods, renderActions }: High
             </TableRow>
           ))}
 
-          {/* Per-pololetí averages */}
           <TableRow className="border-t-2 bg-primary-50/50 dark:bg-primary-950/50 font-medium">
             <TableCell className="sticky left-0 bg-primary-50/90 dark:bg-primary-950/90 backdrop-blur-sm text-sm text-foreground/80">
               Průměr pololetí

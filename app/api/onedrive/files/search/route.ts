@@ -5,7 +5,7 @@ import { makeGraphRequest } from "@/lib/utils/onedrive"
 export async function GET(request: Request) {
   const session = await auth()
   if (!session?.accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Nejste přihlášeni." }, { status: 401 })
   }
 
   try {
@@ -13,14 +13,13 @@ export async function GET(request: Request) {
     const query = url.searchParams.get('q')
 
     if (!query) {
-      return NextResponse.json({ error: "Search query is required" }, { status: 400 })
+      return NextResponse.json({ error: "Zadejte hledaný výraz." }, { status: 400 })
     }
 
     const graphUrl = `https://graph.microsoft.com/v1.0/me/drive/search(q='${encodeURIComponent(query)}')`
     const graphResponse = await makeGraphRequest(graphUrl)
     const data = await graphResponse.json()
 
-    // Process search results - only return files, not folders
     const files = data.value.filter((item: any) =>
       item.file && (
         item.file.mimeType?.includes("pdf") ||
@@ -50,13 +49,13 @@ export async function GET(request: Request) {
 
     if (error instanceof Error && error.message.includes('token')) {
       return NextResponse.json(
-        { error: error.message, needsReauth: true },
+        { error: "Přístup k OneDrive vypršel. Přihlaste se znovu.", needsReauth: true },
         { status: 401 }
       )
     }
 
     return NextResponse.json(
-      { error: "Failed to search OneDrive files" },
+      { error: "Nepodařilo se prohledat OneDrive." },
       { status: 500 }
     )
   }

@@ -37,7 +37,7 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
         const data = await fetchPublicMaterials(studyId) as Material[]
         setMaterials(data || [])
       } catch {
-        setError("Nepodařilo se načíst materiály")
+        setError("Nepodařilo se načíst materiály.")
       } finally {
         setLoading(false)
       }
@@ -46,11 +46,10 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
     loadMaterials()
   }, [studyId])
 
-  // Show only first 3 materials in preview mode
   const displayedMaterials = showAll ? materials : materials.slice(0, 3)
 
   if (materials.length === 0 && !loading) {
-    return null // Don't show the section if there are no public materials
+    return null
   }
 
   return (
@@ -58,9 +57,6 @@ export function PublicMaterialsSection({ studyId, study }: PublicMaterialsSectio
       <CardHeader>
         <div>
           <CardTitle className="text-xl font-bold text-foreground">Materiály</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Veřejně dostupné dokumenty a soubory ke studiu
-          </p>
         </div>
       </CardHeader>
       <CardContent>

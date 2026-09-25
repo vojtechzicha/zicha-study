@@ -81,7 +81,7 @@ describe('ensureCacheSubfolder', () => {
       .mockResolvedValueOnce(file())
 
     await expect(ensureCacheSubfolder(STUDY_ID, 'materials')).rejects.toThrow(
-      'Failed to create or find folder: materials'
+      'Nepodařilo se vytvořit ani najít složku „materials“.'
     )
   })
 })

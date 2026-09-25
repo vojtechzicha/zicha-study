@@ -27,12 +27,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to console in development
     if (process.env.NODE_ENV === "development") {
       console.error("ErrorBoundary caught an error:", error, errorInfo)
     }
 
-    // Call optional error handler
     this.props.onError?.(error, errorInfo)
   }
 
@@ -42,12 +40,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render(): ReactNode {
     if (this.state.hasError) {
-      // Use custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback
       }
 
-      // Default error UI
       return (
         <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg max-w-md mx-auto my-8">
           <CardHeader className="text-center">
@@ -59,9 +55,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-muted-foreground">
-              Došlo k neočekávané chybě. Zkuste akci opakovat nebo obnovit stránku.
-            </p>
             {process.env.NODE_ENV === "development" && this.state.error && (
               <pre className="text-left text-xs bg-muted p-3 rounded-lg overflow-auto max-h-32 text-red-600 dark:text-red-400">
                 {this.state.error.message}
@@ -91,7 +84,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-// Functional wrapper for easier use with hooks
 interface ErrorBoundaryWrapperProps {
   children: ReactNode
   fallback?: ReactNode

@@ -20,15 +20,13 @@ import {
 // Days of week treated as working days when none are configured (Mon-Fri).
 const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 
-/**
- * Compute end time for an exam
- */
 export function computeEndTime(exam: ExamWithSubject): string {
   return addMinutesToTime(exam.startTime, exam.durationMinutes);
 }
 
 /**
- * Build schedule days from a list of exams
+ * Groups exams by date. For each day with an in-person exam, decides whether
+ * same-day travel works or a night is needed before and/or after.
  */
 export function buildScheduleDays(
   exams: ExamWithSubject[],
@@ -48,7 +46,6 @@ export function buildScheduleDays(
     let needsAccommodationAfter = false;
 
     if (hasOfflineExam) {
-      // Find earliest and latest offline exam
       const sortedOffline = [...offlineExams].sort((a, b) =>
         a.startTime.localeCompare(b.startTime)
       );
@@ -56,14 +53,14 @@ export function buildScheduleDays(
       const latestExam = sortedOffline[sortedOffline.length - 1];
       const latestEnd = computeEndTime(latestExam);
 
-      // Check if we need accommodation before (exam starts too early for same-day travel)
+      // Starts before a same-day arrival is possible.
       if (isBefore(earliestStart, earliestSameDayArrival)) {
         needsAccommodationBefore = true;
       } else {
         needsTravelTo = true;
       }
 
-      // Check if we need accommodation after (exam ends too late for same-day travel)
+      // Ends too late to get home the same day.
       if (isAfter(latestEnd, latestSameDayDeparture)) {
         needsAccommodationAfter = true;
       } else {
@@ -82,15 +79,14 @@ export function buildScheduleDays(
     });
   }
 
-  // Sort by date
   days.sort((a, b) => compareDate(a.date, b.date));
 
   return days;
 }
 
 /**
- * Build trip segments from offline days, deciding when to go home vs stay
- * For each gap between exam days, compares cost of staying vs going home
+ * Splits in-person exam days into trips. For each gap between consecutive days,
+ * stays in the city if the extra nights cost no more than a round trip home.
  */
 export function buildTripSegments(
   offlineDays: ScheduleDay[],
@@ -108,22 +104,14 @@ export function buildTripSegments(
     const nextDay = offlineDays[i + 1];
     const gapNights = daysBetween(currentDay.date, nextDay.date);
 
-    // Calculate the ADDITIONAL cost of staying vs going home for this gap
-    // Key insight: if the next day requires accommodation before (early exam),
-    // that night is mandatory regardless of staying or going home
-    // So we only count the gap nights MINUS any mandatory nights
-
+    // Only count nights that staying adds. The night before an early exam and
+    // the night after a late exam are paid whether we stay or go home.
     let additionalStayNights = gapNights;
 
-    // If next day has early exam (needsAccommodationBefore), the night before is mandatory
-    // When we split, we'd still need that night in the new segment
-    // When we stay, that night is part of the gap
-    // So it's NOT an "additional" cost of staying - it's required either way
     if (nextDay.needsAccommodationBefore) {
       additionalStayNights = Math.max(0, gapNights - 1);
     }
 
-    // Similarly, if current day has late exam (needsAccommodationAfter), that night is mandatory
     if (currentDay.needsAccommodationAfter) {
       additionalStayNights = Math.max(0, additionalStayNights - 1);
     }
@@ -132,53 +120,42 @@ export function buildTripSegments(
     const goHomeCost = 2 * config.travelCostOneWay; // Round trip
 
     if (stayCost <= goHomeCost) {
-      // Cheaper to stay - continue current segment
       currentSegmentDays.push(nextDay);
     } else {
-      // Cheaper to go home - end current segment and start new one
       segments.push(createSegment(currentSegmentDays, config));
       currentSegmentDays = [nextDay];
     }
   }
 
-  // Add the last segment
   segments.push(createSegment(currentSegmentDays, config));
 
   return segments;
 }
 
-/**
- * Create a trip segment from a list of consecutive (or to-be-stayed) exam days
- */
 function createSegment(days: ScheduleDay[], _config: SchedulerConfig): TripSegment {
   const firstDay = days[0];
   const lastDay = days[days.length - 1];
 
-  // Determine arrival date
   const arrivalDate = firstDay.needsAccommodationBefore
     ? getPreviousDay(firstDay.date)
     : firstDay.date;
 
-  // Determine departure date
   const departureDate = lastDay.needsAccommodationAfter
     ? getNextDay(lastDay.date)
     : lastDay.date;
 
-  // Calculate accommodation nights
+  // Each night is identified by the date it starts on.
   const accommodationNights: string[] = [];
 
-  // Add night before first day if needed
   if (firstDay.needsAccommodationBefore) {
     accommodationNights.push(getPreviousDay(firstDay.date));
   }
 
-  // Add nights between exam days
   for (let i = 0; i < days.length - 1; i++) {
     const currentDay = days[i];
     const nextDay = days[i + 1];
     const gapNights = daysBetween(currentDay.date, nextDay.date);
 
-    // Add all nights in the gap
     let currentDate = currentDay.date;
     for (let j = 0; j < gapNights; j++) {
       accommodationNights.push(currentDate);
@@ -186,7 +163,6 @@ function createSegment(days: ScheduleDay[], _config: SchedulerConfig): TripSegme
     }
   }
 
-  // Add night after last day if needed
   if (lastDay.needsAccommodationAfter) {
     accommodationNights.push(lastDay.date);
   }
@@ -200,8 +176,8 @@ function createSegment(days: ScheduleDay[], _config: SchedulerConfig): TripSegme
 }
 
 /**
- * Calculate total cost for a schedule
- * Uses trip-based logic with gap analysis to decide when to go home vs stay
+ * Real money cost of a schedule: travel and accommodation per trip segment
+ * (see buildTripSegments). Online-only days cost nothing.
  */
 export function calculateCost(
   exams: ExamWithSubject[],
@@ -226,7 +202,6 @@ export function calculateCost(
   const days = buildScheduleDays(exams, config);
   const offlineDays = days.filter((d) => d.hasOfflineExam);
 
-  // If no offline exams, no travel or accommodation needed
   if (offlineDays.length === 0) {
     return {
       totalCost: 0,
@@ -237,13 +212,11 @@ export function calculateCost(
     };
   }
 
-  // Build trip segments (decides when to go home vs stay)
   const segments = buildTripSegments(offlineDays, config);
 
-  // Each segment requires 2 travel trips (to and from)
+  // One trip there and one back per segment.
   const travelTrips = segments.length * 2;
 
-  // Collect all accommodation nights from all segments
   const allNights = new Set<string>();
   for (const segment of segments) {
     for (const night of segment.accommodationNights) {
@@ -266,14 +239,12 @@ export function calculateCost(
 /**
  * Count the PTO days a schedule requires and the resulting virtual penalty.
  *
- * A "PTO day" is a day with at least one in-person (offline) exam that falls on
- * a configured working day. Online-only days never count. Each such day is
- * charged config.ptoDayCost. When preferFreeDayExams is off (or no cost set),
- * the penalty is always zero, so behavior is unchanged.
+ * A PTO day is a working day with at least one in-person exam; online-only days
+ * never count. Each costs config.ptoDayCost. Zero when preferFreeDayExams is off
+ * or no cost is set.
  *
- * The penalty is additive per exam day, which keeps the total optimization
- * score monotonic non-decreasing as exams are added — preserving the validity
- * of the branch-and-bound pruning in the scheduler.
+ * The penalty is additive per exam day, so it never decreases as exams are
+ * added. The scheduler's branch-and-bound pruning relies on that.
  */
 export function calculatePtoPenalty(
   exams: ExamWithSubject[],
@@ -300,9 +271,8 @@ export function calculatePtoPenalty(
 }
 
 /**
- * Optimization score used by the scheduler: real monetary cost plus the
- * virtual PTO penalty. This is what the backtracking minimizes; the
- * user-facing total cost remains the pure money value from calculateCost().
+ * What the scheduler minimizes: real money cost plus the virtual PTO penalty.
+ * The user-facing total stays the pure money value from calculateCost().
  */
 export function calculateScheduleScore(
   exams: ExamWithSubject[],
@@ -315,14 +285,12 @@ export function calculateScheduleScore(
 }
 
 /**
- * Quick cost estimate for branch-and-bound pruning
- * Returns a lower bound on the cost
+ * Unused. Returns the exact cost of `exams`, not a lower bound for extending
+ * them; the schedulers prune on the real score instead.
  */
 export function estimateMinimumCost(
   exams: ExamWithSubject[],
   config: SchedulerConfig
 ): number {
-  // Simple estimate: just calculate actual cost
-  // Could be optimized to be a true lower bound
   return calculateCost(exams, config).totalCost;
 }

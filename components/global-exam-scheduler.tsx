@@ -214,7 +214,7 @@ export function GlobalExamScheduler() {
       const result = generateGlobalSchedule(requirements, studyConfigs, breakMinutes)
       setComparison(result)
     } catch (err: any) {
-      toast({ title: "Chyba při výpočtu rozvrhu", description: err?.message, variant: "destructive" })
+      toast({ title: "Nepodařilo se vypočítat rozvrh", description: err?.message, variant: "destructive" })
     } finally {
       setComputing(false)
     }
@@ -338,7 +338,7 @@ export function GlobalExamScheduler() {
               </div>
             </div>
             {hasEnabled && (
-              <Button onClick={openNewPeriod} className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 flex-shrink-0">
+              <Button onClick={openNewPeriod} aria-label="Nové období" className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 flex-shrink-0">
                 <Plus className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Nové období</span>
               </Button>
@@ -353,12 +353,11 @@ export function GlobalExamScheduler() {
             <CardContent className="py-12 text-center">
               <CalendarDays className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70" />
               <p className="text-sm font-medium text-foreground">Žádná aktivní studia</p>
-              <p className="mt-1 text-sm text-muted-foreground">Plánovač zkoušek je dostupný pouze pro aktivní studia.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Plánovač zkoušek funguje jen pro aktivní studia.</p>
             </CardContent>
           </Card>
         ) : (
           <>
-            {/* Studies management: enable + configure directly from the planner */}
             <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -384,6 +383,7 @@ export function GlobalExamScheduler() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setSettingsStudy(s)}
+                      aria-label="Nastavení"
                       className="h-8 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/40"
                     >
                       <Settings2 className="h-4 w-4 sm:mr-1" />
@@ -393,6 +393,7 @@ export function GlobalExamScheduler() {
                       checked={s.exam_scheduler_enabled}
                       disabled={togglingId === s.id}
                       onCheckedChange={(checked) => toggleStudyEnabled(s, checked)}
+                      aria-label="Zahrnout do plánovače"
                     />
                   </div>
                 ))}
@@ -409,14 +410,13 @@ export function GlobalExamScheduler() {
               </Card>
             ) : (
               <>
-            {/* Settings + run */}
             <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="py-4 flex flex-wrap items-center gap-4 justify-between">
                 <div className="flex items-center gap-3">
                   <Clock3 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                   <div>
                     <p className="text-sm font-medium text-foreground">Pauza mezi studii</p>
-                    <p className="text-xs text-muted-foreground">Přidá se k době přesunu při dvou prezenčních zkouškách v jeden den</p>
+                    <p className="text-xs text-muted-foreground">Přičte se k době přesunu, když jsou v jeden den dvě prezenční zkoušky.</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Input
@@ -442,16 +442,15 @@ export function GlobalExamScheduler() {
                   <p className="w-full flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
                     <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
                     {subjectsWithoutTermsCount === 1
-                      ? "1 předmět zatím nemá žádné termíny a není zahrnut do rozvrhu – plán se ještě změní."
+                      ? "1 předmět zatím nemá termíny, rozvrh proto ještě není úplný."
                       : subjectsWithoutTermsCount <= 4
-                        ? `${subjectsWithoutTermsCount} předměty zatím nemají žádné termíny a nejsou zahrnuty do rozvrhu – plán se ještě změní.`
-                        : `${subjectsWithoutTermsCount} předmětů zatím nemá žádné termíny a není zahrnuto do rozvrhu – plán se ještě změní.`}
+                        ? `${subjectsWithoutTermsCount} předměty zatím nemají termíny, rozvrh proto ještě není úplný.`
+                        : `${subjectsWithoutTermsCount} předmětů zatím nemá termíny, rozvrh proto ještě není úplný.`}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Periods list */}
             <section className="space-y-4">
               {studies.map((study) => {
                 const studyPeriods = periodsByStudy.get(study.id) || []
@@ -490,6 +489,7 @@ export function GlobalExamScheduler() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => setDeleteTarget(p)}
+                                  aria-label="Smazat období"
                                   className="h-8 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -510,7 +510,7 @@ export function GlobalExamScheduler() {
                                         key={sid}
                                         variant="secondary"
                                         className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-normal"
-                                        title="Předmět zatím nemá žádné termíny a není zahrnut do rozvrhu"
+                                        title="Do rozvrhu se nezahrne, dokud nebude mít termíny"
                                       >
                                         <AlertTriangle className="h-3 w-3 mr-1" />
                                         {subj?.abbreviation || subj?.name || "?"}
@@ -557,7 +557,6 @@ export function GlobalExamScheduler() {
               )}
             </section>
 
-            {/* Schedule result */}
             {comparison && <GlobalExamScheduleView comparison={comparison} />}
               </>
             )}
@@ -599,7 +598,7 @@ export function GlobalExamScheduler() {
           <AlertDialogHeader>
             <AlertDialogTitle>Smazat období?</AlertDialogTitle>
             <AlertDialogDescription>
-              Opravdu chcete smazat období „{deleteTarget?.name}“ včetně všech jeho termínů? Tuto akci nelze vrátit.
+              Období „{deleteTarget?.name}“ se trvale smaže i se všemi termíny.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
