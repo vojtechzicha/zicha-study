@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -20,6 +20,17 @@ interface OneDriveFilePickerProps {
   initialPathName?: string
   fileExtensions?: string[] // Optional filter for file extensions
   allowFolders?: boolean
+}
+
+/** Placeholder rows shown while a listing (or the picker's start folder) loads. */
+export function OneDriveFilePickerLoading() {
+  return (
+    <div className="space-y-2">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-12 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
+      ))}
+    </div>
+  )
 }
 
 export function OneDriveFilePicker({
@@ -46,8 +57,12 @@ export function OneDriveFilePicker({
   )
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
+  // Only the latest request may update the list: an older listing that
+  // resolves late (e.g. the drive root) must not replace a newer one
+  const latestRequestRef = useRef(0)
 
   const loadFiles = useCallback(async (path: string, search?: string) => {
+    const requestId = ++latestRequestRef.current
     setLoading(true)
     setError(null)
     
@@ -60,6 +75,7 @@ export function OneDriveFilePicker({
         method: "GET",
         headers: { "Content-Type": "application/json" },
       })
+      if (requestId !== latestRequestRef.current) return
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -74,6 +90,7 @@ export function OneDriveFilePicker({
       }
 
       const { files } = await response.json()
+      if (requestId !== latestRequestRef.current) return
       
       // Filter files by extension if specified
       let filteredFiles = files
@@ -94,9 +111,12 @@ export function OneDriveFilePicker({
         setCurrentPath(path)
       }
     } catch (err) {
+      if (requestId !== latestRequestRef.current) return
       setError(err instanceof Error ? err.message : "Nastala chyba při načítání souborů")
     } finally {
-      setLoading(false)
+      if (requestId === latestRequestRef.current) {
+        setLoading(false)
+      }
     }
   }, [fileExtensions])
 
@@ -230,11 +250,7 @@ export function OneDriveFilePicker({
       {/* File/Folder List */}
       <div className="max-h-96 min-w-0 space-y-1 overflow-y-auto pr-1">
         {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 bg-primary-100 dark:bg-primary-900/50 rounded animate-pulse" />
-            ))}
-          </div>
+          <OneDriveFilePickerLoading />
         ) : availableFiles.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
             {isSearching ? "Žádné soubory neodpovídají hledání" : "Žádné soubory nebyly nalezeny"}

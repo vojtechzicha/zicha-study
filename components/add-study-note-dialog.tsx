@@ -31,7 +31,7 @@ import {
 import { cacheFileToOneDrive } from "@/lib/actions/onedrive-cache"
 import type { OneDriveFile } from "@/lib/types/materials"
 import type { StudyNoteFormData } from "@/lib/types/study-notes"
-import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
+import { OneDriveFilePicker, OneDriveFilePickerLoading } from "@/components/onedrive-file-picker"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { getShareUrl } from "@/lib/utils/share-url"
 import { NOTE_TYPES } from "@/lib/constants"
@@ -52,6 +52,17 @@ interface StudyMaterialSettingsData {
   materials_root_folder_id?: string
   materials_root_folder_name?: string
   materials_root_folder_path?: string
+}
+
+// Module-level so the picker gets a stable array: a new one on every render
+// would re-trigger its initial folder load
+const NOTE_KIND_EXTENSIONS = {
+  word: ["docx", "doc"],
+  obsidian: ["md"],
+} as const
+const NOTE_KIND_PICKER_EXTENSIONS = {
+  word: NOTE_KIND_EXTENSIONS.word.map((ext) => `.${ext}`),
+  obsidian: NOTE_KIND_EXTENSIONS.obsidian.map((ext) => `.${ext}`),
 }
 
 // Generate a unique slug for the study note
@@ -101,7 +112,7 @@ export function AddStudyNoteDialog({
   onSuccess,
 }: AddStudyNoteDialogProps) {
   const isObsidian = noteKind === "obsidian"
-  const allowedExtensions = isObsidian ? ["md"] : ["docx", "doc"]
+  const allowedExtensions: readonly string[] = NOTE_KIND_EXTENSIONS[noteKind]
   const fileFormatLabel = isObsidian ? "Markdown (.md)" : "DOCX"
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -322,7 +333,11 @@ export function AddStudyNoteDialog({
             </Alert>
           )}
 
-          {showFilePicker ? (
+          {showFilePicker && !isObsidian && !settingsLoaded ? (
+            // The start folder comes from the study settings: mounting the
+            // picker before they load would open it at the drive root
+            <OneDriveFilePickerLoading />
+          ) : showFilePicker ? (
             (() => {
               // Obsidian vaults live outside the study folder: start at the
               // last used vault folder (or the drive root), not the study's
@@ -339,7 +354,7 @@ export function AddStudyNoteDialog({
                   onFileSelected={handleFileSelected}
                   initialPath={initialPath}
                   initialPathName={initialPathName}
-                  fileExtensions={allowedExtensions.map((ext) => `.${ext}`)}
+                  fileExtensions={NOTE_KIND_PICKER_EXTENSIONS[noteKind]}
                 />
               )
             })()
