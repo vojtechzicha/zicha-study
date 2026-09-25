@@ -31,7 +31,7 @@ import { createMaterial, createSubjectMaterial } from "@/lib/actions/materials"
 import { cacheFileToOneDrive } from "@/lib/actions/onedrive-cache"
 import { getMaterialCategoryOptions } from "@/lib/constants"
 import type { OneDriveFile, MaterialFormData } from "@/lib/types/materials"
-import { OneDriveFilePicker } from "@/components/onedrive-file-picker"
+import { OneDriveFilePicker, OneDriveFilePickerLoading } from "@/components/onedrive-file-picker"
 
 interface AddMaterialDialogProps {
   studyId: string
@@ -214,7 +214,11 @@ export function AddMaterialDialog({
             </Alert>
           )}
 
-          {showFilePicker ? (
+          {showFilePicker && !settingsLoaded ? (
+            // The start folder comes from the study settings: mounting the
+            // picker before they load would open it at the drive root
+            <OneDriveFilePickerLoading />
+          ) : showFilePicker ? (
             <OneDriveFilePicker
               onFileSelected={handleFileSelected}
               initialPath={studyMaterialSettingsData.materials_root_folder_path || "/drive/root:"}
