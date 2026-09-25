@@ -67,13 +67,15 @@ async function deleteDriveItem(itemId: string): Promise<void> {
   throw new Error(`Failed to delete OneDrive cache item: ${response.status}`)
 }
 
+/**
+ * Look up a direct child folder by name using path addressing relative to the parent
+ * (`/items/{parentId}:/{name}`); `/children` does not support `$filter`.
+ * Returns null when the child is missing or is not a folder.
+ */
 async function findChildFolder(parentId: string, folderName: string): Promise<string | null> {
-  const params = new URLSearchParams({
-    "$filter": `name eq '${folderName.replace(/'/g, "''")}'`,
-    "$select": "id,name,folder",
-  })
+  const params = new URLSearchParams({ "$select": "id,name,folder" })
   const response = await makeGraphRequest(
-    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(parentId)}/children?${params.toString()}`
+    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(parentId)}:/${encodeURIComponent(folderName)}?${params.toString()}`
   )
 
   if (response.status === 404) {
@@ -84,13 +86,8 @@ async function findChildFolder(parentId: string, folderName: string): Promise<st
     throw new Error(`Failed to inspect OneDrive cache folder: ${response.status}`)
   }
 
-  const data = await response.json()
-  const folder = data.value?.find(
-    (item: { id?: string; name?: string; folder?: unknown }) =>
-      item.name === folderName && item.folder && item.id
-  )
-
-  return folder?.id ?? null
+  const item: { id?: string; folder?: unknown } = await response.json()
+  return item.folder && item.id ? item.id : null
 }
 
 async function isDriveFolderEmpty(folderId: string): Promise<boolean> {
