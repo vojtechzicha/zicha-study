@@ -377,10 +377,18 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                       </Button>
                     </div>
 
-                    {grp.terms.length === 0 ? (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 italic">
-                        Zatím žádné termíny. Do rozvrhu se předmět dostane, až nějaké přidáte.
+                    {subj?.completed && (
+                      <p className="text-xs text-muted-foreground italic">
+                        Předmět je dokončený, do rozvrhu se nezahrne.
                       </p>
+                    )}
+
+                    {grp.terms.length === 0 ? (
+                      !subj?.completed && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 italic">
+                          Zatím žádné termíny. Do rozvrhu se předmět dostane, až nějaké přidáte.
+                        </p>
+                      )
                     ) : (
                       grp.terms.map((term, index) => (
                         <div key={term.id || index} className="p-3 border rounded-lg bg-card space-y-3">

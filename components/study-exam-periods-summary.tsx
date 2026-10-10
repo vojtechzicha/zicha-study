@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CalendarDays, Lock, ExternalLink, Loader2, AlertTriangle } from "lucide-react"
+import { CalendarDays, Lock, ExternalLink, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { fetchStudyExamPeriods } from "@/lib/actions/exam-scheduler"
 
 interface SummarySubject {
   id: string
   name: string
   abbreviation?: string | null
+  completed?: boolean
 }
 
 interface StudyExamPeriodsSummaryProps {
@@ -122,6 +123,20 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
                         const subj = subjectMap.get(sid)
                         const grpTerms = terms.filter((t) => t.period_id === p.id && t.subject_id === sid)
                         const hasLock = grpTerms.some((t) => t.locked)
+                        if (subj?.completed) {
+                          return (
+                            <Badge
+                              key={sid}
+                              variant="secondary"
+                              className="bg-muted text-muted-foreground font-normal"
+                              title="Dokončený předmět, do rozvrhu se nezahrne"
+                            >
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              {subj.abbreviation || subj.name}
+                              <span className="ml-1">(dokončený)</span>
+                            </Badge>
+                          )
+                        }
                         if (grpTerms.length === 0) {
                           return (
                             <Badge

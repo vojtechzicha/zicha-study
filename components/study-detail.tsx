@@ -214,7 +214,7 @@ export function StudyDetail({ study, onBack }: StudyDetailProps) {
           <div className="mb-8">
             <StudyExamPeriodsSummary
               studyId={currentStudy.id}
-              subjects={subjects.map((s: any) => ({ id: s.id, name: s.name, abbreviation: s.abbreviation }))}
+              subjects={subjects.map((s: any) => ({ id: s.id, name: s.name, abbreviation: s.abbreviation, completed: !!s.completed }))}
               refreshTrigger={examSchedulerRefreshTrigger}
             />
           </div>

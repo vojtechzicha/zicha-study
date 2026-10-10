@@ -885,7 +885,7 @@ export async function getGlobalExamSchedulingData() {
 /**
  * Upcoming locked exam terms of active scheduler-enabled studies, with study, subject and
  * period metadata, for the homepage / tasks view. Only locked terms are commitments;
- * unlocked ones are still just candidates.
+ * unlocked ones are still just candidates. Terms of completed subjects are left out.
  */
 export async function getUpcomingLockedExamTerms(fromDate: string) {
   const termsCol = await col("exam_terms")
@@ -902,7 +902,7 @@ export async function getUpcomingLockedExamTerms(fromDate: string) {
   const db = await getDb()
   const [studies, subjects, periods] = await Promise.all([
     db.collection("studies").find({ _id: { $in: studyIds as any[] }, exam_scheduler_enabled: true, status: "active" }).project({ _id: 1, name: 1, logo_url: 1 }).toArray(),
-    db.collection("subjects").find({ _id: { $in: subjectIds as any[] } }).project({ _id: 1, name: 1, abbreviation: 1 }).toArray(),
+    db.collection("subjects").find({ _id: { $in: subjectIds as any[] } }).project({ _id: 1, name: 1, abbreviation: 1, completed: 1 }).toArray(),
     db.collection("exam_periods").find({ _id: { $in: periodIds as any[] } }).project({ _id: 1, name: 1 }).toArray(),
   ])
 
@@ -911,7 +911,7 @@ export async function getUpcomingLockedExamTerms(fromDate: string) {
   const periodMap = new Map(periods.map((p) => [String(p._id), p]))
 
   return terms
-    .filter((t) => studyMap.has(t.study_id))
+    .filter((t) => studyMap.has(t.study_id) && !subjectMap.get(t.subject_id)?.completed)
     .map((t) => ({
       term: t,
       study: studyMap.get(t.study_id),

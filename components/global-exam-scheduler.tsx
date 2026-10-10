@@ -29,6 +29,7 @@ import {
   Clock3,
   Settings2,
   AlertTriangle,
+  CheckCircle2,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { StudyLogo } from "@/components/study-logo"
@@ -166,7 +167,8 @@ export function GlobalExamScheduler() {
 
   const subjectMap = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects])
 
-  // Build requirements: one per (period, subject) with >=1 term.
+  // Build requirements: one per (period, subject) with >=1 term. Completed
+  // subjects no longer need a term, so they are left out of the plan.
   const requirements: GlobalRequirement[] = useMemo(() => {
     const periodMap = new Map(periods.map((p) => [p.id, p]))
     const grouped = new Map<string, TermData[]>()
@@ -181,7 +183,7 @@ export function GlobalExamScheduler() {
       const [periodId, subjectId] = key.split(":")
       const period = periodMap.get(periodId)
       const subject = subjectMap.get(subjectId)
-      if (!period) continue
+      if (!period || subject?.completed) continue
       reqs.push({
         requirementId: key,
         periodId,
@@ -295,15 +297,17 @@ export function GlobalExamScheduler() {
 
   // (period, subject) members without any candidate term — they can't be
   // scheduled yet, so the generated plan is incomplete and will change.
+  // Completed subjects don't need a term.
   const subjectsWithoutTermsCount = useMemo(() => {
     let count = 0
     for (const p of periods) {
       for (const sid of p.subject_ids || []) {
+        if (subjectMap.get(sid)?.completed) continue
         if (!termsByPeriodSubject.has(`${p.id}:${sid}`)) count++
       }
     }
     return count
-  }, [periods, termsByPeriodSubject])
+  }, [periods, termsByPeriodSubject, subjectMap])
 
   if (loading) {
     return (
@@ -504,6 +508,20 @@ export function GlobalExamScheduler() {
                                   const subj = subjectMap.get(sid)
                                   const grpTerms = termsByPeriodSubject.get(`${p.id}:${sid}`) || []
                                   const hasLock = grpTerms.some((t) => t.locked)
+                                  if (subj?.completed) {
+                                    return (
+                                      <Badge
+                                        key={sid}
+                                        variant="secondary"
+                                        className="bg-muted text-muted-foreground font-normal"
+                                        title="Dokončený předmět, do rozvrhu se nezahrne"
+                                      >
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        {subj.abbreviation || subj.name}
+                                        <span className="ml-1">(dokončený)</span>
+                                      </Badge>
+                                    )
+                                  }
                                   if (grpTerms.length === 0) {
                                     return (
                                       <Badge
