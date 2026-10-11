@@ -68,6 +68,8 @@ export interface Exam {
   // Set by the global scheduler for a term covering only some parts of a
   // split exam, e.g. "Písemná".
   partLabel?: string;
+  // Set by the global scheduler for a předtermín.
+  isPreTerm?: boolean;
 }
 
 export interface ExamWithSubject extends Exam {

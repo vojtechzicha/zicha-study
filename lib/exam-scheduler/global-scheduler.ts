@@ -19,7 +19,9 @@
  * separately) is instead satisfied by a set of terms that covers every part
  * exactly once, with a minimum gap between them and, when the order is
  * binding, starting with increasing parts. A term covering all parts is the
- * plain "whole exam" case. When any term is locked, the solver runs twice:
+ * plain "whole exam" case. A předtermín (pre-term) is never picked on its own:
+ * it is a candidate only once locked, and then it may fall before the period
+ * start. When any term is locked, the solver runs twice:
  * once forcing every locked term (the FORCED / official schedule) and once ignoring locks (the
  * OPTIMAL schedule), so the UI can show what a cheaper plan would look like.
  */
@@ -79,6 +81,7 @@ export interface GlobalTerm {
   note: string | null;
   locked: boolean;
   partIds?: string[]; // parts covered; missing = all. Ignored unless the requirement is split
+  isPreTerm?: boolean; // předtermín: planned only when locked, may precede windowStart
 }
 
 export interface GlobalRequirement {
@@ -168,6 +171,14 @@ function transitMinutes(config: SchedulerConfig): number {
 
 function withinWindow(date: string, start: string, end: string): boolean {
   return compareDate(date, start) >= 0 && compareDate(date, end) <= 0;
+}
+
+// Terms the solver may use. A předtermín counts only once locked, in both runs
+// (so the optimal plan can still pick it over a later term), and may fall
+// before the period start, though not after its end.
+function isCandidate(req: GlobalRequirement, term: GlobalTerm): boolean {
+  if (term.isPreTerm) return term.locked && compareDate(term.date, req.windowEnd) <= 0;
+  return withinWindow(term.date, req.windowStart, req.windowEnd);
 }
 
 /**
@@ -309,6 +320,9 @@ function buildPartOptions(
 
 function noOptionReason(req: GlobalRequirement, terms: GlobalTerm[], locksAreTheCause: boolean): string {
   if (req.terms.length === 0) return "žádné termíny";
+  if (terms.length === 0 && req.terms.every((t) => t.isPreTerm && !t.locked)) {
+    return "předtermín není zamčený";
+  }
   if (terms.length === 0 || !req.parts) return "žádný termín nespadá do období";
   const missing = req.parts.parts.find((p) => !terms.some((t) => termPartIds(req, t).includes(p.id)));
   if (missing) return `chybí termín části „${missing.label}“`;
@@ -334,6 +348,7 @@ function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExa
     durationMinutes: term.durationMinutes,
     isOnline: term.isOnline,
     partLabel: getExamTermPartLabel({ part_ids: term.partIds }, req.parts) ?? undefined,
+    isPreTerm: term.isPreTerm || undefined,
     subject,
     endTime: "",
     studyId: req.studyId,
@@ -561,7 +576,8 @@ function buildResult(
 
 /**
  * Run the scheduler for one mode (optimal = ignore locks, forced = honor them).
- * Terms outside the period window are dropped, locked ones included. A
+ * Terms outside the period window are dropped, locked ones included, except a
+ * locked předtermín before the window. Unlocked předtermíny are dropped too. A
  * requirement left with no option is reported as unschedulable and kept out of
  * the optimization; the rest is still scheduled.
  */
@@ -578,9 +594,7 @@ function runMode(
   let partsTruncated = false;
 
   for (const req of requirements) {
-    const terms = req.terms.filter((t) =>
-      withinWindow(t.date, req.windowStart, req.windowEnd)
-    );
+    const terms = req.terms.filter((t) => isCandidate(req, t));
     const locked = respectLocks ? terms.filter((t) => t.locked) : [];
 
     // A plain subject keeps its (first) locked term; a split one keeps the

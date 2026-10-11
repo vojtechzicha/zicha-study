@@ -28,7 +28,7 @@ function term(
   termId: string,
   date: string,
   startTime: string,
-  opts: { dur?: number; online?: boolean; locked?: boolean; parts?: string[] } = {}
+  opts: { dur?: number; online?: boolean; locked?: boolean; parts?: string[]; preTerm?: boolean } = {}
 ): GlobalTerm {
   return {
     termId,
@@ -39,6 +39,7 @@ function term(
     note: null,
     locked: opts.locked ?? false,
     partIds: opts.parts,
+    isPreTerm: opts.preTerm,
   };
 }
 
@@ -668,5 +669,126 @@ describe("generateGlobalSchedule – exams split into parts", () => {
     const { forced } = generateGlobalSchedule(requirements, configs, 0);
     expect(forced.selectedTermIds).toHaveLength(1);
     expect(forced.items.find((i) => i.type === "exam")!.exam!.partLabel).toBeUndefined();
+  });
+});
+
+describe("generateGlobalSchedule – předtermín", () => {
+  const configs = [cfg("A")];
+  const window = { start: "2025-02-01", end: "2025-02-28" };
+
+  it("never picks an unlocked předtermín, even when it is the cheapest", () => {
+    const requirements = [
+      req(
+        "A",
+        "mat",
+        [
+          term("pre", "2025-01-20", "09:00", { online: true, preTerm: true }),
+          term("reg", "2025-02-10", "09:00"),
+        ],
+        window
+      ),
+    ];
+
+    const { forced, optimal, hasLocks } = generateGlobalSchedule(requirements, configs, 0);
+    expect(hasLocks).toBe(false);
+    expect(forced.selectedTermIds).toEqual(["reg"]);
+    expect(optimal.selectedTermIds).toEqual(["reg"]);
+  });
+
+  it("honors a locked předtermín before the period start and labels it", () => {
+    const requirements = [
+      req(
+        "A",
+        "mat",
+        [
+          term("pre", "2025-01-20", "09:00", { preTerm: true, locked: true }),
+          term("reg", "2025-02-10", "09:00", { online: true }),
+        ],
+        window
+      ),
+    ];
+
+    const { forced, optimal } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["pre"]);
+    expect(forced.items.find((i) => i.type === "exam")!.exam!.isPreTerm).toBe(true);
+    // Without locks the cheaper online term wins.
+    expect(optimal.selectedTermIds).toEqual(["reg"]);
+  });
+
+  it("lets the unlocked plan keep a locked předtermín when it is the cheaper choice", () => {
+    const requirements = [
+      req(
+        "A",
+        "mat",
+        [
+          term("pre", "2025-01-20", "09:00", { online: true, preTerm: true, locked: true }),
+          term("reg", "2025-02-10", "09:00"),
+        ],
+        window
+      ),
+    ];
+
+    const { forced, optimal, savingsCost } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["pre"]);
+    expect(optimal.selectedTermIds).toEqual(["pre"]);
+    expect(savingsCost).toBe(0);
+  });
+
+  it("reports a subject whose only term is an unlocked předtermín", () => {
+    const requirements = [
+      req("A", "mat", [term("pre", "2025-01-20", "09:00", { preTerm: true })], window),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toBe("předtermín není zamčený");
+  });
+
+  it("drops a locked předtermín after the period end", () => {
+    const requirements = [
+      req(
+        "A",
+        "mat",
+        [
+          term("pre", "2025-03-05", "09:00", { preTerm: true, locked: true }),
+          term("reg", "2025-02-10", "09:00"),
+        ],
+        window
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["reg"]);
+  });
+
+  it("still drops a regular term before the period start", () => {
+    const requirements = [
+      req("A", "mat", [term("early", "2025-01-20", "09:00", { locked: true })], window),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toBe("žádný termín nespadá do období");
+  });
+
+  it("a locked předtermín can cover one part of a split exam", () => {
+    const requirements = [
+      {
+        ...req(
+          "A",
+          "fyz",
+          [
+            term("w_pre", "2025-01-20", "09:00", { parts: ["Písemná"], preTerm: true, locked: true }),
+            term("w", "2025-02-10", "09:00", { parts: ["Písemná"] }),
+            term("o", "2025-02-10", "12:00", { parts: ["Ústní"] }),
+          ],
+          window
+        ),
+        parts: { parts: [{ id: "Písemná", label: "Písemná" }, { id: "Ústní", label: "Ústní" }], ordered: true },
+      },
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["w_pre", "o"]);
   });
 });

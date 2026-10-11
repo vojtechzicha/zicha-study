@@ -386,10 +386,14 @@ export interface ExamPeriod {
   updated_at: string
 }
 
+// Label of an early term offered before the exam period (předtermín).
+export const PRE_TERM_LABEL = 'Předtermín'
+
 // A candidate exam slot for one subject inside one period. The scheduler picks
 // exactly one term per (period, subject) requirement, or for a split subject a
 // set of terms covering each part once. A locked term is forced into the
-// official ("forced") schedule even when a cheaper option exists.
+// official ("forced") schedule even when a cheaper option exists. A předtermín
+// may fall before the period start and is planned only once it is locked.
 export interface ExamTerm {
   id: string
   period_id: string
@@ -402,6 +406,7 @@ export interface ExamTerm {
   note: string | null
   locked: boolean
   part_ids?: string[] // parts of a split exam this term covers; missing = all
+  is_pre_term?: boolean // předtermín; missing = regular term
   created_at: string
   updated_at: string
 }
