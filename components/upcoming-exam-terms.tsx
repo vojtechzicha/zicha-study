@@ -14,6 +14,7 @@ export interface UpcomingExamTerm {
     duration_minutes: number
     is_online: boolean
     note: string | null
+    part_label?: string | null // set for a term covering only some parts of the exam
   }
   study: { id: string; name: string; logo_url: string | null } | null
   subject: { id: string; name: string; abbreviation: string | null } | null
@@ -57,6 +58,11 @@ export function UpcomingExamTerms({ terms, onTermClick }: UpcomingExamTermsProps
                   <span className="font-medium text-foreground truncate">
                     {subject ? (subject.abbreviation ? `[${subject.abbreviation}] ${subject.name}` : subject.name) : "Zkouška"}
                   </span>
+                  {term.part_label && (
+                    <Badge variant="outline" className="border-border text-muted-foreground">
+                      {term.part_label}
+                    </Badge>
+                  )}
                   <Badge variant="secondary" className="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300">
                     <Lock className="h-3 w-3 mr-1" />
                     {study?.name}

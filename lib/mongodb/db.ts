@@ -903,7 +903,7 @@ export async function getUpcomingLockedExamTerms(fromDate: string) {
   const [studies, subjects, periods] = await Promise.all([
     db.collection("studies").find({ _id: { $in: studyIds as any[] }, exam_scheduler_enabled: true, status: "active" }).project({ _id: 1, name: 1, logo_url: 1 }).toArray(),
     db.collection("subjects").find({ _id: { $in: subjectIds as any[] } }).project({ _id: 1, name: 1, abbreviation: 1, completed: 1 }).toArray(),
-    db.collection("exam_periods").find({ _id: { $in: periodIds as any[] } }).project({ _id: 1, name: 1 }).toArray(),
+    db.collection("exam_periods").find({ _id: { $in: periodIds as any[] } }).project({ _id: 1, name: 1, exam_parts: 1 }).toArray(),
   ])
 
   const studyMap = new Map(studies.map((s) => [String(s._id), s]))

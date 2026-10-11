@@ -2,7 +2,7 @@
 
 import * as db from "@/lib/mongodb/db"
 import { requireUser } from "@/lib/auth-guard"
-import { EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS } from "@/lib/constants"
+import { EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS, getExamTermPartLabel } from "@/lib/constants"
 
 // ALL studies with their scheduler config, so the planner page can enable and
 // configure studies without visiting each study's settings.
@@ -168,12 +168,32 @@ export async function saveInterStudyBreakMinutesAction(minutes: number) {
   }
 }
 
+export async function fetchExamPartGapMinutes() {
+  await requireUser()
+  const settings = await db.getAppSettings()
+  const value = settings?.exam_part_gap_minutes
+  return typeof value === "number" ? value : EXAM_SCHEDULER_DEFAULTS.EXAM_PART_GAP_MINUTES
+}
+
+export async function saveExamPartGapMinutesAction(minutes: number) {
+  try {
+    await requireUser()
+    await db.upsertAppSettings({ exam_part_gap_minutes: Math.max(0, Math.round(minutes)) })
+    return { error: null }
+  } catch (err: any) {
+    return { error: { message: err?.message || "Nepodařilo se uložit pauzu mezi částmi." } }
+  }
+}
+
 // Upcoming locked terms for the homepage and tasks list.
 export async function fetchUpcomingLockedExamTerms(fromDate: string) {
   await requireUser()
   const rows = await db.getUpcomingLockedExamTerms(fromDate)
   return rows.map((r) => ({
-    term: db.normalizeId(r.term) as any,
+    term: {
+      ...(db.normalizeId(r.term) as any),
+      part_label: getExamTermPartLabel(r.term, r.period?.exam_parts?.[r.term.subject_id]),
+    },
     study: r.study
       ? { id: String(r.study._id), name: r.study.name as string, logo_url: (r.study.logo_url as string | null) ?? null }
       : null,

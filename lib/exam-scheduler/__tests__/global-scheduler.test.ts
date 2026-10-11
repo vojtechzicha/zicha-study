@@ -28,7 +28,7 @@ function term(
   termId: string,
   date: string,
   startTime: string,
-  opts: { dur?: number; online?: boolean; locked?: boolean } = {}
+  opts: { dur?: number; online?: boolean; locked?: boolean; parts?: string[] } = {}
 ): GlobalTerm {
   return {
     termId,
@@ -38,6 +38,7 @@ function term(
     isOnline: opts.online ?? false,
     note: null,
     locked: opts.locked ?? false,
+    partIds: opts.parts,
   };
 }
 
@@ -59,6 +60,11 @@ function req(
     windowEnd: window.end ?? "2025-12-31",
     terms,
   };
+}
+
+// Exam split into separately registered parts (ids = labels), in this order.
+function split(r: GlobalRequirement, partIds: string[], ordered = true): GlobalRequirement {
+  return { ...r, parts: { parts: partIds.map((id) => ({ id, label: id })), ordered } };
 }
 
 // ─── Invariant: a produced plan must never contain a conflicting pair ─────────
@@ -393,5 +399,293 @@ describe("generateGlobalSchedule – invariant under a denser multi-study mix", 
 
     assertNoConflicts(forced, configs, breakMinutes);
     assertNoConflicts(optimal, configs, breakMinutes);
+  });
+});
+
+describe("generateGlobalSchedule – exams split into parts", () => {
+  // Transit 2 h, 200 Kč one way: a same-day trip costs 400.
+  const configs = [cfg("A", { travelCostOneWay: 200, travelDurationHours: 2 })];
+  const WO = ["Písemná", "Ústní"];
+  const P4 = ["1", "2", "3", "4"];
+
+  it("picks a whole-exam term when it is cheaper than separate parts", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("whole", "2025-03-20", "12:00", { online: true }),
+          term("w", "2025-03-10", "09:00", { parts: ["Písemná"] }),
+          term("o", "2025-03-10", "13:00", { parts: ["Ústní"] }),
+        ]),
+        WO
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["whole"]);
+    expect(forced.totalCost).toBe(0);
+  });
+
+  it("picks separate parts when they are cheaper and labels them", () => {
+    const requirements = [
+      req("A", "alg", [term("a1", "2025-03-10", "11:00")]),
+      split(
+        req("A", "fyz", [
+          term("whole", "2025-03-20", "12:00"), // separate trip
+          term("w", "2025-03-10", "09:00", { parts: ["Písemná"] }),
+          term("o", "2025-03-10", "14:00", { parts: ["Ústní"] }),
+        ]),
+        WO
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    assertNoConflicts(forced, configs, 0);
+    expect(forced.selectedTermIds.sort()).toEqual(["a1", "o", "w"]);
+    expect(forced.breakdown.examCount).toBe(3);
+    expect(forced.totalCost).toBe(400);
+    const labels = forced.items.filter((i) => i.type === "exam").map((i) => i.exam!.partLabel);
+    expect(labels).toEqual(["Písemná", undefined, "Ústní"]);
+  });
+
+  it("a term may cover several parts; the remaining parts follow it", () => {
+    // {1,3} → {2} → {4}: valid, each term starts with a higher part.
+    const requirements = [
+      split(
+        req("A", "mat", [
+          term("t13", "2025-03-10", "09:00", { parts: ["1", "3"] }),
+          term("t2", "2025-03-10", "11:00", { parts: ["2"] }),
+          term("t4", "2025-03-10", "13:00", { parts: ["4"] }),
+        ]),
+        P4
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["t13", "t2", "t4"]);
+    const labels = forced.items.filter((i) => i.type === "exam").map((i) => i.exam!.partLabel);
+    expect(labels).toEqual(["1 + 3", "2", "4"]);
+  });
+
+  it("a binding order rejects starting with a higher part; a free order accepts it", () => {
+    const terms = [
+      term("t13", "2025-03-10", "09:00", { parts: ["1", "3"] }),
+      term("t4", "2025-03-10", "11:00", { parts: ["4"] }),
+      term("t2", "2025-03-10", "13:00", { parts: ["2"] }),
+    ];
+
+    const ordered = generateGlobalSchedule([split(req("A", "mat", terms), P4)], configs, 0);
+    expect(ordered.forced.selectedTermIds).toHaveLength(0);
+    expect(ordered.forced.unschedulable[0].reason).toMatch(/pořadí/);
+
+    const free = generateGlobalSchedule([split(req("A", "mat", terms), P4, false)], configs, 0);
+    expect(free.forced.selectedTermIds).toEqual(["t13", "t4", "t2"]);
+  });
+
+  it("a binding order compares the time of the terms", () => {
+    const terms = [
+      term("w_before", "2025-03-05", "12:00", { parts: ["Písemná"] }),
+      term("o", "2025-03-10", "09:00", { parts: ["Ústní"] }),
+      term("w_after", "2025-03-10", "11:00", { parts: ["Písemná"] }), // same trip, but after the oral
+    ];
+
+    const ordered = generateGlobalSchedule([split(req("A", "fyz", terms), WO)], configs, 0);
+    expect(ordered.forced.selectedTermIds).toEqual(["w_before", "o"]);
+    expect(ordered.forced.totalCost).toBe(800);
+
+    const free = generateGlobalSchedule([split(req("A", "fyz", terms), WO, false)], configs, 0);
+    expect(free.forced.selectedTermIds).toEqual(["o", "w_after"]);
+    expect(free.forced.totalCost).toBe(400);
+  });
+
+  it("keeps the minimum gap between parts, measured from end to start", () => {
+    const terms = [
+      term("w", "2025-03-10", "10:00", { parts: ["Písemná"] }), // 10:00–11:00
+      term("o_soon", "2025-03-10", "11:30", { parts: ["Ústní"] }), // 30 min after
+      term("o_ok", "2025-03-10", "12:00", { parts: ["Ústní"] }), // 60 min after
+    ];
+
+    const { forced } = generateGlobalSchedule([split(req("A", "fyz", terms), WO)], configs, 0, 60);
+    expect(forced.selectedTermIds).toEqual(["w", "o_ok"]);
+
+    const tight = generateGlobalSchedule(
+      [split(req("A", "fyz", [terms[0], terms[1]]), WO)],
+      configs,
+      0,
+      60
+    );
+    expect(tight.forced.selectedTermIds).toHaveLength(0);
+    expect(tight.forced.unschedulable[0].reason).toMatch(/pauzou/);
+
+    const noGap = generateGlobalSchedule([split(req("A", "fyz", [terms[0], terms[1]]), WO)], configs, 0, 0);
+    expect(noGap.forced.selectedTermIds).toEqual(["w", "o_soon"]);
+  });
+
+  it("never picks overlapping parts, even in a free order", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("w", "2025-03-10", "10:00", { dur: 120, parts: ["Písemná"] }),
+          term("o", "2025-03-10", "11:00", { parts: ["Ústní"] }),
+        ]),
+        WO,
+        false
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0, 0);
+    expect(forced.selectedTermIds).toHaveLength(0);
+  });
+
+  it("names a part without any term", () => {
+    const requirements = [split(req("A", "fyz", [term("w", "2025-03-10", "09:00", { parts: ["Písemná"] })]), WO)];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toBe("chybí termín části „Ústní“");
+  });
+
+  it("a locked multi-part term is kept and the remaining parts are scheduled after it", () => {
+    const requirements = [
+      split(
+        req("A", "mat", [
+          term("whole", "2025-03-20", "12:00", { online: true }),
+          term("t13", "2025-03-10", "09:00", { parts: ["1", "3"], locked: true }),
+          term("t2", "2025-03-10", "11:00", { parts: ["2"] }),
+          term("t2_later", "2025-03-15", "11:00", { parts: ["2"] }),
+          term("t4", "2025-03-10", "13:00", { parts: ["4"] }),
+          term("t24", "2025-03-12", "09:00", { parts: ["2", "4"] }),
+        ]),
+        P4
+      ),
+    ];
+
+    const comparison = generateGlobalSchedule(requirements, configs, 0);
+    expect(comparison.forced.selectedTermIds).toEqual(["t13", "t2", "t4"]);
+    expect(comparison.optimal.selectedTermIds).toEqual(["whole"]);
+  });
+
+  it("locked terms sharing a part leave the exam unschedulable", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("w1", "2025-03-10", "09:00", { parts: ["Písemná"], locked: true }),
+          term("w2", "2025-03-11", "09:00", { parts: ["Písemná"], locked: true }),
+          term("o", "2025-03-12", "09:00", { parts: ["Ústní"] }),
+        ]),
+        WO
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toMatch(/zamčené/);
+  });
+
+  it("reports exams that locks leave out so the unlocked plan can be shown", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("o", "2025-03-10", "09:00", { parts: ["Ústní"], locked: true }),
+          term("w", "2025-03-10", "12:00", { parts: ["Písemná"], locked: true }), // after the oral
+          term("w_early", "2025-03-05", "09:00", { parts: ["Písemná"] }),
+        ]),
+        WO
+      ),
+    ];
+
+    const comparison = generateGlobalSchedule(requirements, configs, 0);
+    expect(comparison.forced.selectedTermIds).toHaveLength(0);
+    expect(comparison.optimal.selectedTermIds).toEqual(["w_early", "o"]);
+    expect(comparison.droppedByLocks).toBe(1);
+  });
+
+  it("counts exams dropped by locks even when the unlocked plan drops another one", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("w_early", "2025-03-10", "08:00", { parts: ["Písemná"] }),
+          term("o", "2025-03-10", "10:00", { parts: ["Ústní"], locked: true }),
+          term("w_late", "2025-03-10", "13:00", { parts: ["Písemná"], locked: true }), // after the oral
+        ]),
+        WO
+      ),
+      req("A", "alg", [term("b", "2025-03-10", "10:30")]), // overlaps the oral
+    ];
+
+    const comparison = generateGlobalSchedule(requirements, configs, 0);
+    expect(comparison.forced.unschedulable.map((u) => u.subjectName)).toEqual(["fyz"]);
+    expect(comparison.optimal.unschedulable.map((u) => u.subjectName)).toEqual(["alg"]);
+    expect(comparison.droppedByLocks).toBe(1);
+  });
+
+  it("stays fast when many terms only fail on the last part", () => {
+    // Parts 1–5 have 20 valid terms each, one day per part; every part 6 term
+    // comes before them all, so no combination is valid in a binding order.
+    const parts = ["1", "2", "3", "4", "5", "6"];
+    const terms: GlobalTerm[] = [];
+    for (let p = 1; p <= 5; p++) {
+      for (let i = 0; i < 20; i++) {
+        const hour = String(6 + Math.floor(i / 2)).padStart(2, "0");
+        terms.push(term(`p${p}_${i}`, `2025-03-0${p + 1}`, `${hour}:${i % 2 ? "30" : "00"}`, { dur: 15, parts: [String(p)] }));
+      }
+    }
+    for (let i = 0; i < 20; i++) {
+      terms.push(term(`p6_${i}`, "2025-03-01", "09:00", { dur: 15, parts: ["6"] }));
+    }
+
+    const started = Date.now();
+    const { forced } = generateGlobalSchedule([split(req("A", "mat", terms), parts)], configs, 0, 0);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toMatch(/pořadí/);
+    expect(forced.truncated).toBe(true);
+  });
+
+  it("keeps locked terms that lie beyond the combination cap and reports truncation", () => {
+    // 4 parts × 11 non-overlapping terms = 14 641 valid sets, over the 10 000 cap.
+    const parts = ["1", "2", "3", "4"];
+    const terms: GlobalTerm[] = [];
+    for (const p of parts) {
+      for (let i = 0; i < 11; i++) {
+        const day = String(10 + i).padStart(2, "0");
+        const hour = String(6 + Number(p) * 2).padStart(2, "0");
+        terms.push(term(`p${p}_${i}`, `2025-03-${day}`, `${hour}:00`, { parts: [p], locked: p === "1" && i === 10 }));
+      }
+    }
+
+    const comparison = generateGlobalSchedule([split(req("A", "mat", terms), parts, false)], configs, 0, 0);
+    expect(comparison.forced.selectedTermIds).toContain("p1_10");
+    expect(comparison.forced.selectedTermIds).toHaveLength(4);
+    expect(comparison.forced.truncated).toBe(false);
+    expect(comparison.optimal.truncated).toBe(true);
+  });
+
+  it("treats terms without parts as the whole exam", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("whole", "2025-03-10", "09:00"),
+          term("w", "2025-03-10", "12:00", { parts: ["Písemná"] }),
+        ]),
+        WO
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["whole"]);
+    expect(forced.items.find((i) => i.type === "exam")!.exam!.partLabel).toBeUndefined();
+  });
+
+  it("ignores parts when the subject is not split", () => {
+    const requirements = [
+      req("A", "fyz", [
+        term("w", "2025-03-10", "09:00", { parts: ["Písemná"] }),
+        term("o", "2025-03-10", "14:00", { parts: ["Ústní"] }),
+      ]),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(1);
+    expect(forced.items.find((i) => i.type === "exam")!.exam!.partLabel).toBeUndefined();
   });
 });

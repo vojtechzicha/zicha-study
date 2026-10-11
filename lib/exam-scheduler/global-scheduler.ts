@@ -15,8 +15,12 @@
  *
  * For each requirement — a (period, subject) pair — exactly one of its
  * candidate terms must be selected, and that term must fall inside the period
- * window. When any term is locked, the solver runs twice: once forcing every
- * locked term (the FORCED / official schedule) and once ignoring locks (the
+ * window. A split requirement (parts such as written and oral registered
+ * separately) is instead satisfied by a set of terms that covers every part
+ * exactly once, with a minimum gap between them and, when the order is
+ * binding, starting with increasing parts. A term covering all parts is the
+ * plain "whole exam" case. When any term is locked, the solver runs twice:
+ * once forcing every locked term (the FORCED / official schedule) and once ignoring locks (the
  * OPTIMAL schedule), so the UI can show what a cheaper plan would look like.
  */
 import {
@@ -35,6 +39,18 @@ import {
 } from "./cost-calculator";
 import { buildScheduleItems } from "./scheduler";
 import { compareDate, parseTimeToMinutes } from "./utils";
+import {
+  EXAM_SCHEDULER_DEFAULTS,
+  getExamTermPartLabel,
+  getTermPartIds,
+  type ExamPartsConfig,
+} from "@/lib/constants";
+
+// Caps on the term combinations accepted, and the search steps taken, for one
+// split exam. Only inputs with many parts and many terms each reach them; the
+// options found so far are used and the result is marked as truncated.
+const MAX_PART_OPTIONS = 10_000;
+const MAX_PART_STEPS = 200_000;
 
 // Safety cap on backtracking steps to avoid pathological blow-ups on huge
 // inputs. If hit, the best solution found so far is returned (and reported).
@@ -62,6 +78,7 @@ export interface GlobalTerm {
   isOnline: boolean;
   note: string | null;
   locked: boolean;
+  partIds?: string[]; // parts covered; missing = all. Ignored unless the requirement is split
 }
 
 export interface GlobalRequirement {
@@ -75,6 +92,8 @@ export interface GlobalRequirement {
   windowStart: string; // period start_date (inclusive)
   windowEnd: string; // period due_date (inclusive)
   terms: GlobalTerm[];
+  // Set when the exam's parts are registered separately.
+  parts?: ExamPartsConfig;
 }
 
 export interface UnschedulableRequirement {
@@ -112,7 +131,7 @@ export interface GlobalScheduleResult {
   };
   perStudy: PerStudyBreakdown[];
   unschedulable: UnschedulableRequirement[];
-  truncated: boolean; // true if the search hit MAX_BACKTRACK_STEPS
+  truncated: boolean; // true if a search hit its cap (MAX_BACKTRACK_STEPS or a split exam's)
   error?: string;
 }
 
@@ -120,6 +139,8 @@ export interface GlobalScheduleComparison {
   forced: GlobalScheduleResult; // respects locked terms (official schedule)
   optimal: GlobalScheduleResult; // ignores locks (cheapest possible)
   hasLocks: boolean;
+  // Exams the locks leave out of the forced schedule that the optimal one places.
+  droppedByLocks: number;
   // How much cheaper (CZK score) the optimal schedule is vs the forced one.
   // 0 when there are no locks or locks don't cost anything extra.
   savingsScore: number;
@@ -131,6 +152,12 @@ export interface GlobalScheduleComparison {
 interface SelectedExam extends ExamWithSubject {
   studyId: string;
   requirementId: string;
+}
+
+// A requirement ready for the solver. Each option is a set of terms that
+// together satisfy it: a single term, or terms covering each part once.
+interface SolvableRequirement extends GlobalRequirement {
+  options: GlobalTerm[][];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -189,6 +216,108 @@ function canAddGlobal(
   return true;
 }
 
+function termPartIds(req: GlobalRequirement, term: GlobalTerm): string[] {
+  return getTermPartIds({ part_ids: term.partIds }, req.parts);
+}
+
+// Absolute minutes, so gaps across midnight and days are measured end to start.
+function startMinutes(term: GlobalTerm): number {
+  return Date.parse(`${term.date}T00:00:00Z`) / 60_000 + parseTimeToMinutes(term.startTime);
+}
+
+/**
+ * Sets of terms that cover every part of a split exam exactly once, sorted by
+ * time, keeping only those with at least `gapMinutes` between consecutive
+ * terms and, for a binding order, whose terms start with increasing parts
+ * (a term starts with its lowest part, so {1,3} → {2} → {4} is valid).
+ * `required` terms (the locks of the forced run) are in every set; they are
+ * placed first so the caps can't cut them off. `truncated` is set when a cap
+ * stopped the search early.
+ */
+function buildPartOptions(
+  req: GlobalRequirement,
+  parts: ExamPartsConfig,
+  terms: GlobalTerm[],
+  gapMinutes: number,
+  required: GlobalTerm[] = []
+): { options: GlobalTerm[][]; truncated: boolean } {
+  const partIndex = new Map(parts.parts.map((p, i) => [p.id, i]));
+  const covering = terms.map((term) => {
+    const ids = termPartIds(req, term);
+    return {
+      term,
+      parts: ids,
+      lowest: Math.min(...ids.map((id) => partIndex.get(id) ?? Infinity)),
+      start: startMinutes(term),
+      end: startMinutes(term) + term.durationMinutes,
+    };
+  });
+  type Covering = (typeof covering)[number];
+
+  // Two terms of one set keep the gap; with a binding order the one with the
+  // lower part comes first. Checked while extending, so invalid branches are
+  // cut early.
+  const fits = (a: Covering, b: Covering): boolean => {
+    const [first, second] = a.lowest < b.lowest ? [a, b] : [b, a];
+    if (second.start >= first.end + gapMinutes) return true;
+    return !parts.ordered && first.start >= second.end + gapMinutes;
+  };
+
+  const options: GlobalTerm[][] = [];
+  const covered = new Set<string>();
+  const chosen: Covering[] = [];
+  const add = (c: Covering) => {
+    chosen.push(c);
+    c.parts.forEach((id) => covered.add(id));
+  };
+
+  for (const term of required) {
+    const c = covering.find((x) => x.term === term)!;
+    if (c.parts.some((id) => covered.has(id)) || !chosen.every((other) => fits(c, other))) {
+      return { options, truncated: false };
+    }
+    add(c);
+  }
+
+  // Exact cover: always extend with a term containing the lowest uncovered
+  // part, so each set is produced once.
+  let steps = 0;
+  let truncated = false;
+  const extend = () => {
+    if (options.length >= MAX_PART_OPTIONS || ++steps > MAX_PART_STEPS) {
+      truncated = true;
+      return;
+    }
+    const next = parts.parts.find((p) => !covered.has(p.id));
+    if (!next) {
+      options.push(chosen.map((c) => c.term).sort((a, b) => startMinutes(a) - startMinutes(b)));
+      return;
+    }
+    for (const c of covering) {
+      if (truncated) return;
+      if (!c.parts.includes(next.id) || c.parts.some((id) => covered.has(id))) continue;
+      if (!chosen.every((other) => fits(c, other))) continue;
+      add(c);
+      extend();
+      c.parts.forEach((id) => covered.delete(id));
+      chosen.pop();
+    }
+  };
+  extend();
+  return { options, truncated };
+}
+
+function noOptionReason(req: GlobalRequirement, terms: GlobalTerm[], locksAreTheCause: boolean): string {
+  if (req.terms.length === 0) return "žádné termíny";
+  if (terms.length === 0 || !req.parts) return "žádný termín nespadá do období";
+  const missing = req.parts.parts.find((p) => !terms.some((t) => termPartIds(req, t).includes(p.id)));
+  if (missing) return `chybí termín části „${missing.label}“`;
+  if (locksAreTheCause) return "zamčené termíny nejdou doplnit o zbývající části";
+  return req.parts.ordered
+    ? "části nejdou naplánovat v pořadí s pauzou mezi nimi"
+    : "části nejdou naplánovat s pauzou mezi nimi";
+}
+
 function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExam {
   const subject = {
     id: req.subjectId,
@@ -204,6 +333,7 @@ function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExa
     startTime: term.startTime.substring(0, 5),
     durationMinutes: term.durationMinutes,
     isOnline: term.isOnline,
+    partLabel: getExamTermPartLabel({ part_ids: term.partIds }, req.parts) ?? undefined,
     subject,
     endTime: "",
     studyId: req.studyId,
@@ -232,7 +362,7 @@ function scoreByStudy(
 // ─── Core solver ─────────────────────────────────────────────────────────────
 
 function solve(
-  requirements: GlobalRequirement[],
+  requirements: SolvableRequirement[],
   configByStudy: Map<string, GlobalStudyConfig>,
   breakMinutes: number
 ): { selection: SelectedExam[]; skippedIds: string[]; truncated: boolean } {
@@ -240,8 +370,8 @@ function solve(
     return { selection: [], skippedIds: [], truncated: false };
   }
 
-  // Sort most-constrained-first (fewest candidate terms) for better pruning.
-  const ordered = [...requirements].sort((a, b) => a.terms.length - b.terms.length);
+  // Sort most-constrained-first (fewest options) for better pruning.
+  const ordered = [...requirements].sort((a, b) => a.options.length - b.options.length);
 
   let bestSelection: SelectedExam[] | null = null;
   let bestSkipped: string[] | null = null;
@@ -274,36 +404,43 @@ function solve(
     }
 
     const req = ordered[index];
-    // Candidate terms must fall inside the period window. Sort online/earlier
-    // first as a light heuristic.
-    const candidates = req.terms
-      .filter((t) => withinWindow(t.date, req.windowStart, req.windowEnd))
-      .map((t) => makeSelectedExam(req, t))
+    // Sort online/earlier options first as a light heuristic.
+    const candidates = req.options
+      .map((option) => option.map((t) => makeSelectedExam(req, t)))
       .sort((a, b) => {
-        if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
-        const d = compareDate(a.date, b.date);
+        const aOnline = a.every((e) => e.isOnline);
+        const bOnline = b.every((e) => e.isOnline);
+        if (aOnline !== bOnline) return aOnline ? -1 : 1;
+        const d = compareDate(a[0].date, b[0].date);
         if (d !== 0) return d;
-        return a.startTime.localeCompare(b.startTime);
+        return a[0].startTime.localeCompare(b[0].startTime);
       });
 
-    for (const exam of candidates) {
+    const studyExams = selectedByStudy.get(req.studyId) || [];
+    selectedByStudy.set(req.studyId, studyExams);
+
+    for (const option of candidates) {
       if (truncated) return;
       // Conflict guard: NEVER place a term that collides with an already
       // selected one (same-study overlap or cross-study insufficient gap).
-      if (!canAddGlobal(exam, flatSelected, configByStudy, breakMinutes)) continue;
+      // The parts of one option are checked against each other too.
+      let added = 0;
+      for (const exam of option) {
+        if (!canAddGlobal(exam, flatSelected, configByStudy, breakMinutes)) break;
+        studyExams.push(exam);
+        flatSelected.push(exam);
+        added++;
+      }
 
-      const studyExams = selectedByStudy.get(exam.studyId) || [];
-      studyExams.push(exam);
-      selectedByStudy.set(exam.studyId, studyExams);
-      flatSelected.push(exam);
-
-      if (currentScore() < bestScore) {
+      if (added === option.length && currentScore() < bestScore) {
         backtrack(index + 1);
       }
 
       // Undo
-      studyExams.pop();
-      flatSelected.pop();
+      for (let i = 0; i < added; i++) {
+        studyExams.pop();
+        flatSelected.pop();
+      }
     }
 
     // Skip branch: leave this requirement unscheduled (heavily penalized). Lets
@@ -425,45 +562,51 @@ function buildResult(
 /**
  * Run the scheduler for one mode (optimal = ignore locks, forced = honor them).
  * Terms outside the period window are dropped, locked ones included. A
- * requirement left with no term is reported as unschedulable and kept out of
+ * requirement left with no option is reported as unschedulable and kept out of
  * the optimization; the rest is still scheduled.
  */
 function runMode(
   requirements: GlobalRequirement[],
   configByStudy: Map<string, GlobalStudyConfig>,
   breakMinutes: number,
+  partGapMinutes: number,
   respectLocks: boolean
 ): GlobalScheduleResult {
   const unschedulable: UnschedulableRequirement[] = [];
-  const solvable: GlobalRequirement[] = [];
+  const solvable: SolvableRequirement[] = [];
+  const gap = Math.max(0, partGapMinutes);
+  let partsTruncated = false;
 
   for (const req of requirements) {
-    let terms = req.terms.filter((t) =>
+    const terms = req.terms.filter((t) =>
       withinWindow(t.date, req.windowStart, req.windowEnd)
     );
+    const locked = respectLocks ? terms.filter((t) => t.locked) : [];
 
-    if (respectLocks) {
-      const locked = terms.filter((t) => t.locked);
-      if (locked.length > 0) {
-        // Honor the (first) locked term as a fixed selection.
-        terms = [locked[0]];
-      }
+    // A plain subject keeps its (first) locked term; a split one keeps the
+    // sets that contain every locked term.
+    let options: GlobalTerm[][];
+    if (!req.parts) {
+      options = locked.length > 0 ? [[locked[0]]] : terms.map((t) => [t]);
+    } else {
+      const built = buildPartOptions(req, req.parts, terms, gap, locked);
+      options = built.options;
+      partsTruncated ||= built.truncated;
     }
 
-    if (terms.length === 0) {
-      const hasAnyTerm = req.terms.length > 0;
+    if (options.length === 0) {
+      const locksAreTheCause =
+        !!req.parts && locked.length > 0 && buildPartOptions(req, req.parts, terms, gap).options.length > 0;
       unschedulable.push({
         requirementId: req.requirementId,
         periodName: req.periodName,
         subjectName: req.subjectName,
-        reason: hasAnyTerm
-          ? "žádný termín nespadá do období"
-          : "žádné termíny",
+        reason: noOptionReason(req, terms, locksAreTheCause),
       });
       continue;
     }
 
-    solvable.push({ ...req, terms });
+    solvable.push({ ...req, terms, options });
   }
 
   const { selection, skippedIds, truncated } = solve(solvable, configByStudy, breakMinutes);
@@ -481,28 +624,32 @@ function runMode(
     });
   }
 
-  return buildResult(selection, configByStudy, unschedulable, truncated);
+  return buildResult(selection, configByStudy, unschedulable, truncated || partsTruncated);
 }
 
 /**
  * Returns the forced (locks honored) and optimal (locks ignored) schedules plus
  * the savings of dropping the locks. Without locks both are the same result.
+ * `partGapMinutes` is the minimum gap between two terms of one split exam.
  */
 export function generateGlobalSchedule(
   requirements: GlobalRequirement[],
   studyConfigs: GlobalStudyConfig[],
-  breakMinutes: number
+  breakMinutes: number,
+  partGapMinutes: number = EXAM_SCHEDULER_DEFAULTS.EXAM_PART_GAP_MINUTES
 ): GlobalScheduleComparison {
   const configByStudy = new Map(studyConfigs.map((c) => [c.studyId, c]));
   const hasLocks = requirements.some((r) => r.terms.some((t) => t.locked));
 
-  const forced = runMode(requirements, configByStudy, breakMinutes, true);
+  const forced = runMode(requirements, configByStudy, breakMinutes, partGapMinutes, true);
   const optimal = hasLocks
-    ? runMode(requirements, configByStudy, breakMinutes, false)
+    ? runMode(requirements, configByStudy, breakMinutes, partGapMinutes, false)
     : forced;
 
   const savingsScore = Math.max(0, forced.score - optimal.score);
   const savingsCost = Math.max(0, forced.totalCost - optimal.totalCost);
+  const optimalDropped = new Set(optimal.unschedulable.map((u) => u.requirementId));
+  const droppedByLocks = forced.unschedulable.filter((u) => !optimalDropped.has(u.requirementId)).length;
 
-  return { forced, optimal, hasLocks, savingsScore, savingsCost };
+  return { forced, optimal, hasLocks, droppedByLocks, savingsScore, savingsCost };
 }

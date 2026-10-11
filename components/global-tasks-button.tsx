@@ -247,6 +247,9 @@ export function GlobalTasksButton() {
                           <span className="truncate text-sm font-medium text-foreground">
                             {subject ? (subject.abbreviation || subject.name) : "Zkouška"}
                           </span>
+                          {term.part_label && (
+                            <span className="flex-shrink-0 text-xs text-muted-foreground">{term.part_label}</span>
+                          )}
                           {term.is_online && <Monitor className="h-3 w-3 flex-shrink-0 text-green-600 dark:text-green-400" />}
                         </div>
                         <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
