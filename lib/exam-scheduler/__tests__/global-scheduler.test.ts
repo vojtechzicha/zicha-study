@@ -599,6 +599,25 @@ describe("generateGlobalSchedule – exams split into parts", () => {
     expect(comparison.droppedByLocks).toBe(1);
   });
 
+  it("counts exams dropped by locks even when the unlocked plan drops another one", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("w_early", "2025-03-10", "08:00", { parts: ["Písemná"] }),
+          term("o", "2025-03-10", "10:00", { parts: ["Ústní"], locked: true }),
+          term("w_late", "2025-03-10", "13:00", { parts: ["Písemná"], locked: true }), // after the oral
+        ]),
+        WO
+      ),
+      req("A", "alg", [term("b", "2025-03-10", "10:30")]), // overlaps the oral
+    ];
+
+    const comparison = generateGlobalSchedule(requirements, configs, 0);
+    expect(comparison.forced.unschedulable.map((u) => u.subjectName)).toEqual(["fyz"]);
+    expect(comparison.optimal.unschedulable.map((u) => u.subjectName)).toEqual(["alg"]);
+    expect(comparison.droppedByLocks).toBe(1);
+  });
+
   it("stays fast when many terms only fail on the last part", () => {
     // Parts 1–5 have 20 valid terms each, one day per part; every part 6 term
     // comes before them all, so no combination is valid in a binding order.

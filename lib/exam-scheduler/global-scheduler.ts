@@ -648,7 +648,8 @@ export function generateGlobalSchedule(
 
   const savingsScore = Math.max(0, forced.score - optimal.score);
   const savingsCost = Math.max(0, forced.totalCost - optimal.totalCost);
-  const droppedByLocks = Math.max(0, forced.unschedulable.length - optimal.unschedulable.length);
+  const optimalDropped = new Set(optimal.unschedulable.map((u) => u.requirementId));
+  const droppedByLocks = forced.unschedulable.filter((u) => !optimalDropped.has(u.requirementId)).length;
 
   return { forced, optimal, hasLocks, droppedByLocks, savingsScore, savingsCost };
 }
