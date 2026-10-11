@@ -19,7 +19,7 @@ import {
   Sparkles,
   AlertTriangle,
 } from "lucide-react"
-import type { ScheduleItem, GlobalScheduleResult, GlobalScheduleComparison } from "@/lib/exam-scheduler"
+import { locksChangeSchedule, type ScheduleItem, type GlobalScheduleResult, type GlobalScheduleComparison } from "@/lib/exam-scheduler"
 import { PRE_TERM_LABEL, TENTATIVE_TERM_LABEL } from "@/lib/constants"
 import { czPlural } from "@/lib/utils/task-format"
 
@@ -280,10 +280,10 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
 }
 
 export function GlobalExamScheduleView({ comparison }: GlobalExamScheduleViewProps) {
-  const { forced, optimal, hasLocks, droppedByLocks, savingsCost } = comparison
+  const { forced, optimal, droppedByLocks, savingsCost } = comparison
   const [view, setView] = useState<"forced" | "optimal">("forced")
 
-  const showComparison = hasLocks && (droppedByLocks > 0 || savingsCost > 0 || optimal.score < forced.score)
+  const showComparison = locksChangeSchedule(comparison)
 
   return (
     <div className="space-y-4">

@@ -30,6 +30,7 @@ import {
   Settings2,
   AlertTriangle,
   CheckCircle2,
+  ClipboardCopy,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { StudyLogo } from "@/components/study-logo"
@@ -55,6 +56,7 @@ import {
 import { SchedulerStudySettingsDialog, type SchedulerStudy } from "@/components/scheduler-study-settings-dialog"
 import {
   generateGlobalSchedule,
+  buildExamPlanPrompt,
   type GlobalRequirement,
   type GlobalStudyConfig,
   type GlobalScheduleComparison,
@@ -108,6 +110,8 @@ interface SubjectData {
   abbreviation: string | null
   semester?: string
   subject_type?: string
+  completion_type?: string | null
+  credits?: number | null
   completed?: boolean
   planned?: boolean
 }
@@ -115,6 +119,11 @@ interface SubjectData {
 function formatDateShort(dateStr: string): string {
   if (!dateStr) return ""
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("cs-CZ", { day: "numeric", month: "short" })
+}
+
+function todayIso(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
 function buildStudyConfig(s: StudyData): GlobalStudyConfig {
@@ -238,6 +247,44 @@ export function GlobalExamScheduler() {
       setComputing(false)
     }
   }, [requirements, studyConfigs, breakMinutes, partGapMinutes, toast])
+
+  // Copies the current plan as a prompt for another assistant. Uses the shown
+  // schedule, or generates one first.
+  const copyPlanPrompt = async () => {
+    try {
+      let result = comparison
+      if (!result) {
+        result = generateGlobalSchedule(requirements, studyConfigs, breakMinutes, partGapMinutes)
+        setComparison(result)
+      }
+      const prompt = buildExamPlanPrompt({
+        comparison: result,
+        requirements,
+        studies: studyConfigs,
+        periods: periods.map((p) => ({
+          id: p.id,
+          studyId: p.study_id,
+          name: p.name,
+          startDate: p.start_date,
+          endDate: p.due_date,
+          subjectIds: p.subject_ids || [],
+        })),
+        subjects: subjects.map((s) => ({
+          id: s.id,
+          name: s.name,
+          abbreviation: s.abbreviation,
+          completed: s.completed,
+          completionType: s.completion_type,
+          credits: s.credits,
+        })),
+        today: todayIso(),
+      })
+      await navigator.clipboard.writeText(prompt)
+      toast({ title: "Prompt zkopírován" })
+    } catch {
+      toast({ title: "Nepodařilo se zkopírovat prompt.", variant: "destructive" })
+    }
+  }
 
   const handleBreakChange = async (value: number) => {
     setBreakMinutes(value)
@@ -485,14 +532,26 @@ export function GlobalExamScheduler() {
                     </div>
                   )}
                 </div>
-                <Button
-                  onClick={runScheduler}
-                  disabled={computing || requirements.length === 0}
-                  className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
-                >
-                  {computing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                  {comparison ? "Přegenerovat rozvrh" : "Vygenerovat rozvrh"}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={copyPlanPrompt}
+                    disabled={computing || periods.length === 0}
+                    title="Celý plán jako prompt pro jiného asistenta"
+                    className="border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/40"
+                  >
+                    <ClipboardCopy className="h-4 w-4 mr-2" />
+                    Kopírovat prompt
+                  </Button>
+                  <Button
+                    onClick={runScheduler}
+                    disabled={computing || requirements.length === 0}
+                    className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
+                  >
+                    {computing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    {comparison ? "Přegenerovat rozvrh" : "Vygenerovat rozvrh"}
+                  </Button>
+                </div>
                 {subjectsWithoutTermsCount > 0 && (
                   <p className="w-full flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
                     <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />

@@ -1,6 +1,9 @@
 export { generateSchedule, buildScheduleItems } from "./scheduler";
 
 export { generateGlobalSchedule } from "./global-scheduler";
+
+export { buildExamPlanPrompt, locksChangeSchedule } from "./plan-prompt";
+export type { PlanPromptInput, PlanPromptPeriod, PlanPromptSubject } from "./plan-prompt";
 export type {
   GlobalStudyConfig,
   GlobalTerm,
