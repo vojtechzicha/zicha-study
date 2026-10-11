@@ -3,7 +3,6 @@ import { UNAUTHORIZED_MESSAGE } from "@/lib/auth-guard"
 import * as dbModule from "@/lib/mongodb/db"
 import * as onedriveCacheModule from "@/lib/utils/onedrive-cache"
 import * as diplomas from "./diplomas"
-import * as examOptions from "./exam-options"
 import * as examScheduler from "./exam-scheduler"
 import * as finalExams from "./final-exams"
 import * as logos from "./logos"
@@ -38,7 +37,6 @@ const onedriveCache = onedriveCacheModule as unknown as Record<string, ReturnTyp
 
 const ACTION_MODULES: Record<string, Record<string, unknown>> = {
   diplomas,
-  "exam-options": examOptions,
   "exam-scheduler": examScheduler,
   "final-exams": finalExams,
   logos,

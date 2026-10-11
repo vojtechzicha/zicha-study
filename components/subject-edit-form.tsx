@@ -1,8 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import Link from "next/link"
 import { fetchSubjectsForRepeatSelection, updateSubject, deleteSubjectAction } from "@/lib/actions/subjects"
-import { fetchExamOptions, saveExamOptions } from "@/lib/actions/exam-options"
 import { useToast } from "@/hooks/use-toast"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Save, Trash2, CalendarDays } from "lucide-react"
+import { Save, Trash2, CalendarDays, ExternalLink } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertDialog,
@@ -28,7 +28,6 @@ import {
 import { SubjectState, isFieldVisibleForState, getSubjectStateText, getSubjectStatus, requiresCredit, requiresExam } from "@/lib/status-utils"
 import { DepartmentAutocomplete } from "@/components/department-autocomplete"
 import { useDepartments } from "@/hooks/use-departments"
-import { ExamOptionsEditor, type ExamOptionData } from "@/components/exam-options-editor"
 
 interface Subject {
   id: string
@@ -64,8 +63,6 @@ interface SubjectEditFormProps {
 
 export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedulerEnabled = false }: SubjectEditFormProps) {
   const [subjectState, setSubjectState] = useState<SubjectState>(getSubjectStatus(subject))
-  const [examOptions, setExamOptions] = useState<ExamOptionData[]>([])
-  const [examOptionsLoaded, setExamOptionsLoaded] = useState(false)
   const [formData, setFormData] = useState({
     semester: subject.semester,
     abbreviation: subject.abbreviation || "",
@@ -90,30 +87,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([])
   const { toast } = useToast()
   const { departments } = useDepartments(subject.study_id)
-
-  useEffect(() => {
-    const loadExamOptions = async () => {
-      if (!examSchedulerEnabled || examOptionsLoaded) return
-
-      const data = await fetchExamOptions(subject.id)
-      if (data) {
-        type ExamOptionRow = { id: string; date: string; start_time: string; duration_minutes: number; is_online: boolean; note: string | null }
-        setExamOptions(data.map((opt: ExamOptionRow) => ({
-          id: opt.id,
-          date: opt.date,
-          start_time: opt.start_time?.substring(0, 5) || '09:00',
-          duration_minutes: opt.duration_minutes,
-          is_online: opt.is_online,
-          note: opt.note || '',
-        })))
-      }
-      setExamOptionsLoaded(true)
-    }
-
-    if (open && examSchedulerEnabled) {
-      loadExamOptions()
-    }
-  }, [open, examSchedulerEnabled, subject.id, examOptionsLoaded])
 
   useEffect(() => {
     const loadSubjects = async () => {
@@ -183,21 +156,6 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       setError(errorMessage)
       setLoading(false)
       return
-    }
-
-    if (examSchedulerEnabled) {
-      try {
-        const validOptions = examOptions.filter(opt => opt.date)
-        await saveExamOptions(subject.id, validOptions.map(opt => ({
-          date: opt.date,
-          start_time: opt.start_time,
-          duration_minutes: opt.duration_minutes,
-          is_online: opt.is_online,
-          note: opt.note || null,
-        })))
-      } catch (err) {
-        console.error('Error saving exam options:', err)
-      }
     }
 
     toast({ title: "Předmět uložen" })
@@ -402,19 +360,22 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
               </div>
 
               {examSchedulerEnabled && (
-                <div className="space-y-3 p-4 border rounded-lg bg-primary-50 dark:bg-primary-950">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-3 flex-wrap p-4 border border-primary-200 dark:border-primary-800 rounded-lg bg-primary-50 dark:bg-primary-950">
+                  <div className="flex items-center gap-2 text-sm text-foreground/80">
                     <CalendarDays className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                    <Label className="text-sm font-medium">Termíny zkoušek</Label>
+                    Termíny zkoušek se zadávají v plánovači.
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Přidejte možné termíny zkoušek pro automatický plánovač.
-                  </p>
-                  <ExamOptionsEditor
-                    options={examOptions}
-                    onChange={setExamOptions}
-                    disabled={loading}
-                  />
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/60"
+                  >
+                    <Link href="/exam-scheduler" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Otevřít plánovač
+                    </Link>
+                  </Button>
                 </div>
               )}
 
