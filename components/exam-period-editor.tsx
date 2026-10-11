@@ -8,7 +8,18 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2, Calendar, Clock, Monitor, Lock, Loader2 } from "lucide-react"
-import { EXAM_DURATION_OPTIONS, EXAM_SCHEDULER_DEFAULTS } from "@/lib/constants"
+import {
+  EXAM_DURATION_OPTIONS,
+  EXAM_SCHEDULER_DEFAULTS,
+  EXAM_TERM_PARTS,
+  EXAM_TERM_PART_LABELS,
+  EXAM_PART_ORDERS,
+  EXAM_PART_ORDER_LABELS,
+  getExamTermPart,
+  type ExamTermPart,
+  type ExamPartOrder,
+  type ExamPartsConfig,
+} from "@/lib/constants"
 import { sortSubjects, getUniqueSemestersSorted } from "@/lib/utils/subject-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -43,6 +54,7 @@ export interface EditorPeriod {
   start_date: string
   due_date: string
   subject_ids?: string[]
+  exam_parts?: Record<string, ExamPartsConfig>
 }
 
 export interface EditorTerm {
@@ -56,6 +68,7 @@ export interface EditorTerm {
   is_online: boolean
   note: string | null
   locked: boolean
+  part?: ExamTermPart
 }
 
 interface TermDraft {
@@ -66,11 +79,14 @@ interface TermDraft {
   is_online: boolean
   note: string
   locked: boolean
+  part: ExamTermPart
 }
 
 interface SubjectGroup {
   subjectId: string
   terms: TermDraft[]
+  // Set when the written and oral part are registered separately.
+  parts: ExamPartsConfig | null
 }
 
 interface ExamPeriodEditorProps {
@@ -92,7 +108,22 @@ function toDraft(t: EditorTerm): TermDraft {
     is_online: !!t.is_online,
     note: t.note || "",
     locked: !!t.locked,
+    part: getExamTermPart(t),
   }
+}
+
+// Terms that can't be locked together with `term`: any other term of a plain
+// subject; for a split subject, a combined term excludes all others and a
+// written/oral term excludes combined terms and other terms of its part.
+function locksConflict(term: TermDraft, other: TermDraft, split: boolean): boolean {
+  if (!split) return true
+  if (term.part === EXAM_TERM_PARTS.COMBINED || other.part === EXAM_TERM_PARTS.COMBINED) return true
+  return term.part === other.part
+}
+
+function keepLock(terms: TermDraft[], index: number, split: boolean): TermDraft[] {
+  const kept = terms[index]
+  return terms.map((t, i) => (i !== index && t.locked && locksConflict(kept, t, split) ? { ...t, locked: false } : t))
 }
 
 export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period, terms, onSaved }: ExamPeriodEditorProps) {
@@ -117,7 +148,11 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
       list.push(toDraft(t))
       map.set(t.subject_id, list)
     }
-    return Array.from(map.entries()).map(([subjectId, ts]) => ({ subjectId, terms: ts }))
+    return Array.from(map.entries()).map(([subjectId, ts]) => ({
+      subjectId,
+      terms: ts,
+      parts: period?.exam_parts?.[subjectId] ?? null,
+    }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period?.id])
 
@@ -153,11 +188,31 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
 
   const addSubjectGroup = (subjectId: string) => {
     if (!subjectId) return
-    setGroups((g) => [...g, { subjectId, terms: [] }])
+    setGroups((g) => [...g, { subjectId, terms: [], parts: null }])
   }
 
   const removeSubjectGroup = (subjectId: string) => {
     setGroups((g) => g.filter((grp) => grp.subjectId !== subjectId))
+  }
+
+  const setSplit = (subjectId: string, split: boolean) => {
+    setGroups((g) =>
+      g.map((grp) => {
+        if (grp.subjectId !== subjectId) return grp
+        if (split) return { ...grp, parts: { order: EXAM_PART_ORDERS.WRITTEN_FIRST } }
+        // Back to a plain subject: every term is combined and only one may stay locked.
+        const firstLocked = grp.terms.findIndex((t) => t.locked)
+        return {
+          ...grp,
+          parts: null,
+          terms: grp.terms.map((t, i) => ({ ...t, part: EXAM_TERM_PARTS.COMBINED, locked: i === firstLocked })),
+        }
+      })
+    )
+  }
+
+  const setOrder = (subjectId: string, order: ExamPartOrder) => {
+    setGroups((g) => g.map((grp) => (grp.subjectId === subjectId ? { ...grp, parts: { order } } : grp)))
   }
 
   const addTerm = (subjectId: string) => {
@@ -168,7 +223,16 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
               ...grp,
               terms: [
                 ...grp.terms,
-                { date: startDate || "", start_time: "09:00", duration_minutes: EXAM_SCHEDULER_DEFAULTS.DEFAULT_EXAM_DURATION_MINUTES, is_online: false, note: "", locked: false },
+                {
+                  date: startDate || "",
+                  start_time: "09:00",
+                  duration_minutes: EXAM_SCHEDULER_DEFAULTS.DEFAULT_EXAM_DURATION_MINUTES,
+                  is_online: false,
+                  note: "",
+                  locked: false,
+                  // Split subjects default to the part of the previous term.
+                  part: grp.parts ? (grp.terms[grp.terms.length - 1]?.part ?? EXAM_TERM_PARTS.WRITTEN) : EXAM_TERM_PARTS.COMBINED,
+                },
               ],
             }
           : grp
@@ -180,16 +244,10 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
     setGroups((g) =>
       g.map((grp) => {
         if (grp.subjectId !== subjectId) return grp
-        const newTerms = grp.terms.map((t, i) => {
-          if (i !== index) return t
-          if (field === "locked" && value === true) {
-            return { ...t, locked: true }
-          }
-          return { ...t, [field]: value }
-        })
-        // Only one term per subject can be locked.
-        if (field === "locked" && value === true) {
-          return { ...grp, terms: newTerms.map((t, i) => (i === index ? t : { ...t, locked: false })) }
+        const newTerms = grp.terms.map((t, i) => (i === index ? { ...t, [field]: value } : t))
+        // Only one term per subject (per part for split subjects) can be locked.
+        if (newTerms[index].locked && (field === "locked" || field === "part")) {
+          return { ...grp, terms: keepLock(newTerms, index, !!grp.parts) }
         }
         return { ...grp, terms: newTerms }
       })
@@ -216,9 +274,13 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
       // 1. Upsert period. subject_ids keeps subjects that have no terms yet
       // as members of the period, so they don't silently disappear.
       const subjectIds = groups.map((g) => g.subjectId)
+      const examParts: Record<string, ExamPartsConfig> = {}
+      for (const g of groups) {
+        if (g.parts) examParts[g.subjectId] = g.parts
+      }
       let periodId = period?.id
       if (isNew) {
-        const res = await createExamPeriodAction({ study_id: studyId, name: name.trim(), start_date: startDate, due_date: dueDate, subject_ids: subjectIds })
+        const res = await createExamPeriodAction({ study_id: studyId, name: name.trim(), start_date: startDate, due_date: dueDate, subject_ids: subjectIds, exam_parts: examParts })
         if (res.error || !res.data) {
           toast({ title: "Nepodařilo se vytvořit období", description: res.error?.message, variant: "destructive" })
           setSaving(false)
@@ -226,7 +288,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
         }
         periodId = res.data.id
       } else {
-        await updateExamPeriodAction(period!.id, { name: name.trim(), start_date: startDate, due_date: dueDate, subject_ids: subjectIds })
+        await updateExamPeriodAction(period!.id, { name: name.trim(), start_date: startDate, due_date: dueDate, subject_ids: subjectIds, exam_parts: examParts })
       }
       if (!periodId) {
         setSaving(false)
@@ -248,6 +310,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
             is_online: t.is_online,
             note: t.note || null,
             locked: t.locked,
+            part: grp.parts ? t.part : EXAM_TERM_PARTS.COMBINED,
           }
           if (t.id) {
             keptIds.add(t.id)
@@ -383,6 +446,43 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                       </p>
                     )}
 
+                    {!subj?.completed && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <div className="flex items-center h-9 px-2 border rounded-md bg-card">
+                            <Checkbox
+                              id={`split-${grp.subjectId}`}
+                              checked={!!grp.parts}
+                              onCheckedChange={(c) => setSplit(grp.subjectId, c === true)}
+                              className="mr-2"
+                            />
+                            <Label htmlFor={`split-${grp.subjectId}`} className="text-sm cursor-pointer">
+                              Písemná a ústní část zvlášť
+                            </Label>
+                          </div>
+                          {grp.parts && (
+                            <Select value={grp.parts.order} onValueChange={(v) => setOrder(grp.subjectId, v as ExamPartOrder)}>
+                              <SelectTrigger className="h-9 w-auto min-w-[11rem]" aria-label="Pořadí částí">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.values(EXAM_PART_ORDERS).map((o) => (
+                                  <SelectItem key={o} value={o}>
+                                    {EXAM_PART_ORDER_LABELS[o]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                        {grp.parts && (
+                          <p className="text-xs text-muted-foreground">
+                            Plánovač vybere buď jeden termín celé zkoušky, nebo termín písemné i ústní části.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {grp.terms.length === 0 ? (
                       !subj?.completed && (
                         <p className="text-xs text-amber-600 dark:text-amber-400 italic">
@@ -454,6 +554,23 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                             </div>
                           </div>
                           <div className="flex items-center gap-3 flex-wrap">
+                            {grp.parts && (
+                              <Select
+                                value={term.part}
+                                onValueChange={(v) => updateTerm(grp.subjectId, index, "part", v)}
+                              >
+                                <SelectTrigger className="h-9 w-auto min-w-[9rem]" aria-label="Část zkoušky">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.values(EXAM_TERM_PARTS).map((p) => (
+                                    <SelectItem key={p} value={p}>
+                                      {EXAM_TERM_PART_LABELS[p]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                             <Input
                               value={term.note}
                               onChange={(e) => updateTerm(grp.subjectId, index, "note", e.target.value)}

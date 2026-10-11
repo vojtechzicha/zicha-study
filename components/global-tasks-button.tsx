@@ -11,7 +11,7 @@ import { GlobalTaskRow } from "@/components/global-task-row"
 import { TaskStateChips } from "@/components/task-state-chips"
 import { StudyLogo } from "@/components/study-logo"
 import type { UpcomingExamTerm } from "@/components/upcoming-exam-terms"
-import { getTaskState, todayLocalIso, type Task, type TaskState } from "@/lib/constants"
+import { getExamTermPartLabel, getTaskState, todayLocalIso, type Task, type TaskState } from "@/lib/constants"
 import { czPlural } from "@/lib/utils/task-format"
 import { cn } from "@/lib/utils"
 
@@ -247,6 +247,9 @@ export function GlobalTasksButton() {
                           <span className="truncate text-sm font-medium text-foreground">
                             {subject ? (subject.abbreviation || subject.name) : "Zkouška"}
                           </span>
+                          {getExamTermPartLabel(term) && (
+                            <span className="flex-shrink-0 text-xs text-muted-foreground">{getExamTermPartLabel(term)}</span>
+                          )}
                           {term.is_online && <Monitor className="h-3 w-3 flex-shrink-0 text-green-600 dark:text-green-400" />}
                         </div>
                         <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">

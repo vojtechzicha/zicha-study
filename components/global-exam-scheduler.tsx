@@ -57,7 +57,13 @@ import {
   type GlobalStudyConfig,
   type GlobalScheduleComparison,
 } from "@/lib/exam-scheduler"
-import { DEFAULT_WORKING_DAYS, EXAM_SCHEDULER_DEFAULTS } from "@/lib/constants"
+import {
+  DEFAULT_WORKING_DAYS,
+  EXAM_SCHEDULER_DEFAULTS,
+  getExamTermPart,
+  type ExamPartsConfig,
+  type ExamTermPart,
+} from "@/lib/constants"
 
 interface StudyData {
   id: string
@@ -78,6 +84,7 @@ interface PeriodData {
   start_date: string
   due_date: string
   subject_ids?: string[]
+  exam_parts?: Record<string, ExamPartsConfig>
 }
 interface TermData {
   id: string
@@ -90,6 +97,7 @@ interface TermData {
   is_online: boolean
   note: string | null
   locked: boolean
+  part?: ExamTermPart
 }
 interface SubjectData {
   id: string
@@ -202,7 +210,9 @@ export function GlobalExamScheduler() {
           isOnline: !!t.is_online,
           note: t.note,
           locked: !!t.locked,
+          part: getExamTermPart(t),
         })),
+        parts: period.exam_parts?.[subjectId],
       })
     }
     return reqs

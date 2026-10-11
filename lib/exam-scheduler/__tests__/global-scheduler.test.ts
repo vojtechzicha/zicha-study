@@ -7,6 +7,7 @@ import {
   type GlobalScheduleResult,
 } from "../global-scheduler";
 import { parseTimeToMinutes } from "../utils";
+import type { ExamPartOrder, ExamTermPart } from "@/lib/constants";
 
 // ─── Builders ────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ function term(
   termId: string,
   date: string,
   startTime: string,
-  opts: { dur?: number; online?: boolean; locked?: boolean } = {}
+  opts: { dur?: number; online?: boolean; locked?: boolean; part?: ExamTermPart } = {}
 ): GlobalTerm {
   return {
     termId,
@@ -38,6 +39,7 @@ function term(
     isOnline: opts.online ?? false,
     note: null,
     locked: opts.locked ?? false,
+    part: opts.part,
   };
 }
 
@@ -59,6 +61,11 @@ function req(
     windowEnd: window.end ?? "2025-12-31",
     terms,
   };
+}
+
+// Written and oral part registered separately, in the given order.
+function split(r: GlobalRequirement, order: ExamPartOrder): GlobalRequirement {
+  return { ...r, parts: { order } };
 }
 
 // ─── Invariant: a produced plan must never contain a conflicting pair ─────────
@@ -393,5 +400,157 @@ describe("generateGlobalSchedule – invariant under a denser multi-study mix", 
 
     assertNoConflicts(forced, configs, breakMinutes);
     assertNoConflicts(optimal, configs, breakMinutes);
+  });
+});
+
+describe("generateGlobalSchedule – split written + oral exams", () => {
+  // Transit 2 h, 200 Kč one way: a same-day trip costs 400.
+  const configs = [cfg("A", { travelCostOneWay: 200, travelDurationHours: 2 })];
+
+  it("picks the combined term when it is cheaper than the pair", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("comb", "2025-03-20", "12:00", { online: true }),
+          term("w", "2025-03-10", "09:00", { part: "written" }),
+          term("o", "2025-03-10", "13:00", { part: "oral" }),
+        ]),
+        "written_first"
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["comb"]);
+    expect(forced.totalCost).toBe(0);
+  });
+
+  it("picks a written + oral pair when it is cheaper than the combined term", () => {
+    const requirements = [
+      req("A", "alg", [term("a1", "2025-03-10", "11:00")]),
+      split(
+        req("A", "fyz", [
+          term("comb", "2025-03-20", "12:00"), // separate trip
+          term("w", "2025-03-10", "09:00", { part: "written" }),
+          term("o", "2025-03-10", "14:00", { part: "oral" }),
+        ]),
+        "written_first"
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    assertNoConflicts(forced, configs, 0);
+    expect(forced.selectedTermIds.sort()).toEqual(["a1", "o", "w"]);
+    expect(forced.breakdown.examCount).toBe(3);
+    expect(forced.totalCost).toBe(400);
+    const parts = forced.items.filter((i) => i.type === "exam").map((i) => i.exam!.part);
+    expect(parts).toEqual(["written", undefined, "oral"]);
+  });
+
+  it("respects the configured order of the parts", () => {
+    const terms = [
+      term("w_before", "2025-03-05", "12:00", { part: "written" }),
+      term("o", "2025-03-10", "09:00", { part: "oral" }),
+      term("w_after", "2025-03-10", "11:00", { part: "written" }), // same trip, but after the oral
+    ];
+
+    const writtenFirst = generateGlobalSchedule([split(req("A", "fyz", terms), "written_first")], configs, 0);
+    expect(writtenFirst.forced.selectedTermIds.sort()).toEqual(["o", "w_before"]);
+    expect(writtenFirst.forced.totalCost).toBe(800);
+
+    const oralFirst = generateGlobalSchedule([split(req("A", "fyz", terms), "oral_first")], configs, 0);
+    expect(oralFirst.forced.selectedTermIds.sort()).toEqual(["o", "w_after"]);
+    expect(oralFirst.forced.totalCost).toBe(400);
+
+    const any = generateGlobalSchedule([split(req("A", "fyz", terms), "any")], configs, 0);
+    expect(any.forced.selectedTermIds.sort()).toEqual(["o", "w_after"]);
+  });
+
+  it("orders same-day parts by time", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("o", "2025-03-10", "09:00", { part: "oral" }),
+          term("w", "2025-03-10", "10:00", { part: "written" }), // starts after the oral ends
+        ]),
+        "written_first"
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toMatch(/pořadí/);
+  });
+
+  it("never picks overlapping parts", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("w", "2025-03-10", "10:00", { dur: 120, part: "written" }),
+          term("o", "2025-03-10", "11:00", { part: "oral" }),
+        ]),
+        "any"
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toMatch(/konflikt/i);
+  });
+
+  it("reports a missing part when there is no combined term", () => {
+    const requirements = [
+      split(req("A", "fyz", [term("w", "2025-03-10", "09:00", { part: "written" })]), "written_first"),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toMatch(/ústní/);
+  });
+
+  it("a locked part is kept, the other part is still optimized and combined terms are ruled out", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("comb", "2025-03-20", "12:00", { online: true }),
+          term("w", "2025-03-10", "09:00", { part: "written", locked: true }),
+          term("o_same", "2025-03-10", "14:00", { part: "oral" }),
+          term("o_later", "2025-03-15", "12:00", { part: "oral" }),
+        ]),
+        "written_first"
+      ),
+    ];
+
+    const comparison = generateGlobalSchedule(requirements, configs, 0);
+    expect(comparison.forced.selectedTermIds.sort()).toEqual(["o_same", "w"]);
+    expect(comparison.optimal.selectedTermIds).toEqual(["comb"]);
+  });
+
+  it("a locked combined term wins over everything else", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("comb", "2025-03-20", "12:00", { locked: true }),
+          term("w", "2025-03-10", "09:00", { part: "written", online: true }),
+          term("o", "2025-03-10", "14:00", { part: "oral", online: true }),
+        ]),
+        "written_first"
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["comb"]);
+  });
+
+  it("ignores parts when the subject is not split", () => {
+    const requirements = [
+      req("A", "fyz", [
+        term("w", "2025-03-10", "09:00", { part: "written" }),
+        term("o", "2025-03-10", "14:00", { part: "oral" }),
+      ]),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toHaveLength(1);
+    expect(forced.items.find((i) => i.type === "exam")!.exam!.part).toBeUndefined();
   });
 });

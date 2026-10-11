@@ -322,6 +322,56 @@ export const EXAM_SCHEDULER_DEFAULTS = {
 
 // ─── Exam Periods & Terms (global exam scheduler) ────────────────────────────
 
+// Which part of an exam a term is for (stored as exam_terms.part). Terms without
+// a part are combined. Parts only matter for subjects marked as split in the period.
+export const EXAM_TERM_PARTS = {
+  COMBINED: 'combined',
+  WRITTEN: 'written',
+  ORAL: 'oral',
+} as const
+
+export type ExamTermPart = (typeof EXAM_TERM_PARTS)[keyof typeof EXAM_TERM_PARTS]
+
+export const EXAM_TERM_PART_LABELS: Record<ExamTermPart, string> = {
+  combined: 'Celá zkouška',
+  written: 'Písemná',
+  oral: 'Ústní',
+}
+
+export const getExamTermPart = (term: { part?: string | null }): ExamTermPart =>
+  term.part === EXAM_TERM_PARTS.WRITTEN
+    ? EXAM_TERM_PARTS.WRITTEN
+    : term.part === EXAM_TERM_PARTS.ORAL
+      ? EXAM_TERM_PARTS.ORAL
+      : EXAM_TERM_PARTS.COMBINED
+
+// Label of a written or oral term; null for combined terms, which need none.
+export const getExamTermPartLabel = (term: { part?: string | null }): string | null => {
+  const part = getExamTermPart(term)
+  return part === EXAM_TERM_PARTS.COMBINED ? null : EXAM_TERM_PART_LABELS[part]
+}
+
+// Required order of the written and oral part of a split exam.
+export const EXAM_PART_ORDERS = {
+  WRITTEN_FIRST: 'written_first',
+  ORAL_FIRST: 'oral_first',
+  ANY: 'any',
+} as const
+
+export type ExamPartOrder = (typeof EXAM_PART_ORDERS)[keyof typeof EXAM_PART_ORDERS]
+
+export const EXAM_PART_ORDER_LABELS: Record<ExamPartOrder, string> = {
+  written_first: 'Nejdřív písemná',
+  oral_first: 'Nejdřív ústní',
+  any: 'Libovolné pořadí',
+}
+
+// A subject whose written and oral part are registered separately. The scheduler
+// picks either one combined term or one written plus one oral term in this order.
+export interface ExamPartsConfig {
+  order: ExamPartOrder
+}
+
 // A period defines, for a single study, a date window in which one term must be
 // chosen for each of its subjects. Periods may overlap (e.g. credits + orals).
 export interface ExamPeriod {
@@ -330,13 +380,17 @@ export interface ExamPeriod {
   name: string
   start_date: string // YYYY-MM-DD
   due_date: string // YYYY-MM-DD
+  subject_ids?: string[]
+  // Subjects with separately registered written and oral parts, by subject id.
+  exam_parts?: Record<string, ExamPartsConfig>
   created_at: string
   updated_at: string
 }
 
 // A candidate exam slot for one subject inside one period. The scheduler picks
-// exactly one term per (period, subject) requirement. A locked term is forced
-// into the official ("forced") schedule even when a cheaper option exists.
+// exactly one term per (period, subject) requirement, or a written + oral pair
+// for split subjects. A locked term is forced into the official ("forced")
+// schedule even when a cheaper option exists.
 export interface ExamTerm {
   id: string
   period_id: string
@@ -348,6 +402,7 @@ export interface ExamTerm {
   is_online: boolean
   note: string | null
   locked: boolean
+  part?: ExamTermPart // missing = combined
   created_at: string
   updated_at: string
 }

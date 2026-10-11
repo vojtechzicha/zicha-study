@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CalendarDays, Clock, Monitor, Lock } from "lucide-react"
 import { StudyLogo } from "@/components/study-logo"
+import { getExamTermPartLabel } from "@/lib/constants"
 
 export interface UpcomingExamTerm {
   term: {
@@ -14,6 +15,7 @@ export interface UpcomingExamTerm {
     duration_minutes: number
     is_online: boolean
     note: string | null
+    part?: string | null
   }
   study: { id: string; name: string; logo_url: string | null } | null
   subject: { id: string; name: string; abbreviation: string | null } | null
@@ -57,6 +59,11 @@ export function UpcomingExamTerms({ terms, onTermClick }: UpcomingExamTermsProps
                   <span className="font-medium text-foreground truncate">
                     {subject ? (subject.abbreviation ? `[${subject.abbreviation}] ${subject.name}` : subject.name) : "Zkouška"}
                   </span>
+                  {getExamTermPartLabel(term) && (
+                    <Badge variant="outline" className="border-border text-muted-foreground">
+                      {getExamTermPartLabel(term)}
+                    </Badge>
+                  )}
                   <Badge variant="secondary" className="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300">
                     <Lock className="h-3 w-3 mr-1" />
                     {study?.name}
