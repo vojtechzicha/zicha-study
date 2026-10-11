@@ -15,10 +15,12 @@
  *
  * For each requirement — a (period, subject) pair — exactly one of its
  * candidate terms must be selected, and that term must fall inside the period
- * window. A split requirement (written and oral part registered separately)
- * is instead satisfied by one combined term OR one written plus one oral term
- * in the configured order. When any term is locked, the solver runs twice: once forcing every
- * locked term (the FORCED / official schedule) and once ignoring locks (the
+ * window. A split requirement (parts such as written and oral registered
+ * separately) is instead satisfied by a set of terms that covers every part
+ * exactly once, with a minimum gap between them and, when the order is
+ * binding, starting with increasing parts. A term covering all parts is the
+ * plain "whole exam" case. When any term is locked, the solver runs twice:
+ * once forcing every locked term (the FORCED / official schedule) and once ignoring locks (the
  * OPTIMAL schedule), so the UI can show what a cheaper plan would look like.
  */
 import {
@@ -38,12 +40,14 @@ import {
 import { buildScheduleItems } from "./scheduler";
 import { compareDate, parseTimeToMinutes } from "./utils";
 import {
-  EXAM_PART_ORDERS,
-  EXAM_TERM_PARTS,
-  getExamTermPart,
+  EXAM_SCHEDULER_DEFAULTS,
+  getExamTermPartLabel,
+  getTermPartIds,
   type ExamPartsConfig,
-  type ExamTermPart,
 } from "@/lib/constants";
+
+// Cap on the term combinations considered for one split exam.
+const MAX_PART_OPTIONS = 10_000;
 
 // Safety cap on backtracking steps to avoid pathological blow-ups on huge
 // inputs. If hit, the best solution found so far is returned (and reported).
@@ -71,7 +75,7 @@ export interface GlobalTerm {
   isOnline: boolean;
   note: string | null;
   locked: boolean;
-  part?: ExamTermPart; // missing = combined; ignored unless the requirement is split
+  partIds?: string[]; // parts covered; missing = all. Ignored unless the requirement is split
 }
 
 export interface GlobalRequirement {
@@ -85,7 +89,7 @@ export interface GlobalRequirement {
   windowStart: string; // period start_date (inclusive)
   windowEnd: string; // period due_date (inclusive)
   terms: GlobalTerm[];
-  // Set when the written and oral part are registered separately.
+  // Set when the exam's parts are registered separately.
   parts?: ExamPartsConfig;
 }
 
@@ -146,7 +150,7 @@ interface SelectedExam extends ExamWithSubject {
 }
 
 // A requirement ready for the solver. Each option is a set of terms that
-// together satisfy it: a single term, or a written + oral pair.
+// together satisfy it: a single term, or terms covering each part once.
 interface SolvableRequirement extends GlobalRequirement {
   options: GlobalTerm[][];
 }
@@ -207,59 +211,92 @@ function canAddGlobal(
   return true;
 }
 
-// Does term `a` end no later than term `b` starts?
-function endsBefore(a: GlobalTerm, b: GlobalTerm): boolean {
-  const d = compareDate(a.date, b.date);
-  if (d !== 0) return d < 0;
-  return parseTimeToMinutes(a.startTime) + a.durationMinutes <= parseTimeToMinutes(b.startTime);
+function termPartIds(req: GlobalRequirement, term: GlobalTerm): string[] {
+  return getTermPartIds({ part_ids: term.partIds }, req.parts);
+}
+
+// Absolute minutes, so gaps across midnight and days are measured end to start.
+function startMinutes(term: GlobalTerm): number {
+  return Date.parse(`${term.date}T00:00:00Z`) / 60_000 + parseTimeToMinutes(term.startTime);
 }
 
 /**
- * Terms usable in this run. Locks are honored per part: a locked combined
- * term is the only option; a locked written or oral term fixes that part and
- * rules out combined terms, leaving the other part free.
+ * Sets of terms that cover every part of a split exam exactly once, sorted by
+ * time, keeping only those with at least `gapMinutes` between consecutive
+ * terms and, for a binding order, whose terms start with increasing parts
+ * (a term starts with its lowest part, so {1,3} → {2} → {4} is valid).
  */
-function applyLocks(req: GlobalRequirement, terms: GlobalTerm[]): GlobalTerm[] {
-  const locked = terms.filter((t) => t.locked);
-  if (locked.length === 0) return terms;
-  if (!req.parts) return [locked[0]];
+function buildPartOptions(
+  req: GlobalRequirement,
+  parts: ExamPartsConfig,
+  terms: GlobalTerm[],
+  gapMinutes: number
+): GlobalTerm[][] {
+  const partIndex = new Map(parts.parts.map((p, i) => [p.id, i]));
+  const covering = terms.map((term) => ({ term, parts: termPartIds(req, term) }));
+  const lowestPart = (term: GlobalTerm) =>
+    Math.min(...termPartIds(req, term).map((id) => partIndex.get(id) ?? Infinity));
 
-  const lockedCombined = locked.find((t) => getExamTermPart(t) === EXAM_TERM_PARTS.COMBINED);
-  if (lockedCombined) return [lockedCombined];
-  const lockedWritten = locked.find((t) => getExamTermPart(t) === EXAM_TERM_PARTS.WRITTEN);
-  const lockedOral = locked.find((t) => getExamTermPart(t) === EXAM_TERM_PARTS.ORAL);
-  return terms.filter((t) => {
-    const part = getExamTermPart(t);
-    if (part === EXAM_TERM_PARTS.WRITTEN) return !lockedWritten || t === lockedWritten;
-    if (part === EXAM_TERM_PARTS.ORAL) return !lockedOral || t === lockedOral;
-    return false;
-  });
-}
-
-function buildOptions(req: GlobalRequirement, terms: GlobalTerm[]): GlobalTerm[][] {
-  if (!req.parts) return terms.map((t) => [t]);
-
-  const byPart = (part: ExamTermPart) => terms.filter((t) => getExamTermPart(t) === part);
-  const options: GlobalTerm[][] = byPart(EXAM_TERM_PARTS.COMBINED).map((t) => [t]);
-  const order = req.parts.order;
-  for (const written of byPart(EXAM_TERM_PARTS.WRITTEN)) {
-    for (const oral of byPart(EXAM_TERM_PARTS.ORAL)) {
-      if (order === EXAM_PART_ORDERS.WRITTEN_FIRST && !endsBefore(written, oral)) continue;
-      if (order === EXAM_PART_ORDERS.ORAL_FIRST && !endsBefore(oral, written)) continue;
-      // Any order: overlapping parts are rejected by the conflict guard.
-      options.push([written, oral]);
+  const isValid = (option: GlobalTerm[]): boolean => {
+    for (let i = 1; i < option.length; i++) {
+      const prev = option[i - 1];
+      if (startMinutes(option[i]) < startMinutes(prev) + prev.durationMinutes + gapMinutes) return false;
+      if (parts.ordered && lowestPart(option[i]) <= lowestPart(prev)) return false;
     }
-  }
+    return true;
+  };
+
+  // Exact cover: always extend with a term containing the lowest uncovered
+  // part, so each set is produced once.
+  const options: GlobalTerm[][] = [];
+  const covered = new Set<string>();
+  const chosen: GlobalTerm[] = [];
+  const extend = () => {
+    if (options.length >= MAX_PART_OPTIONS) return;
+    const next = parts.parts.find((p) => !covered.has(p.id));
+    if (!next) {
+      const option = [...chosen].sort((a, b) => startMinutes(a) - startMinutes(b));
+      if (isValid(option)) options.push(option);
+      return;
+    }
+    for (const c of covering) {
+      if (!c.parts.includes(next.id) || c.parts.some((id) => covered.has(id))) continue;
+      chosen.push(c.term);
+      c.parts.forEach((id) => covered.add(id));
+      extend();
+      c.parts.forEach((id) => covered.delete(id));
+      chosen.pop();
+    }
+  };
+  extend();
   return options;
 }
 
-function noOptionReason(req: GlobalRequirement, terms: GlobalTerm[]): string {
+function buildOptions(req: GlobalRequirement, terms: GlobalTerm[], gapMinutes: number): GlobalTerm[][] {
+  if (!req.parts) return terms.map((t) => [t]);
+  return buildPartOptions(req, req.parts, terms, gapMinutes);
+}
+
+/**
+ * Options of the forced run. A plain subject keeps its (first) locked term; a
+ * split one keeps the combinations that contain every locked term.
+ */
+function applyLocks(req: GlobalRequirement, terms: GlobalTerm[], options: GlobalTerm[][]): GlobalTerm[][] {
+  const locked = terms.filter((t) => t.locked);
+  if (locked.length === 0) return options;
+  if (!req.parts) return [[locked[0]]];
+  return options.filter((option) => locked.every((t) => option.includes(t)));
+}
+
+function noOptionReason(req: GlobalRequirement, terms: GlobalTerm[], unlockedOptions: GlobalTerm[][]): string {
   if (req.terms.length === 0) return "žádné termíny";
-  if (terms.length === 0) return "žádný termín nespadá do období";
-  const has = (part: ExamTermPart) => terms.some((t) => getExamTermPart(t) === part);
-  if (!has(EXAM_TERM_PARTS.WRITTEN)) return "chybí termín písemné části";
-  if (!has(EXAM_TERM_PARTS.ORAL)) return "chybí termín ústní části";
-  return "písemnou a ústní část nelze seřadit v požadovaném pořadí";
+  if (terms.length === 0 || !req.parts) return "žádný termín nespadá do období";
+  const missing = req.parts.parts.find((p) => !terms.some((t) => termPartIds(req, t).includes(p.id)));
+  if (missing) return `chybí termín části „${missing.label}“`;
+  if (unlockedOptions.length > 0) return "zamčené termíny nejdou doplnit o zbývající části";
+  return req.parts.ordered
+    ? "části nejdou naplánovat v pořadí s pauzou mezi nimi"
+    : "části nejdou naplánovat s pauzou mezi nimi";
 }
 
 function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExam {
@@ -277,7 +314,7 @@ function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExa
     startTime: term.startTime.substring(0, 5),
     durationMinutes: term.durationMinutes,
     isOnline: term.isOnline,
-    part: req.parts ? getExamTermPart(term) : undefined,
+    partLabel: getExamTermPartLabel({ part_ids: term.partIds }, req.parts) ?? undefined,
     subject,
     endTime: "",
     studyId: req.studyId,
@@ -513,24 +550,25 @@ function runMode(
   requirements: GlobalRequirement[],
   configByStudy: Map<string, GlobalStudyConfig>,
   breakMinutes: number,
+  partGapMinutes: number,
   respectLocks: boolean
 ): GlobalScheduleResult {
   const unschedulable: UnschedulableRequirement[] = [];
   const solvable: SolvableRequirement[] = [];
 
   for (const req of requirements) {
-    let terms = req.terms.filter((t) =>
+    const terms = req.terms.filter((t) =>
       withinWindow(t.date, req.windowStart, req.windowEnd)
     );
-    if (respectLocks) terms = applyLocks(req, terms);
+    const unlockedOptions = buildOptions(req, terms, Math.max(0, partGapMinutes));
+    const options = respectLocks ? applyLocks(req, terms, unlockedOptions) : unlockedOptions;
 
-    const options = buildOptions(req, terms);
     if (options.length === 0) {
       unschedulable.push({
         requirementId: req.requirementId,
         periodName: req.periodName,
         subjectName: req.subjectName,
-        reason: noOptionReason(req, terms),
+        reason: noOptionReason(req, terms, unlockedOptions),
       });
       continue;
     }
@@ -559,18 +597,20 @@ function runMode(
 /**
  * Returns the forced (locks honored) and optimal (locks ignored) schedules plus
  * the savings of dropping the locks. Without locks both are the same result.
+ * `partGapMinutes` is the minimum gap between two terms of one split exam.
  */
 export function generateGlobalSchedule(
   requirements: GlobalRequirement[],
   studyConfigs: GlobalStudyConfig[],
-  breakMinutes: number
+  breakMinutes: number,
+  partGapMinutes: number = EXAM_SCHEDULER_DEFAULTS.EXAM_PART_GAP_MINUTES
 ): GlobalScheduleComparison {
   const configByStudy = new Map(studyConfigs.map((c) => [c.studyId, c]));
   const hasLocks = requirements.some((r) => r.terms.some((t) => t.locked));
 
-  const forced = runMode(requirements, configByStudy, breakMinutes, true);
+  const forced = runMode(requirements, configByStudy, breakMinutes, partGapMinutes, true);
   const optimal = hasLocks
-    ? runMode(requirements, configByStudy, breakMinutes, false)
+    ? runMode(requirements, configByStudy, breakMinutes, partGapMinutes, false)
     : forced;
 
   const savingsScore = Math.max(0, forced.score - optimal.score);

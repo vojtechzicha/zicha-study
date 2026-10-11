@@ -46,6 +46,8 @@ import {
   fetchGlobalExamSchedulingData,
   fetchInterStudyBreakMinutes,
   saveInterStudyBreakMinutesAction,
+  fetchExamPartGapMinutes,
+  saveExamPartGapMinutesAction,
   deleteExamPeriodAction,
   fetchSchedulerStudies,
   updateStudySchedulerSettingsAction,
@@ -60,9 +62,7 @@ import {
 import {
   DEFAULT_WORKING_DAYS,
   EXAM_SCHEDULER_DEFAULTS,
-  getExamTermPart,
   type ExamPartsConfig,
-  type ExamTermPart,
 } from "@/lib/constants"
 
 interface StudyData {
@@ -97,7 +97,7 @@ interface TermData {
   is_online: boolean
   note: string | null
   locked: boolean
-  part?: ExamTermPart
+  part_ids?: string[]
 }
 interface SubjectData {
   id: string
@@ -142,6 +142,7 @@ export function GlobalExamScheduler() {
   const [terms, setTerms] = useState<TermData[]>([])
   const [subjects, setSubjects] = useState<SubjectData[]>([])
   const [breakMinutes, setBreakMinutes] = useState<number>(EXAM_SCHEDULER_DEFAULTS.INTER_STUDY_BREAK_MINUTES)
+  const [partGapMinutes, setPartGapMinutes] = useState<number>(EXAM_SCHEDULER_DEFAULTS.EXAM_PART_GAP_MINUTES)
 
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingPeriod, setEditingPeriod] = useState<EditorPeriod | null>(null)
@@ -153,9 +154,10 @@ export function GlobalExamScheduler() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [data, brk, all] = await Promise.all([
+      const [data, brk, gap, all] = await Promise.all([
         fetchGlobalExamSchedulingData(),
         fetchInterStudyBreakMinutes(),
+        fetchExamPartGapMinutes(),
         fetchSchedulerStudies(),
       ])
       setStudies(data.studies as StudyData[])
@@ -163,6 +165,7 @@ export function GlobalExamScheduler() {
       setTerms(data.terms as TermData[])
       setSubjects(data.subjects as SubjectData[])
       setBreakMinutes(brk)
+      setPartGapMinutes(gap)
       setAllStudies(all as SchedulerStudy[])
     } finally {
       setLoading(false)
@@ -210,7 +213,7 @@ export function GlobalExamScheduler() {
           isOnline: !!t.is_online,
           note: t.note,
           locked: !!t.locked,
-          part: getExamTermPart(t),
+          partIds: t.part_ids,
         })),
         parts: period.exam_parts?.[subjectId],
       })
@@ -223,18 +226,23 @@ export function GlobalExamScheduler() {
   const runScheduler = useCallback(() => {
     setComputing(true)
     try {
-      const result = generateGlobalSchedule(requirements, studyConfigs, breakMinutes)
+      const result = generateGlobalSchedule(requirements, studyConfigs, breakMinutes, partGapMinutes)
       setComparison(result)
     } catch (err: any) {
       toast({ title: "Nepodařilo se vypočítat rozvrh", description: err?.message, variant: "destructive" })
     } finally {
       setComputing(false)
     }
-  }, [requirements, studyConfigs, breakMinutes, toast])
+  }, [requirements, studyConfigs, breakMinutes, partGapMinutes, toast])
 
   const handleBreakChange = async (value: number) => {
     setBreakMinutes(value)
     await saveInterStudyBreakMinutesAction(value)
+  }
+
+  const handlePartGapChange = async (value: number) => {
+    setPartGapMinutes(value)
+    await saveExamPartGapMinutesAction(value)
   }
 
   const openNewPeriod = () => {
@@ -293,6 +301,11 @@ export function GlobalExamScheduler() {
     }
     return map
   }, [periods])
+
+  const hasSplitSubjects = useMemo(
+    () => periods.some((p) => Object.keys(p.exam_parts || {}).length > 0),
+    [periods]
+  )
 
   const termsByPeriodSubject = useMemo(() => {
     const map = new Map<string, TermData[]>()
@@ -426,23 +439,47 @@ export function GlobalExamScheduler() {
               <>
             <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="py-4 flex flex-wrap items-center gap-4 justify-between">
-                <div className="flex items-center gap-3">
-                  <Clock3 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Pauza mezi studii</p>
-                    <p className="text-xs text-muted-foreground">Přičte se k době přesunu, když jsou v jeden den dvě prezenční zkoušky.</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Clock3 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Pauza mezi studii</p>
+                      <p className="text-xs text-muted-foreground">Přičte se k době přesunu, když jsou v jeden den dvě prezenční zkoušky.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={15}
+                        value={breakMinutes}
+                        onChange={(e) => handleBreakChange(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="h-9 w-24"
+                        aria-label="Pauza mezi studii"
+                      />
+                      <span className="text-sm text-muted-foreground">min</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={15}
-                      value={breakMinutes}
-                      onChange={(e) => handleBreakChange(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="h-9 w-24"
-                    />
-                    <span className="text-sm text-muted-foreground">min</span>
-                  </div>
+                  {hasSplitSubjects && (
+                    <div className="flex items-center gap-3">
+                      <Clock3 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Pauza mezi částmi zkoušky</p>
+                        <p className="text-xs text-muted-foreground">Od konce jedné části do začátku další.</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={15}
+                          value={partGapMinutes}
+                          onChange={(e) => handlePartGapChange(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="h-9 w-24"
+                          aria-label="Pauza mezi částmi zkoušky"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button
                   onClick={runScheduler}

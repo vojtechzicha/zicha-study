@@ -1,5 +1,3 @@
-import type { ExamTermPart } from "@/lib/constants";
-
 export interface SchedulerConfig {
   travelCostOneWay: number;
   travelDurationHours: number;
@@ -67,8 +65,9 @@ export interface Exam {
   startTime: string; // HH:MM format
   durationMinutes: number;
   isOnline: boolean;
-  // Set by the global scheduler for terms of a split (written + oral) exam.
-  part?: ExamTermPart;
+  // Set by the global scheduler for a term covering only some parts of a
+  // split exam, e.g. "Písemná".
+  partLabel?: string;
 }
 
 export interface ExamWithSubject extends Exam {

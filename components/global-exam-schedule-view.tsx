@@ -21,7 +21,6 @@ import {
 } from "lucide-react"
 import type { ScheduleItem, GlobalScheduleResult, GlobalScheduleComparison } from "@/lib/exam-scheduler"
 import { czPlural } from "@/lib/utils/task-format"
-import { getExamTermPartLabel } from "@/lib/constants"
 
 interface GlobalExamScheduleViewProps {
   comparison: GlobalScheduleComparison
@@ -199,9 +198,9 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
                               <span className="font-medium">
                                 [{item.exam.subject.shortcut}] {item.exam.subject.name}
                               </span>
-                              {getExamTermPartLabel(item.exam) && (
+                              {item.exam.partLabel && (
                                 <Badge variant="secondary" className="bg-primary-200 dark:bg-primary-800/60 text-primary-800 dark:text-primary-200">
-                                  {getExamTermPartLabel(item.exam)}
+                                  {item.exam.partLabel}
                                 </Badge>
                               )}
                               {item.studyName && (
