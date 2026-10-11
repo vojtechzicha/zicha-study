@@ -19,7 +19,8 @@
  * separately) is instead satisfied by a set of terms that covers every part
  * exactly once, with a minimum gap between them and, when the order is
  * binding, starting with increasing parts. A term covering all parts is the
- * plain "whole exam" case. When any term is locked, the solver runs twice:
+ * plain "whole exam" case. A předtermín (pre-term) is an ordinary term that
+ * may fall before the period start. When any term is locked, the solver runs twice:
  * once forcing every locked term (the FORCED / official schedule) and once ignoring locks (the
  * OPTIMAL schedule), so the UI can show what a cheaper plan would look like.
  */
@@ -79,6 +80,7 @@ export interface GlobalTerm {
   note: string | null;
   locked: boolean;
   partIds?: string[]; // parts covered; missing = all. Ignored unless the requirement is split
+  isPreTerm?: boolean; // předtermín: may precede windowStart
 }
 
 export interface GlobalRequirement {
@@ -168,6 +170,13 @@ function transitMinutes(config: SchedulerConfig): number {
 
 function withinWindow(date: string, start: string, end: string): boolean {
   return compareDate(date, start) >= 0 && compareDate(date, end) <= 0;
+}
+
+// Terms the solver may use: those inside the period window, and předtermíny
+// before it.
+function isCandidate(req: GlobalRequirement, term: GlobalTerm): boolean {
+  if (term.isPreTerm) return compareDate(term.date, req.windowEnd) <= 0;
+  return withinWindow(term.date, req.windowStart, req.windowEnd);
 }
 
 /**
@@ -334,6 +343,7 @@ function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExa
     durationMinutes: term.durationMinutes,
     isOnline: term.isOnline,
     partLabel: getExamTermPartLabel({ part_ids: term.partIds }, req.parts) ?? undefined,
+    isPreTerm: term.isPreTerm || undefined,
     subject,
     endTime: "",
     studyId: req.studyId,
@@ -561,7 +571,8 @@ function buildResult(
 
 /**
  * Run the scheduler for one mode (optimal = ignore locks, forced = honor them).
- * Terms outside the period window are dropped, locked ones included. A
+ * Terms outside the period window are dropped, locked ones included, except
+ * předtermíny before the window. A
  * requirement left with no option is reported as unschedulable and kept out of
  * the optimization; the rest is still scheduled.
  */
@@ -578,9 +589,7 @@ function runMode(
   let partsTruncated = false;
 
   for (const req of requirements) {
-    const terms = req.terms.filter((t) =>
-      withinWindow(t.date, req.windowStart, req.windowEnd)
-    );
+    const terms = req.terms.filter((t) => isCandidate(req, t));
     const locked = respectLocks ? terms.filter((t) => t.locked) : [];
 
     // A plain subject keeps its (first) locked term; a split one keeps the

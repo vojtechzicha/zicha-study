@@ -13,6 +13,7 @@ import {
   EXAM_SCHEDULER_DEFAULTS,
   DEFAULT_EXAM_PART_LABELS,
   MIN_EXAM_PARTS,
+  PRE_TERM_LABEL,
   getTermPartIds,
   type ExamPartsConfig,
 } from "@/lib/constants"
@@ -65,6 +66,7 @@ export interface EditorTerm {
   note: string | null
   locked: boolean
   part_ids?: string[]
+  is_pre_term?: boolean
 }
 
 interface TermDraft {
@@ -76,6 +78,7 @@ interface TermDraft {
   note: string
   locked: boolean
   part_ids: string[] // parts covered, in exam order; empty for plain subjects
+  is_pre_term: boolean
 }
 
 interface SubjectGroup {
@@ -105,6 +108,7 @@ function toDraft(t: EditorTerm, parts: ExamPartsConfig | null): TermDraft {
     note: t.note || "",
     locked: !!t.locked,
     part_ids: getTermPartIds(t, parts),
+    is_pre_term: !!t.is_pre_term,
   }
 }
 
@@ -276,6 +280,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
           is_online: false,
           note: "",
           locked: false,
+          is_pre_term: false,
           // Split subjects copy the parts of the previous term (all parts for the first one).
           part_ids: grp.parts
             ? (grp.terms[grp.terms.length - 1]?.part_ids ?? grp.parts.parts.map((p) => p.id))
@@ -364,6 +369,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
             note: t.note || null,
             locked: t.locked,
             part_ids: grp.parts ? t.part_ids : [],
+            is_pre_term: t.is_pre_term,
           }
           if (t.id) {
             keptIds.add(t.id)
@@ -665,6 +671,17 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               placeholder="Poznámka"
                               className="h-9 flex-1 min-w-[8rem]"
                             />
+                            <div className="flex items-center h-9 px-2 border rounded-md bg-card">
+                              <Checkbox
+                                id={`preterm-${grp.subjectId}-${index}`}
+                                checked={term.is_pre_term}
+                                onCheckedChange={(c) => updateTerm(grp.subjectId, index, "is_pre_term", c as boolean)}
+                                className="mr-2"
+                              />
+                              <Label htmlFor={`preterm-${grp.subjectId}-${index}`} className="text-sm cursor-pointer">
+                                {PRE_TERM_LABEL}
+                              </Label>
+                            </div>
                             <div className="flex items-center h-9 px-2 border rounded-md bg-card">
                               <Checkbox
                                 id={`lock-${grp.subjectId}-${index}`}

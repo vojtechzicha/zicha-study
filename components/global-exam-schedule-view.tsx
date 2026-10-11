@@ -20,6 +20,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import type { ScheduleItem, GlobalScheduleResult, GlobalScheduleComparison } from "@/lib/exam-scheduler"
+import { PRE_TERM_LABEL } from "@/lib/constants"
 import { czPlural } from "@/lib/utils/task-format"
 
 interface GlobalExamScheduleViewProps {
@@ -198,6 +199,11 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
                               <span className="font-medium">
                                 [{item.exam.subject.shortcut}] {item.exam.subject.name}
                               </span>
+                              {item.exam.isPreTerm && (
+                                <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">
+                                  {PRE_TERM_LABEL}
+                                </Badge>
+                              )}
                               {item.exam.partLabel && (
                                 <Badge variant="secondary" className="bg-primary-200 dark:bg-primary-800/60 text-primary-800 dark:text-primary-200">
                                   {item.exam.partLabel}
