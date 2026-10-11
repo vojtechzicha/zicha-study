@@ -389,11 +389,15 @@ export interface ExamPeriod {
 // Label of an early term offered before the exam period (předtermín).
 export const PRE_TERM_LABEL = 'Předtermín'
 
+// Label of a term whose date and time are expected but not yet confirmed.
+export const TENTATIVE_TERM_LABEL = 'Předběžný'
+
 // A candidate exam slot for one subject inside one period. The scheduler picks
 // exactly one term per (period, subject) requirement, or for a split subject a
 // set of terms covering each part once. A locked term is forced into the
 // official ("forced") schedule even when a cheaper option exists. A předtermín
-// is an ordinary term that may fall before the period start.
+// is an ordinary term that may fall before the period start. A tentative term
+// is planned like any other and only flagged in the UI.
 export interface ExamTerm {
   id: string
   period_id: string
@@ -407,6 +411,7 @@ export interface ExamTerm {
   locked: boolean
   part_ids?: string[] // parts of a split exam this term covers; missing = all
   is_pre_term?: boolean // předtermín; missing = regular term
+  is_tentative?: boolean // not yet confirmed; missing = confirmed
   created_at: string
   updated_at: string
 }

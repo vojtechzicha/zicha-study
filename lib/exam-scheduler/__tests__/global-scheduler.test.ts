@@ -28,7 +28,7 @@ function term(
   termId: string,
   date: string,
   startTime: string,
-  opts: { dur?: number; online?: boolean; locked?: boolean; parts?: string[]; preTerm?: boolean } = {}
+  opts: { dur?: number; online?: boolean; locked?: boolean; parts?: string[]; preTerm?: boolean; tentative?: boolean } = {}
 ): GlobalTerm {
   return {
     termId,
@@ -40,6 +40,7 @@ function term(
     locked: opts.locked ?? false,
     partIds: opts.parts,
     isPreTerm: opts.preTerm,
+    isTentative: opts.tentative,
   };
 }
 
@@ -794,5 +795,35 @@ describe("generateGlobalSchedule – předtermín", () => {
 
     const { forced } = generateGlobalSchedule(requirements, configs, 0);
     expect(forced.selectedTermIds).toEqual(["w_pre", "o"]);
+  });
+});
+
+describe("generateGlobalSchedule – tentative terms", () => {
+  const configs = [cfg("A")];
+  const window = { start: "2025-02-01", end: "2025-02-28" };
+
+  it("plans a tentative term like any other and labels it", () => {
+    const requirements = [
+      req(
+        "A",
+        "mat",
+        [
+          term("tent", "2025-02-10", "09:00", { online: true, tentative: true }),
+          term("conf", "2025-02-12", "09:00"),
+        ],
+        window
+      ),
+    ];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.selectedTermIds).toEqual(["tent"]);
+    expect(forced.items.find((i) => i.type === "exam")!.exam!.isTentative).toBe(true);
+  });
+
+  it("leaves a confirmed term unlabelled", () => {
+    const requirements = [req("A", "mat", [term("conf", "2025-02-12", "09:00")], window)];
+
+    const { forced } = generateGlobalSchedule(requirements, configs, 0);
+    expect(forced.items.find((i) => i.type === "exam")!.exam!.isTentative).toBeUndefined();
   });
 });

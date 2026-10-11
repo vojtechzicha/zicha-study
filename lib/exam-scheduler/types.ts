@@ -70,6 +70,8 @@ export interface Exam {
   partLabel?: string;
   // Set by the global scheduler for a předtermín.
   isPreTerm?: boolean;
+  // Set by the global scheduler for a tentative (unconfirmed) term.
+  isTentative?: boolean;
 }
 
 export interface ExamWithSubject extends Exam {
