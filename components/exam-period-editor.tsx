@@ -705,11 +705,6 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                          {term.is_pre_term && !term.locked && (
-                            <p className="text-xs text-muted-foreground">
-                              Předtermín se naplánuje, jen když ho zamknete.
-                            </p>
-                          )}
                         </div>
                       ))
                     )}

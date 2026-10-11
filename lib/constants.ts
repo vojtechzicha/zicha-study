@@ -393,7 +393,7 @@ export const PRE_TERM_LABEL = 'Předtermín'
 // exactly one term per (period, subject) requirement, or for a split subject a
 // set of terms covering each part once. A locked term is forced into the
 // official ("forced") schedule even when a cheaper option exists. A předtermín
-// may fall before the period start and is planned only once it is locked.
+// is an ordinary term that may fall before the period start.
 export interface ExamTerm {
   id: string
   period_id: string
