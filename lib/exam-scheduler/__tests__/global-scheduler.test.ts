@@ -619,6 +619,26 @@ describe("generateGlobalSchedule – exams split into parts", () => {
     expect(Date.now() - started).toBeLessThan(5000);
     expect(forced.selectedTermIds).toHaveLength(0);
     expect(forced.unschedulable[0].reason).toMatch(/pořadí/);
+    expect(forced.truncated).toBe(true);
+  });
+
+  it("keeps locked terms that lie beyond the combination cap and reports truncation", () => {
+    // 4 parts × 11 non-overlapping terms = 14 641 valid sets, over the 10 000 cap.
+    const parts = ["1", "2", "3", "4"];
+    const terms: GlobalTerm[] = [];
+    for (const p of parts) {
+      for (let i = 0; i < 11; i++) {
+        const day = String(10 + i).padStart(2, "0");
+        const hour = String(6 + Number(p) * 2).padStart(2, "0");
+        terms.push(term(`p${p}_${i}`, `2025-03-${day}`, `${hour}:00`, { parts: [p], locked: p === "1" && i === 10 }));
+      }
+    }
+
+    const comparison = generateGlobalSchedule([split(req("A", "mat", terms), parts, false)], configs, 0, 0);
+    expect(comparison.forced.selectedTermIds).toContain("p1_10");
+    expect(comparison.forced.selectedTermIds).toHaveLength(4);
+    expect(comparison.forced.truncated).toBe(false);
+    expect(comparison.optimal.truncated).toBe(true);
   });
 
   it("treats terms without parts as the whole exam", () => {

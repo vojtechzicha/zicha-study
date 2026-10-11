@@ -47,8 +47,8 @@ import {
 } from "@/lib/constants";
 
 // Caps on the term combinations accepted, and the search steps taken, for one
-// split exam. Only pathological inputs (many parts with many terms each) reach
-// them; the options found so far are used.
+// split exam. Only inputs with many parts and many terms each reach them; the
+// options found so far are used and the result is marked as truncated.
 const MAX_PART_OPTIONS = 10_000;
 const MAX_PART_STEPS = 200_000;
 
@@ -131,7 +131,7 @@ export interface GlobalScheduleResult {
   };
   perStudy: PerStudyBreakdown[];
   unschedulable: UnschedulableRequirement[];
-  truncated: boolean; // true if the search hit MAX_BACKTRACK_STEPS
+  truncated: boolean; // true if a search hit its cap (MAX_BACKTRACK_STEPS or a split exam's)
   error?: string;
 }
 
@@ -230,77 +230,89 @@ function startMinutes(term: GlobalTerm): number {
  * time, keeping only those with at least `gapMinutes` between consecutive
  * terms and, for a binding order, whose terms start with increasing parts
  * (a term starts with its lowest part, so {1,3} → {2} → {4} is valid).
+ * `required` terms (the locks of the forced run) are in every set; they are
+ * placed first so the caps can't cut them off. `truncated` is set when a cap
+ * stopped the search early.
  */
 function buildPartOptions(
   req: GlobalRequirement,
   parts: ExamPartsConfig,
   terms: GlobalTerm[],
-  gapMinutes: number
-): GlobalTerm[][] {
-  const covering = terms.map((term) => ({
-    term,
-    parts: termPartIds(req, term),
-    start: startMinutes(term),
-    end: startMinutes(term) + term.durationMinutes,
-  }));
+  gapMinutes: number,
+  required: GlobalTerm[] = []
+): { options: GlobalTerm[][]; truncated: boolean } {
+  const partIndex = new Map(parts.parts.map((p, i) => [p.id, i]));
+  const covering = terms.map((term) => {
+    const ids = termPartIds(req, term);
+    return {
+      term,
+      parts: ids,
+      lowest: Math.min(...ids.map((id) => partIndex.get(id) ?? Infinity)),
+      start: startMinutes(term),
+      end: startMinutes(term) + term.durationMinutes,
+    };
+  });
   type Covering = (typeof covering)[number];
 
-  // Checked while extending, so invalid branches are cut early. The added term
-  // contains the lowest uncovered part, which is therefore its lowest part and
-  // higher than that of every chosen term: with a binding order it must come
-  // after all of them. Otherwise it only keeps the gap on either side.
-  const fits = (c: Covering, other: Covering): boolean =>
-    c.start >= other.end + gapMinutes || (!parts.ordered && other.start >= c.end + gapMinutes);
+  // Two terms of one set keep the gap; with a binding order the one with the
+  // lower part comes first. Checked while extending, so invalid branches are
+  // cut early.
+  const fits = (a: Covering, b: Covering): boolean => {
+    const [first, second] = a.lowest < b.lowest ? [a, b] : [b, a];
+    if (second.start >= first.end + gapMinutes) return true;
+    return !parts.ordered && first.start >= second.end + gapMinutes;
+  };
 
-  // Exact cover: always extend with a term containing the lowest uncovered
-  // part, so each set is produced once.
   const options: GlobalTerm[][] = [];
   const covered = new Set<string>();
   const chosen: Covering[] = [];
+  const add = (c: Covering) => {
+    chosen.push(c);
+    c.parts.forEach((id) => covered.add(id));
+  };
+
+  for (const term of required) {
+    const c = covering.find((x) => x.term === term)!;
+    if (c.parts.some((id) => covered.has(id)) || !chosen.every((other) => fits(c, other))) {
+      return { options, truncated: false };
+    }
+    add(c);
+  }
+
+  // Exact cover: always extend with a term containing the lowest uncovered
+  // part, so each set is produced once.
   let steps = 0;
+  let truncated = false;
   const extend = () => {
-    if (options.length >= MAX_PART_OPTIONS || ++steps > MAX_PART_STEPS) return;
+    if (options.length >= MAX_PART_OPTIONS || ++steps > MAX_PART_STEPS) {
+      truncated = true;
+      return;
+    }
     const next = parts.parts.find((p) => !covered.has(p.id));
     if (!next) {
       options.push(chosen.map((c) => c.term).sort((a, b) => startMinutes(a) - startMinutes(b)));
       return;
     }
     for (const c of covering) {
+      if (truncated) return;
       if (!c.parts.includes(next.id) || c.parts.some((id) => covered.has(id))) continue;
       if (!chosen.every((other) => fits(c, other))) continue;
-      chosen.push(c);
-      c.parts.forEach((id) => covered.add(id));
+      add(c);
       extend();
       c.parts.forEach((id) => covered.delete(id));
       chosen.pop();
     }
   };
   extend();
-  return options;
+  return { options, truncated };
 }
 
-function buildOptions(req: GlobalRequirement, terms: GlobalTerm[], gapMinutes: number): GlobalTerm[][] {
-  if (!req.parts) return terms.map((t) => [t]);
-  return buildPartOptions(req, req.parts, terms, gapMinutes);
-}
-
-/**
- * Options of the forced run. A plain subject keeps its (first) locked term; a
- * split one keeps the combinations that contain every locked term.
- */
-function applyLocks(req: GlobalRequirement, terms: GlobalTerm[], options: GlobalTerm[][]): GlobalTerm[][] {
-  const locked = terms.filter((t) => t.locked);
-  if (locked.length === 0) return options;
-  if (!req.parts) return [[locked[0]]];
-  return options.filter((option) => locked.every((t) => option.includes(t)));
-}
-
-function noOptionReason(req: GlobalRequirement, terms: GlobalTerm[], unlockedOptions: GlobalTerm[][]): string {
+function noOptionReason(req: GlobalRequirement, terms: GlobalTerm[], locksAreTheCause: boolean): string {
   if (req.terms.length === 0) return "žádné termíny";
   if (terms.length === 0 || !req.parts) return "žádný termín nespadá do období";
   const missing = req.parts.parts.find((p) => !terms.some((t) => termPartIds(req, t).includes(p.id)));
   if (missing) return `chybí termín části „${missing.label}“`;
-  if (unlockedOptions.length > 0) return "zamčené termíny nejdou doplnit o zbývající části";
+  if (locksAreTheCause) return "zamčené termíny nejdou doplnit o zbývající části";
   return req.parts.ordered
     ? "části nejdou naplánovat v pořadí s pauzou mezi nimi"
     : "části nejdou naplánovat s pauzou mezi nimi";
@@ -562,20 +574,34 @@ function runMode(
 ): GlobalScheduleResult {
   const unschedulable: UnschedulableRequirement[] = [];
   const solvable: SolvableRequirement[] = [];
+  const gap = Math.max(0, partGapMinutes);
+  let partsTruncated = false;
 
   for (const req of requirements) {
     const terms = req.terms.filter((t) =>
       withinWindow(t.date, req.windowStart, req.windowEnd)
     );
-    const unlockedOptions = buildOptions(req, terms, Math.max(0, partGapMinutes));
-    const options = respectLocks ? applyLocks(req, terms, unlockedOptions) : unlockedOptions;
+    const locked = respectLocks ? terms.filter((t) => t.locked) : [];
+
+    // A plain subject keeps its (first) locked term; a split one keeps the
+    // sets that contain every locked term.
+    let options: GlobalTerm[][];
+    if (!req.parts) {
+      options = locked.length > 0 ? [[locked[0]]] : terms.map((t) => [t]);
+    } else {
+      const built = buildPartOptions(req, req.parts, terms, gap, locked);
+      options = built.options;
+      partsTruncated ||= built.truncated;
+    }
 
     if (options.length === 0) {
+      const locksAreTheCause =
+        !!req.parts && locked.length > 0 && buildPartOptions(req, req.parts, terms, gap).options.length > 0;
       unschedulable.push({
         requirementId: req.requirementId,
         periodName: req.periodName,
         subjectName: req.subjectName,
-        reason: noOptionReason(req, terms, unlockedOptions),
+        reason: noOptionReason(req, terms, locksAreTheCause),
       });
       continue;
     }
@@ -598,7 +624,7 @@ function runMode(
     });
   }
 
-  return buildResult(selection, configByStudy, unschedulable, truncated);
+  return buildResult(selection, configByStudy, unschedulable, truncated || partsTruncated);
 }
 
 /**
