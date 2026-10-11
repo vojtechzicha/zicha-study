@@ -726,30 +726,6 @@ export async function getMarkdownNoteMedia(noteId: string, mediaId: string) {
   return c.findOne({ _id: mediaId as any, note_id: noteId })
 }
 
-// ─── Exam Options ───────────────────────────────────────────────────────────
-
-export async function getExamOptionsBySubjectId(subjectId: string) {
-  const c = await col("exam_options")
-  return c.find({ subject_id: subjectId }).sort({ date: 1 }).toArray()
-}
-
-export async function getExamOptionsBySubjectIds(subjectIds: string[]) {
-  const c = await col("exam_options")
-  return c.find({ subject_id: { $in: subjectIds } }).toArray()
-}
-
-export async function deleteExamOptionsBySubjectId(subjectId: string) {
-  const c = await col("exam_options")
-  await c.deleteMany({ subject_id: subjectId })
-}
-
-export async function insertExamOptions(options: Record<string, any>[]) {
-  if (options.length === 0) return
-  const c = await col("exam_options")
-  const docs = options.map((opt) => ({ _id: newId() as any, ...opt, created_at: new Date().toISOString() }))
-  await c.insertMany(docs)
-}
-
 // ─── Exam Periods (global exam scheduler) ────────────────────────────────────
 
 export async function getExamPeriods() {
