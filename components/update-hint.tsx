@@ -71,9 +71,9 @@ export function UpdateHint() {
   return (
     <div
       role="alert"
-      className="fixed bottom-6 left-1/2 z-50 flex w-[min(92vw,560px)] -translate-x-1/2 items-center gap-3 rounded-lg border border-primary-200 bg-card px-4 py-3 shadow-lg dark:border-primary-800"
+      className="fixed bottom-6 left-1/2 z-50 flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-lg border border-primary-200 bg-card py-2 pl-4 pr-2 shadow-lg dark:border-primary-800"
     >
-      <span className="text-sm leading-relaxed text-foreground/80">
+      <span className="min-w-0 text-sm text-foreground/80">
         Vyšla nová verze aplikace.
       </span>
       <Button
@@ -82,14 +82,14 @@ export function UpdateHint() {
         className="shrink-0 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800"
         onClick={() => window.location.reload()}
       >
-        <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+        <RefreshCw />
         Obnovit stránku
       </Button>
       <button
         type="button"
         aria-label="Zavřít"
         title="Zavřít"
-        className="shrink-0 rounded p-1 text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+        className="-ml-1 shrink-0 rounded p-1.5 text-muted-foreground/70 transition-colors hover:text-muted-foreground"
         onClick={() => setDismissedId(serverBuildId)}
       >
         <X className="h-4 w-4" />
