@@ -14,6 +14,7 @@ import {
   DEFAULT_EXAM_PART_LABELS,
   MIN_EXAM_PARTS,
   PRE_TERM_LABEL,
+  TENTATIVE_TERM_LABEL,
   getTermPartIds,
   type ExamPartsConfig,
 } from "@/lib/constants"
@@ -67,6 +68,7 @@ export interface EditorTerm {
   locked: boolean
   part_ids?: string[]
   is_pre_term?: boolean
+  is_tentative?: boolean
 }
 
 interface TermDraft {
@@ -79,6 +81,7 @@ interface TermDraft {
   locked: boolean
   part_ids: string[] // parts covered, in exam order; empty for plain subjects
   is_pre_term: boolean
+  is_tentative: boolean
 }
 
 interface SubjectGroup {
@@ -109,6 +112,7 @@ function toDraft(t: EditorTerm, parts: ExamPartsConfig | null): TermDraft {
     locked: !!t.locked,
     part_ids: getTermPartIds(t, parts),
     is_pre_term: !!t.is_pre_term,
+    is_tentative: !!t.is_tentative,
   }
 }
 
@@ -281,6 +285,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
           note: "",
           locked: false,
           is_pre_term: false,
+          is_tentative: false,
           // Split subjects copy the parts of the previous term (all parts for the first one).
           part_ids: grp.parts
             ? (grp.terms[grp.terms.length - 1]?.part_ids ?? grp.parts.parts.map((p) => p.id))
@@ -370,6 +375,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
             locked: t.locked,
             part_ids: grp.parts ? t.part_ids : [],
             is_pre_term: t.is_pre_term,
+            is_tentative: t.is_tentative,
           }
           if (t.id) {
             keptIds.add(t.id)
@@ -680,6 +686,17 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               />
                               <Label htmlFor={`preterm-${grp.subjectId}-${index}`} className="text-sm cursor-pointer">
                                 {PRE_TERM_LABEL}
+                              </Label>
+                            </div>
+                            <div className="flex items-center h-9 px-2 border rounded-md bg-card">
+                              <Checkbox
+                                id={`tentative-${grp.subjectId}-${index}`}
+                                checked={term.is_tentative}
+                                onCheckedChange={(c) => updateTerm(grp.subjectId, index, "is_tentative", c as boolean)}
+                                className="mr-2"
+                              />
+                              <Label htmlFor={`tentative-${grp.subjectId}-${index}`} className="text-sm cursor-pointer">
+                                {TENTATIVE_TERM_LABEL}
                               </Label>
                             </div>
                             <div className="flex items-center h-9 px-2 border rounded-md bg-card">

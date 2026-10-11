@@ -4,7 +4,7 @@ import React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CalendarDays, Clock, Monitor, Lock } from "lucide-react"
-import { PRE_TERM_LABEL } from "@/lib/constants"
+import { PRE_TERM_LABEL, TENTATIVE_TERM_LABEL } from "@/lib/constants"
 import { StudyLogo } from "@/components/study-logo"
 
 export interface UpcomingExamTerm {
@@ -17,6 +17,7 @@ export interface UpcomingExamTerm {
     note: string | null
     part_label?: string | null // set for a term covering only some parts of the exam
     is_pre_term?: boolean
+    is_tentative?: boolean
   }
   study: { id: string; name: string; logo_url: string | null } | null
   subject: { id: string; name: string; abbreviation: string | null } | null
@@ -63,6 +64,11 @@ export function UpcomingExamTerms({ terms, onTermClick }: UpcomingExamTermsProps
                   {term.is_pre_term && (
                     <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">
                       {PRE_TERM_LABEL}
+                    </Badge>
+                  )}
+                  {term.is_tentative && (
+                    <Badge variant="outline" className="border-dashed border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300">
+                      {TENTATIVE_TERM_LABEL}
                     </Badge>
                   )}
                   {term.part_label && (

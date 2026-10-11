@@ -81,6 +81,7 @@ export interface GlobalTerm {
   locked: boolean;
   partIds?: string[]; // parts covered; missing = all. Ignored unless the requirement is split
   isPreTerm?: boolean; // předtermín: may precede windowStart
+  isTentative?: boolean; // not yet confirmed; only passed through to the result
 }
 
 export interface GlobalRequirement {
@@ -344,6 +345,7 @@ function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExa
     isOnline: term.isOnline,
     partLabel: getExamTermPartLabel({ part_ids: term.partIds }, req.parts) ?? undefined,
     isPreTerm: term.isPreTerm || undefined,
+    isTentative: term.isTentative || undefined,
     subject,
     endTime: "",
     studyId: req.studyId,

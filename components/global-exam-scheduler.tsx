@@ -99,6 +99,7 @@ interface TermData {
   locked: boolean
   part_ids?: string[]
   is_pre_term?: boolean
+  is_tentative?: boolean
 }
 interface SubjectData {
   id: string
@@ -216,6 +217,7 @@ export function GlobalExamScheduler() {
           locked: !!t.locked,
           partIds: t.part_ids,
           isPreTerm: !!t.is_pre_term,
+          isTentative: !!t.is_tentative,
         })),
         parts: period.exam_parts?.[subjectId],
       })
