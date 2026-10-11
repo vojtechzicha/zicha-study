@@ -269,10 +269,10 @@ function ResultBody({ result }: { result: GlobalScheduleResult }) {
 }
 
 export function GlobalExamScheduleView({ comparison }: GlobalExamScheduleViewProps) {
-  const { forced, optimal, hasLocks, savingsCost } = comparison
+  const { forced, optimal, hasLocks, droppedByLocks, savingsCost } = comparison
   const [view, setView] = useState<"forced" | "optimal">("forced")
 
-  const showComparison = hasLocks && (savingsCost > 0 || optimal.score < forced.score)
+  const showComparison = hasLocks && (droppedByLocks > 0 || savingsCost > 0 || optimal.score < forced.score)
 
   return (
     <div className="space-y-4">
@@ -282,8 +282,9 @@ export function GlobalExamScheduleView({ comparison }: GlobalExamScheduleViewPro
             <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-medium text-blue-900 dark:text-blue-200">
-                Bez zamčených termínů by rozvrh vyšel levněji
-                {savingsCost > 0 ? ` o ${formatCurrency(savingsCost)}` : ""}.
+                {droppedByLocks > 0
+                  ? `Zamčené termíny vyřazují z rozvrhu ${droppedByLocks} ${czPlural(droppedByLocks, "zkoušku", "zkoušky", "zkoušek")}.`
+                  : `Bez zamčených termínů by rozvrh vyšel levněji${savingsCost > 0 ? ` o ${formatCurrency(savingsCost)}` : ""}.`}
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                 Závazný rozvrh počítá se zamčenými termíny ({formatCurrency(forced.totalCost)}), optimální je

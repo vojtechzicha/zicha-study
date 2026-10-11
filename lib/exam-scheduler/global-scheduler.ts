@@ -46,8 +46,11 @@ import {
   type ExamPartsConfig,
 } from "@/lib/constants";
 
-// Cap on the term combinations considered for one split exam.
+// Caps on the term combinations accepted, and the search steps taken, for one
+// split exam. Only pathological inputs (many parts with many terms each) reach
+// them; the options found so far are used.
 const MAX_PART_OPTIONS = 10_000;
+const MAX_PART_STEPS = 200_000;
 
 // Safety cap on backtracking steps to avoid pathological blow-ups on huge
 // inputs. If hit, the best solution found so far is returned (and reported).
@@ -136,6 +139,8 @@ export interface GlobalScheduleComparison {
   forced: GlobalScheduleResult; // respects locked terms (official schedule)
   optimal: GlobalScheduleResult; // ignores locks (cheapest possible)
   hasLocks: boolean;
+  // Exams the locks leave out of the forced schedule that the optimal one places.
+  droppedByLocks: number;
   // How much cheaper (CZK score) the optimal schedule is vs the forced one.
   // 0 when there are no locks or locks don't cost anything extra.
   savingsScore: number;
@@ -232,36 +237,38 @@ function buildPartOptions(
   terms: GlobalTerm[],
   gapMinutes: number
 ): GlobalTerm[][] {
-  const partIndex = new Map(parts.parts.map((p, i) => [p.id, i]));
-  const covering = terms.map((term) => ({ term, parts: termPartIds(req, term) }));
-  const lowestPart = (term: GlobalTerm) =>
-    Math.min(...termPartIds(req, term).map((id) => partIndex.get(id) ?? Infinity));
+  const covering = terms.map((term) => ({
+    term,
+    parts: termPartIds(req, term),
+    start: startMinutes(term),
+    end: startMinutes(term) + term.durationMinutes,
+  }));
+  type Covering = (typeof covering)[number];
 
-  const isValid = (option: GlobalTerm[]): boolean => {
-    for (let i = 1; i < option.length; i++) {
-      const prev = option[i - 1];
-      if (startMinutes(option[i]) < startMinutes(prev) + prev.durationMinutes + gapMinutes) return false;
-      if (parts.ordered && lowestPart(option[i]) <= lowestPart(prev)) return false;
-    }
-    return true;
-  };
+  // Checked while extending, so invalid branches are cut early. The added term
+  // contains the lowest uncovered part, which is therefore its lowest part and
+  // higher than that of every chosen term: with a binding order it must come
+  // after all of them. Otherwise it only keeps the gap on either side.
+  const fits = (c: Covering, other: Covering): boolean =>
+    c.start >= other.end + gapMinutes || (!parts.ordered && other.start >= c.end + gapMinutes);
 
   // Exact cover: always extend with a term containing the lowest uncovered
   // part, so each set is produced once.
   const options: GlobalTerm[][] = [];
   const covered = new Set<string>();
-  const chosen: GlobalTerm[] = [];
+  const chosen: Covering[] = [];
+  let steps = 0;
   const extend = () => {
-    if (options.length >= MAX_PART_OPTIONS) return;
+    if (options.length >= MAX_PART_OPTIONS || ++steps > MAX_PART_STEPS) return;
     const next = parts.parts.find((p) => !covered.has(p.id));
     if (!next) {
-      const option = [...chosen].sort((a, b) => startMinutes(a) - startMinutes(b));
-      if (isValid(option)) options.push(option);
+      options.push(chosen.map((c) => c.term).sort((a, b) => startMinutes(a) - startMinutes(b)));
       return;
     }
     for (const c of covering) {
       if (!c.parts.includes(next.id) || c.parts.some((id) => covered.has(id))) continue;
-      chosen.push(c.term);
+      if (!chosen.every((other) => fits(c, other))) continue;
+      chosen.push(c);
       c.parts.forEach((id) => covered.add(id));
       extend();
       c.parts.forEach((id) => covered.delete(id));
@@ -615,6 +622,7 @@ export function generateGlobalSchedule(
 
   const savingsScore = Math.max(0, forced.score - optimal.score);
   const savingsCost = Math.max(0, forced.totalCost - optimal.totalCost);
+  const droppedByLocks = Math.max(0, forced.unschedulable.length - optimal.unschedulable.length);
 
-  return { forced, optimal, hasLocks, savingsScore, savingsCost };
+  return { forced, optimal, hasLocks, droppedByLocks, savingsScore, savingsCost };
 }

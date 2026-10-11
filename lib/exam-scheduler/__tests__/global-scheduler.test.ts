@@ -581,6 +581,46 @@ describe("generateGlobalSchedule – exams split into parts", () => {
     expect(forced.unschedulable[0].reason).toMatch(/zamčené/);
   });
 
+  it("reports exams that locks leave out so the unlocked plan can be shown", () => {
+    const requirements = [
+      split(
+        req("A", "fyz", [
+          term("o", "2025-03-10", "09:00", { parts: ["Ústní"], locked: true }),
+          term("w", "2025-03-10", "12:00", { parts: ["Písemná"], locked: true }), // after the oral
+          term("w_early", "2025-03-05", "09:00", { parts: ["Písemná"] }),
+        ]),
+        WO
+      ),
+    ];
+
+    const comparison = generateGlobalSchedule(requirements, configs, 0);
+    expect(comparison.forced.selectedTermIds).toHaveLength(0);
+    expect(comparison.optimal.selectedTermIds).toEqual(["w_early", "o"]);
+    expect(comparison.droppedByLocks).toBe(1);
+  });
+
+  it("stays fast when many terms only fail on the last part", () => {
+    // Parts 1–5 have 20 valid terms each, one day per part; every part 6 term
+    // comes before them all, so no combination is valid in a binding order.
+    const parts = ["1", "2", "3", "4", "5", "6"];
+    const terms: GlobalTerm[] = [];
+    for (let p = 1; p <= 5; p++) {
+      for (let i = 0; i < 20; i++) {
+        const hour = String(6 + Math.floor(i / 2)).padStart(2, "0");
+        terms.push(term(`p${p}_${i}`, `2025-03-0${p + 1}`, `${hour}:${i % 2 ? "30" : "00"}`, { dur: 15, parts: [String(p)] }));
+      }
+    }
+    for (let i = 0; i < 20; i++) {
+      terms.push(term(`p6_${i}`, "2025-03-01", "09:00", { dur: 15, parts: ["6"] }));
+    }
+
+    const started = Date.now();
+    const { forced } = generateGlobalSchedule([split(req("A", "mat", terms), parts)], configs, 0, 0);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(forced.selectedTermIds).toHaveLength(0);
+    expect(forced.unschedulable[0].reason).toMatch(/pořadí/);
+  });
+
   it("treats terms without parts as the whole exam", () => {
     const requirements = [
       split(
