@@ -75,6 +75,8 @@ export function StudyNoteLinkSubjectsDialog({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [linkedFinalExams, setLinkedFinalExams] = useState<AvailableSubject[]>([])
+  // The note's links only carry subject ids; names come from the study's subjects (null until loaded)
+  const [subjectNames, setSubjectNames] = useState<Map<string, string> | null>(null)
 
   const loadAvailableSubjects = useCallback(async () => {
     try {
@@ -112,6 +114,7 @@ export function StudyNoteLinkSubjectsDialog({
       }
 
       const allSubjects = await fetchSubjectsByStudyId(studyId) as DbSubject[]
+      setSubjectNames(new Map((allSubjects || []).map(s => [s.id, s.name])))
 
       const allFinalExams = await fetchFinalExams(studyId) as DbFinalExam[]
 
@@ -242,6 +245,7 @@ export function StudyNoteLinkSubjectsDialog({
 
   useEffect(() => {
     if (isOpen) {
+      setSubjectNames(null)
       loadData()
       setSelectedSubjects(new Set())
       setError(null)
@@ -325,8 +329,11 @@ export function StudyNoteLinkSubjectsDialog({
   const studyName = availableSubjects[0]?.study_name || ""
 
   const primaryFinalExam = linkedFinalExams.find(fe => fe.is_primary)
+  const subjectName = (subject: { id: string; name: string }) =>
+    subjectNames?.get(subject.id) || (subjectNames ? subject.name || "Neznámý předmět" : "Načítání…")
   const primarySubject = note.subjects?.find(s => s.is_primary)
-  const linkedSubjects = note.subjects?.filter(s => !s.is_primary) || []
+  const linkedSubjects = (note.subjects?.filter(s => !s.is_primary) || [])
+    .map(s => ({ ...s, name: subjectName(s) }))
   const linkedNonPrimaryFinalExams = linkedFinalExams.filter(fe => !fe.is_primary)
   const allLinkedItems = [...linkedSubjects, ...linkedNonPrimaryFinalExams]
 
@@ -354,7 +361,7 @@ export function StudyNoteLinkSubjectsDialog({
             </Label>
             <div className="flex items-center gap-2 p-3 bg-primary-50 dark:bg-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
               <Badge variant="default" className="bg-primary-600">
-                {primaryFinalExam?.name || primarySubject?.name || "Neznámý předmět"}
+                {primaryFinalExam?.name || (primarySubject ? subjectName(primarySubject) : "Neznámý předmět")}
               </Badge>
               <span className="text-sm text-muted-foreground">(nelze změnit)</span>
             </div>

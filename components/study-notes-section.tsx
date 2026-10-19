@@ -59,7 +59,7 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
       const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note) => {
         const subjects: StudyNoteSubject[] = (note.linked_subjects || []).map((link) => ({
           id: link.subject_id,
-          name: "", // not stored on the link; unused here
+          name: "", // not stored on the link; the link dialog resolves it
           study_id: note.study_id,
           is_primary: link.is_primary
         }))
