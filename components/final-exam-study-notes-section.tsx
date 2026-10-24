@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Plus, BookOpen, FileText, FileType, NotebookPen } from "lucide-react"
 import { fetchStudyNotesByFinalExamId } from "@/lib/actions/study-notes"
+import { fetchSubjectsByIds } from "@/lib/actions/subjects"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
 import { AddMarkdownNoteDialog } from "@/components/markdown-notes/add-markdown-note-dialog"
@@ -34,12 +35,19 @@ export function FinalExamStudyNotesSection({ studyId, finalExamId, studySlug, is
     try {
       const data = await fetchStudyNotesByFinalExamId(finalExamId)
 
-      // linked_subjects only carry ids, so the id stands in for the subject name
+      // The links only carry subject ids; look up the names for the card badges and the link dialog
+      const subjectIds = [...new Set<string>((data || []).flatMap((note: any) => (note.linked_subjects || []).map((ls: any) => ls.subject_id)))]
+      const subjectNames = new Map<string, string>()
+      if (subjectIds.length > 0) {
+        const subjectsData = await fetchSubjectsByIds(subjectIds) as { id: string; name: string }[]
+        subjectsData?.forEach((s) => subjectNames.set(s.id, s.name))
+      }
+
       const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note: any) => ({
         ...note,
         subjects: note.linked_subjects?.map((ls: any) => ({
           id: ls.subject_id,
-          name: ls.subject_id,
+          name: subjectNames.get(ls.subject_id) || "Neznámý předmět",
           study_id: "",
           is_primary: ls.is_primary
         })) || []

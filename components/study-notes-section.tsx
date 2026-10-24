@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Plus, BookOpen, FileText, FileType, NotebookPen } from "lucide-react"
 import { fetchStudyNotesBySubjectId } from "@/lib/actions/study-notes"
+import { fetchSubjectsByIds } from "@/lib/actions/subjects"
 import { StudyNoteCard } from "@/components/study-note-card"
 import { AddStudyNoteDialog } from "@/components/add-study-note-dialog"
 import { AddMarkdownNoteDialog } from "@/components/markdown-notes/add-markdown-note-dialog"
@@ -56,10 +57,18 @@ export function StudyNotesSection({ studyId, subjectId, studySlug, isStudyPublic
     try {
       const data = await fetchStudyNotesBySubjectId(subjectId) as RawStudyNoteFromMongo[]
 
+      // The links only carry subject ids; look up the names for the card badges and the link dialog
+      const subjectIds = [...new Set((data || []).flatMap((note) => (note.linked_subjects || []).map((l) => l.subject_id)))]
+      const subjectNames = new Map<string, string>()
+      if (subjectIds.length > 0) {
+        const subjectsData = await fetchSubjectsByIds(subjectIds) as { id: string; name: string }[]
+        subjectsData?.forEach((s) => subjectNames.set(s.id, s.name))
+      }
+
       const notesWithSubjects: StudyNoteWithSubjects[] = (data || []).map((note) => {
         const subjects: StudyNoteSubject[] = (note.linked_subjects || []).map((link) => ({
           id: link.subject_id,
-          name: "", // not stored on the link; the link dialog resolves it
+          name: subjectNames.get(link.subject_id) || "Neznámý předmět",
           study_id: note.study_id,
           is_primary: link.is_primary
         }))
