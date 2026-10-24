@@ -330,7 +330,7 @@ export function StudyNoteLinkSubjectsDialog({
 
   const primaryFinalExam = linkedFinalExams.find(fe => fe.is_primary)
   const subjectName = (subject: { id: string; name: string }) =>
-    subjectNames?.get(subject.id) || (subjectNames ? subject.name || "Neznámý předmět" : "Načítání…")
+    subjectNames?.get(subject.id) || subject.name || (subjectNames ? "Neznámý předmět" : "Načítání…")
   const primarySubject = note.subjects?.find(s => s.is_primary)
   const linkedSubjects = (note.subjects?.filter(s => !s.is_primary) || [])
     .map(s => ({ ...s, name: subjectName(s) }))
