@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { FileText, AlertCircle, Search, X, Folder, ChevronRight, File } from "lucide-react"
+import { FileText, FileArchive, AlertCircle, Search, X, Folder, ChevronRight, File } from "lucide-react"
 import { signIn } from "next-auth/react"
 import { czPlural } from "@/lib/utils/task-format"
 import type { OneDriveFile } from "@/lib/types/materials"
@@ -167,6 +167,7 @@ export function OneDriveFilePicker({
     if (ext === "docx" || ext === "doc") return <FileText className="h-6 w-6 text-primary" />
     if (ext === "md") return <FileText className="h-6 w-6 text-primary" />
     if (ext === "xlsx" || ext === "xls") return <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
+    if (ext === "zip") return <FileArchive className="h-6 w-6 text-amber-600 dark:text-amber-400" />
     return <File className="h-6 w-6 text-muted-foreground" />
   }
 

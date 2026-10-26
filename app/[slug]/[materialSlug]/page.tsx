@@ -4,7 +4,7 @@ import { auth } from "@/auth"
 import { checkFileExists } from "@/lib/utils/onedrive-cache"
 import { redirect, notFound } from "next/navigation"
 import { NOTE_TYPES, getNoteType } from "@/lib/constants"
-import { Loader2, FileText, ArrowLeft, Globe, AlertCircle } from "lucide-react"
+import { Loader2, FileText, FileArchive, ArrowLeft, Globe, AlertCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -187,6 +187,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
     xlsx: <FileText className="h-12 w-12 text-green-600 dark:text-green-400" />,
     ppt: <FileText className="h-12 w-12 text-orange-600 dark:text-orange-400" />,
     pptx: <FileText className="h-12 w-12 text-orange-600 dark:text-orange-400" />,
+    zip: <FileArchive className="h-12 w-12 text-amber-600 dark:text-amber-400" />,
     default: <FileText className="h-12 w-12 text-muted-foreground" />,
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { makeGraphRequest } from "@/lib/utils/onedrive"
+import { isMaterialFile } from "@/lib/utils/material-files"
 
 export async function GET(request: Request) {
   const session = await auth()
@@ -20,16 +21,7 @@ export async function GET(request: Request) {
     const graphResponse = await makeGraphRequest(graphUrl)
     const data = await graphResponse.json()
 
-    const files = data.value.filter((item: any) =>
-      item.file && (
-        item.file.mimeType?.includes("pdf") ||
-        item.file.mimeType?.includes("document") ||
-        item.file.mimeType?.includes("spreadsheet") ||
-        item.file.mimeType?.includes("presentation") ||
-        item.file.mimeType?.includes("text") ||
-        item.name.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)$/i)
-      )
-    ).map((item: any) => ({
+    const files = data.value.filter(isMaterialFile).map((item: any) => ({
       id: item.id,
       name: item.name,
       size: item.size,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { makeGraphRequest } from '@/lib/utils/onedrive'
+import { isMaterialFile } from '@/lib/utils/material-files'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/utils/rate-limit'
 
 export async function GET() {
@@ -19,16 +20,7 @@ export async function GET() {
     const data = await graphResponse.json()
 
     const files = data.value
-      .filter(
-        (item: any) =>
-          item.file &&
-          (item.file.mimeType?.includes('pdf') ||
-            item.file.mimeType?.includes('document') ||
-            item.file.mimeType?.includes('spreadsheet') ||
-            item.file.mimeType?.includes('presentation') ||
-            item.file.mimeType?.includes('text') ||
-            item.name.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|pod)$/i))
-      )
+      .filter(isMaterialFile)
       .map((item: any) => ({
         id: item.id,
         name: item.name,
