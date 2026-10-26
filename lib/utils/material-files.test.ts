@@ -21,5 +21,6 @@ describe("isMaterialFile", () => {
   it("rejects folders and other files", () => {
     expect(isMaterialFile({ name: "Složka" })).toBe(false)
     expect(isMaterialFile({ name: "foto.jpg", file: { mimeType: "image/jpeg" } })).toBe(false)
+    expect(isMaterialFile({ name: "zaloha.tar.gz", file: { mimeType: "application/gzip" } })).toBe(false)
   })
 })
