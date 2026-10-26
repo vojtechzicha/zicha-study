@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { makeGraphRequest } from "@/lib/utils/onedrive"
+import { isMaterialFile } from "@/lib/utils/material-files"
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "@/lib/utils/rate-limit"
 import type { OneDriveItem, OneDriveProcessedItem, OneDriveFolderItem, OneDriveFileItem } from "@/lib/types/onedrive"
 
@@ -72,14 +73,7 @@ export async function GET(request: Request) {
             }
           }
           return folderItem
-        } else if (item.file && (
-          item.file.mimeType?.includes("pdf") ||
-          item.file.mimeType?.includes("document") ||
-          item.file.mimeType?.includes("spreadsheet") ||
-          item.file.mimeType?.includes("presentation") ||
-          item.file.mimeType?.includes("text") ||
-          item.name.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|pod)$/i)
-        )) {
+        } else if (item.file && isMaterialFile(item)) {
           const fileItem: OneDriveFileItem = {
             id: item.id,
             name: item.name,

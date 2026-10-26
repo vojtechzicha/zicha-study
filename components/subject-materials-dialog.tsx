@@ -32,7 +32,8 @@ import {
   Copy,
   Check,
   MoreVertical,
-  BookOpen
+  BookOpen,
+  FileArchive
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -88,6 +89,7 @@ const fileIcons: { [key: string]: JSX.Element } = {
   xlsx: <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />,
   ppt: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
   pptx: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
+  zip: <FileArchive className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
   default: <FileText className="h-4 w-4 text-muted-foreground" />,
 }
 

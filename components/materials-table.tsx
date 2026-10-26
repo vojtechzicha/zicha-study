@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { FileText, ExternalLink, Download, Trash2, Search, Globe, MoreVertical, Copy, Check } from "lucide-react"
+import { FileText, FileArchive, ExternalLink, Download, Trash2, Search, Globe, MoreVertical, Copy, Check } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +51,7 @@ const fileIcons: { [key: string]: JSX.Element } = {
   xlsx: <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />,
   ppt: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
   pptx: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
+  zip: <FileArchive className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
   default: <FileText className="h-4 w-4 text-muted-foreground" />,
 }
 
