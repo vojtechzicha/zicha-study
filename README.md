@@ -13,6 +13,7 @@ A personal tracker for university and high-school studies. You sign in with a Mi
 - Markdown notes written in an in-app editor
 - Exam scheduler that finds a conflict-free set of exam dates across studies
 - Task list
+- Claude connector (remote MCP server): Claude sessions can read and edit the data, see [docs/MCP.md](docs/MCP.md)
 - Public, read-only sharing of a study, its materials and its notes
 - Colour theme taken from each study's logo, plus light and dark mode
 
@@ -56,6 +57,7 @@ These are optional:
 - `MONGODB_DB` (defaults to `zicha-study`)
 - `ALLOWED_EMAILS`
 - `AUTH_REDIRECT_PROXY_URL` (Vercel preview deployments only)
+- `MCP_PUBLIC_URL` and `MCP_EXTRA_REDIRECT_URIS` (Claude connector, see [docs/MCP.md](docs/MCP.md))
 - The share URL variables described below
 - Build metadata overrides
 
