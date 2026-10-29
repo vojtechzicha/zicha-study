@@ -7,7 +7,7 @@ import { fetchStudies } from "@/lib/actions/studies"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet, HardDrive, CalendarDays } from "lucide-react"
+import { GraduationCap, Plus, BookOpen, TrendingUp, LogOut, Settings, Edit, FileSpreadsheet, HardDrive, CalendarDays, Bot } from "lucide-react"
 import { StudyLogo } from "@/components/study-logo"
 import { useRouter } from "next/navigation"
 import { Study, getStatusColor, getStatusText, sortStudiesByStatus } from "@/lib/status-utils"
@@ -15,6 +15,7 @@ import { getStudyFormLabel } from "@/lib/constants"
 import { exportStudiesToExcel } from "@/lib/utils/export-excel"
 import { useToast } from "@/hooks/use-toast"
 import { CacheSettingsDialog } from "@/components/cache-settings-dialog"
+import { McpConnectionsDialog } from "@/components/mcp-connections-dialog"
 import { TitlePageFooter } from "@/components/title-page-footer"
 import { GlobalTasksButton } from "@/components/global-tasks-button"
 
@@ -27,6 +28,7 @@ export function Dashboard({ user }: DashboardProps) {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [showCacheSettings, setShowCacheSettings] = useState(false)
+  const [showMcpConnections, setShowMcpConnections] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -115,6 +117,15 @@ export function Dashboard({ user }: DashboardProps) {
                 title="Záloha souborů z OneDrive"
               >
                 <HardDrive className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMcpConnections(true)}
+                title="Připojení Claude"
+                aria-label="Připojení Claude"
+              >
+                <Bot className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut} title="Odhlásit se" aria-label="Odhlásit se">
                 <LogOut className="h-4 w-4" />
@@ -261,6 +272,7 @@ export function Dashboard({ user }: DashboardProps) {
         open={showCacheSettings}
         onOpenChange={setShowCacheSettings}
       />
+      <McpConnectionsDialog open={showMcpConnections} onOpenChange={setShowMcpConnections} />
     </div>
   )
 }

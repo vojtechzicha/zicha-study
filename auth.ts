@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id"
+import { isEmailAllowed } from "@/lib/allowed-emails"
 
 // Tenant GUID for personal Microsoft accounts. /consumers/ discovery reports this GUID as the
 // issuer (so ".../consumers/v2.0" would mismatch), and /common/ rejects apps registered for
@@ -31,11 +32,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     signIn({ profile }) {
-      // Data isn't scoped per user, so an empty list lets any personal account read and edit everything.
-      const allowedEmails = process.env.ALLOWED_EMAILS?.split(",").map((e) => e.trim().toLowerCase()) || []
-      if (allowedEmails.length === 0) return true
-      const email = profile?.email?.toLowerCase()
-      return !!email && allowedEmails.includes(email)
+      return isEmailAllowed(profile?.email)
     },
     async jwt({ token, account }) {
       // First sign-in: keep the Microsoft tokens for OneDrive calls.

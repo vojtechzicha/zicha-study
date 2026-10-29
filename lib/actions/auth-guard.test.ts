@@ -8,6 +8,7 @@ import * as finalExams from "./final-exams"
 import * as logos from "./logos"
 import * as markdownNotes from "./markdown-notes"
 import * as materials from "./materials"
+import * as mcp from "./mcp"
 import * as onedriveCacheActions from "./onedrive-cache"
 import * as studies from "./studies"
 import * as studyNotes from "./study-notes"
@@ -42,6 +43,7 @@ const ACTION_MODULES: Record<string, Record<string, unknown>> = {
   logos,
   "markdown-notes": markdownNotes,
   materials,
+  mcp,
   "onedrive-cache": onedriveCacheActions,
   studies,
   "study-notes": studyNotes,

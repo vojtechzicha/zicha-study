@@ -393,6 +393,11 @@ export async function getSubjectMaterialsBySubjectId(subjectId: string) {
   return c.find({ subject_id: subjectId }).sort({ created_at: -1 }).toArray()
 }
 
+export async function getSubjectMaterialsByStudyId(studyId: string) {
+  const c = await col("subject_materials")
+  return c.find({ study_id: studyId }).sort({ created_at: -1 }).toArray()
+}
+
 export async function deleteSubjectMaterial(id: string) {
   const c = await col("subject_materials")
   await c.deleteOne({ _id: id as any })
@@ -1082,6 +1087,130 @@ export async function getCacheOneDriveIdsByStudyId(studyId: string) {
     .flat()
     .map((doc) => doc.cache_onedrive_id)
     .filter((id): id is string => typeof id === "string" && id.length > 0)
+}
+
+// ─── MCP: OAuth clients, grants, codes and tokens ───────────────────────────
+// Remote MCP access for Claude (app/api/mcp). Codes and tokens are stored as SHA-256
+// hashes under _id, never in plain text. expires_at is a Date so TTL indexes can
+// prune expired rows.
+
+let mcpIndexesPromise: Promise<void> | null = null
+
+function ensureMcpIndexes() {
+  if (!mcpIndexesPromise) {
+    mcpIndexesPromise = getDb()
+      .then(async (db) => {
+        await Promise.all([
+          db.collection("mcp_auth_codes").createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 }),
+          db.collection("mcp_tokens").createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 }),
+          db.collection("mcp_tokens").createIndex({ grant_id: 1 }),
+          db.collection("mcp_audit").createIndex({ at: -1 }),
+        ])
+      })
+      .catch((err) => {
+        mcpIndexesPromise = null
+        throw err
+      })
+  }
+  return mcpIndexesPromise
+}
+
+async function mcpCol(name: string) {
+  await ensureMcpIndexes()
+  return col(name)
+}
+
+export async function createMcpClient(data: Record<string, any>) {
+  const c = await mcpCol("mcp_clients")
+  const doc = { _id: newId() as any, ...data, created_at: new Date().toISOString() }
+  await c.insertOne(doc)
+  return doc
+}
+
+export async function getMcpClient(id: string) {
+  const c = await mcpCol("mcp_clients")
+  return c.findOne({ _id: id as any })
+}
+
+export async function createMcpAuthCode(codeHash: string, data: Record<string, any>) {
+  const c = await mcpCol("mcp_auth_codes")
+  await c.insertOne({ _id: codeHash as any, ...data, created_at: new Date().toISOString() })
+}
+
+// Single use: the code is deleted by the same operation that reads it.
+export async function consumeMcpAuthCode(codeHash: string) {
+  const c = await mcpCol("mcp_auth_codes")
+  return c.findOneAndDelete({ _id: codeHash as any })
+}
+
+export async function createMcpGrant(data: Record<string, any>) {
+  const c = await mcpCol("mcp_grants")
+  const now = new Date().toISOString()
+  const doc = { _id: newId() as any, ...data, revoked_at: null, last_used_at: null, created_at: now }
+  await c.insertOne(doc)
+  return doc
+}
+
+export async function getMcpGrant(id: string) {
+  const c = await mcpCol("mcp_grants")
+  return c.findOne({ _id: id as any })
+}
+
+export async function getActiveMcpGrants() {
+  const c = await mcpCol("mcp_grants")
+  return c.find({ revoked_at: null }).sort({ created_at: -1 }).toArray()
+}
+
+export async function touchMcpGrant(id: string) {
+  const c = await mcpCol("mcp_grants")
+  await c.updateOne({ _id: id as any }, { $set: { last_used_at: new Date().toISOString() } })
+}
+
+export async function revokeMcpGrant(id: string) {
+  const db = await getDb()
+  await ensureMcpIndexes()
+  await db.collection("mcp_grants").updateOne(
+    { _id: id as any, revoked_at: null },
+    { $set: { revoked_at: new Date().toISOString() } }
+  )
+  await db.collection("mcp_tokens").deleteMany({ grant_id: id })
+}
+
+export async function insertMcpToken(tokenHash: string, data: Record<string, any>) {
+  const c = await mcpCol("mcp_tokens")
+  await c.insertOne({ _id: tokenHash as any, ...data, used_at: null, created_at: new Date().toISOString() })
+}
+
+export async function getMcpToken(tokenHash: string) {
+  const c = await mcpCol("mcp_tokens")
+  return c.findOne({ _id: tokenHash as any })
+}
+
+// Marks a refresh token used and returns it, or null when it is unknown or was
+// already used (the caller treats reuse as theft and revokes the grant).
+export async function claimMcpRefreshToken(tokenHash: string) {
+  const c = await mcpCol("mcp_tokens")
+  return c.findOneAndUpdate(
+    { _id: tokenHash as any, kind: "refresh", used_at: null },
+    { $set: { used_at: new Date().toISOString() } }
+  )
+}
+
+export async function deleteMcpToken(tokenHash: string) {
+  const c = await mcpCol("mcp_tokens")
+  await c.deleteOne({ _id: tokenHash as any })
+}
+
+// ─── MCP: audit log of every write made through MCP ─────────────────────────
+
+export async function insertMcpAuditEntry(data: Record<string, any>) {
+  const c = await mcpCol("mcp_audit")
+  await c.insertOne({ _id: newId() as any, ...data, at: new Date().toISOString() })
+}
+
+export async function getMcpAuditEntries(limit: number) {
+  const c = await mcpCol("mcp_audit")
+  return c.find().sort({ at: -1 }).limit(limit).toArray()
 }
 
 // ─── ID normalization helper ────────────────────────────────────────────────

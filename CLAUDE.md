@@ -27,8 +27,9 @@ app/
   [slug]/, [slug]/[materialSlug]/   public study, material and note pages
   studies/[id]/{edit,settings,statistics,notes/[noteId]}, studies/new
   tasks/, exam-scheduler/           cross-study tasks and the exam scheduler
+  oauth/authorize/, .well-known/    consent page and OAuth metadata for the Claude connector
   api/                    auth, OneDrive (files, search, picker, share), study-note conversion + media,
-                          Markdown-note media, logos, diplomas, version
+                          Markdown-note media, logos, diplomas, version, mcp (remote MCP server + OAuth)
 components/
   ui/                     shadcn/ui, don't modify
   subjects/               per-kind (university / high school) subject lists, forms and statistics
@@ -39,6 +40,7 @@ lib/
   mongodb/db.ts           all database access
   actions/                Server Actions used by client components
   exam-scheduler/         scheduling algorithm (with tests)
+  mcp/                    Claude connector: OAuth server (oauth.ts), MCP tools (tools/), see docs/MCP.md
   constants.ts            enums, labels and badge classes
   study-kind.ts           university vs high-school terminology
   highschool/grades.ts    1–5 grading
@@ -51,11 +53,16 @@ MongoDB collections: `studies`, `subjects`, `final_exams`, `materials`, `subject
 (Word, Obsidian and Markdown notes, told apart by `note_type`; linked subjects/exams are denormalized into
 `linked_subjects[]` / `linked_final_exams[]`), `study_notes_cache` and `study_notes_media` (converted HTML and
 images), `study_note_versions` and `markdown_note_media` (Markdown notes), `tasks`, `exam_periods`, `exam_terms`,
-`exam_options`, `app_settings`.
+`exam_options`, `app_settings`; `mcp_clients`, `mcp_auth_codes`, `mcp_grants`, `mcp_tokens`, `mcp_audit` (Claude
+connector).
 
 Data isn't scoped per user. It is a single-user app: `ALLOWED_EMAILS` in `auth.ts` decides who can sign in.
-Middleware only redirects signed-out users away from `/studies` and `/tasks`; Server Actions don't call `auth()`
-themselves (except in `lib/actions/markdown-notes.ts`).
+Middleware only redirects signed-out users away from `/studies` and `/tasks`; every Server Action calls
+`requireUser()` (`lib/auth-guard.ts`) itself, which `lib/actions/auth-guard.test.ts` checks.
+
+The Claude connector (`/api/mcp`) is a second way in: MCP tools in `lib/mcp/tools/` call `lib/mongodb/db.ts` with
+an OAuth bearer token instead of a session. A new database field or rule that a Server Action enforces needs the
+same in the matching MCP tool (zod schema + `prepare…Patch`).
 
 ## Patterns
 
