@@ -1447,9 +1447,13 @@ export async function casUpdatePracticePageContent(
 
 // Plain-text page fields (no HTML) and its address. desc isn't part of the uploaded content, so
 // re-uploading a page keeps it.
+// The title is part of the uploaded content: editing it clears content_hash, so re-uploading
+// the original page counts as a change and restores the generator's title.
 export async function updatePracticePageMeta(id: string, fields: { title?: string; desc?: string | null; slug?: string }) {
   const c = await practiceCol("practice_pages")
-  await c.updateOne({ _id: id as any }, { $set: { ...fields, updated_at: new Date().toISOString() } })
+  const set: Record<string, unknown> = { ...fields, updated_at: new Date().toISOString() }
+  if (fields.title !== undefined) set.content_hash = null
+  await c.updateOne({ _id: id as any }, { $set: set })
 }
 
 // Snapshot of a page's content at one revision. Idempotent per (page, revision); keeps the newest

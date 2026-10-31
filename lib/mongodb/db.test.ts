@@ -35,6 +35,7 @@ import {
   deleteStudyNote,
   deleteSubject,
   revokeMcpGrant,
+  updatePracticePageMeta,
 } from "./db"
 
 function callsOn(collection: string, method: string) {
@@ -119,6 +120,21 @@ describe("deleteFinalExam", () => {
       },
     ])
     expect(callsOn("final_exams", "deleteOne")).toHaveLength(1)
+  })
+})
+
+describe("updatePracticePageMeta", () => {
+  it("clears the content hash when the title changes, so the next upload restores it", async () => {
+    await updatePracticePageMeta("pg1", { title: "Nový název" })
+    const [filter, update] = callsOn("practice_pages", "updateOne")[0].args as any[]
+    expect(filter).toEqual({ _id: "pg1" })
+    expect(update.$set).toMatchObject({ title: "Nový název", content_hash: null })
+  })
+
+  it("keeps the hash for description and address changes", async () => {
+    await updatePracticePageMeta("pg1", { desc: "Popis", slug: "bfs2" })
+    const [, update] = callsOn("practice_pages", "updateOne")[0].args as any[]
+    expect(update.$set).not.toHaveProperty("content_hash")
   })
 })
 
