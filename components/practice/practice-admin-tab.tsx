@@ -1,7 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Check, Copy, ExternalLink, Loader2, Trash2, Upload } from "lucide-react"
+import Link from "next/link"
+import { Check, ChevronDown, ChevronRight, CircleCheck, Copy, FileUp, Loader2, Settings2, Trash2, Upload } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,8 +32,9 @@ import { getShareUrl } from "@/lib/utils/share-url"
 import { cleanSlugInput, createSlug } from "@/lib/utils/slug"
 import { czPlural } from "@/lib/utils/task-format"
 
-// The subject dialog's Procvičování tab (only shown while practice is enabled): the module's
-// address and study note, its pages with progress, and uploading generator HTML pages.
+// The subject dialog's Procvičování tab (only shown while practice is enabled). Read first: progress,
+// a "continue" button to the next unfinished page, and the pages by lecture as a checklist. The
+// module's address, study note, uploads and page deletion sit in a collapsed "Správa" section.
 
 // Select values: special options can't collide with group keys, which are namespaced "group:<key>"
 const NO_NOTE = "none"
@@ -78,6 +81,7 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
   const [uploading, setUploading] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
+  const [manage, setManage] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
   const [toDelete, setToDelete] = useState<{ slug: string; title: string } | null>(null)
 
@@ -244,6 +248,13 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
 
   const addressChanged = addressEdited
 
+  // In-app paths (no subdomain redirect); share URLs only for copying
+  const indexPath = `/${data.module.addressPrefix}/${PRACTICE_ROUTE_SEGMENT}/${data.module.slug}`
+  const totalExamples = data.pages.reduce((n, p) => n + p.examples, 0)
+  const totalDone = data.pages.reduce((n, p) => n + p.done, 0)
+  const nextPage = groupsWithPages.flatMap((g) => g.pages).find((p) => p.done < p.examples) ?? null
+  const percent = totalExamples > 0 ? Math.round((totalDone / totalExamples) * 100) : 0
+
   return (
     <div className="space-y-6 p-1">
       {error && (
@@ -252,162 +263,274 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
         </Alert>
       )}
 
-      <section className="space-y-3 rounded-lg border border-border p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="practice-prefix">Adresa</Label>
-            <div className="flex items-center gap-1.5">
-              <Input id="practice-prefix" className="w-36" value={prefix} onChange={(e) => setPrefix(cleanSlugInput(e.target.value))} aria-label="Část adresy za studiem" />
-              <span className="text-muted-foreground">/{PRACTICE_ROUTE_SEGMENT}/</span>
-              <Input id="practice-slug" className="w-36" value={slug} onChange={(e) => setSlug(cleanSlugInput(e.target.value))} aria-label="Adresa procvičování" />
-            </div>
-          </div>
-          <Button
-            size="sm"
-            disabled={!addressChanged || available === false || savingAddress}
-            onClick={saveAddress}
-            className="bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800"
-          >
-            {savingAddress ? "Ukládání…" : "Uložit adresu"}
+      {data.pages.length === 0 ? (
+        <section className="rounded-xl border border-dashed border-border p-8 text-center">
+          <p className="font-medium text-foreground">Zatím tu nejsou žádné stránky.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Nahrajte stránky s příklady v části Správa.</p>
+          <Button size="sm" variant="outline" className="mt-4" onClick={() => setManage(true)}>
+            <Settings2 className="mr-1.5 h-4 w-4" />
+            Otevřít správu
           </Button>
-          <Button size="sm" variant="outline" asChild>
-            <a href={moduleUrl(data.module.addressPrefix, data.module.slug)} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="mr-1.5 h-4 w-4" />
-              Otevřít přehled
-            </a>
-          </Button>
-        </div>
-        <p className="rounded-md bg-muted/50 px-3 py-2 font-mono text-xs text-muted-foreground break-all">{moduleUrl()}</p>
-        {addressChanged && available === false && <p className="text-sm text-red-600 dark:text-red-400">Adresa je obsazená nebo neplatná.</p>}
-        {addressChanged && available && <p className="text-sm text-amber-700 dark:text-amber-300">Dosavadní odkazy přestanou fungovat.</p>}
-
-        <div className="space-y-1">
-          <Label htmlFor="practice-note">Studijní zápis</Label>
-          <Select value={data.module.primaryNoteId ?? NO_NOTE} onValueChange={setPrimaryNote}>
-            <SelectTrigger id="practice-note" className="max-w-md">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NO_NOTE}>Bez zápisu</SelectItem>
-              {data.notes.map((note) => (
-                <SelectItem key={note.id} value={note.id}>
-                  {note.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-lg border border-border p-4">
-        <h3 className="font-semibold text-foreground">Nahrát stránky</h3>
-        <Input
-          ref={fileInput}
-          type="file"
-          accept=".html,.htm,text/html"
-          multiple
-          disabled={uploading}
-          onChange={(e) => pickFiles(e.target.files)}
-          aria-label="Soubory HTML"
-        />
-        {files.length > 0 && (
-          <>
-            <ul className="space-y-2">
-              {files.map((f, i) => (
-                <li key={f.file.name} className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate text-foreground">{f.file.name}</span>
-                  <Input
-                    className="h-8 w-40"
-                    value={f.slug}
-                    disabled={uploading || f.status === "done"}
-                    onChange={(e) => {
-                      const value = cleanSlugInput(e.target.value)
-                      setFiles((current) => current.map((x, k) => (k === i ? { ...x, slug: value } : x)))
-                    }}
-                    aria-label={`Adresa stránky ${f.file.name}`}
-                  />
-                  {f.status === "uploading" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                  {f.message && (
-                    <span className={f.status === "error" ? "w-full text-red-600 dark:text-red-400" : "w-full text-green-700 dark:text-green-300"}>{f.message}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="practice-group">Skupina</Label>
-                <Select value={group} onValueChange={setGroup}>
-                  <SelectTrigger id="practice-group" className="w-64">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_GROUP}>Ponechat</SelectItem>
-                    {data.module.groups.map((g) => (
-                      <SelectItem key={g.key} value={`${GROUP_PREFIX}${g.key}`}>
-                        {g.title}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value={NEW_GROUP}>Nová skupina…</SelectItem>
-                  </SelectContent>
-                </Select>
+        </section>
+      ) : (
+        <>
+          <section className="rounded-xl border border-primary-200 bg-primary-50 p-5 dark:border-primary-800 dark:bg-primary-950">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm text-foreground/80">
+                  Prošlé příklady: <span className="font-semibold text-foreground tabular-nums">{totalDone} z {totalExamples}</span>
+                </p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {nextPage ? `Na řadě: ${nextPage.title}` : "Všechny příklady máte prošlé."}
+                </p>
               </div>
-              {group === NEW_GROUP && (
-                <div className="space-y-1">
-                  <Label htmlFor="practice-new-group">Název skupiny *</Label>
-                  <Input id="practice-new-group" className="w-64" value={newGroupTitle} onChange={(e) => setNewGroupTitle(e.target.value)} />
-                </div>
-              )}
-              <Button
-                size="sm"
-                onClick={upload}
-                disabled={uploading || files.every((f) => f.status === "done") || (group === NEW_GROUP && !newGroupTitle.trim()) || files.some((f) => !PRACTICE_SLUG_PATTERN.test(f.slug))}
-                className="bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800"
-              >
-                <Upload className="mr-1.5 h-4 w-4" />
-                {uploading ? "Nahrávání…" : "Nahrát"}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild className="bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800">
+                  <Link href={nextPage ? `${indexPath}/${nextPage.slug}` : indexPath}>
+                    {nextPage ? (totalDone > 0 ? "Pokračovat" : "Začít procvičovat") : "Otevřít přehled"}
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+                {nextPage && (
+                  <Button asChild variant="outline">
+                    <Link href={indexPath}>Přehled</Link>
+                  </Button>
+                )}
+              </div>
             </div>
-          </>
-        )}
-      </section>
+            <div
+              className="mt-4 h-2 overflow-hidden rounded-full bg-primary-100 dark:bg-primary-900/50"
+              role="progressbar"
+              aria-label="Prošlé příklady"
+              aria-valuemin={0}
+              aria-valuemax={totalExamples}
+              aria-valuenow={totalDone}
+            >
+              <div className="h-full rounded-full bg-primary-600 dark:bg-primary-400" style={{ width: `${percent}%` }} />
+            </div>
+          </section>
 
-      <section className="space-y-4">
-        {groupsWithPages.length === 0 && <p className="text-sm text-muted-foreground">Zatím žádné stránky.</p>}
-        {groupsWithPages.map((g) => (
-          <div key={g.title} className="space-y-2">
-            <h3 className="text-sm font-semibold text-foreground/80">{g.title}</h3>
-            <ul className="divide-y divide-border rounded-lg border border-border">
-              {g.pages.map((page) => (
-                <li key={page.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-                  <span className="min-w-0 flex-1">
-                    <span className="font-medium text-foreground">{page.title}</span>{" "}
-                    <span className="text-muted-foreground">
-                      · {page.examples} {czPlural(page.examples, "příklad", "příklady", "příkladů")}
-                      {page.done > 0 && ` · ${page.done} prošlých`}
+          <section className="space-y-5">
+            {groupsWithPages.map((g) => {
+              const groupDone = g.pages.filter((p) => p.examples > 0 && p.done >= p.examples).length
+              return (
+                <div key={g.title}>
+                  <div className="flex items-baseline justify-between gap-3 px-1">
+                    <h3 className="text-sm font-semibold text-foreground">{g.title}</h3>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {groupDone} / {g.pages.length} {czPlural(g.pages.length, "stránka", "stránky", "stránek")}
                     </span>
+                  </div>
+                  <ul className="mt-2 divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                    {g.pages.map((page) => {
+                      const complete = page.examples > 0 && page.done >= page.examples
+                      return (
+                        <li key={page.id} className="flex items-center">
+                          <Link
+                            href={`${indexPath}/${page.slug}`}
+                            className="group flex min-w-0 flex-1 items-center gap-3 px-4 py-3 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
+                          >
+                            {complete ? (
+                              <CircleCheck className="h-5 w-5 shrink-0 text-green-600 dark:text-green-400" aria-label="Prošlá stránka" />
+                            ) : (
+                              <span
+                                className={cn(
+                                  "h-5 w-5 shrink-0 rounded-full border-2",
+                                  page.done > 0 ? "border-primary-600 dark:border-primary-400" : "border-muted-foreground/30"
+                                )}
+                                aria-hidden="true"
+                              />
+                            )}
+                            <span className={cn("min-w-0 flex-1 truncate", complete ? "text-muted-foreground" : "font-medium text-foreground")}>
+                              {page.title}
+                            </span>
+                            <span className="hidden items-center gap-1 sm:flex" aria-hidden="true">
+                              {Array.from({ length: Math.min(page.examples, 12) }, (_, i) => (
+                                <span
+                                  key={i}
+                                  className={cn(
+                                    "h-1.5 w-1.5 rounded-full",
+                                    i < Math.round((page.done / Math.max(page.examples, 1)) * Math.min(page.examples, 12))
+                                      ? "bg-primary-600 dark:bg-primary-400"
+                                      : "bg-muted-foreground/25"
+                                  )}
+                                />
+                              ))}
+                            </span>
+                            <span className="w-12 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                              {page.done}/{page.examples}
+                            </span>
+                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/70 group-hover:text-foreground" aria-hidden="true" />
+                          </Link>
+                          {manage && (
+                            <span className="flex shrink-0 items-center pr-2">
+                              <Button size="icon" variant="ghost" onClick={() => copyLink(page.slug)} aria-label={`Kopírovat odkaz na ${page.title}`}>
+                                {copied === page.slug ? <Check className="h-4 w-4 text-green-600 dark:text-green-400" /> : <Copy className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setToDelete({ slug: page.slug, title: page.title })}
+                                aria-label={`Smazat ${page.title}`}
+                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </span>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )
+            })}
+          </section>
+        </>
+      )}
+
+      <section className="rounded-lg border border-border">
+        <button
+          type="button"
+          onClick={() => setManage((v) => !v)}
+          aria-expanded={manage}
+          className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-foreground/80 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+        >
+          <Settings2 className="h-4 w-4" aria-hidden="true" />
+          Správa
+          <span className="font-normal text-muted-foreground">– adresa, zápis, nahrávání a mazání stránek</span>
+          <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform motion-reduce:transition-none", manage && "rotate-180")} aria-hidden="true" />
+        </button>
+
+        {manage && (
+          <div className="space-y-6 border-t border-border p-4">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="practice-prefix">Adresa</Label>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Input id="practice-prefix" className="w-32" value={prefix} onChange={(e) => setPrefix(cleanSlugInput(e.target.value))} aria-label="Část adresy za studiem" />
+                    <span className="text-muted-foreground">/{PRACTICE_ROUTE_SEGMENT}/</span>
+                    <Input id="practice-slug" className="w-32" value={slug} onChange={(e) => setSlug(cleanSlugInput(e.target.value))} aria-label="Adresa procvičování" />
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={!addressChanged || available === false || savingAddress}
+                  onClick={saveAddress}
+                  className="bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800"
+                >
+                  {savingAddress ? "Ukládání…" : "Uložit adresu"}
+                </Button>
+              </div>
+              <p className="break-all rounded-md bg-muted/50 px-3 py-2 font-mono text-xs text-muted-foreground">{moduleUrl()}</p>
+              {addressChanged && available === false && <p className="text-sm text-red-600 dark:text-red-400">Adresa je obsazená nebo neplatná.</p>}
+              {addressChanged && available && <p className="text-sm text-amber-700 dark:text-amber-300">Dosavadní odkazy přestanou fungovat.</p>}
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="practice-note">Studijní zápis</Label>
+              <Select value={data.module.primaryNoteId ?? NO_NOTE} onValueChange={setPrimaryNote}>
+                <SelectTrigger id="practice-note" className="max-w-md">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_NOTE}>Bez zápisu</SelectItem>
+                  {data.notes.map((note) => (
+                    <SelectItem key={note.id} value={note.id}>
+                      {note.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Nahrát stránky</Label>
+              <input
+                ref={fileInput}
+                type="file"
+                accept=".html,.htm,text/html"
+                multiple
+                disabled={uploading}
+                onChange={(e) => pickFiles(e.target.files)}
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="button" size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()}>
+                  <FileUp className="mr-1.5 h-4 w-4" />
+                  Vybrat soubory HTML
+                </Button>
+                {files.length > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    {files.length} {czPlural(files.length, "soubor", "soubory", "souborů")}
                   </span>
-                  <Button size="icon" variant="ghost" asChild aria-label={`Otevřít ${page.title}`}>
-                    <a href={getShareUrl(data.module.addressPrefix, PRACTICE_ROUTE_SEGMENT, data.module.slug, page.slug)} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => copyLink(page.slug)} aria-label={`Kopírovat odkaz na ${page.title}`}>
-                    {copied === page.slug ? <Check className="h-4 w-4 text-green-600 dark:text-green-400" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setToDelete({ slug: page.slug, title: page.title })}
-                    aria-label={`Smazat ${page.title}`}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
+                )}
+              </div>
+              {files.length > 0 && (
+                <>
+                  <ul className="space-y-2">
+                    {files.map((f, i) => (
+                      <li key={f.file.name} className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="min-w-0 flex-1 truncate text-foreground">{f.file.name}</span>
+                        <Input
+                          className="h-8 w-40"
+                          value={f.slug}
+                          disabled={uploading || f.status === "done"}
+                          onChange={(e) => {
+                            const value = cleanSlugInput(e.target.value)
+                            setFiles((current) => current.map((x, k) => (k === i ? { ...x, slug: value } : x)))
+                          }}
+                          aria-label={`Adresa stránky ${f.file.name}`}
+                        />
+                        {f.status === "uploading" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                        {f.message && (
+                          <span className={f.status === "error" ? "w-full text-red-600 dark:text-red-400" : "w-full text-green-700 dark:text-green-300"}>{f.message}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="practice-group">Skupina</Label>
+                      <Select value={group} onValueChange={setGroup}>
+                        <SelectTrigger id="practice-group" className="w-64">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NO_GROUP}>Ponechat</SelectItem>
+                          {data.module.groups.map((g) => (
+                            <SelectItem key={g.key} value={`${GROUP_PREFIX}${g.key}`}>
+                              {g.title}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value={NEW_GROUP}>Nová skupina…</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {group === NEW_GROUP && (
+                      <div className="space-y-1">
+                        <Label htmlFor="practice-new-group">Název skupiny *</Label>
+                        <Input id="practice-new-group" className="w-64" value={newGroupTitle} onChange={(e) => setNewGroupTitle(e.target.value)} />
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      onClick={upload}
+                      disabled={uploading || files.every((f) => f.status === "done") || (group === NEW_GROUP && !newGroupTitle.trim()) || files.some((f) => !PRACTICE_SLUG_PATTERN.test(f.slug))}
+                      className="bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800"
+                    >
+                      <Upload className="mr-1.5 h-4 w-4" />
+                      {uploading ? "Nahrávání…" : "Nahrát"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        ))}
+        )}
       </section>
 
       <AlertDialog open={!!toDelete} onOpenChange={(open) => !open && setToDelete(null)}>
