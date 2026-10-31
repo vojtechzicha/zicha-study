@@ -519,3 +519,40 @@ export function getTaskState(
   if (task.start_date && task.start_date > today) return TASK_STATE.UPCOMING
   return TASK_STATE.RUNNING
 }
+
+// ─── Procvičování (practice modules) ─────────────────────────────────────────
+// Step-by-step worked examples per subject. Private only (signed-in users); routed as
+// /<address_prefix>/procvicovani/<module>/<page>. See lib/practice/.
+
+export const PRACTICE_ROUTE_SEGMENT = 'procvicovani'
+
+// Addresses a material or note can't take inside a study, because a static route
+// segment of the same name would shadow it.
+export const RESERVED_STUDY_CHILD_SLUGS: readonly string[] = [PRACTICE_ROUTE_SEGMENT]
+
+export const PRACTICE_INTRO_BLOCK_KINDS = {
+  EXAM: 'exam',
+  LEGEND: 'legend',
+  NOTE: 'note',
+} as const
+
+export type PracticeIntroBlockKind = (typeof PRACTICE_INTRO_BLOCK_KINDS)[keyof typeof PRACTICE_INTRO_BLOCK_KINDS]
+
+// CSS flavour of a module: 'graph' (DMO: flex step bodies, SVG graphs) or 'calc' (OBDA, EPM).
+export const PRACTICE_FLAVOURS = {
+  GRAPH: 'graph',
+  CALC: 'calc',
+} as const
+
+export type PracticeFlavour = (typeof PRACTICE_FLAVOURS)[keyof typeof PRACTICE_FLAVOURS]
+
+// Previous contents kept per practice page (a re-upload of older generator output is the restore path).
+export const PRACTICE_PAGE_MAX_VERSIONS = 3
+
+export const PRACTICE_UNGROUPED_LABEL = 'Nezařazené'
+
+// Module, address prefix and page addresses (generator module names contain "_").
+export const PRACTICE_SLUG_PATTERN = /^[a-z0-9_-]{2,50}$/
+
+// Example keys: section data-key or the fallback from practiceExampleKey().
+export const PRACTICE_EXAMPLE_KEY_PATTERN = /^[a-z0-9-]{1,80}$/

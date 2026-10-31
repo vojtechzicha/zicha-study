@@ -189,7 +189,7 @@ export const subjectTools = [
     name: "delete_subject",
     title: "Delete subject",
     description:
-      "Permanently delete a subject and its exam terms. Refused while another subject repeats it. Try dry_run first.",
+      "Permanently delete a subject with its exam terms and practice pages. Refused while another subject repeats it. Try dry_run first.",
     access: "delete",
     input: { subject_id: recordId, dry_run: dryRun },
     handler: async ({ subject_id, dry_run }, ctx) => {
@@ -197,6 +197,7 @@ export const subjectTools = [
       const periods = await db.getExamPeriodsByStudyId(before.study_id)
       const terms = await db.getExamTermsByPeriodIds(periods.map((p) => String(p._id)))
       const linkedNotes = await db.getStudyNotesBySubjectId(subject_id)
+      const practice = await db.countPracticeData({ subject_id })
       return commitDelete({
         ctx,
         tool: "delete_subject",
@@ -206,6 +207,7 @@ export const subjectTools = [
         cascade: {
           exam_terms: terms.filter((t) => t.subject_id === subject_id).length,
           note_links: linkedNotes.length,
+          ...practice,
         },
         remove: () => db.deleteSubject(subject_id),
       })

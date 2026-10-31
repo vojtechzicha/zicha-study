@@ -157,7 +157,7 @@ export const studyTools = [
     name: "delete_study",
     title: "Delete study",
     description:
-      "Permanently delete a study with all its subjects, final exams, tasks, notes, materials and exam periods. " +
+      "Permanently delete a study with all its subjects, final exams, tasks, notes, materials, exam periods and practice pages. " +
       "Refused for studies that have OneDrive backup copies (delete those in the app). Try dry_run first.",
     access: "delete",
     input: { study_id: recordId, dry_run: dryRun },
@@ -181,6 +181,7 @@ export const studyTools = [
         db.getExamPeriodsByStudyId(study_id),
       ])
       const terms = await db.getExamTermsByPeriodIds(periods.map((p) => String(p._id)))
+      const practice = await db.countPracticeData({ study_id })
 
       return commitDelete({
         ctx,
@@ -196,6 +197,7 @@ export const studyTools = [
           materials: materials.length + subjectMaterials.length,
           exam_periods: periods.length,
           exam_terms: terms.length,
+          ...practice,
         },
         remove: () => db.deleteStudy(study_id),
       })

@@ -18,6 +18,16 @@ const domain = vi.hoisted(() => ({
   getFinalExamById: vi.fn(),
   unlinkSubjectFromNote: vi.fn(),
   unlinkFinalExamFromNote: vi.fn(),
+  getExamPeriodsByStudyId: vi.fn(),
+  getExamTermsByPeriodIds: vi.fn(),
+  getStudyNotesBySubjectId: vi.fn(),
+  countPracticeData: vi.fn(),
+  deleteSubject: vi.fn(),
+  getFinalExamsByStudyId: vi.fn(),
+  getTasksByStudyId: vi.fn(),
+  getStudyNotesByStudyId: vi.fn(),
+  getMaterialsByStudyId: vi.fn(),
+  getSubjectMaterialsByStudyId: vi.fn(),
 }))
 
 vi.mock("@/lib/mongodb/db", () => ({
@@ -269,6 +279,32 @@ describe("/api/mcp tools", () => {
     expect(isError).toBe(true)
     expect(String(data)).toContain("not found")
     expect(domain.unlinkSubjectFromNote).not.toHaveBeenCalled()
+  })
+
+  it("reports the practice pages a subject deletion removes", async () => {
+    domain.getSubjectById.mockResolvedValue({ _id: "sub1", study_id: "s1", name: "DMO" })
+    domain.getExamPeriodsByStudyId.mockResolvedValue([])
+    domain.getExamTermsByPeriodIds.mockResolvedValue([])
+    domain.getStudyNotesBySubjectId.mockResolvedValue([])
+    domain.countPracticeData.mockResolvedValue({ practice_modules: 1, practice_pages: 12, practice_progress: 40 })
+    const token = await accessToken("study:write")
+    const { data } = await callTool(token, "delete_subject", { subject_id: "sub1", dry_run: true })
+    expect(data.would_delete.also_deleted).toMatchObject({ practice_modules: 1, practice_pages: 12, practice_progress: 40 })
+    expect(domain.countPracticeData).toHaveBeenCalledWith({ subject_id: "sub1" })
+    expect(domain.deleteSubject).not.toHaveBeenCalled()
+  })
+
+  it("reports the practice pages a study deletion removes", async () => {
+    for (const fn of [
+      domain.getSubjectsByStudyId, domain.getFinalExamsByStudyId, domain.getTasksByStudyId, domain.getStudyNotesByStudyId,
+      domain.getMaterialsByStudyId, domain.getSubjectMaterialsByStudyId, domain.getExamPeriodsByStudyId, domain.getExamTermsByPeriodIds,
+    ]) fn.mockResolvedValue([])
+    domain.countPracticeData.mockResolvedValue({ practice_modules: 2, practice_pages: 30, practice_progress: 0 })
+    const token = await accessToken("study:write")
+    const { data } = await callTool(token, "delete_study", { study_id: "s1", dry_run: true })
+    expect(data.would_delete.also_deleted).toMatchObject({ practice_modules: 2, practice_pages: 30 })
+    expect(domain.countPracticeData).toHaveBeenCalledWith({ study_id: "s1" })
+    expect(domain.deleteStudy).not.toHaveBeenCalled()
   })
 
   it("does not let a read-only token call write tools", async () => {

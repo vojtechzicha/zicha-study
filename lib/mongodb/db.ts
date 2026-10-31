@@ -1,6 +1,9 @@
 import { getDb } from "./connection"
 import { type Filter, Binary } from "mongodb"
 import crypto from "crypto"
+import { PRACTICE_PAGE_MAX_VERSIONS, RESERVED_STUDY_CHILD_SLUGS } from "@/lib/constants"
+import type { Sanitized, SanitizedModuleContent } from "@/lib/practice/content"
+import type { PracticePageContent } from "@/lib/practice/schema"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -10,6 +13,11 @@ function newId(): string {
 
 function col(name: string) {
   return getDb().then((db) => db.collection(name))
+}
+
+// Material and note addresses that a static route under /<study>/ would shadow.
+function isReservedStudyChildSlug(slug: string) {
+  return RESERVED_STUDY_CHILD_SLUGS.includes(slug.toLowerCase())
 }
 
 // ─── Studies ────────────────────────────────────────────────────────────────
@@ -79,6 +87,7 @@ export async function deleteStudy(id: string) {
 
   await db.collection("exam_terms").deleteMany({ study_id: id })
   await db.collection("exam_periods").deleteMany({ study_id: id })
+  await deletePracticeData(db, { study_id: id })
 
   await db.collection("studies").deleteOne({ _id: id as any })
 }
@@ -218,6 +227,7 @@ export async function deleteSubject(id: string) {
     { "linked_subjects.subject_id": id },
     { $pull: { linked_subjects: { subject_id: id } } as any }
   )
+  await deletePracticeData(db, { subject_id: id })
   await db.collection("subjects").deleteOne({ _id: id as any })
 }
 
@@ -367,6 +377,7 @@ export async function deleteMaterial(id: string) {
 }
 
 export async function checkMaterialSlugAvailability(studyId: string, slug: string, excludeId?: string) {
+  if (isReservedStudyChildSlug(slug)) return false
   const db = await getDb()
   const filter: Filter<any> = { study_id: studyId, public_slug: slug }
   if (excludeId) filter._id = { $ne: excludeId }
@@ -418,6 +429,7 @@ export async function updateSubjectMaterial(id: string, data: Record<string, any
 }
 
 export async function checkSubjectMaterialSlugAvailability(studyId: string, slug: string, excludeId?: string) {
+  if (isReservedStudyChildSlug(slug)) return false
   const db = await getDb()
   const smFilter: Filter<any> = { study_id: studyId, public_slug: slug }
   if (excludeId) smFilter._id = { $ne: excludeId }
@@ -486,10 +498,12 @@ export async function deleteStudyNote(id: string) {
   }
   await db.collection("study_note_versions").deleteMany({ note_id: id })
   await db.collection("markdown_note_media").deleteMany({ note_id: id })
+  await db.collection("practice_modules").updateMany({ primary_note_id: id }, { $set: { primary_note_id: null } })
   await db.collection("study_notes").deleteOne({ _id: id as any })
 }
 
 export async function checkStudyNoteSlugAvailability(slug: string, studyId: string, excludeId?: string) {
+  if (isReservedStudyChildSlug(slug)) return false
   const db = await getDb()
   const noteFilter: Filter<any> = { study_id: studyId, public_slug: slug }
   if (excludeId) noteFilter._id = { $ne: excludeId }
@@ -504,6 +518,7 @@ export async function checkStudyNoteSlugAvailability(slug: string, studyId: stri
 
 // Unlike checkStudyNoteSlugAvailability, checks study_notes only, but across all studies
 export async function checkNoteSlugGlobalAvailability(slug: string, excludeId?: string) {
+  if (isReservedStudyChildSlug(slug)) return false
   const c = await col("study_notes")
   const filter: Filter<any> = { public_slug: slug }
   if (excludeId) filter._id = { $ne: excludeId }
@@ -1183,6 +1198,11 @@ export async function revokeMcpGrant(id: string) {
     { $set: { revoked_at: new Date().toISOString() } }
   )
   await db.collection("mcp_tokens").deleteMany({ grant_id: id })
+  // Practice upload tokens issued through this connection stop working with it.
+  await db.collection("practice_upload_tokens").updateMany(
+    { grant_id: id, revoked_at: null },
+    { $set: { revoked_at: new Date() } }
+  )
 }
 
 export async function insertMcpToken(tokenHash: string, data: Record<string, any>) {
@@ -1225,6 +1245,301 @@ export async function getMcpAuditEntries(limit: number) {
 // ─── ID normalization helper ────────────────────────────────────────────────
 // Maps Mongo's _id to the app's id, and strips the logo_data / diploma_data Binary fields,
 // which can't be serialized from Server Components to Client Components.
+
+// ─── Procvičování (practice modules) ────────────────────────────────────────
+// One module per subject (practice_modules), its pages with embedded examples (practice_pages),
+// the last PRACTICE_PAGE_MAX_VERSIONS contents per page (practice_page_versions), per-example
+// progress (practice_progress) and MCP-issued upload tokens (practice_upload_tokens).
+// Page content and module HTML only arrive here as Sanitized<…> from lib/practice/content.ts.
+
+let practiceIndexesPromise: Promise<void> | null = null
+
+function ensurePracticeIndexes() {
+  if (!practiceIndexesPromise) {
+    practiceIndexesPromise = getDb()
+      .then(async (db) => {
+        await Promise.all([
+          db.collection("practice_modules").createIndex({ address_prefix: 1, slug: 1 }, { unique: true }),
+          db.collection("practice_modules").createIndex({ subject_id: 1 }, { unique: true }),
+          db.collection("practice_modules").createIndex({ study_id: 1 }),
+          db.collection("practice_pages").createIndex({ module_id: 1, slug: 1 }, { unique: true }),
+          db.collection("practice_pages").createIndex({ subject_id: 1 }),
+          db.collection("practice_pages").createIndex({ study_id: 1 }),
+          db.collection("practice_page_versions").createIndex({ page_id: 1, revision: -1 }, { unique: true }),
+          db.collection("practice_progress").createIndex({ page_id: 1, example_key: 1 }, { unique: true }),
+          db.collection("practice_progress").createIndex({ module_id: 1 }),
+          db.collection("practice_upload_tokens").createIndex({ token_hash: 1 }, { unique: true }),
+          db.collection("practice_upload_tokens").createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 }),
+          db.collection("practice_upload_tokens").createIndex({ grant_id: 1 }),
+        ])
+      })
+      .catch((err) => {
+        practiceIndexesPromise = null
+        throw err
+      })
+  }
+  return practiceIndexesPromise
+}
+
+async function practiceCol(name: string) {
+  await ensurePracticeIndexes()
+  return col(name)
+}
+
+// Deletes every practice record matching the filter (by subject_id or study_id).
+async function deletePracticeData(db: Awaited<ReturnType<typeof getDb>>, filter: { subject_id?: string; study_id?: string }) {
+  const modules = await db.collection("practice_modules").find(filter, { projection: { _id: 1 } }).toArray()
+  const moduleIds = modules.map((m) => String(m._id))
+  if (moduleIds.length === 0) return
+  const pages = await db.collection("practice_pages").find({ module_id: { $in: moduleIds } }, { projection: { _id: 1 } }).toArray()
+  const pageIds = pages.map((p) => String(p._id))
+  if (pageIds.length > 0) {
+    await db.collection("practice_page_versions").deleteMany({ page_id: { $in: pageIds } })
+  }
+  await db.collection("practice_progress").deleteMany({ module_id: { $in: moduleIds } })
+  await db.collection("practice_upload_tokens").deleteMany({ module_id: { $in: moduleIds } })
+  await db.collection("practice_pages").deleteMany({ module_id: { $in: moduleIds } })
+  await db.collection("practice_modules").deleteMany({ _id: { $in: moduleIds as any[] } })
+}
+
+// Counts for delete previews (MCP dry runs).
+export async function countPracticeData(filter: { subject_id?: string; study_id?: string }) {
+  const db = await getDb()
+  const modules = await db.collection("practice_modules").find(filter, { projection: { _id: 1 } }).toArray()
+  const moduleIds = modules.map((m) => String(m._id))
+  if (moduleIds.length === 0) return { practice_modules: 0, practice_pages: 0, practice_progress: 0 }
+  const [pages, progress] = await Promise.all([
+    db.collection("practice_pages").countDocuments({ module_id: { $in: moduleIds } }),
+    db.collection("practice_progress").countDocuments({ module_id: { $in: moduleIds } }),
+  ])
+  return { practice_modules: moduleIds.length, practice_pages: pages, practice_progress: progress }
+}
+
+// Module fields that hold no HTML (HTML goes through SanitizedModuleContent).
+export interface PracticeModuleSettings {
+  address_prefix?: string
+  slug?: string
+  title?: string
+  flavour?: string
+  primary_note_id?: string | null
+  groups?: { id: string; key: string; title: string; description: string | null; pages: string[] }[]
+}
+
+export async function getPracticeModuleById(id: string) {
+  const c = await practiceCol("practice_modules")
+  return c.findOne({ _id: id as any })
+}
+
+export async function getPracticeModuleBySubjectId(subjectId: string) {
+  const c = await practiceCol("practice_modules")
+  return c.findOne({ subject_id: subjectId })
+}
+
+export async function getPracticeModuleByAddress(addressPrefix: string, slug: string) {
+  const c = await practiceCol("practice_modules")
+  return c.findOne({ address_prefix: addressPrefix, slug })
+}
+
+export async function getPracticeModulesByStudyId(studyId: string) {
+  const c = await practiceCol("practice_modules")
+  return c.find({ study_id: studyId }).toArray()
+}
+
+export async function isPracticeAddressAvailable(addressPrefix: string, slug: string, excludeModuleId?: string) {
+  const c = await practiceCol("practice_modules")
+  const filter: Filter<any> = { address_prefix: addressPrefix, slug }
+  if (excludeModuleId) filter._id = { $ne: excludeModuleId }
+  return !(await c.findOne(filter, { projection: { _id: 1 } }))
+}
+
+export async function createPracticeModule(
+  base: { subject_id: string; study_id: string } & Required<Omit<PracticeModuleSettings, "groups">>
+) {
+  const c = await practiceCol("practice_modules")
+  const now = new Date().toISOString()
+  const doc = {
+    _id: newId() as any,
+    ...base,
+    intro_html: "",
+    intro_blocks: [],
+    closing_blocks: [],
+    groups: [],
+    created_at: now,
+    updated_at: now,
+  }
+  await c.insertOne(doc)
+  return doc
+}
+
+export async function updatePracticeModule(id: string, settings: PracticeModuleSettings, content?: SanitizedModuleContent) {
+  const c = await practiceCol("practice_modules")
+  await c.updateOne(
+    { _id: id as any },
+    { $set: { ...settings, ...(content ?? {}), updated_at: new Date().toISOString() } }
+  )
+}
+
+// Page list without the (large) HTML: enough for indexes, progress counts and MCP listings.
+export async function getPracticePageSummaries(moduleId: string) {
+  const c = await practiceCol("practice_pages")
+  return c
+    .find(
+      { module_id: moduleId },
+      {
+        projection: {
+          slug: 1, title: 1, desc: 1, revision: 1, content_hash: 1, created_at: 1, updated_at: 1, content_updated_at: 1,
+          "examples.key": 1, "examples.n": 1, "examples.title": 1, "examples.nav_meta": 1, "examples.steps.title": 1,
+        },
+      }
+    )
+    .toArray()
+}
+
+export async function getPracticePageById(id: string) {
+  const c = await practiceCol("practice_pages")
+  return c.findOne({ _id: id as any })
+}
+
+export async function getPracticePageBySlug(moduleId: string, slug: string) {
+  const c = await practiceCol("practice_pages")
+  return c.findOne({ module_id: moduleId, slug })
+}
+
+// Throws a duplicate-key error (code 11000) when the slug already exists in the module.
+export async function insertPracticePage(
+  base: { module_id: string; subject_id: string; study_id: string; slug: string },
+  content: Sanitized<PracticePageContent>,
+  contentHash: string
+) {
+  const c = await practiceCol("practice_pages")
+  const now = new Date().toISOString()
+  const doc = {
+    _id: newId() as any,
+    ...base,
+    ...content,
+    desc: null,
+    content_hash: contentHash,
+    revision: 1,
+    created_at: now,
+    updated_at: now,
+    content_updated_at: now,
+  }
+  await c.insertOne(doc)
+  return doc
+}
+
+// Compare-and-set content update: only applies when the page is still at expectedRevision.
+// Returns false when another write got there first.
+export async function casUpdatePracticePageContent(
+  id: string,
+  expectedRevision: number,
+  content: Sanitized<PracticePageContent>,
+  contentHash: string
+) {
+  const c = await practiceCol("practice_pages")
+  const now = new Date().toISOString()
+  const result = await c.updateOne(
+    { _id: id as any, revision: expectedRevision },
+    { $set: { ...content, content_hash: contentHash, updated_at: now, content_updated_at: now }, $inc: { revision: 1 } }
+  )
+  return result.matchedCount === 1
+}
+
+// Plain-text page fields (no HTML) and its address. desc isn't part of the uploaded content, so
+// re-uploading a page keeps it.
+// The title is part of the uploaded content: editing it clears content_hash, so re-uploading
+// the original page counts as a change and restores the generator's title.
+export async function updatePracticePageMeta(id: string, fields: { title?: string; desc?: string | null; slug?: string }) {
+  const c = await practiceCol("practice_pages")
+  const set: Record<string, unknown> = { ...fields, updated_at: new Date().toISOString() }
+  if (fields.title !== undefined) set.content_hash = null
+  await c.updateOne({ _id: id as any }, { $set: set })
+}
+
+// Snapshot of a page's content at one revision. Idempotent per (page, revision); keeps the newest
+// PRACTICE_PAGE_MAX_VERSIONS.
+export async function savePracticePageVersion(
+  pageId: string,
+  revision: number,
+  content: PracticePageContent,
+  createdBy: string | null
+) {
+  const c = await practiceCol("practice_page_versions")
+  await c.updateOne(
+    { page_id: pageId, revision },
+    {
+      $setOnInsert: {
+        _id: newId() as any,
+        page_id: pageId,
+        revision,
+        content,
+        created_by: createdBy,
+        created_at: new Date().toISOString(),
+      },
+    },
+    { upsert: true }
+  )
+  const stale = await c
+    .find({ page_id: pageId }, { projection: { _id: 1 } })
+    .sort({ revision: -1 })
+    .skip(PRACTICE_PAGE_MAX_VERSIONS)
+    .toArray()
+  if (stale.length > 0) await c.deleteMany({ _id: { $in: stale.map((d) => d._id) } })
+}
+
+export async function getPracticePageVersions(pageId: string) {
+  const c = await practiceCol("practice_page_versions")
+  return c.find({ page_id: pageId }, { projection: { content: 0 } }).sort({ revision: -1 }).toArray()
+}
+
+export async function deletePracticePage(id: string) {
+  const db = await getDb()
+  await ensurePracticeIndexes()
+  await db.collection("practice_page_versions").deleteMany({ page_id: id })
+  await db.collection("practice_progress").deleteMany({ page_id: id })
+  await db.collection("practice_pages").deleteOne({ _id: id as any })
+}
+
+export async function countPracticePageData(pageId: string) {
+  const db = await getDb()
+  const [versions, progress] = await Promise.all([
+    db.collection("practice_page_versions").countDocuments({ page_id: pageId }),
+    db.collection("practice_progress").countDocuments({ page_id: pageId }),
+  ])
+  return { practice_page_versions: versions, practice_progress: progress }
+}
+
+// Progress rows are matched by example key; rows whose key no longer exists are kept (orphans)
+// and simply not shown, so a regeneration that is later fixed restores them.
+export async function setPracticeProgress(
+  ref: { module_id: string; page_id: string; example_key: string },
+  done: boolean,
+  email: string | null
+) {
+  const c = await practiceCol("practice_progress")
+  if (done) {
+    await c.updateOne(
+      { page_id: ref.page_id, example_key: ref.example_key },
+      {
+        $setOnInsert: { _id: newId() as any, ...ref },
+        $set: { done_at: new Date().toISOString(), done_by_email: email },
+      },
+      { upsert: true }
+    )
+  } else {
+    await c.deleteOne({ page_id: ref.page_id, example_key: ref.example_key })
+  }
+}
+
+export async function getPracticeProgressByModuleId(moduleId: string) {
+  const c = await practiceCol("practice_progress")
+  return c.find({ module_id: moduleId }).toArray()
+}
+
+export async function getPracticeProgressByPageId(pageId: string) {
+  const c = await practiceCol("practice_progress")
+  return c.find({ page_id: pageId }).toArray()
+}
 
 export function normalizeId<T extends Record<string, any>>(doc: T | null): (Omit<T, '_id'> & { id: string }) | null {
   if (!doc) return null
