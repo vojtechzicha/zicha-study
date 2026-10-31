@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { fetchSubjectsForRepeatSelection, updateSubject, deleteSubjectAction } from "@/lib/actions/subjects"
+import { setPracticeEnabledAction } from "@/lib/actions/practice"
+import { PracticeSwitch } from "@/components/practice/practice-switch"
 import { useToast } from "@/hooks/use-toast"
 import { getSubjectTypeOptions } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
@@ -51,6 +53,7 @@ interface Subject {
   created_at: string
   is_repeat?: boolean
   repeats_subject_id?: string
+  practice_enabled?: boolean
 }
 
 interface SubjectEditFormProps {
@@ -81,6 +84,7 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
     is_repeat: subject.is_repeat || false,
     repeats_subject_id: subject.repeats_subject_id || "",
   })
+  const [practiceEnabled, setPracticeEnabled] = useState(subject.practice_enabled === true)
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -156,6 +160,15 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
       setError(errorMessage)
       setLoading(false)
       return
+    }
+
+    if (practiceEnabled !== (subject.practice_enabled === true)) {
+      const practiceResult = await setPracticeEnabledAction(subject.id, practiceEnabled)
+      if (practiceResult.error) {
+        setError(practiceResult.error.message)
+        setLoading(false)
+        return
+      }
     }
 
     toast({ title: "Předmět uložen" })
@@ -495,6 +508,8 @@ export function SubjectEditForm({ subject, open, onClose, onSuccess, examSchedul
                   </div>
                 )}
               </div>
+
+              <PracticeSwitch checked={practiceEnabled} onChange={setPracticeEnabled} />
 
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
