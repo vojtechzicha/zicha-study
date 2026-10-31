@@ -5,7 +5,9 @@ import { HS_GRADE_VALUES } from "@/lib/highschool/grades"
 import { requiresCredit, requiresExam } from "@/lib/status-utils"
 import { STUDY_KIND, resolveStudyKind } from "@/lib/study-kind"
 import { dryRun, emptyToNull, enumOf, isoDate, optionalText, recordId, requireFields, text } from "@/lib/mcp/schemas"
-import { ToolError, commitCreate, commitDelete, commitUpdate, defineTool, requireDoc } from "@/lib/mcp/tool-kit"
+import { ToolError, commitCreate, commitDelete, commitUpdate, defineTool, requireDoc, type ToolContext } from "@/lib/mcp/tool-kit"
+import { ensurePracticeModule } from "@/lib/practice/module"
+import { practiceLinks } from "@/lib/practice/urls"
 
 // The values the subject form stores (the mapping's other keys are legacy spellings with line breaks).
 const COMPLETION_TYPE_VALUES = Object.keys(COMPLETION_TYPE_MAPPING).filter((k) => !k.includes("\n")) as [
@@ -13,7 +15,7 @@ const COMPLETION_TYPE_VALUES = Object.keys(COMPLETION_TYPE_MAPPING).filter((k) =
   ...string[],
 ]
 
-const HIGH_SCHOOL_FIELDS = new Set(["name", "abbreviation", "lecturer", "grades"])
+const HIGH_SCHOOL_FIELDS = new Set(["name", "abbreviation", "lecturer", "grades", "practice_enabled"])
 
 const subjectFields = z
   .object({
@@ -36,6 +38,10 @@ const subjectFields = z
     exam_completed: z.boolean(),
     is_repeat: z.boolean(),
     repeats_subject_id: recordId.nullable().describe("The earlier attempt of this subject, in the same study."),
+    // Both kinds
+    practice_enabled: z
+      .boolean()
+      .describe("Procvičování (private practice pages). Enabling creates the module; disabling keeps its pages but hides them."),
     // High-school subjects (one row for the whole study, a grade per half-year)
     grades: z
       .array(
@@ -62,7 +68,7 @@ async function prepareSubjectPatch(study: Record<string, any>, before: Record<st
   if (resolveStudyKind(study.type) === STUDY_KIND.HIGH_SCHOOL) {
     const invalid = Object.keys(patch).filter((k) => !HIGH_SCHOOL_FIELDS.has(k))
     if (invalid.length > 0) {
-      throw new ToolError(`High-school subjects only have name, abbreviation, lecturer and grades (got ${invalid.join(", ")}).`)
+      throw new ToolError(`High-school subjects only have name, abbreviation, lecturer, grades and practice_enabled (got ${invalid.join(", ")}).`)
     }
     if (patch.grades) {
       const keys = patch.grades.map((g: { year: number; half: number }) => `${g.year}/${g.half}`)
@@ -102,6 +108,18 @@ async function getStudyOf(subject: Record<string, any>) {
   return requireDoc(await db.getStudyById(subject.study_id), "Study", subject.study_id)
 }
 
+// After practice was enabled: make sure the module exists and report where it lives.
+async function practiceModuleInfo(subject: Record<string, any> | null, ctx: ToolContext) {
+  if (!subject?.practice_enabled) return undefined
+  const practiceModule = await ensurePracticeModule(subject)
+  return {
+    id: String(practiceModule._id),
+    address_prefix: practiceModule.address_prefix,
+    slug: practiceModule.slug,
+    ...practiceLinks(ctx.origin || "https://www.zicha.study", practiceModule.address_prefix, practiceModule.slug),
+  }
+}
+
 export const subjectTools = [
   defineTool({
     name: "list_subjects",
@@ -129,7 +147,7 @@ export const subjectTools = [
     name: "create_subject",
     title: "Create subject",
     description:
-      "Add a subject. University: needs name, semester, completion_type, subject_type and credits. High school: needs name; only name, abbreviation, lecturer and grades apply.",
+      "Add a subject. University: needs name, semester, completion_type, subject_type and credits. High school: needs name; only name, abbreviation, lecturer, grades and practice_enabled apply.",
     access: "write",
     input: { study_id: recordId, fields: subjectFields },
     handler: async ({ study_id, fields }, ctx) => {
@@ -155,9 +173,11 @@ export const subjectTools = [
             is_repeat: false,
             repeats_subject_id: null,
           }
-      return commitCreate({ ctx, tool: "create_subject", collection: "subjects" }, () =>
+      const result = await commitCreate({ ctx, tool: "create_subject", collection: "subjects" }, () =>
         db.createSubject({ study_id, ...defaults, ...patch })
       )
+      const practice_module = await practiceModuleInfo(await db.getSubjectById(result.created.id), ctx)
+      return practice_module ? { ...result, practice_module } : result
     },
   }),
 
@@ -172,7 +192,7 @@ export const subjectTools = [
       const before = requireDoc(await db.getSubjectById(subject_id), "Subject", subject_id)
       const study = await getStudyOf(before)
       const patch = await prepareSubjectPatch(study, before, fields)
-      return commitUpdate({
+      const result = await commitUpdate({
         ctx,
         tool: "update_subject",
         collection: "subjects",
@@ -182,6 +202,9 @@ export const subjectTools = [
         write: (p) => db.updateSubject(subject_id, p),
         reload: () => db.getSubjectById(subject_id),
       })
+      if (dry_run || patch.practice_enabled !== true) return result
+      const practice_module = await practiceModuleInfo(await db.getSubjectById(subject_id), ctx)
+      return practice_module ? { ...result, practice_module } : result
     },
   }),
 

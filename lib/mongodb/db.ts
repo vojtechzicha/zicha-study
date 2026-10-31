@@ -1541,6 +1541,48 @@ export async function getPracticeProgressByPageId(pageId: string) {
   return c.find({ page_id: pageId }).toArray()
 }
 
+// Upload tokens (practice_upload_tokens): issued by the MCP tool create_practice_upload, bound to
+// one module and the MCP grant that asked for them; only the SHA-256 hash is stored.
+export async function insertPracticeUploadToken(data: {
+  token_hash: string
+  module_id: string
+  grant_id: string
+  email: string | null
+  expires_at: Date
+  max_requests: number
+}) {
+  const c = await practiceCol("practice_upload_tokens")
+  const doc = { _id: newId() as any, ...data, used_requests: 0, revoked_at: null, created_at: new Date().toISOString() }
+  await c.insertOne(doc)
+  return doc
+}
+
+// Counts one request against the token and returns it, or null when it is unknown, expired,
+// revoked or used up. The checks and the increment are one atomic update.
+export async function claimPracticeUploadToken(tokenHash: string) {
+  const c = await practiceCol("practice_upload_tokens")
+  return c.findOneAndUpdate(
+    {
+      token_hash: tokenHash,
+      revoked_at: null,
+      expires_at: { $gt: new Date() },
+      $expr: { $lt: ["$used_requests", "$max_requests"] },
+    },
+    { $inc: { used_requests: 1 } },
+    { returnDocument: "after" }
+  )
+}
+
+export async function getPracticeUploadToken(id: string) {
+  const c = await practiceCol("practice_upload_tokens")
+  return c.findOne({ _id: id as any }, { projection: { token_hash: 0 } })
+}
+
+export async function revokePracticeUploadToken(id: string) {
+  const c = await practiceCol("practice_upload_tokens")
+  await c.updateOne({ _id: id as any, revoked_at: null }, { $set: { revoked_at: new Date() } })
+}
+
 export function normalizeId<T extends Record<string, any>>(doc: T | null): (Omit<T, '_id'> & { id: string }) | null {
   if (!doc) return null
   const { _id, logo_data: _logoData, diploma_data: _diplomaData, ...rest } = doc
