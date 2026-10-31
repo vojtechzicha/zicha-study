@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import Link from "next/link"
 import { Check } from "lucide-react"
 import { PracticeShell } from "./practice-shell"
@@ -17,17 +17,27 @@ export function PracticePage({ view, indexHref }: { view: PracticePageView; inde
   const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
+  // Latest toggle per example: a failed save only rolls back its own example, and only if no
+  // newer toggle of that example happened meanwhile.
+  const toggleSeq = useRef(new Map<string, number>())
+
+  const setKey = (key: string, value: boolean) =>
+    setDone((current) => {
+      const next = new Set(current)
+      if (value) next.add(key)
+      else next.delete(key)
+      return next
+    })
+
   const setExampleDone = (key: string, value: boolean) => {
-    const previous = new Set(done)
-    const next = new Set(done)
-    if (value) next.add(key)
-    else next.delete(key)
-    setDone(next)
+    const seq = (toggleSeq.current.get(key) ?? 0) + 1
+    toggleSeq.current.set(key, seq)
+    setKey(key, value)
     setError(null)
     startTransition(async () => {
       const result = await setPracticeProgressAction(page.id, key, value)
-      if (result.error) {
-        setDone(previous)
+      if (result.error && toggleSeq.current.get(key) === seq) {
+        setKey(key, !value)
         setError("Nepodařilo se uložit postup.")
       }
     })
