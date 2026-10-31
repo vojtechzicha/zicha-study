@@ -63,7 +63,8 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
 
   const [prefix, setPrefix] = useState("")
   const [slug, setSlug] = useState("")
-  const [available, setAvailable] = useState<boolean | null>(null)
+  // Last server answer for an edited address; availability itself is derived below
+  const [checked, setChecked] = useState<{ prefix: string; slug: string; available: boolean } | null>(null)
   const [savingAddress, setSavingAddress] = useState(false)
 
   const [files, setFiles] = useState<PendingFile[]>([])
@@ -75,8 +76,7 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
   const [copied, setCopied] = useState<string | null>(null)
   const [toDelete, setToDelete] = useState<{ slug: string; title: string } | null>(null)
 
-  const load = useCallback(async () => {
-    const result = await fetchPracticeAdmin(subjectId)
+  const apply = useCallback((result: Awaited<ReturnType<typeof fetchPracticeAdmin>>) => {
     if (result.error || !result.data) {
       setError(result.error?.message ?? "Procvičování je vypnuté.")
     } else {
@@ -86,28 +86,40 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
       setError(null)
     }
     setLoading(false)
-  }, [subjectId])
+  }, [])
+
+  // After saving or uploading (called from event handlers)
+  const load = useCallback(async () => apply(await fetchPracticeAdmin(subjectId)), [apply, subjectId])
 
   useEffect(() => {
-    load()
-  }, [load])
+    let cancelled = false
+    fetchPracticeAdmin(subjectId).then((result) => {
+      if (!cancelled) apply(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [apply, subjectId])
 
-  // Live availability check of an edited address
+  const addressEdited = !!data && (prefix !== data.module.addressPrefix || slug !== data.module.slug)
+  const addressValid = PRACTICE_SLUG_PATTERN.test(prefix) && PRACTICE_SLUG_PATTERN.test(slug)
+  const available: boolean | null = !addressEdited
+    ? null
+    : !addressValid
+      ? false
+      : checked && checked.prefix === prefix && checked.slug === slug
+        ? checked.available
+        : null
+
+  // Live availability check of an edited address (debounced; state is set only in the callback)
   useEffect(() => {
-    if (!data) return
-    if (prefix === data.module.addressPrefix && slug === data.module.slug) {
-      setAvailable(null)
-      return
-    }
-    if (!PRACTICE_SLUG_PATTERN.test(prefix) || !PRACTICE_SLUG_PATTERN.test(slug)) {
-      setAvailable(false)
-      return
-    }
+    if (!data || !addressEdited || !addressValid) return
     const timer = setTimeout(async () => {
-      setAvailable(await checkPracticeAddressAction(prefix, slug, data.module.id))
+      const ok = await checkPracticeAddressAction(prefix, slug, data.module.id)
+      setChecked({ prefix, slug, available: ok })
     }, 400)
     return () => clearTimeout(timer)
-  }, [prefix, slug, data])
+  }, [prefix, slug, data, addressEdited, addressValid])
 
   const moduleUrl = (p = prefix, s = slug) => getShareUrl(p, PRACTICE_ROUTE_SEGMENT, s)
 
@@ -172,12 +184,14 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
     setUploading(true)
     setError(null)
     const target = group === NEW_GROUP ? { newTitle: newGroupTitle } : group === NO_GROUP ? {} : { key: group }
-    for (let i = 0; i < files.length; i++) {
-      setFiles((current) => current.map((f, k) => (k === i ? { ...f, status: "uploading" } : f)))
-      const result = await importPracticePageAction(subjectId, files[i].slug, files[i].html, target)
+    // Results are matched by File object, never by position, so they can't land on another row
+    const batch = files.filter((f) => f.status !== "done")
+    for (const item of batch) {
+      setFiles((current) => current.map((f) => (f.file === item.file ? { ...f, status: "uploading" } : f)))
+      const result = await importPracticePageAction(subjectId, item.slug, item.html, target)
       setFiles((current) =>
-        current.map((f, k) => {
-          if (k !== i) return f
+        current.map((f) => {
+          if (f.file !== item.file) return f
           if (result.error) {
             const details = "details" in result.error && result.error.details ? ` ${result.error.details.slice(0, 3).join(" ")}` : ""
             return { ...f, status: "error", message: `${result.error.message}${details}` }
@@ -208,7 +222,7 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
     else await load()
   }
 
-  const addressChanged = prefix !== data.module.addressPrefix || slug !== data.module.slug
+  const addressChanged = addressEdited
 
   return (
     <div className="space-y-6 p-1">
@@ -272,6 +286,7 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
           type="file"
           accept=".html,.htm,text/html"
           multiple
+          disabled={uploading}
           onChange={(e) => pickFiles(e.target.files)}
           aria-label="Soubory HTML"
         />
