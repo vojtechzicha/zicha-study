@@ -10,6 +10,7 @@ import * as markdownNotes from "./markdown-notes"
 import * as materials from "./materials"
 import * as mcp from "./mcp"
 import * as onedriveCacheActions from "./onedrive-cache"
+import * as practice from "./practice"
 import * as studies from "./studies"
 import * as studyNotes from "./study-notes"
 import * as subjects from "./subjects"
@@ -45,6 +46,7 @@ const ACTION_MODULES: Record<string, Record<string, unknown>> = {
   materials,
   mcp,
   "onedrive-cache": onedriveCacheActions,
+  practice,
   studies,
   "study-notes": studyNotes,
   subjects,

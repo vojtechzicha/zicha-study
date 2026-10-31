@@ -15,6 +15,10 @@ export const PRACTICE_CLASSES: ReadonlySet<string> = new Set([
   ...PRACTICE_SERIES_CLASSES,
 ])
 
+// Classes app/practice-content.css styles for the app's own page shell (rendered by React, never
+// accepted in uploaded content).
+export const PRACTICE_SHELL_CLASSES: ReadonlySet<string> = new Set(["back"])
+
 // Generator CSS variables → scoped names. The generators' --card/--muted/--accent would clash
 // with the shadcn tokens, so every one gets a --pc- prefix (app/practice-content.css defines them).
 export const PRACTICE_CSS_VARIABLES: ReadonlySet<string> = new Set([
