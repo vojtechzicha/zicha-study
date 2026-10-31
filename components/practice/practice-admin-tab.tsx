@@ -39,6 +39,9 @@ const NEW_GROUP = "special:new"
 const NO_GROUP = "special:keep"
 const GROUP_PREFIX = "group:"
 
+// Below the 4 MB serverActions.bodySizeLimit (next.config.mjs); generator pages are ~0.3 MB
+const MAX_UPLOAD_BYTES = 3_000_000
+
 interface PendingFile {
   file: File
   html: string
@@ -182,6 +185,9 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
     setFiles(picked)
   }
 
+  const setRow = (file: File, patch: Partial<PendingFile>) =>
+    setFiles((current) => current.map((f) => (f.file === file ? { ...f, ...patch } : f)))
+
   const upload = async () => {
     setUploading(true)
     setError(null)
@@ -192,26 +198,34 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
         : {}
     // Results are matched by File object, never by position, so they can't land on another row
     const batch = files.filter((f) => f.status !== "done")
-    for (const item of batch) {
-      setFiles((current) => current.map((f) => (f.file === item.file ? { ...f, status: "uploading" } : f)))
-      const result = await importPracticePageAction(subjectId, item.slug, item.html, target)
-      setFiles((current) =>
-        current.map((f) => {
-          if (f.file !== item.file) return f
+    try {
+      for (const item of batch) {
+        if (item.file.size > MAX_UPLOAD_BYTES) {
+          setRow(item.file, { status: "error", message: "Soubor je větší než 3 MB." })
+          continue
+        }
+        setRow(item.file, { status: "uploading", message: undefined })
+        try {
+          const result = await importPracticePageAction(subjectId, item.slug, item.html, target)
           if (result.error) {
             const details = "details" in result.error && result.error.details ? ` ${result.error.details.slice(0, 3).join(" ")}` : ""
-            return { ...f, status: "error", message: `${result.error.message}${details}` }
+            setRow(item.file, { status: "error", message: `${result.error.message}${details}` })
+          } else {
+            const info = result.data!
+            const what = info.created ? "Přidáno" : info.changed ? "Aktualizováno" : "Beze změny"
+            const warnings = info.warnings.length > 0 ? ` (${info.warnings.length} upozornění)` : ""
+            setRow(item.file, { status: "done", message: `${what}: ${info.examples} ${czPlural(info.examples, "příklad", "příklady", "příkladů")}${warnings}` })
           }
-          const info = result.data!
-          const what = info.created ? "Přidáno" : info.changed ? "Aktualizováno" : "Beze změny"
-          const warnings = info.warnings.length > 0 ? ` (${info.warnings.length} ${czPlural(info.warnings.length, "upozornění", "upozornění", "upozornění")})` : ""
-          return { ...f, status: "done", message: `${what}: ${info.examples} ${czPlural(info.examples, "příklad", "příklady", "příkladů")}${warnings}` }
-        })
-      )
+        } catch {
+          // The request itself failed (network, body over the Server Action limit)
+          setRow(item.file, { status: "error", message: "Stránku se nepodařilo nahrát." })
+        }
+      }
+    } finally {
+      setUploading(false)
+      if (fileInput.current) fileInput.current.value = ""
+      await load().catch(() => setError("Nepodařilo se načíst procvičování."))
     }
-    setUploading(false)
-    if (fileInput.current) fileInput.current.value = ""
-    await load()
   }
 
   const copyLink = async (pageSlug: string) => {
