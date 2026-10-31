@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SessionProvider } from "next-auth/react"
 import { UpdateHint } from "@/components/update-hint"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -55,6 +56,8 @@ export default function RootLayout({
           >
             {children}
             <UpdateHint />
+            {/* Renders the useToast() notifications (hooks/use-toast.ts) */}
+            <Toaster />
           </ThemeProvider>
         </SessionProvider>
       </body>
