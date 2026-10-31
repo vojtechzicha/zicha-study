@@ -28,4 +28,14 @@ describe("dedupeKeys", () => {
     expect(dedupeKeys(["a", "a", "a"])).toEqual(["a", "a-2", "a-3"])
     expect(dedupeKeys(["a-2", "a", "a"])).toEqual(["a-2", "a", "a-3"])
   })
+
+  it("keeps deduplicated keys within 80 characters", () => {
+    const long = practiceExampleKey(`${"a".repeat(78)} b c`)
+    expect(long.length).toBe(80)
+    const keys = dedupeKeys(Array(12).fill(long))
+    expect(new Set(keys).size).toBe(12)
+    for (const key of keys) expect(key).toMatch(/^[a-z0-9-]{1,80}$/)
+    expect(keys[1]).toBe(`${"a".repeat(78)}-2`)
+    expect(keys[11]).toBe(`${"a".repeat(77)}-12`)
+  })
 })

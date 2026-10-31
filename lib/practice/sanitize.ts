@@ -36,6 +36,8 @@ const COMMON_ATTRIBUTES = ["class", "id", "style", "role", "aria-label"]
 const SVG_ATTRIBUTES = [
   "viewBox", "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "width", "height",
   "text-anchor", "stroke-width", "stroke-dasharray", "points", "d",
+  // Only ever "none" here: the transform below rejects colours.
+  "stroke", "fill",
 ]
 
 const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
@@ -168,16 +170,24 @@ export function sanitizeFragment(html: string, where = "HTML"): SanitizeResult {
       else issues.warnings.push(`${where}: removed unknown class „${name}“.`)
     }
 
+    // stroke/fill: "none" is kept (it changes the drawing, and SVG's default fill is black);
+    // palette strokes become series classes; any other colour fails.
     if (out.stroke !== undefined) {
       const stroke = out.stroke.trim().toLowerCase()
       const series = PRACTICE_PALETTE.get(stroke)
-      if (series) classes.add(series)
-      else if (stroke !== "none") issues.errors.push(`${where}: literal stroke colour „${out.stroke}“.`)
-      delete out.stroke
+      if (stroke === "none") out.stroke = "none"
+      else {
+        if (series) classes.add(series)
+        else issues.errors.push(`${where}: literal stroke colour „${out.stroke}“.`)
+        delete out.stroke
+      }
     }
     if (out.fill !== undefined) {
-      if (out.fill.trim().toLowerCase() !== "none") issues.errors.push(`${where}: literal fill colour „${out.fill}“.`)
-      delete out.fill
+      if (out.fill.trim().toLowerCase() === "none") out.fill = "none"
+      else {
+        issues.errors.push(`${where}: literal fill colour „${out.fill}“.`)
+        delete out.fill
+      }
     }
 
     if (out.style !== undefined) {

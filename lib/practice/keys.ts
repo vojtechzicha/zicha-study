@@ -18,11 +18,16 @@ export function practiceExampleKey(title: string): string {
 }
 
 // Appends -2, -3, … to keys that repeat within one page (skipping suffixes another key already uses).
+// The base is shortened to make room for the suffix, so every key stays within 80 characters.
 export function dedupeKeys(keys: string[]): string[] {
   const used = new Set<string>()
   return keys.map((key) => {
     let candidate = key
-    for (let n = 2; used.has(candidate); n++) candidate = `${key}-${n}`
+    for (let n = 2; used.has(candidate); n++) {
+      const suffix = `-${n}`
+      const base = key.slice(0, MAX_KEY_LENGTH - suffix.length).replace(/-+$/, "") || "priklad"
+      candidate = `${base}${suffix}`
+    }
     used.add(candidate)
     return candidate
   })

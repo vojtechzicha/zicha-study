@@ -42,6 +42,12 @@ describe("sanitizeFragment", () => {
     expect(swatch.html).toBe('<span class="sw ser5"></span>')
   })
 
+  it("keeps stroke and fill none", () => {
+    const result = sanitizeFragment('<svg viewBox="0 0 1 1"><polygon points="0,0 1,1" fill="none" class="edge"></polygon><line stroke="none"></line></svg>')
+    expect(result.errors).toEqual([])
+    expect(result.html).toBe('<svg viewBox="0 0 1 1"><polygon points="0,0 1,1" fill="none" class="edge"></polygon><line stroke="none"></line></svg>')
+  })
+
   it("rejects other literal colours", () => {
     expect(sanitizeFragment('<line stroke="#123456"></line>').errors).toHaveLength(1)
     expect(sanitizeFragment('<span style="background:#ffffff">x</span>').errors).toHaveLength(1)

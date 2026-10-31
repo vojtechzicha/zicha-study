@@ -49,6 +49,17 @@ describe("preparePageContent", () => {
     expect(preparePageContent(page).content.examples.map((ex) => ex.key)).toEqual(["cesta-bez-klice", "cesta-bez-klice-2"])
   })
 
+  it("re-prepares content whose derived keys were deduplicated at the length limit", () => {
+    const page = graph()
+    const title = `${"a".repeat(78)} b c`
+    page.examples[0].key = undefined
+    page.examples[0].title = title
+    page.examples[1].title = title
+    const first = preparePageContent(page)
+    expect(first.content.examples.map((ex) => ex.key.length)).toEqual([80, 80])
+    expect(preparePageContent(first.content).contentHash).toBe(first.contentHash)
+  })
+
   it("hashes content deterministically, and re-preparing sanitized content changes nothing", () => {
     const first = preparePageContent(graph())
     const again = preparePageContent(first.content)
