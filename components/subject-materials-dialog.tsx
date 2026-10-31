@@ -33,7 +33,8 @@ import {
   Check,
   MoreVertical,
   BookOpen,
-  FileArchive
+  FileArchive,
+  ListChecks
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -57,6 +58,7 @@ import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { getShareUrl } from "@/lib/utils/share-url"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StudyNotesSection } from "@/components/study-notes-section"
+import { PracticeAdminTab } from "@/components/practice/practice-admin-tab"
 
 interface Subject {
   id: string
@@ -65,6 +67,7 @@ interface Subject {
   study_id: string
   is_repeat?: boolean
   repeats_subject_id?: string
+  practice_enabled?: boolean
 }
 
 interface Study {
@@ -331,7 +334,7 @@ export function SubjectMaterialsDialog({
 
           <div className="flex-1 flex flex-col overflow-hidden">
             <Tabs defaultValue="notes" className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className={`grid w-full ${subject?.practice_enabled ? "grid-cols-3" : "grid-cols-2"}`}>
                 <TabsTrigger value="notes">
                   <BookOpen className="h-4 w-4 mr-2" />
                   Studijní zápisy ({noteCount})
@@ -340,7 +343,19 @@ export function SubjectMaterialsDialog({
                   <FolderOpen className="h-4 w-4 mr-2" />
                   Materiály ({materials.length})
                 </TabsTrigger>
+                {subject?.practice_enabled && (
+                  <TabsTrigger value="practice">
+                    <ListChecks className="h-4 w-4 mr-2" />
+                    Procvičování
+                  </TabsTrigger>
+                )}
               </TabsList>
+
+              {subject?.practice_enabled && (
+                <TabsContent value="practice" className="flex-1 overflow-auto">
+                  <PracticeAdminTab subjectId={subject.id} />
+                </TabsContent>
+              )}
 
               <TabsContent value="notes" className="flex-1 overflow-auto">
                 {subject && rootSubjectId && (

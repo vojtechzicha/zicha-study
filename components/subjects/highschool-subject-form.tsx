@@ -2,6 +2,8 @@
 
 import React, { useState } from "react"
 import { createSubject, updateSubject } from "@/lib/actions/subjects"
+import { setPracticeEnabledAction } from "@/lib/actions/practice"
+import { PracticeSwitch } from "@/components/practice/practice-switch"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,6 +30,7 @@ export interface HighSchoolSubject {
   abbreviation?: string | null
   lecturer?: string | null
   grades?: HighSchoolGrade[] | null
+  practice_enabled?: boolean
 }
 
 interface HighSchoolSubjectFormProps {
@@ -58,6 +61,7 @@ export function HighSchoolSubjectForm({
     }
     return initial
   })
+  const [practiceEnabled, setPracticeEnabled] = useState(subject?.practice_enabled === true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
@@ -91,6 +95,16 @@ export function HighSchoolSubjectForm({
       setError(`Nepodařilo se uložit předmět. ${result.error.message}`)
       setLoading(false)
       return
+    }
+
+    const subjectId = isEdit ? subject!.id : (result as { data?: { id: string } | null }).data?.id
+    if (subjectId && practiceEnabled !== (subject?.practice_enabled === true)) {
+      const practiceResult = await setPracticeEnabledAction(subjectId, practiceEnabled)
+      if (practiceResult.error) {
+        setError(practiceResult.error.message)
+        setLoading(false)
+        return
+      }
     }
 
     toast({ title: isEdit ? "Předmět uložen" : "Předmět přidán" })
@@ -171,6 +185,8 @@ export function HighSchoolSubjectForm({
             ))}
           </div>
         </div>
+
+        <PracticeSwitch checked={practiceEnabled} onChange={setPracticeEnabled} />
 
         <div className="flex gap-3 pt-4">
           <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
