@@ -1,7 +1,9 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import * as db from "@/lib/mongodb/db"
 import { requireUser } from "@/lib/auth-guard"
+import { PRACTICE_ROUTE_SEGMENT } from "@/lib/constants"
 
 // Marks an example of a practice page as gone through ("Prošel jsem") or not.
 export async function setPracticeProgressAction(pageId: string, exampleKey: string, done: boolean) {
@@ -20,6 +22,13 @@ export async function setPracticeProgressAction(pageId: string, exampleKey: stri
       done === true,
       user.email
     )
+    // The index and page show progress counts; drop their cached render (incl. back/forward)
+    const practiceModule = await db.getPracticeModuleById(page.module_id)
+    if (practiceModule) {
+      const index = `/${practiceModule.address_prefix}/${PRACTICE_ROUTE_SEGMENT}/${practiceModule.slug}`
+      revalidatePath(index)
+      revalidatePath(`${index}/${page.slug}`)
+    }
     return { error: null }
   } catch (err: any) {
     return { error: { code: "UNKNOWN", message: err?.message || "Neznámá chyba." } }
