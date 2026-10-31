@@ -12,8 +12,9 @@ vi.mock("./connection", () => {
     new Proxy(
       {},
       {
+        // "then" must be undefined, or awaiting a collection treats it as a never-settling thenable
         get: (_target, method: string) =>
-          (...args: unknown[]) => {
+          method === "then" ? undefined : (...args: unknown[]) => {
             fake.calls.push({ collection: name, method, args })
             if (method === "find") return { toArray: async () => fake.seed[name] ?? [] }
             if (method === "findOne") return Promise.resolve(fake.seed[name]?.[0] ?? null)
