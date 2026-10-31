@@ -33,9 +33,11 @@ import { czPlural } from "@/lib/utils/task-format"
 // The subject dialog's Procvičování tab (only shown while practice is enabled): the module's
 // address and study note, its pages with progress, and uploading generator HTML pages.
 
+// Select values: special options can't collide with group keys, which are namespaced "group:<key>"
 const NO_NOTE = "none"
-const NEW_GROUP = "new"
-const NO_GROUP = "keep"
+const NEW_GROUP = "special:new"
+const NO_GROUP = "special:keep"
+const GROUP_PREFIX = "group:"
 
 interface PendingFile {
   file: File
@@ -183,7 +185,11 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
   const upload = async () => {
     setUploading(true)
     setError(null)
-    const target = group === NEW_GROUP ? { newTitle: newGroupTitle } : group === NO_GROUP ? {} : { key: group }
+    const target = group === NEW_GROUP
+      ? { newTitle: newGroupTitle }
+      : group.startsWith(GROUP_PREFIX)
+        ? { key: group.slice(GROUP_PREFIX.length) }
+        : {}
     // Results are matched by File object, never by position, so they can't land on another row
     const batch = files.filter((f) => f.status !== "done")
     for (const item of batch) {
@@ -323,7 +329,7 @@ export function PracticeAdminTab({ subjectId }: { subjectId: string }) {
                   <SelectContent>
                     <SelectItem value={NO_GROUP}>Ponechat</SelectItem>
                     {data.module.groups.map((g) => (
-                      <SelectItem key={g.key} value={g.key}>
+                      <SelectItem key={g.key} value={`${GROUP_PREFIX}${g.key}`}>
                         {g.title}
                       </SelectItem>
                     ))}
