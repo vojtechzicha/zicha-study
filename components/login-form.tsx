@@ -8,7 +8,8 @@ import { GraduationCap } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { TitlePageFooter } from "@/components/title-page-footer"
 
-export function LoginForm() {
+// callbackUrl: where to return after signing in (already checked with safeCallbackUrl)
+export function LoginForm({ callbackUrl = "/" }: { callbackUrl?: string }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,7 +18,7 @@ export function LoginForm() {
     setError(null)
 
     try {
-      await signIn("microsoft-entra-id", { callbackUrl: "/" })
+      await signIn("microsoft-entra-id", { callbackUrl })
     } catch {
       setError("Nepodařilo se přihlásit.")
       setLoading(false)

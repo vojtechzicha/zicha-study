@@ -23,7 +23,8 @@ export default auth((request: NextRequest & { auth?: { user?: unknown } | null }
     const subdomain = host.slice(0, host.length - mainDomain.length - 1)
     const newPath = subdomain.split(".").reverse().join("/")
     const originalPath = request.nextUrl.pathname
-    const url = new URL(`/${newPath}${originalPath}`, `https://${mainDomain}`)
+    // Keep the query (e.g. ?callbackUrl=…); the browser keeps the #fragment itself.
+    const url = new URL(`/${newPath}${originalPath}${request.nextUrl.search}`, `https://${mainDomain}`)
     return NextResponse.redirect(url, 308)
   }
 
