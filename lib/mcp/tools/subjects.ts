@@ -196,13 +196,17 @@ export const subjectTools = [
       const before = requireDoc(await db.getSubjectById(subject_id), "Subject", subject_id)
       const periods = await db.getExamPeriodsByStudyId(before.study_id)
       const terms = await db.getExamTermsByPeriodIds(periods.map((p) => String(p._id)))
+      const linkedNotes = await db.getStudyNotesBySubjectId(subject_id)
       return commitDelete({
         ctx,
         tool: "delete_subject",
         collection: "subjects",
         before,
         dryRun: dry_run,
-        cascade: { exam_terms: terms.filter((t) => t.subject_id === subject_id).length },
+        cascade: {
+          exam_terms: terms.filter((t) => t.subject_id === subject_id).length,
+          note_links: linkedNotes.length,
+        },
         remove: () => db.deleteSubject(subject_id),
       })
     },

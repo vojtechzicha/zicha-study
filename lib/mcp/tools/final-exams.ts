@@ -93,12 +93,14 @@ export const finalExamTools = [
     input: { final_exam_id: recordId, dry_run: dryRun },
     handler: async ({ final_exam_id, dry_run }, ctx) => {
       const before = requireDoc(await db.getFinalExamById(final_exam_id), "Final exam", final_exam_id)
+      const linkedNotes = await db.getStudyNotesByFinalExamId(final_exam_id)
       return commitDelete({
         ctx,
         tool: "delete_final_exam",
         collection: "final_exams",
         before,
         dryRun: dry_run,
+        cascade: { note_links: linkedNotes.length },
         remove: () => db.deleteFinalExam(final_exam_id),
       })
     },

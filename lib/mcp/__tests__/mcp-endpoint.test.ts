@@ -14,6 +14,10 @@ const domain = vi.hoisted(() => ({
   updateTask: vi.fn(),
   getStudyNoteById: vi.fn(),
   deleteStudyNote: vi.fn(),
+  getSubjectById: vi.fn(),
+  getFinalExamById: vi.fn(),
+  unlinkSubjectFromNote: vi.fn(),
+  unlinkFinalExamFromNote: vi.fn(),
 }))
 
 vi.mock("@/lib/mongodb/db", () => ({
@@ -227,6 +231,44 @@ describe("/api/mcp tools", () => {
     const { isError } = await callTool(token, "delete_note", { note_id: "n1" })
     expect(isError).toBe(true)
     expect(domain.deleteStudyNote).not.toHaveBeenCalled()
+  })
+
+  it("removes a note's link to a deleted subject", async () => {
+    domain.getStudyNoteById.mockResolvedValue({
+      _id: "n1",
+      study_id: "s1",
+      name: "SZZ Management",
+      linked_subjects: [{ subject_id: "gone", is_primary: false }],
+    })
+    domain.getSubjectById.mockResolvedValue(null)
+    const token = await accessToken("study:write")
+    const { isError } = await callTool(token, "unlink_note", { note_id: "n1", subject_id: "gone" })
+    expect(isError).toBe(false)
+    expect(domain.unlinkSubjectFromNote).toHaveBeenCalledWith("n1", "gone")
+  })
+
+  it("removes a note's link to a deleted final exam", async () => {
+    domain.getStudyNoteById.mockResolvedValue({
+      _id: "n1",
+      study_id: "s1",
+      name: "SZZ Management",
+      linked_final_exams: [{ final_exam_id: "gone", is_primary: true }],
+    })
+    domain.getFinalExamById.mockResolvedValue(null)
+    const token = await accessToken("study:write")
+    const { isError } = await callTool(token, "unlink_note", { note_id: "n1", final_exam_id: "gone" })
+    expect(isError).toBe(false)
+    expect(domain.unlinkFinalExamFromNote).toHaveBeenCalledWith("n1", "gone")
+  })
+
+  it("still rejects unlinking an unknown subject the note isn't linked to", async () => {
+    domain.getStudyNoteById.mockResolvedValue({ _id: "n1", study_id: "s1", name: "Zápis", linked_subjects: [] })
+    domain.getSubjectById.mockResolvedValue(null)
+    const token = await accessToken("study:write")
+    const { isError, data } = await callTool(token, "unlink_note", { note_id: "n1", subject_id: "nope" })
+    expect(isError).toBe(true)
+    expect(String(data)).toContain("not found")
+    expect(domain.unlinkSubjectFromNote).not.toHaveBeenCalled()
   })
 
   it("does not let a read-only token call write tools", async () => {

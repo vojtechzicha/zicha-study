@@ -89,13 +89,21 @@ async function prepareNotePatch(before: Record<string, any>, fields: z.infer<typ
 
 type LinkTarget = { kind: "subject"; id: string } | { kind: "final_exam"; id: string }
 
-async function resolveLinkTarget(note: Record<string, any>, subjectId?: string, finalExamId?: string): Promise<LinkTarget> {
+// allowMissing: a link to a subject or final exam that no longer exists still resolves,
+// so unlink_note can remove it.
+async function resolveLinkTarget(
+  note: Record<string, any>,
+  subjectId?: string,
+  finalExamId?: string,
+  { allowMissing = false }: { allowMissing?: boolean } = {}
+): Promise<LinkTarget> {
   if (!!subjectId === !!finalExamId) throw new ToolError("Give exactly one of subject_id or final_exam_id.")
-  const target = subjectId
-    ? requireDoc(await db.getSubjectById(subjectId), "Subject", subjectId)
-    : requireDoc(await db.getFinalExamById(finalExamId!), "Final exam", finalExamId!)
-  if (target.study_id !== note.study_id) throw new ToolError("The note and the subject/final exam belong to different studies.")
-  return subjectId ? { kind: "subject", id: subjectId } : { kind: "final_exam", id: finalExamId! }
+  const target: LinkTarget = subjectId ? { kind: "subject", id: subjectId } : { kind: "final_exam", id: finalExamId! }
+  const doc = subjectId ? await db.getSubjectById(subjectId) : await db.getFinalExamById(finalExamId!)
+  if (!doc && allowMissing && isLinked(note, target)) return target
+  const found = requireDoc(doc, subjectId ? "Subject" : "Final exam", target.id)
+  if (found.study_id !== note.study_id) throw new ToolError("The note and the subject/final exam belong to different studies.")
+  return target
 }
 
 function isLinked(note: Record<string, any>, target: LinkTarget) {
@@ -280,12 +288,12 @@ export const noteTools = [
   defineTool({
     name: "unlink_note",
     title: "Unlink note",
-    description: "Remove a note's link to a subject or a final exam.",
+    description: "Remove a note's link to a subject or a final exam, also when that subject or final exam was deleted.",
     access: "write",
     input: { note_id: recordId, subject_id: recordId.optional(), final_exam_id: recordId.optional() },
     handler: async ({ note_id, subject_id, final_exam_id }, ctx) => {
       const note = await requireNote(note_id)
-      const target = await resolveLinkTarget(note, subject_id, final_exam_id)
+      const target = await resolveLinkTarget(note, subject_id, final_exam_id, { allowMissing: true })
       if (!isLinked(note, target)) return { not_linked: true, note: metadata(note) }
       if (target.kind === "subject") await db.unlinkSubjectFromNote(note_id, target.id)
       else await db.unlinkFinalExamFromNote(note_id, target.id)
