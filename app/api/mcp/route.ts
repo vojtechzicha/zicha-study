@@ -14,7 +14,7 @@ async function authenticate(request: NextRequest) {
   const origin = getPublicOrigin(request.headers)
   const match = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)
   const auth = match ? await verifyAccessToken(match[1].trim(), origin) : null
-  if (auth) return { auth }
+  if (auth) return { auth, origin }
 
   const challenge = [
     `Bearer resource_metadata="${getProtectedResourceMetadataUrl(origin)}"`,
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const server = createMcpServer(result.auth)
+  const server = createMcpServer(result.auth, result.origin)
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

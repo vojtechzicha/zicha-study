@@ -12,6 +12,8 @@ export type ToolAccess = "read" | "write" | "delete"
 
 export interface ToolContext {
   auth: McpAuth
+  // Public origin of the request (e.g. https://www.zicha.study), for links in results.
+  origin?: string
 }
 
 export interface ToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
