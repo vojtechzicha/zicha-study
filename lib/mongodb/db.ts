@@ -213,6 +213,11 @@ export async function deleteSubject(id: string) {
   }
   await db.collection("exam_options").deleteMany({ subject_id: id })
   await db.collection("exam_terms").deleteMany({ subject_id: id })
+  // Note links are denormalized onto the notes, so they don't go away with the subject
+  await db.collection("study_notes").updateMany(
+    { "linked_subjects.subject_id": id },
+    { $pull: { linked_subjects: { subject_id: id } } as any }
+  )
   await db.collection("subjects").deleteOne({ _id: id as any })
 }
 
@@ -260,8 +265,12 @@ export async function updateFinalExam(id: string, data: Record<string, any>) {
 }
 
 export async function deleteFinalExam(id: string) {
-  const c = await col("final_exams")
-  await c.deleteOne({ _id: id as any })
+  const db = await getDb()
+  await db.collection("study_notes").updateMany(
+    { "linked_final_exams.final_exam_id": id },
+    { $pull: { linked_final_exams: { final_exam_id: id } } as any }
+  )
+  await db.collection("final_exams").deleteOne({ _id: id as any })
 }
 
 // ─── Tasks ──────────────────────────────────────────────────────────────────
