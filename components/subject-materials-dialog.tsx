@@ -333,7 +333,7 @@ export function SubjectMaterialsDialog({
           </DialogHeader>
 
           <div className="flex-1 flex flex-col overflow-hidden">
-            <Tabs defaultValue="notes" className="h-full flex flex-col">
+            <Tabs defaultValue="notes" className="flex min-h-0 flex-1 flex-col">
               <TabsList className={`grid w-full ${subject?.practice_enabled ? "grid-cols-3" : "grid-cols-2"}`}>
                 <TabsTrigger value="notes">
                   <BookOpen className="h-4 w-4 mr-2" />
@@ -352,12 +352,12 @@ export function SubjectMaterialsDialog({
               </TabsList>
 
               {subject?.practice_enabled && (
-                <TabsContent value="practice" className="flex-1 overflow-auto">
+                <TabsContent value="practice" className="min-h-0 flex-1 overflow-auto">
                   <PracticeAdminTab subjectId={subject.id} />
                 </TabsContent>
               )}
 
-              <TabsContent value="notes" className="flex-1 overflow-auto">
+              <TabsContent value="notes" className="min-h-0 flex-1 overflow-auto">
                 {subject && rootSubjectId && (
                   <StudyNotesSection
                     studyId={subject.study_id}
@@ -368,7 +368,7 @@ export function SubjectMaterialsDialog({
                 )}
               </TabsContent>
 
-              <TabsContent value="materials" className="flex-1 flex flex-col space-y-4 overflow-hidden">
+              <TabsContent value="materials" className="min-h-0 flex-1 flex flex-col space-y-4 overflow-hidden">
                 {error && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
