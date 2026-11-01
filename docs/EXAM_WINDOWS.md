@@ -66,6 +66,19 @@ https://tc.pef.czu.cz/aktualni-oteviraci-doba-testovaciho-centra-pef-czu/).
 MCP: `list_venue_days`; window fields on `create_/update_exam_term` (`window_end`, `venue`,
 `window_id`).
 
+## Known limits
+
+Slots are generated from rules, not a fine time grid, so two setups can leave a window out of a
+plan that would fit (decided 2026-11-01: out of scope while only the ČZU study has a testing
+centre):
+
+- several windows of one study with **different** lengths packed into one short open day
+  (back-to-back starts step by each window's own length);
+- windows of **several studies** at the same venue on the same day (other studies' windows don't
+  produce transfer-gap slots, only their ordinary exams do).
+
+Moving a slot by hand (booking a seat and recording it as a locked term) always works.
+
 ## Not done yet
 
 How UIS lists the exam terms of TC subjects (one per attempt? a date range?) is not known until
