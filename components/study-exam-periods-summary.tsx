@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CalendarDays, Lock, ExternalLink, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react"
+import { CalendarDays, Lock, ExternalLink, Loader2, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react"
 import { fetchStudyExamPeriods } from "@/lib/actions/exam-scheduler"
+import { sourceLabel } from "@/lib/exam-import/format"
 
 interface SummarySubject {
   id: string
@@ -28,6 +29,23 @@ interface PeriodRow {
   due_date: string
   subject_ids?: string[]
 }
+interface LastImport {
+  source: string
+  at: string
+  warnings: string[]
+}
+
+function formatSyncTime(iso: string): string {
+  return new Date(iso).toLocaleString("cs-CZ", {
+    timeZone: "Europe/Prague",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
 interface TermRow {
   id: string
   period_id: string
@@ -45,6 +63,7 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
   const [loading, setLoading] = useState(true)
   const [periods, setPeriods] = useState<PeriodRow[]>([])
   const [terms, setTerms] = useState<TermRow[]>([])
+  const [lastImport, setLastImport] = useState<LastImport | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -57,6 +76,7 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
         )
       )
       setTerms(data.terms as TermRow[])
+      setLastImport(data.lastImport)
     } finally {
       setLoading(false)
     }
@@ -165,6 +185,18 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
               )
             })}
           </div>
+        )}
+        {!loading && lastImport && sourceLabel(lastImport.source) && (
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <RefreshCw className="h-3 w-3" aria-hidden="true" />
+            Synchronizace s {sourceLabel(lastImport.source)}: {formatSyncTime(lastImport.at)}
+            {lastImport.warnings.length > 0 && (
+              <span className="flex items-center gap-1 text-amber-700 dark:text-amber-300" title={lastImport.warnings.join("\n")}>
+                <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+                {lastImport.warnings.length} upozornění
+              </span>
+            )}
+          </p>
         )}
       </CardContent>
     </Card>

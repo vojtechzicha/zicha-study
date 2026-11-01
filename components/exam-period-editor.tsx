@@ -17,7 +17,9 @@ import {
   TENTATIVE_TERM_LABEL,
   getTermPartIds,
   type ExamPartsConfig,
+  type ExamTermExternal,
 } from "@/lib/constants"
+import { SyncedTermInfo, isSyncedTerm, type SyncedTerm } from "@/components/synced-term-info"
 import { sortSubjects, getUniqueSemestersSorted } from "@/lib/utils/subject-utils"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -69,6 +71,8 @@ export interface EditorTerm {
   part_ids?: string[]
   is_pre_term?: boolean
   is_tentative?: boolean
+  source?: string | null
+  external?: ExamTermExternal | null
 }
 
 interface TermDraft {
@@ -82,6 +86,8 @@ interface TermDraft {
   part_ids: string[] // parts covered, in exam order; empty for plain subjects
   is_pre_term: boolean
   is_tentative: boolean
+  // Set for a term synced from a university system: its date, time and flags come from there.
+  synced: SyncedTerm | null
 }
 
 interface SubjectGroup {
@@ -101,6 +107,8 @@ interface ExamPeriodEditorProps {
   onSaved: () => void
 }
 
+const SYNCED_FIELD_TITLE = "Datum a čas se přebírají z univerzitního systému."
+
 function toDraft(t: EditorTerm, parts: ExamPartsConfig | null): TermDraft {
   return {
     id: t.id,
@@ -113,6 +121,7 @@ function toDraft(t: EditorTerm, parts: ExamPartsConfig | null): TermDraft {
     part_ids: getTermPartIds(t, parts),
     is_pre_term: !!t.is_pre_term,
     is_tentative: !!t.is_tentative,
+    synced: isSyncedTerm(t) ? { source: t.source, external: t.external } : null,
   }
 }
 
@@ -286,6 +295,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
           locked: false,
           is_pre_term: false,
           is_tentative: false,
+          synced: null,
           // Split subjects copy the parts of the previous term (all parts for the first one).
           part_ids: grp.parts
             ? (grp.terms[grp.terms.length - 1]?.part_ids ?? grp.parts.parts.map((p) => p.id))
@@ -587,6 +597,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                     ) : (
                       grp.terms.map((term, index) => (
                         <div key={term.id || index} className="p-3 border rounded-lg bg-card space-y-3">
+                          {term.synced && <SyncedTermInfo term={term.synced} />}
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div className="space-y-1">
                               <Label className="text-xs flex items-center gap-1">
@@ -597,6 +608,8 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                                 type="date"
                                 value={term.date}
                                 onChange={(e) => updateTerm(grp.subjectId, index, "date", e.target.value)}
+                                disabled={!!term.synced}
+                                title={term.synced ? SYNCED_FIELD_TITLE : undefined}
                                 className="h-9"
                               />
                             </div>
@@ -609,6 +622,8 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                                 type="time"
                                 value={term.start_time}
                                 onChange={(e) => updateTerm(grp.subjectId, index, "start_time", e.target.value)}
+                                disabled={!!term.synced}
+                                title={term.synced ? SYNCED_FIELD_TITLE : undefined}
                                 className="h-9"
                               />
                             </div>
@@ -682,6 +697,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                                 id={`preterm-${grp.subjectId}-${index}`}
                                 checked={term.is_pre_term}
                                 onCheckedChange={(c) => updateTerm(grp.subjectId, index, "is_pre_term", c as boolean)}
+                                disabled={!!term.synced}
                                 className="mr-2"
                               />
                               <Label htmlFor={`preterm-${grp.subjectId}-${index}`} className="text-sm cursor-pointer">
@@ -693,6 +709,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                                 id={`tentative-${grp.subjectId}-${index}`}
                                 checked={term.is_tentative}
                                 onCheckedChange={(c) => updateTerm(grp.subjectId, index, "is_tentative", c as boolean)}
+                                disabled={!!term.synced}
                                 className="mr-2"
                               />
                               <Label htmlFor={`tentative-${grp.subjectId}-${index}`} className="text-sm cursor-pointer">
@@ -717,6 +734,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               size="sm"
                               onClick={() => removeTerm(grp.subjectId, index)}
                               aria-label="Odebrat termín"
+                              title={term.synced ? "Odebraný synchronizovaný termín se znovu nenačte." : undefined}
                               className="h-9 w-9 p-0 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                             >
                               <Trash2 className="h-4 w-4" />
