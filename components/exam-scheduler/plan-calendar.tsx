@@ -363,7 +363,11 @@ function DayCell({
           <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-0.5 pt-0.5">
             {others.slice(0, 4).map((t) => (
               <span key={t.id} className="flex min-w-0 items-center gap-1 text-[10px] leading-4 text-muted-foreground">
-                <span className={cn("h-2 w-2 shrink-0 rounded-full border-[1.5px]", studies.get(t.studyId)?.tone.ring)} />
+                {t.locked ? (
+                  <Lock className="h-2.5 w-2.5 shrink-0 text-amber-600 dark:text-amber-400" aria-label="Zamčeno mimo plán" />
+                ) : (
+                  <span className={cn("h-2 w-2 shrink-0 rounded-full border-[1.5px]", studies.get(t.studyId)?.tone.ring)} />
+                )}
                 <span className="hidden lg:inline truncate">{t.shortcut}</span>
               </span>
             ))}
@@ -491,10 +495,7 @@ function DayDetail({ day, planned, others, travel, studies, termsByRequirement, 
                     <Lock className="h-3 w-3" />
                     Zamčeno
                   </span>
-                  <Button variant="ghost" size="sm" className="ml-auto h-7 px-2 text-xs" disabled={busyIds.has(t.id)} onClick={() => onUnlock(t)}>
-                    {busyIds.has(t.id) ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <LockOpen className="h-3 w-3 mr-1" />}
-                    Odemknout
-                  </Button>
+                  <UnlockButton term={t} busy={busyIds.has(t.id)} onUnlock={onUnlock} className="ml-auto" />
                 </>
               ) : (
                 <>
@@ -532,9 +533,9 @@ function DayDetail({ day, planned, others, travel, studies, termsByRequirement, 
         return (
           <TermDetail key={t.id} term={t} study={studies.get(t.studyId)} muted>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="flex flex-col text-xs text-muted-foreground">
                 {chosen.length > 0 ? (
-                  <>
+                  <span>
                     V plánu je{" "}
                     {chosen.map((c, i) => (
                       <React.Fragment key={c.id}>
@@ -548,12 +549,22 @@ function DayDetail({ day, planned, others, travel, studies, termsByRequirement, 
                         </button>
                       </React.Fragment>
                     ))}
-                  </>
+                  </span>
                 ) : (
                   "Mimo plán"
                 )}
+                {t.locked && (
+                  <span className="mt-0.5 flex items-center gap-1 text-amber-700 dark:text-amber-300">
+                    <Lock className="h-3 w-3" />
+                    Zamčeno, ale mimo plán
+                  </span>
+                )}
               </span>
-              <LockButton term={t} busy={busyIds.has(t.id)} onLock={onLock} className="ml-auto" label="Zamknout tento" />
+              {t.locked ? (
+                <UnlockButton term={t} busy={busyIds.has(t.id)} onUnlock={onUnlock} className="ml-auto" />
+              ) : (
+                <LockButton term={t} busy={busyIds.has(t.id)} onLock={onLock} className="ml-auto" label="Zamknout tento" />
+              )}
             </div>
           </TermDetail>
         )
@@ -644,6 +655,25 @@ export function LockButton({
     >
       {busy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Lock className="h-3 w-3 mr-1" />}
       {label}
+    </Button>
+  )
+}
+
+export function UnlockButton({
+  term,
+  busy,
+  onUnlock,
+  className,
+}: {
+  term: PlanTerm
+  busy: boolean
+  onUnlock: (_term: PlanTerm) => void
+  className?: string
+}) {
+  return (
+    <Button variant="ghost" size="sm" className={cn("h-7 px-2 text-xs", className)} disabled={busy} onClick={() => onUnlock(term)}>
+      {busy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <LockOpen className="h-3 w-3 mr-1" />}
+      Odemknout
     </Button>
   )
 }

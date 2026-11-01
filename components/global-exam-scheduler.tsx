@@ -376,19 +376,37 @@ export function GlobalExamScheduler() {
       const unlock = locked ? termsToUnlock(siblings.map((t) => ({ id: t.id, locked: !!t.locked, part_ids: t.part_ids })), term.id, parts) : []
       const changes = new Map<string, boolean>([[term.id, locked], ...unlock.map((id) => [id, false] as [string, boolean])])
 
-      const previous = terms
       setBusyIds((s) => new Set(s).add(term.id))
       setTerms((ts) => ts.map((t) => (changes.has(t.id) ? { ...t, locked: changes.get(t.id)! } : t)))
+      // Each change is saved on its own: release the old locks first, then set the new one. If a
+      // save fails, the earlier ones are already stored, so the terms are reloaded from the
+      // database instead of restoring the previous page state.
+      const order: [string, boolean][] = [...unlock.map((id) => [id, false] as [string, boolean]), [term.id, locked]]
       try {
-        const results = await Promise.all(Array.from(changes, ([id, value]) => toggleExamTermLockAction(id, value)))
-        const failed = results.find((r) => r.error)
-        if (failed) {
-          setTerms(previous)
+        let error: string | null = null
+        try {
+          for (const [id, value] of order) {
+            const res = await toggleExamTermLockAction(id, value)
+            if (res.error) {
+              error = res.error.message
+              break
+            }
+          }
+        } catch (err: any) {
+          error = err?.message || "Spojení se nezdařilo."
+        }
+        if (error !== null) {
           toast({
             title: locked ? "Nepodařilo se zamknout termín." : "Nepodařilo se odemknout termín.",
-            description: failed.error?.message,
+            description: error,
             variant: "destructive",
           })
+          try {
+            const data = await fetchGlobalExamSchedulingData()
+            setTerms(data.terms as TermData[])
+          } catch {
+            await load()
+          }
         }
       } finally {
         setBusyIds((s) => {
@@ -398,7 +416,7 @@ export function GlobalExamScheduler() {
         })
       }
     },
-    [terms, periodMap, toast]
+    [terms, periodMap, toast, load]
   )
 
   const showTerm = (term: PlanTerm) => {
