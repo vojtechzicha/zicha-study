@@ -412,8 +412,62 @@ export interface ExamTerm {
   part_ids?: string[] // parts of a split exam this term covers; missing = all
   is_pre_term?: boolean // předtermín; missing = regular term
   is_tentative?: boolean // not yet confirmed; missing = confirmed
+  // Set on terms kept in sync with a university system (POST /api/exam-terms/import).
+  source?: ExamTermSource | null
+  external_id?: string | null
+  external?: ExamTermExternal | null
   created_at: string
   updated_at: string
+}
+
+// ─── Imported exam terms (docs/EXAM_IMPORT.md) ──────────────────────────────
+
+// Systems whose exam terms are synced into exam_terms. Stored in exam_terms.source.
+export const EXAM_TERM_SOURCES = {
+  UIS: 'uis',
+} as const
+
+export type ExamTermSource = (typeof EXAM_TERM_SOURCES)[keyof typeof EXAM_TERM_SOURCES]
+
+export const EXAM_TERM_SOURCE_LABELS: Record<ExamTermSource, string> = {
+  uis: 'UIS',
+}
+
+// Where the student stands with a listed term. Stored in exam_terms.external.status.
+export const EXTERNAL_TERM_STATUS = {
+  REGISTERED: 'registered', // signed up (or a compulsory term)
+  AVAILABLE: 'available', // can sign up now or once registration opens
+  UNAVAILABLE: 'unavailable', // listed, but sign-up is blocked (see status_note)
+} as const
+
+export type ExternalTermStatus = (typeof EXTERNAL_TERM_STATUS)[keyof typeof EXTERNAL_TERM_STATUS]
+
+export const EXTERNAL_TERM_STATUS_LABELS: Record<ExternalTermStatus, string> = {
+  registered: 'Přihlášen',
+  available: 'Lze se přihlásit',
+  unavailable: 'Nelze se přihlásit',
+}
+
+// What the source system says about a synced term, as last seen. Dates and times are
+// local Prague time, "YYYY-MM-DDTHH:MM".
+export interface ExamTermExternal {
+  kind: string | null // e.g. "zkouška (písemná)"
+  term_type: string | null // e.g. "řádný", "předtermín"
+  room: string | null
+  examiners: string | null
+  listed_by: string | null
+  capacity: number | null
+  registered_count: number | null
+  registration_from: string | null
+  registration_to: string | null
+  deregistration_to: string | null
+  status: ExternalTermStatus
+  status_note: string | null
+  // The sync locked the term because the student registered; it unlocks it again on deregistration.
+  auto_locked: boolean
+  // The term disappeared from the source while locked; kept until the student decides.
+  removed_at: string | null
+  synced_at: string
 }
 
 // Days of week considered "working days" by default (Mon–Fri).

@@ -29,7 +29,7 @@ revokes an app immediately.
 | Subjects | `list_subjects`, `get_subject`, `create_subject`, `update_subject`, `delete_subject` |
 | Final exams | `list_final_exams`, `create_final_exam`, `update_final_exam`, `delete_final_exam` |
 | Tasks | `list_tasks`, `create_task`, `update_task`, `delete_task` |
-| Exam scheduler | `list_exam_periods`, `create_/update_/delete_exam_period`, `create_/update_/delete_exam_term` |
+| Exam scheduler | `list_exam_periods`, `create_/update_/delete_exam_period`, `create_/update_/delete_exam_term` (terms synced from UIS: docs/EXAM_IMPORT.md) |
 | Notes | `list_notes`, `get_note`, `create_markdown_note`, `update_note`, `set_markdown_note_content`, `delete_note`, `link_note`, `unlink_note` |
 | Procvičování | `get_practice_module`, `update_practice_module`, `get_practice_page`, `update_practice_page`, `delete_practice_page`, `set_practice_progress`, `create_practice_upload`, `revoke_practice_upload` (enable with `update_subject` `practice_enabled`) |
 | History | `list_recent_changes` |

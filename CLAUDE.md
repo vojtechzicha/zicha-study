@@ -29,7 +29,8 @@ app/
   tasks/, exam-scheduler/           cross-study tasks and the exam scheduler
   oauth/authorize/, .well-known/    consent page and OAuth metadata for the Claude connector
   api/                    auth, OneDrive (files, search, picker, share), study-note conversion + media,
-                          Markdown-note media, logos, diplomas, version, mcp (remote MCP server + OAuth)
+                          Markdown-note media, logos, diplomas, version, mcp (remote MCP server + OAuth),
+                          exam-terms/import (UIS sync, docs/EXAM_IMPORT.md)
 components/
   ui/                     shadcn/ui, don't modify
   subjects/               per-kind (university / high school) subject lists, forms and statistics
@@ -40,6 +41,7 @@ lib/
   mongodb/db.ts           all database access
   actions/                Server Actions used by client components
   exam-scheduler/         scheduling algorithm (with tests)
+  exam-import/            matching of imported exam terms to subjects and periods (docs/EXAM_IMPORT.md)
   mcp/                    Claude connector: OAuth server (oauth.ts), MCP tools (tools/), see docs/MCP.md
   constants.ts            enums, labels and badge classes
   study-kind.ts           university vs high-school terminology
@@ -53,7 +55,7 @@ MongoDB collections: `studies`, `subjects`, `final_exams`, `materials`, `subject
 (Word, Obsidian and Markdown notes, told apart by `note_type`; linked subjects/exams are denormalized into
 `linked_subjects[]` / `linked_final_exams[]`), `study_notes_cache` and `study_notes_media` (converted HTML and
 images), `study_note_versions` and `markdown_note_media` (Markdown notes), `tasks`, `exam_periods`, `exam_terms`,
-`exam_options`, `app_settings`; `mcp_clients`, `mcp_auth_codes`, `mcp_grants`, `mcp_tokens`, `mcp_audit` (Claude
+`exam_options`, `exam_term_dismissals`, `app_settings`; `mcp_clients`, `mcp_auth_codes`, `mcp_grants`, `mcp_tokens`, `mcp_audit` (Claude
 connector).
 
 Data isn't scoped per user. It is a single-user app: `ALLOWED_EMAILS` in `auth.ts` decides who can sign in.

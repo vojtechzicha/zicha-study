@@ -827,9 +827,33 @@ export async function updateExamTerm(id: string, data: Record<string, any>) {
   await c.updateOne({ _id: id as any }, { $set: { ...data, updated_at: new Date().toISOString() } })
 }
 
-export async function deleteExamTerm(id: string) {
+/**
+ * Deletes a term. A synced term (exam_terms.source) deleted by the user is remembered in
+ * exam_term_dismissals so the next import doesn't bring it back; the importer itself passes
+ * dismiss: false when the source dropped the term.
+ */
+export async function deleteExamTerm(id: string, options: { dismiss?: boolean } = {}) {
   const c = await col("exam_terms")
+  const term = await c.findOne({ _id: id as any })
+  if (!term) return
+  if (options.dismiss !== false && term.source && term.external_id) {
+    await (await col("exam_term_dismissals")).updateOne(
+      { _id: `${term.source}:${term.study_id}:${term.external_id}` as any },
+      {
+        $set: { study_id: term.study_id, source: term.source, external_id: term.external_id, subject_id: term.subject_id, date: term.date },
+        $setOnInsert: { dismissed_at: new Date().toISOString() },
+      },
+      { upsert: true }
+    )
+  }
   await c.deleteOne({ _id: id as any })
+}
+
+/** External ids of synced terms the user deleted, for the importer to skip. */
+export async function getExamTermDismissals(studyId: string, source: string): Promise<string[]> {
+  const c = await col("exam_term_dismissals")
+  const rows = await c.find({ study_id: studyId, source }).project({ external_id: 1 }).toArray()
+  return rows.map((r) => String(r.external_id))
 }
 
 export async function deleteExamTermsByPeriodAndSubject(periodId: string, subjectId: string) {

@@ -104,7 +104,8 @@ export const examPeriodTools = [
   defineTool({
     name: "list_exam_periods",
     title: "List exam periods",
-    description: "Exam periods of a study, each with its candidate exam terms.",
+    description:
+      "Exam periods of a study, each with its candidate exam terms. Terms with source \"uis\" are synced from the university system (external_id, external: room, capacity, registration window, status).",
     access: "read",
     input: { study_id: recordId },
     handler: async ({ study_id }) => {
@@ -218,7 +219,8 @@ export const examPeriodTools = [
   defineTool({
     name: "update_exam_term",
     title: "Update exam term",
-    description: "Change an exam term, e.g. lock it into the schedule. Only the given fields change.",
+    description:
+      "Change an exam term, e.g. lock it into the schedule. Only the given fields change. On a synced term (source set) the next sync overwrites date, start_time, is_pre_term and part_ids.",
     access: "write",
     input: { term_id: recordId, fields: termFields, dry_run: dryRun },
     handler: async ({ term_id, fields, dry_run }, ctx) => {
@@ -243,7 +245,7 @@ export const examPeriodTools = [
   defineTool({
     name: "delete_exam_term",
     title: "Delete exam term",
-    description: "Permanently delete an exam term.",
+    description: "Permanently delete an exam term. A deleted synced term (source set) is not imported again.",
     access: "delete",
     input: { term_id: recordId, dry_run: dryRun },
     handler: async ({ term_id, dry_run }, ctx) => {
