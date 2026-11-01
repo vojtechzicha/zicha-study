@@ -1,4 +1,4 @@
-import type { GlobalTerm } from "./global-scheduler"
+import type { GlobalRequirement, GlobalTerm } from "./global-scheduler"
 import { EXAM_VENUE_INFO, type ExamVenue, type VenueDay } from "@/lib/constants"
 import { parseTimeToMinutes } from "./utils"
 
@@ -37,6 +37,28 @@ export interface ExpandOptions {
   // plus the window's first and last open day: a test on a day with a trip anyway costs nothing
   // extra, and offering every day of a five-week window makes the exhaustive search far too slow.
   anchors?: Map<string, [number, number][]>
+}
+
+/**
+ * Runs the scheduler on requirements whose windows are expanded only on trip days, and, when a
+ * requirement with a window can't be placed that way, again with that requirement's windows
+ * expanded to every open day. The reduced expansion keeps the search fast; the fallback keeps it
+ * from missing a plan the full expansion would find (e.g. several windows on the same dates and
+ * no other exams to anchor them).
+ */
+export function scheduleWithWindowFallback<T extends { forced: { unschedulable: { requirementId: string }[] } }>(
+  build: (_fullWindows: Set<string>) => GlobalRequirement[],
+  run: (_requirements: GlobalRequirement[]) => T,
+  windowRequirementIds: Set<string>
+): { requirements: GlobalRequirement[]; comparison: T } {
+  const requirements = build(new Set())
+  const comparison = run(requirements)
+  const failing = new Set(
+    comparison.forced.unschedulable.map((u) => u.requirementId).filter((id) => windowRequirementIds.has(id))
+  )
+  if (failing.size === 0) return { requirements, comparison }
+  const full = build(failing)
+  return { requirements: full, comparison: run(full) }
 }
 
 /** The study's other candidate terms by day, for ExpandOptions.anchors. */
@@ -104,9 +126,11 @@ export function expandWindowTerm(term: WindowTermInput, opts: ExpandOptions): Gl
         const end = start + s.durationMinutes
         return busy.every(([b0, b1]) => end + CLEAR_MINUTES <= b0 || b1 + CLEAR_MINUTES <= start)
       })
-      out.push(...(clear.length > 0 ? clear.slice(0, 1) : slots))
+      // Every clear slot: a split exam's order may need the later one (written at 10:00, then the
+      // TC part). If none is clear, both, and the solver sorts it out.
+      out.push(...(clear.length > 0 ? clear : slots))
     } else if (date === days[0] || date === days[days.length - 1]) {
-      out.push(slots[0])
+      out.push(...slots)
     }
   }
   return out

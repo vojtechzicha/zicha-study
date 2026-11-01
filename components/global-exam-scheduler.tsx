@@ -58,7 +58,14 @@ import {
   type ExamVenue,
   type VenueDay,
 } from "@/lib/constants"
-import { anchorsOf, expandWindowTerm, parseWindowCandidateId, venueHours, type VenueCalendar } from "@/lib/exam-scheduler/windows"
+import {
+  anchorsOf,
+  expandWindowTerm,
+  parseWindowCandidateId,
+  scheduleWithWindowFallback,
+  venueHours,
+  type VenueCalendar,
+} from "@/lib/exam-scheduler/windows"
 import { czPlural } from "@/lib/utils/task-format"
 import { cn } from "@/lib/utils"
 import { PlanCalendar, type PeriodWindow } from "@/components/exam-scheduler/plan-calendar"
@@ -230,7 +237,9 @@ export function GlobalExamScheduler() {
 
   // One requirement per (period, subject) with at least one term. Completed
   // subjects no longer need a term, so they are left out of the plan.
-  const requirements: GlobalRequirement[] = useMemo(() => {
+  // `fullWindows`: requirement ids whose windows are expanded to every open day (the fallback of
+  // scheduleWithWindowFallback); other windows are offered only on the study's trip days.
+  const buildRequirements = useCallback((fullWindows: Set<string>): GlobalRequirement[] => {
     const grouped = new Map<string, TermData[]>()
     for (const t of terms) {
       const key = `${t.period_id}:${t.subject_id}`
@@ -295,7 +304,7 @@ export function GlobalExamScheduler() {
               periodStart: period.start_date,
               calendars: venueCalendars,
               earliestArrival: arrival ? arrival.substring(0, 5) : undefined,
-              anchors: anchorsByStudy.get(period.study_id),
+              anchors: fullWindows.has(key) ? undefined : anchorsByStudy.get(period.study_id),
             }
           )
         }),
@@ -306,16 +315,27 @@ export function GlobalExamScheduler() {
   }, [terms, periodMap, subjectMap, studies, venueCalendars, today])
 
   const studyConfigs: GlobalStudyConfig[] = useMemo(() => studies.map(buildStudyConfig), [studies])
+  const windowRequirementIds = useMemo(
+    () => new Set(terms.filter((t) => t.window_end).map((t) => `${t.period_id}:${t.subject_id}`)),
+    [terms]
+  )
 
   // The plan is recomputed whenever the data changes; there is no "generate" step.
-  const { comparison, planError } = useMemo((): { comparison: GlobalScheduleComparison | null; planError: string | null } => {
-    if (requirements.length === 0) return { comparison: null, planError: null }
+  const { requirements, comparison, planError } = useMemo((): {
+    requirements: GlobalRequirement[]
+    comparison: GlobalScheduleComparison | null
+    planError: string | null
+  } => {
+    const reduced = buildRequirements(new Set())
+    if (reduced.length === 0) return { requirements: reduced, comparison: null, planError: null }
     try {
-      return { comparison: generateGlobalSchedule(requirements, studyConfigs, breakMinutes, partGapMinutes), planError: null }
+      const run = (reqs: GlobalRequirement[]) => generateGlobalSchedule(reqs, studyConfigs, breakMinutes, partGapMinutes)
+      const planned = scheduleWithWindowFallback(buildRequirements, run, windowRequirementIds)
+      return { requirements: planned.requirements, comparison: planned.comparison, planError: null }
     } catch (err: any) {
-      return { comparison: null, planError: err?.message || "Plán se nepodařilo vypočítat." }
+      return { requirements: reduced, comparison: null, planError: err?.message || "Plán se nepodařilo vypočítat." }
     }
-  }, [requirements, studyConfigs, breakMinutes, partGapMinutes])
+  }, [buildRequirements, studyConfigs, breakMinutes, partGapMinutes, windowRequirementIds])
 
   const showComparison =
     !!comparison &&

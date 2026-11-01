@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest"
 import type { VenueDay } from "@/lib/constants"
 import { generateGlobalSchedule, type GlobalRequirement, type GlobalStudyConfig, type GlobalTerm } from "../global-scheduler"
-import { anchorsOf, expandWindowTerm, parseWindowCandidateId, venueHours, windowCandidateId, type VenueCalendar } from "../windows"
+import {
+  anchorsOf,
+  expandWindowTerm,
+  parseWindowCandidateId,
+  scheduleWithWindowFallback,
+  venueHours,
+  windowCandidateId,
+  type VenueCalendar,
+} from "../windows"
 
 const day = (date: string, open_from = "08:00", open_to = "20:00", occupancy: number | null = 40): VenueDay => ({
   venue: "tc_pef",
@@ -90,12 +98,15 @@ describe("expandWindowTerm", () => {
     ])
     const slots = expandWindowTerm(window({ windowEnd: "2027-01-12" }), { ...opts, calendars: {}, anchors })
     expect(slots.map((s) => `${s.date} ${s.startTime}`)).toEqual([
-      "2027-01-04 08:00", // first open day
-      "2027-01-06 08:00",
-      "2027-01-07 19:00",
-      "2027-01-08 08:00",
+      "2027-01-04 08:00", // first open day: both slots
+      "2027-01-04 19:00",
+      "2027-01-06 08:00", // both clear of the 15:00 exam
+      "2027-01-06 19:00",
+      "2027-01-07 19:00", // only the evening is clear
+      "2027-01-08 08:00", // neither is clear: both
       "2027-01-08 19:00",
       "2027-01-12 08:00", // last open day
+      "2027-01-12 19:00",
     ])
   })
 
@@ -178,6 +189,41 @@ describe("windows in the global scheduler", () => {
     req("uhk", "obda", [t("obda1", "2027-01-13", "09:00"), t("obda2", "2027-01-20", "09:00")]),
     req("uhk", "kos", [t("kos1", "2027-01-14", "09:00"), t("kos2", "2027-01-21", "09:00")]),
   ]
+
+  it("keeps the later clear slot when a split exam's order needs it", () => {
+    // Written part at 10:00, the TC part (oral here) must follow it the same day.
+    const written = t("w", "2027-01-11", "10:00", ["w"])
+    const slots = expandWindowTerm(window({ termId: "tc", date: "2027-01-11", windowEnd: "2027-01-11", partIds: ["o"], durationMinutes: 60 }), {
+      today: "2026-11-01",
+      periodStart: "2027-01-04",
+      calendars: {},
+      anchors: anchorsOf([written]),
+    })
+    const { forced } = generateGlobalSchedule([req("czu", "x", [written, ...slots], split())], [czu], 60, 60)
+    expect(forced.unschedulable).toEqual([])
+    expect(forced.selectedTermIds).toContain("tc@2027-01-11T19:00")
+  })
+
+  it("falls back to every open day when windows alone can't be placed", () => {
+    // Three one-hour windows on the same five days and no other exams to anchor them.
+    const ids = ["a", "b", "c"]
+    const build = (full: Set<string>) =>
+      ids.map((id) =>
+        req(
+          "czu",
+          id,
+          expandWindowTerm(window({ termId: id, date: "2027-01-04", windowEnd: "2027-01-08", durationMinutes: 60, venue: null, startTime: "09:00" }), {
+            today: "2026-11-01",
+            periodStart: "2027-01-04",
+            calendars: {},
+            anchors: full.has(`czu:${id}`) ? undefined : anchorsOf([]),
+          })
+        )
+      )
+    const { comparison } = scheduleWithWindowFallback(build, (r) => generateGlobalSchedule(r, [czu], 60, 60), new Set(ids.map((id) => `czu:${id}`)))
+    expect(comparison.forced.unschedulable).toEqual([])
+    expect(comparison.forced.selectedTermIds).toHaveLength(3)
+  })
 
   it("schedules a realistic season with three TC windows completely, quickly and without truncation", () => {
     const started = performance.now()
