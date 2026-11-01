@@ -185,6 +185,7 @@ describe("windows in the global scheduler", () => {
       onlyAnchorDays: true,
       study: czu,
       partGapMinutes: 60,
+      otherWindows: 2,
     })
   const orals = (prefix: string) => czuTerms.filter((x) => x.termId.startsWith(`${prefix}-o`))
 
@@ -313,6 +314,32 @@ describe("windows in the global scheduler", () => {
     const ids = comparison.forced.selectedTermIds
     expect(ids).toEqual(expect.arrayContaining(["a1", "b1"]))
     expect(ids.find((id) => id.startsWith("tc@"))).toMatch(/^tc@2027-01-0[567]T09:00$/)
+  })
+
+  it("packs several windows into a short day", () => {
+    // TC open 08:00–11:00 only; three one-hour tests of one study, 4 h journey.
+    const far = { ...czu, travelDurationHours: 4 }
+    const cal = calendar([day("2027-01-04", "08:00", "11:00")], "2027-01-04")
+    const build = (full: Set<string>) =>
+      ["a", "b", "c"].map((id) =>
+        req(
+          "czu",
+          id,
+          expandWindowTerm(window({ termId: id, date: "2027-01-04", windowEnd: "2027-01-04", partIds: undefined, durationMinutes: 60 }), {
+            today: "2026-11-01",
+            periodStart: "2027-01-04",
+            calendars: { tc_pef: cal },
+            study: far,
+            anchors: anchorsOf([]),
+            onlyAnchorDays: !full.has(`czu:${id}`),
+            otherWindows: 2,
+          })
+        )
+      )
+    const ids = new Set(["czu:a", "czu:b", "czu:c"])
+    const { comparison } = scheduleWithWindowFallback(build, (r) => generateGlobalSchedule(r, [far], 60, 60), ids)
+    expect(comparison.forced.unschedulable).toEqual([])
+    expect(comparison.forced.selectedTermIds.map((id) => parseWindowCandidateId(id)!.startTime).sort()).toEqual(["08:00", "09:00", "10:00"])
   })
 
   it("falls back to every open day when windows alone can't be placed", () => {

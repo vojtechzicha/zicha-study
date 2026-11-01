@@ -264,6 +264,11 @@ export function GlobalExamScheduler() {
       )
     }
     const studyById = new Map(studies.map((s) => [s.id, s]))
+    const windowsByStudy = new Map<string, number>()
+    for (const t of terms) {
+      const study = studyOf(t)
+      if (t.window_end && study && !booked.has(t.id)) windowsByStudy.set(study, (windowsByStudy.get(study) || 0) + 1)
+    }
     const toGlobal = (t: TermData) => ({
       termId: t.id,
       date: t.date,
@@ -305,6 +310,7 @@ export function GlobalExamScheduler() {
               calendars: venueCalendars,
               study: study ? buildStudyConfig(study) : undefined,
               partGapMinutes,
+              otherWindows: Math.max(0, (windowsByStudy.get(period.study_id) || 0) - 1),
               anchors: anchorsByStudy.get(period.study_id),
               onlyAnchorDays: !fullWindows.has(key),
             }

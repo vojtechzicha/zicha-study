@@ -38,8 +38,9 @@ The solver works with concrete slots, so the scheduler page expands each window:
   (studies are solved separately unless their optima collide) a full winter season takes well
   under a second.
 - **Fallback**: if anything is left out of the plan (a window, or an ordinary exam a window pushed
-  out, even of another study), every window is expanded to all its open days and the plan is
-  recomputed (`scheduleWithWindowFallback`).
+  out, even of another study), every window is expanded to all its open days, with back-to-back
+  starts for a study's several windows (so they can share a short day), and the plan is recomputed
+  (`scheduleWithWindowFallback`).
 
 Slot ids are `<window id>@<date>T<HH:MM>`. In the plan, a picked slot shows "Rezervovat místo v TC
 PEF (obsazeno n %)" and its lock button reads **Mám rezervaci**: pressing it creates the booked

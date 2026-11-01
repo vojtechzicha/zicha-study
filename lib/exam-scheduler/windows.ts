@@ -38,6 +38,10 @@ export interface ExpandOptions {
   // The minimum gap between two parts of a split exam (exam_part_gap_minutes): gap slots are also
   // offered this far from the study's other exams, besides right at their start and end.
   partGapMinutes?: number
+  // How many other window terms the study has: in the full expansion (not onlyAnchorDays, i.e. the
+  // fallback when something didn't fit) a day then also offers back-to-back starts from the opening
+  // time and back from the last start, so several tests can share a short day.
+  otherWindows?: number
   // The study's other candidate terms by day ([start, end] in minutes). Slots are then also
   // offered right before and right after them (the gaps between exams). With `onlyAnchorDays`,
   // only these days are offered, in the slots clear of them, plus the window's first and last open
@@ -189,6 +193,13 @@ function expandAllDays(term: WindowTermInput, opts: ExpandOptions): GlobalTerm[]
         parseTimeToMinutes(earliestSameDayArrival),
         parseTimeToMinutes(latestSameDayDeparture) - term.durationMinutes,
       ]) {
+        if (start >= early && start <= lastStart) starts.add(start)
+      }
+    }
+    // Back to back with the study's other windows, from either end of the day.
+    const packing = opts.onlyAnchorDays ? 0 : Math.min(opts.otherWindows ?? 0, 10)
+    for (let k = 1; k <= packing; k++) {
+      for (const start of [early + k * term.durationMinutes, lastStart - k * term.durationMinutes]) {
         if (start >= early && start <= lastStart) starts.add(start)
       }
     }
