@@ -40,6 +40,7 @@ import {
 } from "./cost-calculator";
 import { buildScheduleItems } from "./scheduler";
 import { compareDate, parseTimeToMinutes } from "./utils";
+import { czDayWord } from "@/lib/utils/task-format";
 import {
   EXAM_SCHEDULER_DEFAULTS,
   getExamTermPartLabel,
@@ -267,10 +268,16 @@ function buildPartOptions(
   // Two terms of one set keep the gap; with a binding order the one with the
   // lower part comes first. Checked while extending, so invalid branches are
   // cut early.
+  // A per-subject day gap (e.g. the oral at least a day after the written part) comes on top.
+  const minDays = Math.max(0, Math.floor(parts.min_gap_days ?? 0));
+  const daysApart = (earlier: Covering, later: Covering) =>
+    Math.round((Date.parse(`${later.term.date}T00:00:00Z`) - Date.parse(`${earlier.term.date}T00:00:00Z`)) / 86_400_000);
+  const follows = (earlier: Covering, later: Covering) =>
+    later.start >= earlier.end + gapMinutes && daysApart(earlier, later) >= minDays;
   const fits = (a: Covering, b: Covering): boolean => {
     const [first, second] = a.lowest < b.lowest ? [a, b] : [b, a];
-    if (second.start >= first.end + gapMinutes) return true;
-    return !parts.ordered && first.start >= second.end + gapMinutes;
+    if (follows(first, second)) return true;
+    return !parts.ordered && follows(second, first);
   };
 
   const options: GlobalTerm[][] = [];
@@ -323,9 +330,9 @@ function noOptionReason(req: GlobalRequirement, terms: GlobalTerm[], locksAreThe
   const missing = req.parts.parts.find((p) => !terms.some((t) => termPartIds(req, t).includes(p.id)));
   if (missing) return `chybí termín části „${missing.label}“`;
   if (locksAreTheCause) return "zamčené termíny nejdou doplnit o zbývající části";
-  return req.parts.ordered
-    ? "části nejdou naplánovat v pořadí s pauzou mezi nimi"
-    : "části nejdou naplánovat s pauzou mezi nimi";
+  const days = req.parts.min_gap_days ?? 0;
+  const pause = days >= 1 ? `s odstupem aspoň ${days} ${czDayWord(days)}` : "s pauzou mezi nimi";
+  return req.parts.ordered ? `části nejdou naplánovat v pořadí ${pause}` : `části nejdou naplánovat ${pause}`;
 }
 
 function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExam {

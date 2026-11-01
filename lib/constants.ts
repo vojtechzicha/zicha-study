@@ -337,6 +337,9 @@ export interface ExamPartsConfig {
   // Binding order: the chosen terms, sorted by time, must start with
   // increasing parts (a term starts with its lowest part).
   ordered: boolean
+  // Calendar days between two consecutive parts: 0 or missing = the same day is fine (only the
+  // global gap in minutes applies), 1 = the next part on the next day at the earliest, and so on.
+  min_gap_days?: number
 }
 
 // Parts offered when a subject is first split.

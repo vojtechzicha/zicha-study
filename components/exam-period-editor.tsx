@@ -21,6 +21,7 @@ import {
 } from "@/lib/constants"
 import { SyncedTermInfo, isSyncedTerm, type SyncedTerm } from "@/components/synced-term-info"
 import { sortSubjects, getUniqueSemestersSorted } from "@/lib/utils/subject-utils"
+import { czDayWord } from "@/lib/utils/task-format"
 import { useToast } from "@/hooks/use-toast"
 import {
   createExamPeriodAction,
@@ -234,6 +235,17 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
         parts: null,
         terms: grp.terms.map((t, i) => ({ ...t, part_ids: [], locked: i === firstLocked })),
       }
+    })
+  }
+
+  const setMinGapDays = (subjectId: string, value: string) => {
+    const days = Math.max(0, Math.min(60, Math.floor(Number(value) || 0)))
+    updateGroup(subjectId, (grp) => {
+      if (!grp.parts) return grp
+      const parts = { ...grp.parts }
+      if (days > 0) parts.min_gap_days = days
+      else delete parts.min_gap_days
+      return { ...grp, parts }
     })
   }
 
@@ -546,6 +558,23 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               <Label htmlFor={`ordered-${grp.subjectId}`} className="text-sm cursor-pointer">
                                 Závazné pořadí
                               </Label>
+                            </div>
+                          )}
+                          {grp.parts && (
+                            <div className="flex items-center gap-2 h-9 px-2 border rounded-md bg-card">
+                              <Label htmlFor={`gap-days-${grp.subjectId}`} className="text-sm">
+                                Odstup částí
+                              </Label>
+                              <Input
+                                id={`gap-days-${grp.subjectId}`}
+                                type="number"
+                                min={0}
+                                max={60}
+                                value={grp.parts.min_gap_days ?? 0}
+                                onChange={(e) => setMinGapDays(grp.subjectId, e.target.value)}
+                                className="h-7 w-16"
+                              />
+                              <span className="text-sm text-muted-foreground">{czDayWord(grp.parts.min_gap_days ?? 0)}</span>
                             </div>
                           )}
                         </div>
