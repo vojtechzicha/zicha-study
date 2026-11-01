@@ -84,12 +84,17 @@ Synced terms carry `source`, `external_id` and `external` (the system's details 
      the system's time and `is_tentative: false`, and keeps its lock, note and duration.
    - Otherwise a term is created, locked if the student is already registered.
 3. **Registration**: when the student signs up, an unlocked term is locked
-   (`external.auto_locked`). Signing off releases only that automatic lock.
+   (`external.auto_locked`). Signing off releases only that automatic lock. As soon as the user
+   changes the lock by hand (toggle, editor, MCP), it is the user's and stays
+   (`lib/exam-import/lock.ts`).
 4. **Removal** (only with `complete: true`): an upcoming synced term of a current period that is
    missing from the snapshot is deleted if unlocked, or flagged if locked. Past terms are never
    touched (the system stops listing them). An empty snapshot removes nothing and returns a warning.
 5. **Deleted by the user**: deleting a synced term (UI or MCP) records it in
    `exam_term_dismissals`, and later imports skip it (`dismissed`).
+
+A unique index on `(study_id, source, external_id)` (synced terms only) keeps overlapping imports
+from creating a term twice; the loser skips the term with a warning.
 
 Every write is logged in `mcp_audit` with `tool: "exam_import"` and `client_name: "UIS sync"`, so
 `list_recent_changes` shows synced changes next to the connector's.

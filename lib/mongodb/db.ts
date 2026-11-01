@@ -4,6 +4,7 @@ import crypto from "crypto"
 import { PRACTICE_PAGE_MAX_VERSIONS, RESERVED_STUDY_CHILD_SLUGS } from "@/lib/constants"
 import type { Sanitized, SanitizedModuleContent } from "@/lib/practice/content"
 import type { PracticePageContent } from "@/lib/practice/schema"
+import { userLockOwnershipPatch } from "@/lib/exam-import/lock"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -822,9 +823,14 @@ export async function createExamTerm(data: Record<string, any>) {
   return doc
 }
 
-export async function updateExamTerm(id: string, data: Record<string, any>) {
+/**
+ * Updates a term. `by: "import"` is the exam term import; any other caller is the user, whose
+ * change of `locked` takes the lock over from the importer (lib/exam-import/lock.ts).
+ */
+export async function updateExamTerm(id: string, data: Record<string, any>, options: { by?: "user" | "import" } = {}) {
   const c = await col("exam_terms")
-  await c.updateOne({ _id: id as any }, { $set: { ...data, updated_at: new Date().toISOString() } })
+  const ownership = options.by === "import" ? {} : userLockOwnershipPatch(await c.findOne({ _id: id as any }), data)
+  await c.updateOne({ _id: id as any }, { $set: { ...data, ...ownership, updated_at: new Date().toISOString() } })
 }
 
 /**
@@ -863,7 +869,28 @@ export async function deleteExamTermsByPeriodAndSubject(periodId: string, subjec
 
 export async function setExamTermLocked(id: string, locked: boolean) {
   const c = await col("exam_terms")
-  await c.updateOne({ _id: id as any }, { $set: { locked, updated_at: new Date().toISOString() } })
+  const ownership = userLockOwnershipPatch(await c.findOne({ _id: id as any }), { locked })
+  await c.updateOne({ _id: id as any }, { $set: { locked, ...ownership, updated_at: new Date().toISOString() } })
+}
+
+// One synced term per study, source and external id, so overlapping imports can't duplicate a term.
+let examTermIndexesPromise: Promise<void> | null = null
+
+export function ensureExamTermImportIndexes() {
+  if (!examTermIndexesPromise) {
+    examTermIndexesPromise = getDb()
+      .then(async (db) => {
+        await db.collection("exam_terms").createIndex(
+          { study_id: 1, source: 1, external_id: 1 },
+          { unique: true, name: "exam_terms_external_identity", partialFilterExpression: { external_id: { $type: "string" } } }
+        )
+      })
+      .catch((err) => {
+        examTermIndexesPromise = null
+        throw err
+      })
+  }
+  return examTermIndexesPromise
 }
 
 /**

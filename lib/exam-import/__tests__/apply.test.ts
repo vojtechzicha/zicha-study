@@ -7,6 +7,8 @@ const store = vi.hoisted(() => ({
   settings: {} as Record<string, any>,
   dismissed: [] as string[],
   deleteOptions: [] as unknown[],
+  updateOptions: [] as unknown[],
+  failCreate: false,
   seq: 0,
 }))
 
@@ -17,12 +19,15 @@ vi.mock("@/lib/mongodb/db", () => ({
   getSubjectsByStudyId: async () => [{ _id: "sub-a", study_id: "st", abbreviation: "AAA1", name: "Předmět A" }],
   getExamTermsByPeriodIds: async () => [...store.terms.values()],
   getExamTermById: async (id: string) => store.terms.get(id) ?? null,
+  ensureExamTermImportIndexes: async () => {},
   createExamTerm: async (data: Record<string, any>) => {
+    if (store.failCreate) throw Object.assign(new Error("E11000 duplicate key"), { code: 11000 })
     const doc = { _id: `t-${++store.seq}`, ...data }
     store.terms.set(doc._id, doc)
     return doc
   },
-  updateExamTerm: async (id: string, patch: Record<string, any>) => {
+  updateExamTerm: async (id: string, patch: Record<string, any>, options?: unknown) => {
+    store.updateOptions.push(options)
     store.terms.set(id, { ...store.terms.get(id), ...patch })
   },
   deleteExamTerm: async (id: string, options?: unknown) => {
@@ -66,6 +71,8 @@ describe("runExamTermImport", () => {
     store.settings = {}
     store.dismissed = []
     store.deleteOptions = []
+    store.updateOptions = []
+    store.failCreate = false
     store.seq = 0
   })
 
@@ -96,6 +103,17 @@ describe("runExamTermImport", () => {
     await runExamTermImport(request([uisTerm({ start_time: "10:00" })]), { _id: "st" })
     expect(store.terms.get("t-1")!.start_time).toBe("10:00")
     expect(store.audit.map((a) => a.action)).toEqual(["create", "update"])
+    // The importer's own updates never take lock ownership away from it.
+    expect(store.updateOptions.every((o) => (o as any)?.by === "import")).toBe(true)
+  })
+
+  it("skips a term an overlapping import already created", async () => {
+    store.failCreate = true
+    const result = await runExamTermImport(request([uisTerm()]), { _id: "st" })
+    expect(result.counts.created).toBe(0)
+    expect(result.events).toHaveLength(0)
+    expect(result.warnings[0]).toMatch(/another import/)
+    expect(store.audit).toHaveLength(0)
   })
 
   it("deletes a cancelled term and logs it", async () => {

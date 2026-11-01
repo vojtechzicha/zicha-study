@@ -55,6 +55,7 @@ export async function runExamTermImport(body: ImportRequest, study: Record<strin
     incoming: body.terms,
   })
   if (body.dry_run) return summarize(plan, true)
+  await db.ensureExamTermImportIndexes()
 
   const auditBase = {
     tool: "exam_import",
@@ -63,13 +64,13 @@ export async function runExamTermImport(body: ImportRequest, study: Record<strin
     client_name: `${EXAM_TERM_SOURCE_LABELS[body.source]} sync`,
     email: null,
   }
-  for (const op of plan.ops) {
+  async function applyOp(op: (typeof plan.ops)[number]) {
     if (op.op === "create") {
       const doc = db.normalizeId(await db.createExamTerm(op.doc))!
       for (const e of plan.events) if (e.external_id === op.doc.external_id && e.term_id === null) e.term_id = doc.id
       await db.insertMcpAuditEntry({ ...auditBase, action: "create", document_id: doc.id, before: null, after: doc })
     } else if (op.op === "update") {
-      await db.updateExamTerm(op.id, op.patch)
+      await db.updateExamTerm(op.id, op.patch, { by: "import" })
       if (op.audit) {
         const after = db.normalizeId(await db.getExamTermById(op.id))
         await db.insertMcpAuditEntry({ ...auditBase, action: "update", document_id: op.id, before: db.normalizeId(op.before), after })
@@ -77,6 +78,19 @@ export async function runExamTermImport(body: ImportRequest, study: Record<strin
     } else {
       await db.deleteExamTerm(op.id, { dismiss: false })
       await db.insertMcpAuditEntry({ ...auditBase, action: "delete", document_id: op.id, before: db.normalizeId(op.before), after: null })
+    }
+  }
+
+  for (const op of plan.ops) {
+    try {
+      await applyOp(op)
+    } catch (err: any) {
+      // The unique index on (study, source, external id): an overlapping import got there first.
+      if (err?.code !== 11000) throw err
+      const externalId = op.op === "create" ? op.doc.external_id : op.op === "update" ? (op.patch.external_id ?? op.before.external_id) : op.before.external_id
+      plan.warnings.push(`Term ${externalId} was written by another import at the same time; skipped.`)
+      plan.ops = plan.ops.filter((o) => o !== op)
+      plan.events = plan.events.filter((e) => e.external_id !== externalId)
     }
   }
 
