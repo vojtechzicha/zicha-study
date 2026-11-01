@@ -692,6 +692,46 @@ describe("generateGlobalSchedule – exams split into parts", () => {
   });
 });
 
+describe("generateGlobalSchedule – day gap between parts", () => {
+  // TC test first, the oral at least a day later (MKR at ČZU); Finance: oral after the test, same day ok.
+  const configs = [cfg("A", { travelCostOneWay: 200, travelDurationHours: 2 })];
+  const parts = (minGapDays?: number) => ({
+    parts: [{ id: "w", label: "Písemná" }, { id: "o", label: "Ústní" }],
+    ordered: true,
+    ...(minGapDays !== undefined ? { min_gap_days: minGapDays } : {}),
+  });
+  const terms = [
+    term("w10", "2025-03-10", "09:00", { parts: ["w"] }),
+    term("o10", "2025-03-10", "13:00", { parts: ["o"] }), // same day: the cheapest
+    term("o11", "2025-03-11", "09:00", { parts: ["o"] }),
+    term("o09", "2025-03-09", "09:00", { parts: ["o"] }), // before the written part
+  ];
+
+  it("allows the same day without a day gap", () => {
+    const { forced } = generateGlobalSchedule([{ ...req("A", "fin", terms), parts: parts() }], configs, 0);
+    expect(forced.selectedTermIds.sort()).toEqual(["o10", "w10"]);
+  });
+
+  it("puts the next part at least a day later with min_gap_days 1", () => {
+    const { forced } = generateGlobalSchedule([{ ...req("A", "mkr", terms), parts: parts(1) }], configs, 0);
+    expect(forced.selectedTermIds.sort()).toEqual(["o11", "w10"]);
+  });
+
+  it("reports the day gap when no pair fits", () => {
+    const tight = terms.filter((t) => t.termId !== "o11");
+    const { forced } = generateGlobalSchedule([{ ...req("A", "mkr", tight), parts: parts(2) }], configs, 0);
+    expect(forced.selectedTermIds).toEqual([]);
+    expect(forced.unschedulable[0].reason).toBe("části nejdou naplánovat v pořadí s odstupem aspoň 2 dny");
+  });
+
+  it("applies the day gap both ways for an unordered exam", () => {
+    const unordered = { ...parts(1), ordered: false };
+    const ts = [term("w10", "2025-03-10", "09:00", { parts: ["w"] }), term("o09", "2025-03-09", "09:00", { parts: ["o"] })];
+    const { forced } = generateGlobalSchedule([{ ...req("A", "x", ts), parts: unordered }], configs, 0);
+    expect(forced.selectedTermIds.sort()).toEqual(["o09", "w10"]);
+  });
+});
+
 describe("generateGlobalSchedule – předtermín", () => {
   const configs = [cfg("A")];
   const window = { start: "2025-02-01", end: "2025-02-28" };

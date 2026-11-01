@@ -15,6 +15,13 @@ const examPartsConfig = z
       .max(10)
       .describe("Parts in exam order, e.g. Písemná, Ústní. Part ids are stable."),
     ordered: z.boolean().describe("Parts must be taken in this order."),
+    min_gap_days: z
+      .number()
+      .int()
+      .min(0)
+      .max(60)
+      .optional()
+      .describe("Calendar days between two consecutive parts; 1 = the next part on the next day at the earliest. Default 0."),
   })
   .strict()
 
