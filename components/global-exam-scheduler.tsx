@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -71,7 +71,8 @@ import { cn } from "@/lib/utils"
 import { PlanCalendar, type PeriodWindow } from "@/components/exam-scheduler/plan-calendar"
 import { LockQueue, type MissingTerms } from "@/components/exam-scheduler/lock-queue"
 import { SchedulerSettingsSheet } from "@/components/exam-scheduler/scheduler-settings-sheet"
-import { STUDY_TONES, formatCzk, pragueNow, type PlanStudy, type PlanTerm } from "@/components/exam-scheduler/plan-model"
+import { STUDY_TONES, formatCzk, pickStudyTones, pragueNow, type PlanStudy, type PlanTerm } from "@/components/exam-scheduler/plan-model"
+import { extractDominantColor } from "@/lib/color-extraction"
 
 interface StudyData {
   id: string
@@ -228,12 +229,28 @@ export function GlobalExamScheduler() {
   const subjectMap = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects])
   const periodMap = useMemo(() => new Map(periods.map((p) => [p.id, p])), [periods])
 
+  // Each study's colour comes from its logo (ČZU red, UHK blue): the dominant colour, extracted in
+  // the browser like on the study pages; the default tones are used until then or without a logo.
+  const [logoColors, setLogoColors] = useState<Map<string, [number, number, number]>>(new Map())
+  const requestedLogos = useRef(new Set<string>())
+  useEffect(() => {
+    for (const s of studies) {
+      const key = `${s.id}:${s.logo_url}`
+      if (!s.logo_url || requestedLogos.current.has(key)) continue
+      requestedLogos.current.add(key)
+      extractDominantColor(s.logo_url)
+        .then((c) => setLogoColors((m) => new Map(m).set(s.id, c.hsl)))
+        .catch(() => {})
+    }
+  }, [studies])
+
   const planStudies = useMemo(() => {
     const sorted = [...studies].sort((a, b) => a.name.localeCompare(b.name, "cs"))
+    const tones = pickStudyTones(sorted.map((s) => ({ id: s.id, hsl: logoColors.get(s.id) })))
     return new Map<string, PlanStudy>(
-      sorted.map((s, i) => [s.id, { id: s.id, name: s.name, logo_url: s.logo_url, tone: STUDY_TONES[i % STUDY_TONES.length] }])
+      sorted.map((s) => [s.id, { id: s.id, name: s.name, logo_url: s.logo_url, tone: tones.get(s.id) ?? STUDY_TONES[0] }])
     )
-  }, [studies])
+  }, [studies, logoColors])
 
   // One requirement per (period, subject) with at least one term. Completed
   // subjects no longer need a term, so they are left out of the plan.
