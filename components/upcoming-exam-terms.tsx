@@ -4,7 +4,8 @@ import React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CalendarDays, Clock, Monitor, Lock } from "lucide-react"
-import { PRE_TERM_LABEL, TENTATIVE_TERM_LABEL } from "@/lib/constants"
+import { PRE_TERM_LABEL, TENTATIVE_TERM_LABEL, type ExamTermExternal } from "@/lib/constants"
+import { SyncedTermInfo } from "@/components/synced-term-info"
 import { StudyLogo } from "@/components/study-logo"
 
 export interface UpcomingExamTerm {
@@ -18,6 +19,8 @@ export interface UpcomingExamTerm {
     part_label?: string | null // set for a term covering only some parts of the exam
     is_pre_term?: boolean
     is_tentative?: boolean
+    source?: string | null
+    external?: ExamTermExternal | null
   }
   study: { id: string; name: string; logo_url: string | null } | null
   subject: { id: string; name: string; abbreviation: string | null } | null
@@ -94,6 +97,11 @@ export function UpcomingExamTerms({ terms, onTermClick }: UpcomingExamTermsProps
                   </span>
                   {period && <span className="text-muted-foreground/70">• {period.name}</span>}
                 </div>
+                {term.external && (
+                  <div className="mt-1">
+                    <SyncedTermInfo term={term} compact />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

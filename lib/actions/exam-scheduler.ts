@@ -63,10 +63,15 @@ export async function fetchStudyExamPeriods(studyId: string) {
   await db.migrateExamOptionsToPeriods()
   const periods = await db.getExamPeriodsByStudyId(studyId)
   const periodIds = periods.map((p: any) => String(p._id))
-  const terms = await db.getExamTermsByPeriodIds(periodIds)
+  const [terms, settings] = await Promise.all([db.getExamTermsByPeriodIds(periodIds), db.getAppSettings()])
+  const lastImport = settings?.exam_import_runs?.[studyId] ?? null
   return {
     periods: db.normalizeIds(periods as any[]),
     terms: db.normalizeIds(terms as any[]),
+    // Last sync from the university system (docs/EXAM_IMPORT.md), if the study has one.
+    lastImport: lastImport
+      ? { source: String(lastImport.source), at: String(lastImport.at), warnings: (lastImport.warnings as string[]) || [] }
+      : null,
   }
 }
 
