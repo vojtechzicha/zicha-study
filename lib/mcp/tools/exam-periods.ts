@@ -1,6 +1,6 @@
 import { z } from "zod"
 import * as db from "@/lib/mongodb/db"
-import { EXAM_SCHEDULER_DEFAULTS, MIN_EXAM_PARTS, type ExamPartsConfig } from "@/lib/constants"
+import { EXAM_SCHEDULER_DEFAULTS, EXAM_VENUES, MIN_EXAM_PARTS, type ExamPartsConfig } from "@/lib/constants"
 import { clockTime, dryRun, emptyToNull, isoDate, optionalText, recordId, requireFields, text } from "@/lib/mcp/schemas"
 import { ToolError, commitCreate, commitDelete, commitUpdate, defineTool, requireDoc } from "@/lib/mcp/tool-kit"
 
@@ -50,6 +50,16 @@ const termFields = z
     part_ids: z.array(text(50)).max(10).describe("Parts of a split exam this term covers; empty = all."),
     is_pre_term: z.boolean().describe("Předtermín: may fall before the period starts."),
     is_tentative: z.boolean().describe("Date or time not confirmed yet."),
+    window_end: isoDate
+      .nullable()
+      .describe(
+        "Makes this a window term: any day from date to window_end (inclusive); null = an ordinary term. The scheduler picks the day; booking it creates a locked term with window_id."
+      ),
+    venue: z
+      .enum([EXAM_VENUES.TC_PEF])
+      .nullable()
+      .describe("Venue of a window term whose opening days limit it (tc_pef = Testovací centrum PEF); null = every day at start_time."),
+    window_id: recordId.nullable().describe("The window term this term was booked from (set when recording a booking)."),
   })
   .partial()
   .strict()
@@ -96,6 +106,17 @@ async function prepareTermPatch(period: Record<string, any>, before: Record<stri
     }
   }
 
+  if (merged.window_end) {
+    if (merged.date && merged.window_end < merged.date) throw new ToolError("window_end cannot be before date.")
+    if (merged.locked) throw new ToolError("A window term can't be locked; record the booked slot as a term with window_id.")
+  } else if (patch.venue) {
+    throw new ToolError("venue only applies to window terms (set window_end).")
+  }
+  if (patch.window_id) {
+    const window = await db.getExamTermById(patch.window_id)
+    if (!window?.window_end || window.period_id !== period._id) throw new ToolError("window_id must be a window term of the same period.")
+  }
+
   const config: ExamPartsConfig | undefined = period.exam_parts?.[merged.subject_id]
   const partIds: string[] = merged.part_ids || []
   if (partIds.length > 0) {
@@ -108,6 +129,19 @@ async function prepareTermPatch(period: Record<string, any>, before: Record<stri
 }
 
 export const examPeriodTools = [
+  defineTool({
+    name: "list_venue_days",
+    title: "List venue days",
+    description:
+      "Opening days of exam venues with their own calendar (tc_pef = Testovací centrum PEF): date, hours, % booked, and the last published date. Window terms at a venue are offered only on these days.",
+    access: "read",
+    input: { from_date: isoDate.optional().describe("Default: today.") },
+    handler: async ({ from_date }) => {
+      const from = from_date ?? new Date().toISOString().slice(0, 10)
+      return db.getVenueCalendars(from)
+    },
+  }),
+
   defineTool({
     name: "list_exam_periods",
     title: "List exam periods",

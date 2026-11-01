@@ -278,10 +278,23 @@ export function calculateScheduleScore(
   exams: ExamWithSubject[],
   config: SchedulerConfig
 ): number {
-  return (
-    calculateCost(exams, config).totalCost +
-    calculatePtoPenalty(exams, config).penalty
-  );
+  // Hot path of the scheduler's search: build the days once for both parts. Same result as
+  // calculateCost(...).totalCost + calculatePtoPenalty(...).penalty.
+  if (exams.length === 0) return 0;
+  const days = buildScheduleDays(exams, config);
+  const offlineDays = days.filter((d) => d.hasOfflineExam);
+  if (offlineDays.length === 0) return 0;
+
+  const segments = buildTripSegments(offlineDays, config);
+  const nights = new Set<string>();
+  for (const segment of segments) for (const night of segment.accommodationNights) nights.add(night);
+  let score = segments.length * 2 * config.travelCostOneWay + nights.size * config.accommodationCostPerNight;
+
+  if (config.preferFreeDayExams && config.ptoDayCost) {
+    const workingDays = config.workingDays && config.workingDays.length > 0 ? config.workingDays : DEFAULT_WORKING_DAYS;
+    for (const day of offlineDays) if (isWorkingDay(day.date, workingDays)) score += config.ptoDayCost;
+  }
+  return score;
 }
 
 /**

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { StudyLogo } from "@/components/study-logo"
 import { SyncedTermInfo } from "@/components/synced-term-info"
+import { VenueBookingLine, lockLabel } from "@/components/exam-scheduler/venue-booking"
 import { cn } from "@/lib/utils"
 import { PRE_TERM_LABEL, TENTATIVE_TERM_LABEL } from "@/lib/constants"
 import { czPlural } from "@/lib/utils/task-format"
@@ -500,7 +501,7 @@ function DayDetail({ day, planned, others, travel, studies, termsByRequirement, 
               ) : (
                 <>
                   <span className="text-xs text-amber-700 dark:text-amber-300">V plánu, ale nezamčeno</span>
-                  <LockButton term={t} busy={busyIds.has(t.id)} onLock={onLock} className="ml-auto" />
+                  <LockButton term={t} busy={busyIds.has(t.id)} onLock={onLock} className="ml-auto" label={lockLabel(t)} />
                 </>
               )}
             </div>
@@ -563,7 +564,7 @@ function DayDetail({ day, planned, others, travel, studies, termsByRequirement, 
               {t.locked ? (
                 <UnlockButton term={t} busy={busyIds.has(t.id)} onUnlock={onUnlock} className="ml-auto" />
               ) : (
-                <LockButton term={t} busy={busyIds.has(t.id)} onLock={onLock} className="ml-auto" label="Zamknout tento" />
+                <LockButton term={t} busy={busyIds.has(t.id)} onLock={onLock} className="ml-auto" label={lockLabel(t, "Zamknout tento")} />
               )}
             </div>
           </TermDetail>
@@ -623,6 +624,11 @@ function TermDetail({ term, study, muted = false, children }: { term: PlanTerm; 
           {term.external && (
             <div className="mt-1.5">
               <SyncedTermInfo term={term} />
+            </div>
+          )}
+          {term.windowId && (
+            <div className="mt-1.5">
+              <VenueBookingLine term={term} />
             </div>
           )}
           {term.note && <p className="mt-1.5 text-xs text-muted-foreground">{term.note}</p>}

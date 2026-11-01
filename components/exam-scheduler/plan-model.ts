@@ -1,4 +1,4 @@
-import type { ExamTermExternal } from "@/lib/constants"
+import type { ExamTermExternal, ExamVenue } from "@/lib/constants"
 
 // What the scheduler page shows about one candidate term, in or out of the plan.
 export interface PlanTerm {
@@ -23,6 +23,10 @@ export interface PlanTerm {
   external?: ExamTermExternal | null
   inPlan: boolean
   requiresPto: boolean
+  // A slot offered by a window term (lib/exam-scheduler/windows.ts): not a stored term yet.
+  windowId?: string | null
+  venue?: ExamVenue | null
+  venueOccupancy?: number | null
 }
 
 export interface PlanStudy {

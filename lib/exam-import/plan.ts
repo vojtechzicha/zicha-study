@@ -332,6 +332,7 @@ export function planImport(input: PlanInput): ImportPlan {
       .filter(
         (t) =>
           !t.external_id &&
+          !t.window_end && // a window (e.g. Testovací centrum) stays a window
           String(t.period_id) === periodId &&
           String(t.subject_id) === subjectId &&
           t.date === term.date &&

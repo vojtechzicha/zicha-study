@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { czPlural } from "@/lib/utils/task-format"
 import { registrationState } from "@/lib/exam-scheduler/calendar"
+import { VenueBookingLine, lockLabel } from "@/components/exam-scheduler/venue-booking"
 import type { UnschedulableRequirement } from "@/lib/exam-scheduler"
 import { LockButton } from "./plan-calendar"
 import { formatDayShort, type PlanStudy, type PlanTerm } from "./plan-model"
@@ -118,13 +119,14 @@ export function LockQueue({
                         {t.partLabel ? ` – ${t.partLabel}` : ""}
                       </p>
                       <RegistrationLine term={t} now={now} />
+                      <VenueBookingLine term={t} />
                       {alt > 0 && (
                         <p className="text-xs text-muted-foreground">
                           {alt} {czPlural(alt, "jiný termín", "jiné termíny", "jiných termínů")}
                         </p>
                       )}
                     </div>
-                    <LockButton term={t} busy={busyIds.has(t.id)} onLock={onLock} className="shrink-0" />
+                    <LockButton term={t} busy={busyIds.has(t.id)} onLock={onLock} className="shrink-0" label={lockLabel(t)} />
                   </div>
                 </li>
               )

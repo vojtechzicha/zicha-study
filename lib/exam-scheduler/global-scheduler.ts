@@ -362,22 +362,6 @@ function makeSelectedExam(req: GlobalRequirement, term: GlobalTerm): SelectedExa
   return exam;
 }
 
-/**
- * Score the selection by summing each study's standard schedule score.
- * Per-study score depends only on that study's own exams.
- */
-function scoreByStudy(
-  selectedByStudy: Map<string, SelectedExam[]>,
-  configByStudy: Map<string, GlobalStudyConfig>
-): number {
-  let total = 0;
-  for (const [studyId, exams] of selectedByStudy) {
-    const config = configByStudy.get(studyId) || DEFAULT_CONFIG;
-    total += calculateScheduleScore(exams, config);
-  }
-  return total;
-}
-
 // ─── Core solver ─────────────────────────────────────────────────────────────
 
 function solve(
@@ -402,8 +386,21 @@ function solve(
   const flatSelected: SelectedExam[] = [];
   const skipped: string[] = [];
 
-  const currentScore = () =>
-    scoreByStudy(selectedByStudy, configByStudy) + skipped.length * SKIP_PENALTY;
+  // Score of each study's current selection, kept up to date as the search goes, so a step only
+  // rescores the study it changes. The total is their sum plus the skip penalties.
+  const studyScore = new Map<string, number>();
+  const scoreOfStudy = (studyId: string) =>
+    calculateScheduleScore(selectedByStudy.get(studyId) || [], configByStudy.get(studyId) || DEFAULT_CONFIG);
+  const otherStudiesScore = (studyId: string) => {
+    let total = 0;
+    for (const [id, score] of studyScore) if (id !== studyId) total += score;
+    return total;
+  };
+  const currentScore = () => {
+    let total = skipped.length * SKIP_PENALTY;
+    for (const score of studyScore.values()) total += score;
+    return total;
+  };
 
   function backtrack(index: number): void {
     if (truncated) return;
@@ -437,12 +434,17 @@ function solve(
 
     const studyExams = selectedByStudy.get(req.studyId) || [];
     selectedByStudy.set(req.studyId, studyExams);
+    const before = studyScore.get(req.studyId) ?? 0;
+    const others = otherStudiesScore(req.studyId) + skipped.length * SKIP_PENALTY;
 
-    for (const option of candidates) {
-      if (truncated) return;
-      // Conflict guard: NEVER place a term that collides with an already
-      // selected one (same-study overlap or cross-study insufficient gap).
-      // The parts of one option are checked against each other too.
+    // Cheapest options first, given what is already selected: a good plan is found early, so the
+    // score bound below cuts most branches. This only changes the search order; ties keep the
+    // order above. Options that collide with the selection are dropped here.
+    // Conflict guard: NEVER place a term that collides with an already selected one (same-study
+    // overlap or cross-study insufficient gap). The parts of one option are checked against each
+    // other too.
+    const ranked: { option: SelectedExam[]; score: number; order: number }[] = [];
+    candidates.forEach((option, order) => {
       let added = 0;
       for (const exam of option) {
         if (!canAddGlobal(exam, flatSelected, configByStudy, breakMinutes)) break;
@@ -450,13 +452,25 @@ function solve(
         flatSelected.push(exam);
         added++;
       }
-
-      if (added === option.length && currentScore() < bestScore) {
-        backtrack(index + 1);
-      }
-
-      // Undo
+      if (added === option.length) ranked.push({ option, score: others + scoreOfStudy(req.studyId), order });
       for (let i = 0; i < added; i++) {
+        studyExams.pop();
+        flatSelected.pop();
+      }
+    });
+    ranked.sort((a, b) => a.score - b.score || a.order - b.order);
+
+    for (const { option, score } of ranked) {
+      if (truncated) return;
+      if (score >= bestScore) break; // sorted: no later option can do better
+      for (const exam of option) {
+        studyExams.push(exam);
+        flatSelected.push(exam);
+      }
+      studyScore.set(req.studyId, score - others);
+      backtrack(index + 1);
+      studyScore.set(req.studyId, before);
+      for (let i = 0; i < option.length; i++) {
         studyExams.pop();
         flatSelected.pop();
       }
@@ -478,6 +492,39 @@ function solve(
     selection: bestSelection || [],
     skippedIds: bestSkipped || ordered.map((r) => r.requirementId),
     truncated,
+  };
+}
+
+/**
+ * Studies are coupled only by same-day timing (two in-person exams of different studies need the
+ * transit gap); their costs simply add up. So each study is solved on its own first: when the
+ * per-study optima don't collide, together they are the global optimum (no plan can cost less
+ * than the sum of the per-study minimums). Only when they collide is the joint search run. This
+ * keeps the search from multiplying every study's options by every other study's.
+ */
+function solveByStudy(
+  requirements: SolvableRequirement[],
+  configByStudy: Map<string, GlobalStudyConfig>,
+  breakMinutes: number
+): { selection: SelectedExam[]; skippedIds: string[]; truncated: boolean } {
+  const byStudy = new Map<string, SolvableRequirement[]>();
+  for (const req of requirements) byStudy.set(req.studyId, [...(byStudy.get(req.studyId) || []), req]);
+  if (byStudy.size <= 1) return solve(requirements, configByStudy, breakMinutes);
+
+  const parts = [...byStudy.values()].map((reqs) => solve(reqs, configByStudy, breakMinutes));
+  const selection: SelectedExam[] = [];
+  for (const part of parts) {
+    for (const exam of part.selection) {
+      if (!canAddGlobal(exam, selection, configByStudy, breakMinutes)) {
+        return solve(requirements, configByStudy, breakMinutes);
+      }
+      selection.push(exam);
+    }
+  }
+  return {
+    selection,
+    skippedIds: parts.flatMap((p) => p.skippedIds),
+    truncated: parts.some((p) => p.truncated),
   };
 }
 
@@ -627,7 +674,7 @@ function runMode(
     solvable.push({ ...req, terms, options });
   }
 
-  const { selection, skippedIds, truncated } = solve(solvable, configByStudy, breakMinutes);
+  const { selection, skippedIds, truncated } = solveByStudy(solvable, configByStudy, breakMinutes);
 
   // Requirements the solver could not place without a conflict.
   const reqById = new Map(solvable.map((r) => [r.requirementId, r]));

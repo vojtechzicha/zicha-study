@@ -861,6 +861,48 @@ export async function deleteExamTerm(id: string, options: { dismiss?: boolean; o
   return true
 }
 
+// ─── Venue days (opening days of exam venues, docs/EXAM_WINDOWS.md) ─────────
+
+export async function getVenueDays(venue: string, fromDate?: string) {
+  const c = await col("venue_days")
+  const filter: Record<string, any> = { venue }
+  if (fromDate) filter.date = { $gte: fromDate }
+  return c.find(filter).sort({ date: 1 }).project({ _id: 0 }).toArray()
+}
+
+export async function applyVenueDays(venue: string, upserts: Record<string, any>[], deletes: string[], publishedThrough: string | null) {
+  const c = await col("venue_days")
+  const now = new Date().toISOString()
+  if (upserts.length > 0) {
+    await c.bulkWrite(
+      upserts.map((d) => ({
+        updateOne: {
+          filter: { _id: `${venue}:${d.date}` as any },
+          update: { $set: { ...d, venue, updated_at: now } },
+          upsert: true,
+        },
+      }))
+    )
+  }
+  if (deletes.length > 0) await c.deleteMany({ venue, date: { $in: deletes } })
+  await upsertAppSettings({ [`venue_calendars.${venue}`]: { published_through: publishedThrough, updated_at: now } })
+}
+
+/** Days from `fromDate` on and the last published date, per venue, for the scheduler. */
+export async function getVenueCalendars(fromDate: string) {
+  const settings = await getAppSettings()
+  const meta: Record<string, { published_through: string | null; updated_at: string }> = settings?.venue_calendars || {}
+  const c = await col("venue_days")
+  const days = await c.find({ date: { $gte: fromDate } }).sort({ date: 1 }).project({ _id: 0 }).toArray()
+  const out: Record<string, { days: any[]; published_through: string | null; updated_at: string | null }> = {}
+  for (const [venue, m] of Object.entries(meta)) out[venue] = { days: [], published_through: m.published_through, updated_at: m.updated_at }
+  for (const d of days) {
+    out[d.venue] ||= { days: [], published_through: null, updated_at: null }
+    out[d.venue].days.push(d)
+  }
+  return out
+}
+
 /** External ids of synced terms the user deleted, for the importer to skip. */
 export async function getExamTermDismissals(studyId: string, source: string): Promise<string[]> {
   const c = await col("exam_term_dismissals")

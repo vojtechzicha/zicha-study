@@ -16,8 +16,11 @@ import {
   PRE_TERM_LABEL,
   TENTATIVE_TERM_LABEL,
   getTermPartIds,
+  EXAM_VENUES,
+  EXAM_VENUE_INFO,
   type ExamPartsConfig,
   type ExamTermExternal,
+  type ExamVenue,
 } from "@/lib/constants"
 import { SyncedTermInfo, isSyncedTerm, type SyncedTerm } from "@/components/synced-term-info"
 import { sortSubjects, getUniqueSemestersSorted } from "@/lib/utils/subject-utils"
@@ -74,6 +77,9 @@ export interface EditorTerm {
   is_tentative?: boolean
   source?: string | null
   external?: ExamTermExternal | null
+  window_end?: string | null
+  venue?: ExamVenue | null
+  window_id?: string | null
 }
 
 interface TermDraft {
@@ -89,6 +95,10 @@ interface TermDraft {
   is_tentative: boolean
   // Set for a term synced from a university system: its date, time and flags come from there.
   synced: SyncedTerm | null
+  // A window term (docs/EXAM_WINDOWS.md): any day from `date` to `window_end`; "" = an ordinary term.
+  window_end: string
+  venue: ExamVenue | ""
+  booked_from_window: boolean
 }
 
 interface SubjectGroup {
@@ -109,6 +119,7 @@ interface ExamPeriodEditorProps {
 }
 
 const SYNCED_FIELD_TITLE = "Datum a čas se přebírají z univerzitního systému."
+const WINDOW_TITLE = "Zkouška kterýkoli den v rozmezí (např. v Testovacím centru). Plánovač vybere den, termín pak zarezervujete a zamknete."
 
 function toDraft(t: EditorTerm, parts: ExamPartsConfig | null): TermDraft {
   return {
@@ -123,6 +134,9 @@ function toDraft(t: EditorTerm, parts: ExamPartsConfig | null): TermDraft {
     is_pre_term: !!t.is_pre_term,
     is_tentative: !!t.is_tentative,
     synced: isSyncedTerm(t) ? { source: t.source, external: t.external } : null,
+    window_end: t.window_end || "",
+    venue: t.venue || "",
+    booked_from_window: !!t.window_id,
   }
 }
 
@@ -308,12 +322,29 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
           is_pre_term: false,
           is_tentative: false,
           synced: null,
+          window_end: "",
+          venue: "",
+          booked_from_window: false,
           // Split subjects copy the parts of the previous term (all parts for the first one).
           part_ids: grp.parts
             ? (grp.terms[grp.terms.length - 1]?.part_ids ?? grp.parts.parts.map((p) => p.id))
             : [],
         },
       ],
+    }))
+  }
+
+  // A window spans a date range; turning it on starts with a week and the Testovací centrum PEF.
+  const setWindow = (subjectId: string, index: number, on: boolean) => {
+    updateGroup(subjectId, (grp) => ({
+      ...grp,
+      terms: grp.terms.map((t, i) => {
+        if (i !== index) return t
+        if (!on) return { ...t, window_end: "", venue: "" as const }
+        const end = t.date ? new Date(`${t.date}T00:00:00Z`) : null
+        if (end) end.setUTCDate(end.getUTCDate() + 7)
+        return { ...t, window_end: end ? end.toISOString().slice(0, 10) : t.date, venue: EXAM_VENUES.TC_PEF, locked: false }
+      }),
     }))
   }
 
@@ -398,6 +429,10 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
             part_ids: grp.parts ? t.part_ids : [],
             is_pre_term: t.is_pre_term,
             is_tentative: t.is_tentative,
+            window_end: t.window_end || null,
+            venue: t.window_end ? t.venue || null : null,
+            // A window is never locked: booking one of its slots creates a locked term.
+            ...(t.window_end ? { locked: false } : {}),
           }
           if (t.id) {
             keptIds.add(t.id)
@@ -631,7 +666,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                             <div className="space-y-1">
                               <Label className="text-xs flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                Datum
+                                {term.window_end ? "Od" : "Datum"}
                               </Label>
                               <Input
                                 type="date"
@@ -651,7 +686,7 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                                 type="time"
                                 value={term.start_time}
                                 onChange={(e) => updateTerm(grp.subjectId, index, "start_time", e.target.value)}
-                                disabled={!!term.synced}
+                                disabled={!!term.synced || (!!term.window_end && !!term.venue)}
                                 title={term.synced ? SYNCED_FIELD_TITLE : undefined}
                                 className="h-9"
                               />
@@ -692,6 +727,45 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                               </div>
                             </div>
                           </div>
+                          {term.window_end && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Do
+                                </Label>
+                                <Input
+                                  type="date"
+                                  value={term.window_end}
+                                  min={term.date || undefined}
+                                  onChange={(e) => updateTerm(grp.subjectId, index, "window_end", e.target.value)}
+                                  className="h-9"
+                                />
+                              </div>
+                              <div className="space-y-1 lg:col-span-3">
+                                <Label className="text-xs">Místo</Label>
+                                <Select
+                                  value={term.venue || "none"}
+                                  onValueChange={(v) => updateTerm(grp.subjectId, index, "venue", v === "none" ? "" : v)}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Kterýkoli den v čase začátku</SelectItem>
+                                    {Object.entries(EXAM_VENUE_INFO).map(([id, info]) => (
+                                      <SelectItem key={id} value={id}>
+                                        {info.label} (dny a hodiny podle jeho otevírací doby)
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          )}
+                          {term.booked_from_window && (
+                            <p className="text-xs text-muted-foreground">Rezervace z okna; po jejím smazání se okno znovu nabízí.</p>
+                          )}
                           <div className="flex items-center gap-3 flex-wrap">
                             {grp.parts && (
                               <div className="flex items-center gap-1 flex-wrap" role="group" aria-label="Části v termínu">
@@ -745,10 +819,24 @@ export function ExamPeriodEditor({ open, onOpenChange, studies, subjects, period
                                 {TENTATIVE_TERM_LABEL}
                               </Label>
                             </div>
+                            {!term.synced && !term.booked_from_window && (
+                              <div className="flex items-center h-9 px-2 border rounded-md bg-card">
+                                <Checkbox
+                                  id={`window-${grp.subjectId}-${index}`}
+                                  checked={!!term.window_end}
+                                  onCheckedChange={(c) => setWindow(grp.subjectId, index, c === true)}
+                                  className="mr-2"
+                                />
+                                <Label htmlFor={`window-${grp.subjectId}-${index}`} className="text-sm cursor-pointer" title={WINDOW_TITLE}>
+                                  Okno
+                                </Label>
+                              </div>
+                            )}
                             <div className="flex items-center h-9 px-2 border rounded-md bg-card">
                               <Checkbox
                                 id={`lock-${grp.subjectId}-${index}`}
                                 checked={term.locked}
+                                disabled={!!term.window_end}
                                 onCheckedChange={(c) => updateTerm(grp.subjectId, index, "locked", c as boolean)}
                                 className="mr-2"
                               />
