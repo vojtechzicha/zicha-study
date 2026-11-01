@@ -46,46 +46,20 @@ export interface StudyTone {
   swatch: string
 }
 
-export const STUDY_TONES: StudyTone[] = [
-  {
-    ribbon: "bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200",
-    solid: "bg-teal-600 text-white dark:bg-teal-500 dark:text-teal-950",
-    dashed: "border-teal-500 text-teal-800 dark:border-teal-400 dark:text-teal-200",
-    ring: "border-teal-500 dark:border-teal-400",
-    swatch: "bg-teal-500",
-  },
-  {
-    ribbon: "bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-200",
-    solid: "bg-violet-600 text-white dark:bg-violet-500 dark:text-violet-950",
-    dashed: "border-violet-500 text-violet-800 dark:border-violet-400 dark:text-violet-200",
-    ring: "border-violet-500 dark:border-violet-400",
-    swatch: "bg-violet-500",
-  },
-  {
-    ribbon: "bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-200",
-    solid: "bg-sky-600 text-white dark:bg-sky-500 dark:text-sky-950",
-    dashed: "border-sky-500 text-sky-800 dark:border-sky-400 dark:text-sky-200",
-    ring: "border-sky-500 dark:border-sky-400",
-    swatch: "bg-sky-500",
-  },
-  {
-    ribbon: "bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-200",
-    solid: "bg-rose-600 text-white dark:bg-rose-500 dark:text-rose-950",
-    dashed: "border-rose-500 text-rose-800 dark:border-rose-400 dark:text-rose-200",
-    ring: "border-rose-500 dark:border-rose-400",
-    swatch: "bg-rose-500",
-  },
-]
+// Filled in below from STUDY_TONE_FAMILIES (teal, violet, sky, rose), so the defaults have the same
+// accessible shades as the logo colours.
+export const STUDY_TONES: StudyTone[] = []
 
 // Colour families a study can take from its logo (Tailwind hues of the 500 shade). Amber and
 // yellow are left out: amber means "needs locking", yellow has too little contrast. Class strings
-// are written out in full so Tailwind generates them.
+// are written out in full so Tailwind generates them. The solid chip (small text on the colour) uses
+// the shades that reach WCAG AA 4.5:1 in both modes (checked in __tests__/plan-model.test.ts).
 export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone }> = {
   red: {
     hue: 0,
     tone: {
       ribbon: "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200",
-      solid: "bg-red-600 text-white dark:bg-red-500 dark:text-red-950",
+      solid: "bg-red-600 text-white dark:bg-red-400 dark:text-red-950",
       dashed: "border-red-500 text-red-800 dark:border-red-400 dark:text-red-200",
       ring: "border-red-500 dark:border-red-400",
       swatch: "bg-red-500",
@@ -95,7 +69,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 25,
     tone: {
       ribbon: "bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200",
-      solid: "bg-orange-600 text-white dark:bg-orange-500 dark:text-orange-950",
+      solid: "bg-orange-700 text-white dark:bg-orange-500 dark:text-orange-950",
       dashed: "border-orange-500 text-orange-800 dark:border-orange-400 dark:text-orange-200",
       ring: "border-orange-500 dark:border-orange-400",
       swatch: "bg-orange-500",
@@ -105,7 +79,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 142,
     tone: {
       ribbon: "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200",
-      solid: "bg-green-600 text-white dark:bg-green-500 dark:text-green-950",
+      solid: "bg-green-700 text-white dark:bg-green-500 dark:text-green-950",
       dashed: "border-green-500 text-green-800 dark:border-green-400 dark:text-green-200",
       ring: "border-green-500 dark:border-green-400",
       swatch: "bg-green-500",
@@ -115,7 +89,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 160,
     tone: {
       ribbon: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200",
-      solid: "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950",
+      solid: "bg-emerald-700 text-white dark:bg-emerald-500 dark:text-emerald-950",
       dashed: "border-emerald-500 text-emerald-800 dark:border-emerald-400 dark:text-emerald-200",
       ring: "border-emerald-500 dark:border-emerald-400",
       swatch: "bg-emerald-500",
@@ -125,7 +99,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 173,
     tone: {
       ribbon: "bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200",
-      solid: "bg-teal-600 text-white dark:bg-teal-500 dark:text-teal-950",
+      solid: "bg-teal-700 text-white dark:bg-teal-500 dark:text-teal-950",
       dashed: "border-teal-500 text-teal-800 dark:border-teal-400 dark:text-teal-200",
       ring: "border-teal-500 dark:border-teal-400",
       swatch: "bg-teal-500",
@@ -135,7 +109,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 189,
     tone: {
       ribbon: "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-800 dark:text-cyan-200",
-      solid: "bg-cyan-600 text-white dark:bg-cyan-500 dark:text-cyan-950",
+      solid: "bg-cyan-700 text-white dark:bg-cyan-500 dark:text-cyan-950",
       dashed: "border-cyan-500 text-cyan-800 dark:border-cyan-400 dark:text-cyan-200",
       ring: "border-cyan-500 dark:border-cyan-400",
       swatch: "bg-cyan-500",
@@ -145,7 +119,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 199,
     tone: {
       ribbon: "bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-200",
-      solid: "bg-sky-600 text-white dark:bg-sky-500 dark:text-sky-950",
+      solid: "bg-sky-700 text-white dark:bg-sky-500 dark:text-sky-950",
       dashed: "border-sky-500 text-sky-800 dark:border-sky-400 dark:text-sky-200",
       ring: "border-sky-500 dark:border-sky-400",
       swatch: "bg-sky-500",
@@ -155,7 +129,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 217,
     tone: {
       ribbon: "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200",
-      solid: "bg-blue-600 text-white dark:bg-blue-500 dark:text-blue-950",
+      solid: "bg-blue-600 text-white dark:bg-blue-400 dark:text-blue-950",
       dashed: "border-blue-500 text-blue-800 dark:border-blue-400 dark:text-blue-200",
       ring: "border-blue-500 dark:border-blue-400",
       swatch: "bg-blue-500",
@@ -165,7 +139,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 239,
     tone: {
       ribbon: "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200",
-      solid: "bg-indigo-600 text-white dark:bg-indigo-500 dark:text-indigo-950",
+      solid: "bg-indigo-600 text-white dark:bg-indigo-400 dark:text-indigo-950",
       dashed: "border-indigo-500 text-indigo-800 dark:border-indigo-400 dark:text-indigo-200",
       ring: "border-indigo-500 dark:border-indigo-400",
       swatch: "bg-indigo-500",
@@ -175,7 +149,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 258,
     tone: {
       ribbon: "bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-200",
-      solid: "bg-violet-600 text-white dark:bg-violet-500 dark:text-violet-950",
+      solid: "bg-violet-600 text-white dark:bg-violet-400 dark:text-violet-950",
       dashed: "border-violet-500 text-violet-800 dark:border-violet-400 dark:text-violet-200",
       ring: "border-violet-500 dark:border-violet-400",
       swatch: "bg-violet-500",
@@ -185,7 +159,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 271,
     tone: {
       ribbon: "bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200",
-      solid: "bg-purple-600 text-white dark:bg-purple-500 dark:text-purple-950",
+      solid: "bg-purple-600 text-white dark:bg-purple-400 dark:text-purple-950",
       dashed: "border-purple-500 text-purple-800 dark:border-purple-400 dark:text-purple-200",
       ring: "border-purple-500 dark:border-purple-400",
       swatch: "bg-purple-500",
@@ -195,7 +169,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 292,
     tone: {
       ribbon: "bg-fuchsia-100 dark:bg-fuchsia-900/50 text-fuchsia-800 dark:text-fuchsia-200",
-      solid: "bg-fuchsia-600 text-white dark:bg-fuchsia-500 dark:text-fuchsia-950",
+      solid: "bg-fuchsia-600 text-white dark:bg-fuchsia-400 dark:text-fuchsia-950",
       dashed: "border-fuchsia-500 text-fuchsia-800 dark:border-fuchsia-400 dark:text-fuchsia-200",
       ring: "border-fuchsia-500 dark:border-fuchsia-400",
       swatch: "bg-fuchsia-500",
@@ -205,7 +179,7 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 330,
     tone: {
       ribbon: "bg-pink-100 dark:bg-pink-900/50 text-pink-800 dark:text-pink-200",
-      solid: "bg-pink-600 text-white dark:bg-pink-500 dark:text-pink-950",
+      solid: "bg-pink-600 text-white dark:bg-pink-400 dark:text-pink-950",
       dashed: "border-pink-500 text-pink-800 dark:border-pink-400 dark:text-pink-200",
       ring: "border-pink-500 dark:border-pink-400",
       swatch: "bg-pink-500",
@@ -215,13 +189,15 @@ export const STUDY_TONE_FAMILIES: Record<string, { hue: number; tone: StudyTone 
     hue: 350,
     tone: {
       ribbon: "bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-200",
-      solid: "bg-rose-600 text-white dark:bg-rose-500 dark:text-rose-950",
+      solid: "bg-rose-600 text-white dark:bg-rose-400 dark:text-rose-950",
       dashed: "border-rose-500 text-rose-800 dark:border-rose-400 dark:text-rose-200",
       ring: "border-rose-500 dark:border-rose-400",
       swatch: "bg-rose-500",
     },
   },
 }
+
+STUDY_TONES.push(...(["teal", "violet", "sky", "rose"] as const).map((f) => STUDY_TONE_FAMILIES[f].tone))
 
 const hueDistance = (a: number, b: number) => {
   const d = Math.abs(a - b) % 360

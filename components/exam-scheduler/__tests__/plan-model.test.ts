@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import colors from "tailwindcss/colors"
 import { STUDY_TONES, STUDY_TONE_FAMILIES, pickStudyTones } from "../plan-model"
 
 describe("pickStudyTones", () => {
@@ -34,5 +35,33 @@ describe("pickStudyTones", () => {
   it("never uses amber", () => {
     const tones = pickStudyTones([{ id: "x", hsl: [45, 90, 50] }])
     expect(tones.get("x")!.swatch).not.toContain("amber")
+  })
+})
+
+describe("study tone contrast", () => {
+  const palette = colors as unknown as Record<string, Record<string, string>>
+  const lum = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  const ratio = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p)
+    return (x + 0.05) / (y + 0.05)
+  }
+  const color = (cls: string) => {
+    const [, family, shade] = cls.match(/-(\w+)-(\d+)$/) || []
+    return family === "white" || cls.endsWith("-white") ? "#ffffff" : palette[family][shade]
+  }
+
+  it.each(Object.entries(STUDY_TONE_FAMILIES))("%s: the solid chip reaches 4.5:1 in light and dark mode", (_f, { tone }) => {
+    const parts = tone.solid.split(" ")
+    const light = [parts.find((c) => c.startsWith("bg-"))!, parts.find((c) => c.startsWith("text-"))!]
+    const dark = [parts.find((c) => c.startsWith("dark:bg-"))!, parts.find((c) => c.startsWith("dark:text-"))!]
+    expect(ratio(color(light[0]), color(light[1]))).toBeGreaterThanOrEqual(4.5)
+    expect(ratio(color(dark[0]), color(dark[1]))).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("the default tones are logo families with the same shades", () => {
+    expect(STUDY_TONES.map((t) => t.swatch)).toEqual(["bg-teal-500", "bg-violet-500", "bg-sky-500", "bg-rose-500"])
   })
 })
