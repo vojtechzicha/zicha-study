@@ -4,6 +4,7 @@ import crypto from "crypto"
 import { PRACTICE_PAGE_MAX_VERSIONS, RESERVED_STUDY_CHILD_SLUGS } from "@/lib/constants"
 import type { Sanitized, SanitizedModuleContent } from "@/lib/practice/content"
 import type { PracticePageContent } from "@/lib/practice/schema"
+import { userLockOwnershipPatch } from "@/lib/exam-import/lock"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -822,14 +823,49 @@ export async function createExamTerm(data: Record<string, any>) {
   return doc
 }
 
-export async function updateExamTerm(id: string, data: Record<string, any>) {
+/**
+ * Updates a term. `by: "import"` is the exam term import; any other caller is the user, whose
+ * change of `locked` takes the lock over from the importer (lib/exam-import/lock.ts).
+ */
+export async function updateExamTerm(id: string, data: Record<string, any>, options: { by?: "user" | "import" } = {}) {
   const c = await col("exam_terms")
-  await c.updateOne({ _id: id as any }, { $set: { ...data, updated_at: new Date().toISOString() } })
+  const ownership = options.by === "import" ? {} : userLockOwnershipPatch(await c.findOne({ _id: id as any }), data)
+  await c.updateOne({ _id: id as any }, { $set: { ...data, ...ownership, updated_at: new Date().toISOString() } })
 }
 
-export async function deleteExamTerm(id: string) {
+/**
+ * Deletes a term. A synced term (exam_terms.source) deleted by the user is remembered in
+ * exam_term_dismissals so the next import doesn't bring it back; the importer itself passes
+ * dismiss: false when the source dropped the term.
+ */
+export async function deleteExamTerm(id: string, options: { dismiss?: boolean; onlyIfUnlocked?: boolean } = {}) {
   const c = await col("exam_terms")
+  if (options.onlyIfUnlocked) {
+    // Atomic: a term the user locked meanwhile stays. Returns whether it was deleted.
+    const res = await c.deleteOne({ _id: id as any, locked: { $ne: true } })
+    return res.deletedCount === 1
+  }
+  const term = await c.findOne({ _id: id as any })
+  if (!term) return false
+  if (options.dismiss !== false && term.source && term.external_id) {
+    await (await col("exam_term_dismissals")).updateOne(
+      { _id: `${term.source}:${term.study_id}:${term.external_id}` as any },
+      {
+        $set: { study_id: term.study_id, source: term.source, external_id: term.external_id, subject_id: term.subject_id, date: term.date },
+        $setOnInsert: { dismissed_at: new Date().toISOString() },
+      },
+      { upsert: true }
+    )
+  }
   await c.deleteOne({ _id: id as any })
+  return true
+}
+
+/** External ids of synced terms the user deleted, for the importer to skip. */
+export async function getExamTermDismissals(studyId: string, source: string): Promise<string[]> {
+  const c = await col("exam_term_dismissals")
+  const rows = await c.find({ study_id: studyId, source }).project({ external_id: 1 }).toArray()
+  return rows.map((r) => String(r.external_id))
 }
 
 export async function deleteExamTermsByPeriodAndSubject(periodId: string, subjectId: string) {
@@ -839,7 +875,28 @@ export async function deleteExamTermsByPeriodAndSubject(periodId: string, subjec
 
 export async function setExamTermLocked(id: string, locked: boolean) {
   const c = await col("exam_terms")
-  await c.updateOne({ _id: id as any }, { $set: { locked, updated_at: new Date().toISOString() } })
+  const ownership = userLockOwnershipPatch(await c.findOne({ _id: id as any }), { locked })
+  await c.updateOne({ _id: id as any }, { $set: { locked, ...ownership, updated_at: new Date().toISOString() } })
+}
+
+// One synced term per study, source and external id, so overlapping imports can't duplicate a term.
+let examTermIndexesPromise: Promise<void> | null = null
+
+export function ensureExamTermImportIndexes() {
+  if (!examTermIndexesPromise) {
+    examTermIndexesPromise = getDb()
+      .then(async (db) => {
+        await db.collection("exam_terms").createIndex(
+          { study_id: 1, source: 1, external_id: 1 },
+          { unique: true, name: "exam_terms_external_identity", partialFilterExpression: { external_id: { $type: "string" } } }
+        )
+      })
+      .catch((err) => {
+        examTermIndexesPromise = null
+        throw err
+      })
+  }
+  return examTermIndexesPromise
 }
 
 /**
