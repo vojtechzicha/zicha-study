@@ -424,13 +424,15 @@ export interface ExamTerm {
 
 // Systems whose exam terms are synced into exam_terms. Stored in exam_terms.source.
 export const EXAM_TERM_SOURCES = {
-  UIS: 'uis',
+  UIS: 'uis', // ČZU
+  STAG: 'stag', // UHK (IS/STAG)
 } as const
 
 export type ExamTermSource = (typeof EXAM_TERM_SOURCES)[keyof typeof EXAM_TERM_SOURCES]
 
 export const EXAM_TERM_SOURCE_LABELS: Record<ExamTermSource, string> = {
   uis: 'UIS',
+  stag: 'STAG',
 }
 
 // Where the student stands with a listed term. Stored in exam_terms.external.status.

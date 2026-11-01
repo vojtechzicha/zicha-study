@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { EXAM_TERM_SOURCES, EXTERNAL_TERM_STATUS } from "@/lib/constants"
 
-// Body of POST /api/exam-terms/import. The importer (agents-study/uis-watch) reads the source
-// system and normalizes it; this app only matches the terms to its own subjects and periods.
+// Body of POST /api/exam-terms/import. The importers (agents-study: uis-watch for ČZU, STAG for
+// UHK) read the source system and normalize it; this app only matches the terms to its own subjects and periods.
 // See docs/EXAM_IMPORT.md.
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.")
@@ -54,7 +54,7 @@ export const importedTermSchema = z
 export const importRequestSchema = z
   .object({
     study_id: z.string().trim().min(1).max(100),
-    source: z.enum([EXAM_TERM_SOURCES.UIS]),
+    source: z.enum([EXAM_TERM_SOURCES.UIS, EXAM_TERM_SOURCES.STAG]),
     // The list is everything the source currently shows (for the student), so upcoming synced
     // terms missing from it were cancelled. false = only create and update.
     complete: z.boolean(),

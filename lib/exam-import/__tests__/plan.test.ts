@@ -348,6 +348,7 @@ describe("import request schema", () => {
     expect(importRequestSchema.safeParse({ ...body, terms: [body.terms[0], body.terms[0]] }).success).toBe(false)
     expect(importRequestSchema.safeParse({ ...body, terms: [{ ...body.terms[0], extra: 1 }] }).success).toBe(false)
     expect(importRequestSchema.safeParse({ ...body, terms: [{ ...body.terms[0], date: "1.1.2027" }] }).success).toBe(false)
-    expect(importRequestSchema.safeParse({ ...body, source: "stag" }).success).toBe(false)
+    expect(importRequestSchema.safeParse({ ...body, source: "stag" }).success).toBe(true)
+    expect(importRequestSchema.safeParse({ ...body, source: "insis" }).success).toBe(false)
   })
 })
