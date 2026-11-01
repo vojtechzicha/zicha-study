@@ -30,9 +30,10 @@ vi.mock("@/lib/mongodb/db", () => ({
     store.updateOptions.push(options)
     store.terms.set(id, { ...store.terms.get(id), ...patch })
   },
-  deleteExamTerm: async (id: string, options?: unknown) => {
+  deleteExamTerm: async (id: string, options?: { onlyIfUnlocked?: boolean }) => {
     store.deleteOptions.push(options)
-    store.terms.delete(id)
+    if (options?.onlyIfUnlocked && store.terms.get(id)?.locked) return false
+    return store.terms.delete(id)
   },
   getExamTermDismissals: async () => store.dismissed,
   insertMcpAuditEntry: async (entry: Record<string, any>) => {
@@ -123,7 +124,28 @@ describe("runExamTermImport", () => {
     expect(store.terms.has("t-1")).toBe(false)
     expect(store.audit.at(-1)).toMatchObject({ action: "delete", document_id: "t-1" })
     // The source dropped it, so it is not remembered as dismissed by the user.
-    expect(store.deleteOptions).toEqual([{ dismiss: false }])
+    expect(store.deleteOptions).toEqual([{ dismiss: false, onlyIfUnlocked: true }])
+  })
+
+  it("keeps and flags a term the user locked while the import ran", async () => {
+    await runExamTermImport(request([uisTerm()]), { _id: "st" })
+    // The plan is made from a snapshot where t-1 is unlocked; lock it right after the read.
+    const realGet = store.terms.get.bind(store.terms)
+    let reads = 0
+    const db = await import("@/lib/mongodb/db")
+    const spy = vi.spyOn(db, "getExamTermsByPeriodIds").mockImplementation(async (): Promise<any[]> => {
+      reads++
+      const snapshot = [...store.terms.values()].map((t) => ({ ...t }))
+      store.terms.set("t-1", { ...realGet("t-1")!, locked: true })
+      return snapshot
+    })
+    const result = await runExamTermImport(request([uisTerm({ external_id: "502", date: "2099-01-11" })]), { _id: "st" })
+    spy.mockRestore()
+    expect(reads).toBe(1)
+    expect(store.terms.has("t-1")).toBe(true)
+    expect(store.terms.get("t-1")!.external.removed_at).toEqual(expect.any(String))
+    expect(result.counts).toMatchObject({ created: 1, deleted: 0, updated: 1 })
+    expect(result.events.map((e) => e.type)).toEqual(["created", "removed_locked"])
   })
 
   it("skips terms the user deleted", async () => {

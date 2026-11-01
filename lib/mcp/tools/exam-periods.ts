@@ -256,7 +256,9 @@ export const examPeriodTools = [
         collection: "exam_terms",
         before,
         dryRun: dry_run,
-        remove: () => db.deleteExamTerm(term_id),
+        remove: async () => {
+          await db.deleteExamTerm(term_id)
+        },
       })
     },
   }),

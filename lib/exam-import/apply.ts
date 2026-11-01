@@ -75,9 +75,20 @@ export async function runExamTermImport(body: ImportRequest, study: Record<strin
         const after = db.normalizeId(await db.getExamTermById(op.id))
         await db.insertMcpAuditEntry({ ...auditBase, action: "update", document_id: op.id, before: db.normalizeId(op.before), after })
       }
-    } else {
-      await db.deleteExamTerm(op.id, { dismiss: false })
+    } else if (await db.deleteExamTerm(op.id, { dismiss: false, onlyIfUnlocked: true })) {
       await db.insertMcpAuditEntry({ ...auditBase, action: "delete", document_id: op.id, before: db.normalizeId(op.before), after: null })
+    } else {
+      // Locked by the user after the plan was made: keep it and flag it, like any locked term UIS dropped.
+      const current = await db.getExamTermById(op.id)
+      if (!current) return
+      const patch = { external: { ...current.external, removed_at: new Date().toISOString() } }
+      plan.ops = plan.ops.map((o) => (o === op ? { op: "update", id: op.id, before: current, patch, audit: true } : o))
+      if (!current.external?.removed_at) {
+        await db.updateExamTerm(op.id, patch, { by: "import" })
+        const after = db.normalizeId(await db.getExamTermById(op.id))
+        await db.insertMcpAuditEntry({ ...auditBase, action: "update", document_id: op.id, before: db.normalizeId(current), after })
+      }
+      for (const e of plan.events) if (e.term_id === op.id && e.type === "removed") e.type = "removed_locked"
     }
   }
 

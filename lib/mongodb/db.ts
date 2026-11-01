@@ -838,10 +838,15 @@ export async function updateExamTerm(id: string, data: Record<string, any>, opti
  * exam_term_dismissals so the next import doesn't bring it back; the importer itself passes
  * dismiss: false when the source dropped the term.
  */
-export async function deleteExamTerm(id: string, options: { dismiss?: boolean } = {}) {
+export async function deleteExamTerm(id: string, options: { dismiss?: boolean; onlyIfUnlocked?: boolean } = {}) {
   const c = await col("exam_terms")
+  if (options.onlyIfUnlocked) {
+    // Atomic: a term the user locked meanwhile stays. Returns whether it was deleted.
+    const res = await c.deleteOne({ _id: id as any, locked: { $ne: true } })
+    return res.deletedCount === 1
+  }
   const term = await c.findOne({ _id: id as any })
-  if (!term) return
+  if (!term) return false
   if (options.dismiss !== false && term.source && term.external_id) {
     await (await col("exam_term_dismissals")).updateOne(
       { _id: `${term.source}:${term.study_id}:${term.external_id}` as any },
@@ -853,6 +858,7 @@ export async function deleteExamTerm(id: string, options: { dismiss?: boolean } 
     )
   }
   await c.deleteOne({ _id: id as any })
+  return true
 }
 
 /** External ids of synced terms the user deleted, for the importer to skip. */
