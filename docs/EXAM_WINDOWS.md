@@ -25,12 +25,20 @@ weeks ahead, so the day is worth planning early.
 
 ## Scheduling (`lib/exam-scheduler/windows.ts`)
 
-The solver works with concrete slots, so the scheduler page expands each window into candidate
-slots: on the days the same study has other candidate terms (the test then shares that trip and
-costs nothing extra), in the slot (venue opening or closing time) that doesn't collide with those
-terms, plus the window's first and last open day as a fallback. Offering every day of a five-week
-window made the exhaustive search take over a minute; with this and per-study solving (studies are
-solved separately unless their optima collide) a full winter season takes a fraction of a second.
+The solver works with concrete slots, so the scheduler page expands each window:
+
+- **Slots of a day**: the venue's opening time and last start, the first and last start that allow
+  travelling there and back the same day (no night in the city), and starts right before and after
+  the study's other exams that day (the gaps between them).
+- **Days** (reduced): the days the study has other candidate terms (the test then shares that trip
+  and costs nothing extra; only the slots clear of those exams), the window's first and last open
+  day, and its free days (no day off work; one same-day-travel slot each). Offering every day of a
+  five-week window made the exhaustive search take over a minute; with this and per-study solving
+  (studies are solved separately unless their optima collide) a full winter season takes well
+  under a second.
+- **Fallback**: if anything is left out of the plan (a window, or an ordinary exam a window pushed
+  out, even of another study), every window is expanded to all its open days and the plan is
+  recomputed (`scheduleWithWindowFallback`).
 
 Slot ids are `<window id>@<date>T<HH:MM>`. In the plan, a picked slot shows "Rezervovat místo v TC
 PEF (obsazeno n %)" and its lock button reads **Mám rezervaci**: pressing it creates the booked

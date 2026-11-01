@@ -74,9 +74,14 @@ describe("expandWindowTerm", () => {
     expect(slots.every((s) => s.partIds?.[0] === "w" && !s.locked)).toBe(true)
   })
 
-  it("respects the study's earliest arrival and drops days too short for the test", () => {
-    const slots = expandWindowTerm(window({ durationMinutes: 120 }), { ...opts, earliestArrival: "09:30" })
-    expect(slots.filter((s) => s.date === "2027-01-04").map((s) => s.startTime)).toEqual(["09:30", "18:00"])
+  it("adds the same-day-travel starts and drops days too short for the test", () => {
+    const study = {
+      travelCostOneWay: 200, travelDurationHours: 2, accommodationCostPerNight: 1500, earliestArrivalTime: "09:30",
+      preferFreeDayExams: false, ptoDayCost: 0, workingDays: [1, 2, 3, 4, 5],
+    }
+    const slots = expandWindowTerm(window({ durationMinutes: 120 }), { ...opts, study })
+    // Open 08:00–20:00; same-day travel from 09:30, home by 22:30 (leave 20:30): last start 18:00.
+    expect(slots.filter((s) => s.date === "2027-01-04").map((s) => s.startTime)).toEqual(["08:00", "09:30", "18:00"])
     expect(slots.some((s) => s.date === "2027-01-06")).toBe(false)
   })
 
@@ -88,7 +93,7 @@ describe("expandWindowTerm", () => {
     expect(slots.find((s) => s.date === "2027-01-04")?.isPreTerm).toBe(false)
   })
 
-  it("keeps only days with another exam of the study, in the slot clear of it, plus the first and last day", () => {
+  it("keeps only days with another exam of the study (in the slots clear of it), the first and last day and free days", () => {
     const anchors = anchorsOf([
       { date: "2027-01-06", startTime: "15:00", durationMinutes: 60 }, // afternoon: the morning slot is clear
       { date: "2027-01-07", startTime: "08:30", durationMinutes: 60 }, // morning: the evening slot
@@ -108,6 +113,8 @@ describe("expandWindowTerm", () => {
       "2027-01-07 19:00",
       "2027-01-08 10:00", // between the morning and the evening exam
       "2027-01-08 17:00",
+      "2027-01-09 08:00", // weekend: one slot each (no day off work needed)
+      "2027-01-10 08:00",
       "2027-01-12 08:00", // last open day
       "2027-01-12 19:00",
     ])
@@ -227,6 +234,63 @@ describe("windows in the global scheduler", () => {
     )
     expect(forced.unschedulable).toEqual([])
     expect(forced.selectedTermIds.find((id) => id.startsWith("tc@"))).toMatch(/T(09:30|17:30)$/)
+  })
+
+  it("offers a slot that needs no night in the city", () => {
+    // 4 h journey: same-day travel only for exams from 09:30 that end by 18:30.
+    const far = { ...czu, travelDurationHours: 4, travelCostOneWay: 200, accommodationCostPerNight: 2000, preferFreeDayExams: false }
+    const slots = expandWindowTerm(window({ termId: "tc", date: "2027-01-11", windowEnd: "2027-01-11", partIds: undefined, durationMinutes: 60 }), {
+      today: "2026-11-01",
+      periodStart: "2027-01-04",
+      calendars: {},
+      study: far,
+      anchors: anchorsOf([]),
+      onlyAnchorDays: true,
+    })
+    const { forced } = generateGlobalSchedule([req("czu", "tc", slots)], [far], 60, 60)
+    expect(forced.selectedTermIds).toEqual(["tc@2027-01-11T09:30"])
+    expect(forced.totalCost).toBe(400)
+  })
+
+  it("keeps free days when it reduces a window", () => {
+    // Mon 4. 1. – Mon 11. 1. with no other exams: the Saturday or Sunday beats a day off work.
+    const slots = expandWindowTerm(window({ termId: "tc", date: "2027-01-04", windowEnd: "2027-01-11", partIds: undefined, durationMinutes: 60 }), {
+      today: "2026-11-01",
+      periodStart: "2027-01-04",
+      calendars: {},
+      study: czu,
+      anchors: anchorsOf([]),
+      onlyAnchorDays: true,
+    })
+    expect(new Set(slots.map((s) => s.date))).toEqual(new Set(["2027-01-04", "2027-01-09", "2027-01-10", "2027-01-11"]))
+    const { forced } = generateGlobalSchedule([req("czu", "tc", slots)], [czu], 60, 60)
+    expect(["2027-01-09", "2027-01-10"]).toContain(parseWindowCandidateId(forced.selectedTermIds[0])!.date)
+  })
+
+  it("expands windows when an ordinary exam of another study is pushed out", () => {
+    // A 09:00 window (4.–8. 1.) at ČZU, and two UHK exams whose only terms are 4. and 8. 1. at 09:00.
+    const near = { ...czu, travelCostOneWay: 50 }
+    const build = (full: Set<string>) => [
+      req(
+        "czu",
+        "tc",
+        expandWindowTerm(window({ termId: "tc", date: "2027-01-04", windowEnd: "2027-01-08", venue: null, startTime: "09:00", partIds: undefined }), {
+          today: "2026-11-01",
+          periodStart: "2027-01-04",
+          calendars: {},
+          study: near,
+          anchors: anchorsOf([]),
+          onlyAnchorDays: !full.has("czu:tc"),
+        })
+      ),
+      req("uhk", "a", [t("a1", "2027-01-04", "09:00")]),
+      req("uhk", "b", [t("b1", "2027-01-08", "09:00")]),
+    ]
+    const { comparison } = scheduleWithWindowFallback(build, (r) => generateGlobalSchedule(r, [near, uhk], 60, 60), new Set(["czu:tc"]))
+    expect(comparison.forced.unschedulable).toEqual([])
+    const ids = comparison.forced.selectedTermIds
+    expect(ids).toEqual(expect.arrayContaining(["a1", "b1"]))
+    expect(ids.find((id) => id.startsWith("tc@"))).toMatch(/^tc@2027-01-0[567]T09:00$/)
   })
 
   it("falls back to every open day when windows alone can't be placed", () => {

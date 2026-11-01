@@ -1,6 +1,7 @@
 import type { GlobalRequirement, GlobalTerm } from "./global-scheduler"
-import { EXAM_VENUE_INFO, type ExamVenue, type VenueDay } from "@/lib/constants"
-import { parseTimeToMinutes } from "./utils"
+import { DEFAULT_WORKING_DAYS, EXAM_VENUE_INFO, type ExamVenue, type VenueDay } from "@/lib/constants"
+import { computeTimeThresholds, type SchedulerConfig } from "./types"
+import { isWorkingDay, parseTimeToMinutes } from "./utils"
 
 // Window terms: an exam that can be taken on any day of a date range, typically in a testing
 // centre that opens its days in batches (Testovací centrum PEF at ČZU). The scheduler works with
@@ -31,12 +32,15 @@ export interface ExpandOptions {
   today: string // YYYY-MM-DD; no candidates in the past
   periodStart: string // candidates before it are předtermíny
   calendars: Partial<Record<ExamVenue, VenueCalendar>>
-  earliestArrival?: string // HH:MM, the study's earliest arrival
+  // The study's travel settings: slots are also offered at the times that allow travelling there
+  // and back the same day (no night in the city), and its free days are kept by the reduction.
+  study?: SchedulerConfig
   // The study's other candidate terms by day ([start, end] in minutes). Slots are then also
   // offered right before and right after them (the gaps between exams). With `onlyAnchorDays`,
   // only these days are offered, in the slots clear of them, plus the window's first and last open
-  // day: a test on a day with a trip anyway costs nothing extra, and offering every day of a
-  // five-week window makes the exhaustive search far too slow.
+  // day and its free days (no day off work needed, one same-day-travel slot each): a test on a day
+  // with a trip anyway costs nothing extra, and offering every day of a five-week window makes the
+  // exhaustive search far too slow.
   anchors?: Map<string, [number, number][]>
   onlyAnchorDays?: boolean
 }
@@ -55,11 +59,10 @@ export function scheduleWithWindowFallback<T extends { forced: { unschedulable: 
 ): { requirements: GlobalRequirement[]; comparison: T } {
   const requirements = build(new Set())
   const comparison = run(requirements)
-  const failing = new Set(
-    comparison.forced.unschedulable.map((u) => u.requirementId).filter((id) => windowRequirementIds.has(id))
-  )
-  if (failing.size === 0) return { requirements, comparison }
-  const full = build(failing)
+  // Whatever was left out (a window, or an ordinary exam a window pushed out, even of another
+  // study), every window gets all its open days.
+  if (comparison.forced.unschedulable.length === 0 || windowRequirementIds.size === 0) return { requirements, comparison }
+  const full = build(windowRequirementIds)
   return { requirements: full, comparison: run(full) }
 }
 
@@ -133,9 +136,23 @@ export function expandWindowTerm(term: WindowTermInput, opts: ExpandOptions): Gl
       out.push(...(clear.length > 0 ? clear : slots))
     } else if (date === days[0] || date === days[days.length - 1]) {
       out.push(...slots)
+    } else if (!isWorkingDay(date, opts.study?.workingDays?.length ? opts.study.workingDays : DEFAULT_WORKING_DAYS)) {
+      out.push(sameDaySlot(slots, opts.study) ?? slots[0])
     }
   }
   return out
+}
+
+/** The slot of a day that needs no night in the city, if any. */
+function sameDaySlot(slots: GlobalTerm[], study: SchedulerConfig | undefined): GlobalTerm | null {
+  if (!study) return null
+  const { earliestSameDayArrival, latestSameDayDeparture } = computeTimeThresholds(study)
+  const from = parseTimeToMinutes(earliestSameDayArrival)
+  const to = parseTimeToMinutes(latestSameDayDeparture)
+  return slots.find((s) => {
+    const start = parseTimeToMinutes(s.startTime)
+    return start >= from && start + s.durationMinutes <= to
+  }) ?? null
 }
 
 /**
@@ -160,12 +177,20 @@ function expandAllDays(term: WindowTermInput, opts: ExpandOptions): GlobalTerm[]
     }
     const hours = venueHours(term.venue, opts.calendars[term.venue], date)
     if (!hours) continue
-    const open = parseTimeToMinutes(hours.open)
+    const early = parseTimeToMinutes(hours.open)
     const lastStart = parseTimeToMinutes(hours.close) - term.durationMinutes
-    const arrival = opts.earliestArrival ? parseTimeToMinutes(opts.earliestArrival) : open
-    const early = Math.max(open, arrival)
     if (early > lastStart) continue
     const starts = new Set(lastStart - early >= MIN_SLOT_SPREAD_MINUTES ? [early, lastStart] : [early])
+    if (opts.study) {
+      // The first and last start that still allow travelling there and back the same day.
+      const { earliestSameDayArrival, latestSameDayDeparture } = computeTimeThresholds(opts.study)
+      for (const start of [
+        parseTimeToMinutes(earliestSameDayArrival),
+        parseTimeToMinutes(latestSameDayDeparture) - term.durationMinutes,
+      ]) {
+        if (start >= early && start <= lastStart) starts.add(start)
+      }
+    }
     for (const [b0, b1] of opts.anchors?.get(date) || []) {
       for (const start of [b0 - CLEAR_MINUTES - term.durationMinutes, b1 + CLEAR_MINUTES]) {
         if (start >= early && start <= lastStart) starts.add(start)

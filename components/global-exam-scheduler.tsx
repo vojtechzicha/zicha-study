@@ -296,14 +296,14 @@ export function GlobalExamScheduler() {
         terms: ts.flatMap((t) => {
           if (!t.window_end) return [toGlobal(t)]
           if (booked.has(t.id)) return []
-          const arrival = studyById.get(period.study_id)?.earliest_arrival_time
+          const study = studyById.get(period.study_id)
           return expandWindowTerm(
             { ...toGlobal(t), windowEnd: t.window_end, venue: t.venue ?? null },
             {
               today,
               periodStart: period.start_date,
               calendars: venueCalendars,
-              earliestArrival: arrival ? arrival.substring(0, 5) : undefined,
+              study: study ? buildStudyConfig(study) : undefined,
               anchors: anchorsByStudy.get(period.study_id),
               onlyAnchorDays: !fullWindows.has(key),
             }
