@@ -2,7 +2,7 @@
 
 import * as db from "@/lib/mongodb/db"
 import { requireUser } from "@/lib/auth-guard"
-import { EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS, getExamTermPartLabel } from "@/lib/constants"
+import { EXAM_SCHEDULER_DEFAULTS, DEFAULT_WORKING_DAYS, getExamTermPartLabel, type VenueDay } from "@/lib/constants"
 
 // ALL studies with their scheduler config, so the planner page can enable and
 // configure studies without visiting each study's settings.
@@ -48,12 +48,17 @@ export async function updateStudySchedulerSettingsAction(studyId: string, settin
 
 export async function fetchGlobalExamSchedulingData() {
   await requireUser()
-  const { studies, periods, terms, subjects } = await db.getGlobalExamSchedulingData()
+  const [{ studies, periods, terms, subjects }, venueCalendars] = await Promise.all([
+    db.getGlobalExamSchedulingData(),
+    // Opening days of exam venues (Testovací centrum PEF) for window terms, from yesterday on.
+    db.getVenueCalendars(new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)),
+  ])
   return {
     studies: db.normalizeIds(studies as any[]),
     periods: db.normalizeIds(periods as any[]),
     terms: db.normalizeIds(terms as any[]),
     subjects: db.normalizeIds(subjects as any[]),
+    venueCalendars: venueCalendars as Record<string, { days: VenueDay[]; published_through: string | null; updated_at: string | null }>,
   }
 }
 

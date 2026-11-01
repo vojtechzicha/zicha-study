@@ -35,6 +35,7 @@ import {
   fetchSchedulerStudies,
   updateStudySchedulerSettingsAction,
   toggleExamTermLockAction,
+  createExamTermAction,
 } from "@/lib/actions/exam-scheduler"
 import { SchedulerStudySettingsDialog, type SchedulerStudy } from "@/components/scheduler-study-settings-dialog"
 import { generateGlobalSchedule, type GlobalRequirement, type GlobalStudyConfig, type GlobalScheduleComparison } from "@/lib/exam-scheduler"
@@ -47,7 +48,17 @@ import {
   relevantMonths,
   termsToUnlock,
 } from "@/lib/exam-scheduler/calendar"
-import { DEFAULT_WORKING_DAYS, EXAM_SCHEDULER_DEFAULTS, getExamTermPartLabel, type ExamPartsConfig, type ExamTermExternal } from "@/lib/constants"
+import {
+  DEFAULT_WORKING_DAYS,
+  EXAM_SCHEDULER_DEFAULTS,
+  EXAM_VENUE_INFO,
+  getExamTermPartLabel,
+  type ExamPartsConfig,
+  type ExamTermExternal,
+  type ExamVenue,
+  type VenueDay,
+} from "@/lib/constants"
+import { anchorsOf, expandWindowTerm, parseWindowCandidateId, venueHours, type VenueCalendar } from "@/lib/exam-scheduler/windows"
 import { czPlural } from "@/lib/utils/task-format"
 import { cn } from "@/lib/utils"
 import { PlanCalendar, type PeriodWindow } from "@/components/exam-scheduler/plan-calendar"
@@ -92,6 +103,9 @@ interface TermData {
   is_tentative?: boolean
   source?: string | null
   external?: ExamTermExternal | null
+  window_end?: string | null
+  venue?: ExamVenue | null
+  window_id?: string | null
 }
 interface SubjectData {
   id: string
@@ -113,6 +127,16 @@ function formatDateShort(dateStr: string): string {
 
 function subjectShortcut(subject?: SubjectData): string {
   return subject?.abbreviation || subject?.name?.substring(0, 5).toUpperCase() || "?"
+}
+
+function toVenueCalendars(
+  data: Record<string, { days: VenueDay[]; published_through: string | null }> | undefined
+): Partial<Record<ExamVenue, VenueCalendar>> {
+  const out: Partial<Record<ExamVenue, VenueCalendar>> = {}
+  for (const [venue, cal] of Object.entries(data || {})) {
+    out[venue as ExamVenue] = { days: new Map(cal.days.map((d) => [d.date, d])), publishedThrough: cal.published_through }
+  }
+  return out
 }
 
 function buildStudyConfig(s: StudyData): GlobalStudyConfig {
@@ -150,6 +174,7 @@ export function GlobalExamScheduler() {
   const [subjects, setSubjects] = useState<SubjectData[]>([])
   const [breakMinutes, setBreakMinutes] = useState<number>(EXAM_SCHEDULER_DEFAULTS.INTER_STUDY_BREAK_MINUTES)
   const [partGapMinutes, setPartGapMinutes] = useState<number>(EXAM_SCHEDULER_DEFAULTS.EXAM_PART_GAP_MINUTES)
+  const [venueCalendars, setVenueCalendars] = useState<Partial<Record<ExamVenue, VenueCalendar>>>({})
 
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingPeriod, setEditingPeriod] = useState<EditorPeriod | null>(null)
@@ -180,6 +205,7 @@ export function GlobalExamScheduler() {
       setPeriods(data.periods as PeriodData[])
       setTerms(data.terms as TermData[])
       setSubjects(data.subjects as SubjectData[])
+      setVenueCalendars(toVenueCalendars(data.venueCalendars))
       setBreakMinutes(brk)
       setPartGapMinutes(gap)
       setAllStudies(all as SchedulerStudy[])
@@ -212,6 +238,36 @@ export function GlobalExamScheduler() {
       list.push(t)
       grouped.set(key, list)
     }
+    // Window terms are offered as slots on the days the study has other exams (plus the window's
+    // first and last open day); a window that already has a booked term is left out.
+    const booked = new Set(terms.map((t) => t.window_id).filter(Boolean))
+    const studyOf = (t: TermData) => periodMap.get(t.period_id)?.study_id
+    const anchorsByStudy = new Map<string, ReturnType<typeof anchorsOf>>()
+    for (const study of new Set(terms.map(studyOf))) {
+      if (!study) continue
+      anchorsByStudy.set(
+        study,
+        anchorsOf(
+          terms
+            .filter((t) => studyOf(t) === study && !t.window_end)
+            .map((t) => ({ date: t.date, startTime: (t.start_time || "09:00").substring(0, 5), durationMinutes: t.duration_minutes }))
+        )
+      )
+    }
+    const studyById = new Map(studies.map((s) => [s.id, s]))
+    const toGlobal = (t: TermData) => ({
+      termId: t.id,
+      date: t.date,
+      startTime: (t.start_time || "09:00").substring(0, 5),
+      durationMinutes: t.duration_minutes,
+      isOnline: !!t.is_online,
+      note: t.note,
+      locked: !!t.locked,
+      partIds: t.part_ids,
+      isPreTerm: !!t.is_pre_term,
+      isTentative: !!t.is_tentative,
+    })
+
     const reqs: GlobalRequirement[] = []
     for (const [key, ts] of grouped) {
       const [periodId, subjectId] = key.split(":")
@@ -228,23 +284,26 @@ export function GlobalExamScheduler() {
         subjectName: subject?.name || "Neznámý předmět",
         windowStart: period.start_date,
         windowEnd: period.due_date,
-        terms: ts.map((t) => ({
-          termId: t.id,
-          date: t.date,
-          startTime: (t.start_time || "09:00").substring(0, 5),
-          durationMinutes: t.duration_minutes,
-          isOnline: !!t.is_online,
-          note: t.note,
-          locked: !!t.locked,
-          partIds: t.part_ids,
-          isPreTerm: !!t.is_pre_term,
-          isTentative: !!t.is_tentative,
-        })),
+        terms: ts.flatMap((t) => {
+          if (!t.window_end) return [toGlobal(t)]
+          if (booked.has(t.id)) return []
+          const arrival = studyById.get(period.study_id)?.earliest_arrival_time
+          return expandWindowTerm(
+            { ...toGlobal(t), windowEnd: t.window_end, venue: t.venue ?? null },
+            {
+              today,
+              periodStart: period.start_date,
+              calendars: venueCalendars,
+              earliestArrival: arrival ? arrival.substring(0, 5) : undefined,
+              anchors: anchorsByStudy.get(period.study_id),
+            }
+          )
+        }),
         parts: period.exam_parts?.[subjectId],
       })
     }
     return reqs
-  }, [terms, periodMap, subjectMap])
+  }, [terms, periodMap, subjectMap, studies, venueCalendars, today])
 
   const studyConfigs: GlobalStudyConfig[] = useMemo(() => studies.map(buildStudyConfig), [studies])
 
@@ -273,7 +332,11 @@ export function GlobalExamScheduler() {
     const out: PlanTerm[] = []
     for (const req of requirements) {
       for (const t of req.terms) {
-        const raw = terms.find((x) => x.id === t.termId)
+        // A window's slots that the plan didn't pick are not shown (the window is one row in the editor).
+        const slot = parseWindowCandidateId(t.termId)
+        if (slot && !selected.has(t.termId)) continue
+        const raw = terms.find((x) => x.id === (slot ? slot.windowId : t.termId))
+        const venue = slot ? raw?.venue ?? null : null
         out.push({
           id: t.termId,
           requirementId: req.requirementId,
@@ -296,11 +359,14 @@ export function GlobalExamScheduler() {
           external: raw?.external,
           inPlan: selected.has(t.termId),
           requiresPto: pto.has(t.termId),
+          windowId: slot?.windowId ?? null,
+          venue,
+          venueOccupancy: venue ? venueHours(venue, venueCalendars[venue], t.date)?.occupancy ?? null : null,
         })
       }
     }
     return out
-  }, [requirements, terms, result])
+  }, [requirements, terms, result, venueCalendars])
 
   const trips = useMemo(() => buildTrips(result?.items || []), [result])
 
@@ -369,8 +435,64 @@ export function GlobalExamScheduler() {
 
   const plannedCount = planTerms.filter((t) => t.inPlan).length
 
+  // Locking a window slot records the booking: a real locked term on that slot, linked to the
+  // window (window_id), after which the window is no longer expanded. Other locks of the same
+  // parts are released like for any lock.
+  const bookWindowSlot = useCallback(
+    async (term: PlanTerm) => {
+      const window = terms.find((t) => t.id === term.windowId)
+      if (!window) return
+      setBusyIds((s) => new Set(s).add(term.id))
+      try {
+        const venue = window.venue ? EXAM_VENUE_INFO[window.venue] : null
+        const res = await createExamTermAction({
+          period_id: window.period_id,
+          study_id: window.study_id,
+          subject_id: window.subject_id,
+          date: term.date,
+          start_time: term.startTime,
+          duration_minutes: window.duration_minutes,
+          is_online: !!window.is_online,
+          note: venue ? `Rezervace – ${venue.label}` : window.note,
+          locked: true,
+          part_ids: window.part_ids || [],
+          is_pre_term: term.isPreTerm,
+          is_tentative: false,
+          window_id: window.id,
+        })
+        if (res.error || !res.data) throw new Error(res.error?.message || "Termín se nepodařilo uložit.")
+        const newId = res.data.id
+        const parts = periodMap.get(window.period_id)?.exam_parts?.[window.subject_id]
+        const siblings = [
+          ...terms
+            .filter((t) => t.period_id === window.period_id && t.subject_id === window.subject_id && !t.window_end)
+            .map((t) => ({ id: t.id, locked: !!t.locked, part_ids: t.part_ids })),
+          { id: newId, locked: true, part_ids: window.part_ids },
+        ]
+        for (const id of termsToUnlock(siblings, newId, parts)) {
+          const r = await toggleExamTermLockAction(id, false)
+          if (r.error) throw new Error(r.error.message)
+        }
+      } catch (err: any) {
+        toast({ title: "Nepodařilo se uložit rezervaci.", description: err?.message, variant: "destructive" })
+      } finally {
+        setBusyIds((s) => {
+          const next = new Set(s)
+          next.delete(term.id)
+          return next
+        })
+        await load()
+      }
+    },
+    [terms, periodMap, toast, load]
+  )
+
   const setLock = useCallback(
     async (term: PlanTerm, locked: boolean) => {
+      if (term.windowId) {
+        if (locked) await bookWindowSlot(term)
+        return
+      }
       const siblings = terms.filter((t) => t.period_id === term.periodId && t.subject_id === term.subjectId)
       const parts = periodMap.get(term.periodId)?.exam_parts?.[term.subjectId]
       const unlock = locked ? termsToUnlock(siblings.map((t) => ({ id: t.id, locked: !!t.locked, part_ids: t.part_ids })), term.id, parts) : []
@@ -416,7 +538,7 @@ export function GlobalExamScheduler() {
         })
       }
     },
-    [terms, periodMap, toast, load]
+    [terms, periodMap, toast, load, bookWindowSlot]
   )
 
   const showTerm = (term: PlanTerm) => {

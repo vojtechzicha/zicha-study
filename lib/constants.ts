@@ -415,12 +415,50 @@ export interface ExamTerm {
   part_ids?: string[] // parts of a split exam this term covers; missing = all
   is_pre_term?: boolean // předtermín; missing = regular term
   is_tentative?: boolean // not yet confirmed; missing = confirmed
+  // A window term: any day from `date` to `window_end` (inclusive), at `venue` when set (only the
+  // days it is open). The scheduler expands it into candidate slots (lib/exam-scheduler/windows.ts).
+  window_end?: string | null
+  venue?: ExamVenue | null
+  // A term recorded from a window after the student booked a slot; while it exists, the window
+  // isn't expanded.
+  window_id?: string | null
   // Set on terms kept in sync with a university system (POST /api/exam-terms/import).
   source?: ExamTermSource | null
   external_id?: string | null
   external?: ExamTermExternal | null
   created_at: string
   updated_at: string
+}
+
+// ─── Exam venues with their own opening days (docs/EXAM_WINDOWS.md) ─────────
+
+export const EXAM_VENUES = {
+  TC_PEF: 'tc_pef', // Testovací centrum PEF ČZU
+} as const
+
+export type ExamVenue = (typeof EXAM_VENUES)[keyof typeof EXAM_VENUES]
+
+export const EXAM_VENUE_INFO: Record<
+  ExamVenue,
+  { label: string; shortLabel: string; url: string; defaultOpen: string; defaultClose: string; bookingHint: string }
+> = {
+  tc_pef: {
+    label: 'Testovací centrum PEF',
+    shortLabel: 'TC PEF',
+    url: 'https://tc.pef.czu.cz/aktualni-oteviraci-doba-testovaciho-centra-pef-czu/',
+    defaultOpen: '08:00',
+    defaultClose: '20:00',
+    bookingHint: 'Místo se rezervuje v Moodle v kurzu předmětu, nejpozději 2 hodiny předem. Rezervace není přihláškou na zkoušku v UIS.',
+  },
+}
+
+// One day a venue is open, as last published by it (venue_days).
+export interface VenueDay {
+  venue: ExamVenue
+  date: string // YYYY-MM-DD
+  open_from: string // HH:MM
+  open_to: string // HH:MM
+  occupancy: number | null // % booked
 }
 
 // ─── Imported exam terms (docs/EXAM_IMPORT.md) ──────────────────────────────

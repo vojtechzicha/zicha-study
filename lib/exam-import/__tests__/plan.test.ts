@@ -213,6 +213,12 @@ describe("planImport: adopting a term entered by hand", () => {
     expect(op.op === "update" && op.patch.start_time).toBe("16:00")
   })
 
+  it("never adopts a window term", () => {
+    const windowTerm = { ...manual, _id: "t-window", locked: false, is_tentative: false, window_end: "2026-12-20", venue: "tc_pef" }
+    const plan = planImport(input({ terms: [windowTerm], incoming: [term({ date: "2026-12-13", start_time: "15:45" })] }))
+    expect(plan.ops.map((o) => o.op)).toEqual(["create"])
+  })
+
   it("adopts one manual term only once", () => {
     const plan = planImport(
       input({
