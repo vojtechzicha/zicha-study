@@ -20,6 +20,7 @@ const external: ExamTermExternal = {
   auto_locked: false,
   removed_at: null,
   synced_at: "2026-11-01T10:00:00.000Z",
+  url: "https://is.czu.cz/auth/student/terminy_seznam.pl?lang=cz",
 }
 
 describe("SyncedTermInfo", () => {
@@ -35,6 +36,15 @@ describe("SyncedTermInfo", () => {
     expect(html).toContain("zkouška (písemná) · řádný · AII · A. Novák · 4/30 přihlášeno · Přihlašování od 30. 11.")
     expect(html).toContain("Přihlašování ještě nezačalo.")
     expect(html).not.toContain("už termín není")
+    expect(html).toContain('href="https://is.czu.cz/auth/student/terminy_seznam.pl?lang=cz"')
+    expect(html).toContain("Přihlásit v UIS")
+  })
+
+  it("links registered terms for signing off and never renders a non-https link", () => {
+    const registered = renderToStaticMarkup(<SyncedTermInfo term={{ source: "uis", external: { ...external, status: "registered" } }} />)
+    expect(registered).toContain("Otevřít v UIS")
+    const unsafe = renderToStaticMarkup(<SyncedTermInfo term={{ source: "uis", external: { ...external, url: "javascript:alert(1)" } }} />)
+    expect(unsafe).not.toContain("href=")
   })
 
   it("keeps the compact form short and flags a dropped term", () => {

@@ -48,6 +48,15 @@ export const importedTermSchema = z
     registration_from: localDateTime,
     registration_to: localDateTime,
     deregistration_to: localDateTime,
+    // Page where the student registers for the term (an overview, never a one-click action).
+    url: z
+      .string()
+      .trim()
+      .max(500)
+      .url()
+      .refine((u) => u.startsWith("https://"), "Use an https:// address.")
+      .nullable()
+      .default(null),
   })
   .strict()
 

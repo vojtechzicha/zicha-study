@@ -43,6 +43,7 @@ export interface ImportEvent {
   room: string | null
   status: string | null
   registration_from: string | null
+  url: string | null
   changes?: Record<string, { from: unknown; to: unknown }>
 }
 
@@ -176,6 +177,7 @@ function externalFor(term: ImportedTerm, previous: ExamTermExternal | null | und
     registration_from: term.registration_from,
     registration_to: term.registration_to,
     deregistration_to: term.deregistration_to,
+    url: term.url,
     status: term.status,
     status_note: term.status_note,
     auto_locked: previous?.auto_locked ?? false,
@@ -234,6 +236,7 @@ export function planImport(input: PlanInput): ImportPlan {
     room: term.room,
     status: term.status,
     registration_from: term.registration_from,
+    url: term.url,
     ...extra,
   })
 
@@ -432,5 +435,6 @@ function termFromDoc(t: Doc): ImportedTerm {
     registration_from: x.registration_from ?? null,
     registration_to: x.registration_to ?? null,
     deregistration_to: x.deregistration_to ?? null,
+    url: x.url ?? null,
   }
 }

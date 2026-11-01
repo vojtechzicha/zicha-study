@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { AlertTriangle, RefreshCw } from "lucide-react"
+import { AlertTriangle, ExternalLink, RefreshCw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   EXTERNAL_TERM_STATUS,
@@ -56,6 +56,18 @@ export function SyncedTermInfo({ term, compact = false }: { term: SyncedTerm; co
           {EXTERNAL_TERM_STATUS_LABELS[status]}
         </Badge>
         {line && <span className="text-muted-foreground">{line}</span>}
+        {x.url?.startsWith("https://") && (
+          <a
+            href={x.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline-offset-2 hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            {x.status === EXTERNAL_TERM_STATUS.REGISTERED ? `Otevřít v ${label}` : `Přihlásit v ${label}`}
+          </a>
+        )}
       </div>
       {!compact && x.status === EXTERNAL_TERM_STATUS.UNAVAILABLE && x.status_note && (
         <p className="text-xs text-muted-foreground">{x.status_note}</p>
