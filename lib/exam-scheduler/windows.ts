@@ -32,11 +32,13 @@ export interface ExpandOptions {
   periodStart: string // candidates before it are předtermíny
   calendars: Partial<Record<ExamVenue, VenueCalendar>>
   earliestArrival?: string // HH:MM, the study's earliest arrival
-  // The study's other candidate terms by day ([start, end] in minutes). When given, only these
-  // days are offered, in the slot that doesn't collide with them (both slots if neither is clear),
-  // plus the window's first and last open day: a test on a day with a trip anyway costs nothing
-  // extra, and offering every day of a five-week window makes the exhaustive search far too slow.
+  // The study's other candidate terms by day ([start, end] in minutes). Slots are then also
+  // offered right before and right after them (the gaps between exams). With `onlyAnchorDays`,
+  // only these days are offered, in the slots clear of them, plus the window's first and last open
+  // day: a test on a day with a trip anyway costs nothing extra, and offering every day of a
+  // five-week window makes the exhaustive search far too slow.
   anchors?: Map<string, [number, number][]>
+  onlyAnchorDays?: boolean
 }
 
 /**
@@ -114,7 +116,7 @@ export function venueHours(
 export function expandWindowTerm(term: WindowTermInput, opts: ExpandOptions): GlobalTerm[] {
   const all = expandAllDays(term, opts)
   const anchors = opts.anchors
-  if (!anchors) return all
+  if (!anchors || !opts.onlyAnchorDays) return all
   const days = [...new Set(all.map((s) => s.date))]
   const out: GlobalTerm[] = []
   for (const date of days) {
@@ -136,7 +138,10 @@ export function expandWindowTerm(term: WindowTermInput, opts: ExpandOptions): Gl
   return out
 }
 
-/** Every open day of the window, with an early and (when the day is long enough) a late slot. */
+/**
+ * Every open day of the window: the earliest start, the latest one (when far enough apart) and
+ * starts right before and after the study's other exams that day, so a test can go in a gap.
+ */
 function expandAllDays(term: WindowTermInput, opts: ExpandOptions): GlobalTerm[] {
   const out: GlobalTerm[] = []
   const first = term.date > opts.today ? term.date : opts.today
@@ -160,8 +165,13 @@ function expandAllDays(term: WindowTermInput, opts: ExpandOptions): GlobalTerm[]
     const arrival = opts.earliestArrival ? parseTimeToMinutes(opts.earliestArrival) : open
     const early = Math.max(open, arrival)
     if (early > lastStart) continue
-    const slots = lastStart - early >= MIN_SLOT_SPREAD_MINUTES ? [early, lastStart] : [early]
-    for (const start of slots) {
+    const starts = new Set(lastStart - early >= MIN_SLOT_SPREAD_MINUTES ? [early, lastStart] : [early])
+    for (const [b0, b1] of opts.anchors?.get(date) || []) {
+      for (const start of [b0 - CLEAR_MINUTES - term.durationMinutes, b1 + CLEAR_MINUTES]) {
+        if (start >= early && start <= lastStart) starts.add(start)
+      }
+    }
+    for (const start of [...starts].sort((a, b) => a - b)) {
       const startTime = toTime(start)
       out.push({
         ...base,

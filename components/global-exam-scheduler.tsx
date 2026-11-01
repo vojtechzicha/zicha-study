@@ -304,7 +304,8 @@ export function GlobalExamScheduler() {
               periodStart: period.start_date,
               calendars: venueCalendars,
               earliestArrival: arrival ? arrival.substring(0, 5) : undefined,
-              anchors: fullWindows.has(key) ? undefined : anchorsByStudy.get(period.study_id),
+              anchors: anchorsByStudy.get(period.study_id),
+              onlyAnchorDays: !fullWindows.has(key),
             }
           )
         }),

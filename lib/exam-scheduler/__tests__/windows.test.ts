@@ -96,15 +96,18 @@ describe("expandWindowTerm", () => {
       { date: "2027-01-08", startTime: "18:30", durationMinutes: 60 },
       { date: "2027-01-30", startTime: "09:00", durationMinutes: 60 }, // outside the window
     ])
-    const slots = expandWindowTerm(window({ windowEnd: "2027-01-12" }), { ...opts, calendars: {}, anchors })
+    const slots = expandWindowTerm(window({ windowEnd: "2027-01-12" }), { ...opts, calendars: {}, anchors, onlyAnchorDays: true })
     expect(slots.map((s) => `${s.date} ${s.startTime}`)).toEqual([
-      "2027-01-04 08:00", // first open day: both slots
+      "2027-01-04 08:00", // first open day: both ends
       "2027-01-04 19:00",
-      "2027-01-06 08:00", // both clear of the 15:00 exam
+      "2027-01-06 08:00", // clear of the 15:00 exam: the ends and right before and after it
+      "2027-01-06 13:30",
+      "2027-01-06 16:30",
       "2027-01-06 19:00",
-      "2027-01-07 19:00", // only the evening is clear
-      "2027-01-08 08:00", // neither is clear: both
-      "2027-01-08 19:00",
+      "2027-01-07 10:00", // the morning exam: right after it and the evening
+      "2027-01-07 19:00",
+      "2027-01-08 10:00", // between the morning and the evening exam
+      "2027-01-08 17:00",
       "2027-01-12 08:00", // last open day
       "2027-01-12 19:00",
     ])
@@ -172,6 +175,7 @@ describe("windows in the global scheduler", () => {
       periodStart: "2027-01-04",
       calendars: {},
       anchors,
+      onlyAnchorDays: true,
     })
   const orals = (prefix: string) => czuTerms.filter((x) => x.termId.startsWith(`${prefix}-o`))
 
@@ -198,10 +202,31 @@ describe("windows in the global scheduler", () => {
       periodStart: "2027-01-04",
       calendars: {},
       anchors: anchorsOf([written]),
+      onlyAnchorDays: true,
     })
     const { forced } = generateGlobalSchedule([req("czu", "x", [written, ...slots], split())], [czu], 60, 60)
     expect(forced.unschedulable).toEqual([])
     expect(forced.selectedTermIds).toContain("tc@2027-01-11T19:00")
+  })
+
+  it("offers the gap between two exams that take both ends of the day", () => {
+    const morning = t("m", "2027-01-11", "08:00", undefined, { durationMinutes: 60, locked: true })
+    const evening = t("e", "2027-01-11", "19:00", undefined, { durationMinutes: 60, locked: true })
+    const slots = expandWindowTerm(window({ termId: "tc", date: "2027-01-11", windowEnd: "2027-01-11", partIds: undefined, durationMinutes: 60 }), {
+      today: "2026-11-01",
+      periodStart: "2027-01-04",
+      calendars: {},
+      anchors: anchorsOf([morning, evening]),
+      onlyAnchorDays: true,
+    })
+    const { forced } = generateGlobalSchedule(
+      [req("czu", "m", [morning]), req("czu", "e", [evening]), req("czu", "tc", slots)],
+      [czu],
+      60,
+      60
+    )
+    expect(forced.unschedulable).toEqual([])
+    expect(forced.selectedTermIds.find((id) => id.startsWith("tc@"))).toMatch(/T(09:30|17:30)$/)
   })
 
   it("falls back to every open day when windows alone can't be placed", () => {
@@ -216,7 +241,8 @@ describe("windows in the global scheduler", () => {
             today: "2026-11-01",
             periodStart: "2027-01-04",
             calendars: {},
-            anchors: full.has(`czu:${id}`) ? undefined : anchorsOf([]),
+            anchors: anchorsOf([]),
+            onlyAnchorDays: !full.has(`czu:${id}`),
           })
         )
       )
