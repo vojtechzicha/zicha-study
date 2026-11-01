@@ -463,6 +463,7 @@ export interface ExamTermExternal {
   registration_from: string | null
   registration_to: string | null
   deregistration_to: string | null
+  url?: string | null // registration page in the source system
   status: ExternalTermStatus
   status_note: string | null
   // The sync locked the term because the student registered; it unlocks it again on deregistration.

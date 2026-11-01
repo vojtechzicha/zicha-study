@@ -132,6 +132,7 @@ describe("planImport: new terms", () => {
       external_id: "1001",
       external: { room: "AII", capacity: 30, registered_count: 4, status: "available", registration_from: "2026-11-30T00:00" },
     })
+    expect(plan.events[0].url).toBeNull()
     expect(plan.events.map((e) => e.type)).toEqual(["created"])
     expect(plan.events[0]).toMatchObject({ subject_name: "Velkoobchod", period_name: "Zkoušky (ZS 2026/2027)" })
   })
@@ -350,5 +351,8 @@ describe("import request schema", () => {
     expect(importRequestSchema.safeParse({ ...body, terms: [{ ...body.terms[0], date: "1.1.2027" }] }).success).toBe(false)
     expect(importRequestSchema.safeParse({ ...body, source: "stag" }).success).toBe(true)
     expect(importRequestSchema.safeParse({ ...body, source: "insis" }).success).toBe(false)
+    expect(importRequestSchema.safeParse({ ...body, terms: [{ ...body.terms[0], url: "javascript:alert(1)" }] }).success).toBe(false)
+    expect(importRequestSchema.safeParse({ ...body, terms: [{ ...body.terms[0], url: "http://is.czu.cz/" }] }).success).toBe(false)
+    expect(importRequestSchema.safeParse({ ...body, terms: [{ ...body.terms[0], url: "https://is.czu.cz/x" }] }).success).toBe(true)
   })
 })

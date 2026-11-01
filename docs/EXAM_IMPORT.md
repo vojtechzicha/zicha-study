@@ -47,12 +47,15 @@ printf %s "$token" | shasum -a 256 | cut -d' ' -f1
     "capacity": 30, "registered_count": 4,
     "registration_from": "2026-11-30T00:00",            // Prague time
     "registration_to": "2026-12-11T23:59",
-    "deregistration_to": "2026-12-12T12:00"
+    "deregistration_to": "2026-12-12T12:00",
+    "url": "https://is.czu.cz/auth/student/terminy_seznam.pl?lang=cz"   // registration page (https only)
   }]
 }
 ```
 
-Body limit 512 kB, at most 500 terms. Unknown fields are rejected.
+Body limit 512 kB, at most 500 terms. Unknown fields are rejected. `url` is the page where the
+student registers (an overview page, never a link that registers on opening); the app shows it as
+"Přihlásit v UIS/STAG" and only renders `https://` links.
 
 ## Response
 
