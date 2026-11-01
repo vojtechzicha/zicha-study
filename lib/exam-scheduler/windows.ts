@@ -35,6 +35,9 @@ export interface ExpandOptions {
   // The study's travel settings: slots are also offered at the times that allow travelling there
   // and back the same day (no night in the city), and its free days are kept by the reduction.
   study?: SchedulerConfig
+  // The minimum gap between two parts of a split exam (exam_part_gap_minutes): gap slots are also
+  // offered this far from the study's other exams, besides right at their start and end.
+  partGapMinutes?: number
   // The study's other candidate terms by day ([start, end] in minutes). Slots are then also
   // offered right before and right after them (the gaps between exams). With `onlyAnchorDays`,
   // only these days are offered, in the slots clear of them, plus the window's first and last open
@@ -77,9 +80,6 @@ export function anchorsOf(terms: { date: string; startTime: string; durationMinu
   }
   return map
 }
-
-// A slot is clear of another exam when there is at least this much time between them.
-const CLEAR_MINUTES = 30
 
 const SEP = "@"
 // A late slot is offered only when it is far enough from the early one to matter.
@@ -129,7 +129,8 @@ export function expandWindowTerm(term: WindowTermInput, opts: ExpandOptions): Gl
       const clear = slots.filter((s) => {
         const start = parseTimeToMinutes(s.startTime)
         const end = start + s.durationMinutes
-        return busy.every(([b0, b1]) => end + CLEAR_MINUTES <= b0 || b1 + CLEAR_MINUTES <= start)
+        // Like the solver: two exams of one study only must not overlap.
+        return busy.every(([b0, b1]) => end <= b0 || b1 <= start)
       })
       // Every clear slot: a split exam's order may need the later one (written at 10:00, then the
       // TC part). If none is clear, both, and the solver sorts it out.
@@ -191,9 +192,14 @@ function expandAllDays(term: WindowTermInput, opts: ExpandOptions): GlobalTerm[]
         if (start >= early && start <= lastStart) starts.add(start)
       }
     }
+    // Right before and after the study's other exams (the solver only forbids overlap), and the
+    // part gap away from them (needed when they are the other part of the same exam).
+    const pads = [0, ...(opts.partGapMinutes && opts.partGapMinutes > 0 ? [opts.partGapMinutes] : [])]
     for (const [b0, b1] of opts.anchors?.get(date) || []) {
-      for (const start of [b0 - CLEAR_MINUTES - term.durationMinutes, b1 + CLEAR_MINUTES]) {
-        if (start >= early && start <= lastStart) starts.add(start)
+      for (const pad of pads) {
+        for (const start of [b0 - pad - term.durationMinutes, b1 + pad]) {
+          if (start >= early && start <= lastStart) starts.add(start)
+        }
       }
     }
     for (const start of [...starts].sort((a, b) => a - b)) {

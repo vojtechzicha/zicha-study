@@ -304,6 +304,7 @@ export function GlobalExamScheduler() {
               periodStart: period.start_date,
               calendars: venueCalendars,
               study: study ? buildStudyConfig(study) : undefined,
+              partGapMinutes,
               anchors: anchorsByStudy.get(period.study_id),
               onlyAnchorDays: !fullWindows.has(key),
             }
@@ -313,7 +314,7 @@ export function GlobalExamScheduler() {
       })
     }
     return reqs
-  }, [terms, periodMap, subjectMap, studies, venueCalendars, today])
+  }, [terms, periodMap, subjectMap, studies, venueCalendars, today, partGapMinutes])
 
   const studyConfigs: GlobalStudyConfig[] = useMemo(() => studies.map(buildStudyConfig), [studies])
   const windowRequirementIds = useMemo(

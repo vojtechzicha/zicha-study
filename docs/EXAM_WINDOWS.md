@@ -28,8 +28,9 @@ weeks ahead, so the day is worth planning early.
 The solver works with concrete slots, so the scheduler page expands each window:
 
 - **Slots of a day**: the venue's opening time and last start, the first and last start that allow
-  travelling there and back the same day (no night in the city), and starts right before and after
-  the study's other exams that day (the gaps between them).
+  travelling there and back the same day (no night in the city), and starts right at the start and
+  end of the study's other exams that day and the part gap (`exam_part_gap_minutes`) away from
+  them (the gaps between exams; the solver only forbids overlap).
 - **Days** (reduced): the days the study has other candidate terms (the test then shares that trip
   and costs nothing extra; only the slots clear of those exams), the window's first and last open
   day, and its free days (no day off work; one same-day-travel slot each). Offering every day of a
