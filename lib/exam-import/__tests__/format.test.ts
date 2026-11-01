@@ -28,6 +28,7 @@ describe("synced term formatting", () => {
 
   it("labels known sources only", () => {
     expect(sourceLabel("uis")).toBe("UIS")
+    expect(sourceLabel("stag")).toBe("STAG")
     expect(sourceLabel("other")).toBeNull()
     expect(sourceLabel(null)).toBeNull()
   })

@@ -14,7 +14,7 @@ function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } })
 }
 
-// Sync of exam terms from a university system (UIS at ČZU). Auth: a bearer token whose SHA-256 is
+// Sync of exam terms from a university system (UIS at ČZU, IS/STAG at UHK). Auth: a bearer token whose SHA-256 is
 // in EXAM_IMPORT_TOKEN_SHA256. Contract and matching rules: docs/EXAM_IMPORT.md.
 export async function POST(request: Request) {
   const auth = checkImportToken(request.headers.get("authorization"))

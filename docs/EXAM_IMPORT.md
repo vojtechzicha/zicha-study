@@ -1,10 +1,17 @@
 # Exam term import
 
 `POST /api/exam-terms/import` keeps the exam scheduler's candidate terms in sync with a university
-system. The importer runs elsewhere: it logs into the system as the student, reads the exam terms
-page, normalizes it and posts a full snapshot here. The only importer today is `uis-watch` in the
-private `agents-study` repo (UIS at ČZU, twice a day). This app matches the terms to its own
-subjects and periods and decides what to write.
+system. The importer runs elsewhere: it logs into the system as the student, reads the exam terms,
+normalizes them and posts a full snapshot here. The importer is `exam-watch` in the private
+`agents-study` repo, one source per study:
+
+| `source` | System | Study |
+|---|---|---|
+| `uis` | UIS at ČZU (`is.czu.cz`, exam terms page) | Ing. PEF ČZU |
+| `stag` | IS/STAG at UHK (`stagws.uhk.cz`, web service `terminy/getTerminyProStudenta`) | Ing. FIM UHK |
+
+This app matches the terms to its own subjects and periods and decides what to write; it doesn't
+care which system they came from.
 
 ## Auth
 
@@ -96,5 +103,5 @@ Synced terms carry `source`, `external_id` and `external` (the system's details 
 A unique index on `(study_id, source, external_id)` (synced terms only) keeps overlapping imports
 from creating a term twice; the loser skips the term with a warning.
 
-Every write is logged in `mcp_audit` with `tool: "exam_import"` and `client_name: "UIS sync"`, so
+Every write is logged in `mcp_audit` with `tool: "exam_import"` and `client_name: "UIS sync"` / `"STAG sync"`, so
 `list_recent_changes` shows synced changes next to the connector's.
