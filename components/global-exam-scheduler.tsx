@@ -39,7 +39,7 @@ import {
 } from "@/lib/actions/exam-scheduler"
 import { SchedulerStudySettingsDialog, type SchedulerStudy } from "@/components/scheduler-study-settings-dialog"
 import { generateGlobalSchedule, type GlobalRequirement, type GlobalStudyConfig, type GlobalScheduleComparison } from "@/lib/exam-scheduler"
-import { addMinutesToTime } from "@/lib/exam-scheduler/utils"
+import { addMinutesToTime, parseTimeToMinutes } from "@/lib/exam-scheduler/utils"
 import {
   buildTrips,
   lockPriority,
@@ -264,6 +264,20 @@ export function GlobalExamScheduler() {
       )
     }
     const studyById = new Map(studies.map((s) => [s.id, s]))
+    // Other studies' exams, with the transfer gap the solver requires between studies.
+    const transit = (studyId: string) => Math.round((studyById.get(studyId)?.transit_duration_hours ?? EXAM_SCHEDULER_DEFAULTS.TRANSIT_DURATION_HOURS) * 60)
+    const crossByStudy = new Map<string, Map<string, [number, number, number][]>>()
+    for (const study of studyById.keys()) {
+      const map = new Map<string, [number, number, number][]>()
+      for (const t of terms) {
+        const other = studyOf(t)
+        if (!other || other === study || t.window_end) continue
+        const start = parseTimeToMinutes((t.start_time || "09:00").substring(0, 5))
+        const gap = t.is_online ? 0 : transit(study) + transit(other) + Math.max(0, breakMinutes)
+        map.set(t.date, [...(map.get(t.date) || []), [start, start + t.duration_minutes, gap]])
+      }
+      crossByStudy.set(study, map)
+    }
     const windowsByStudy = new Map<string, number>()
     for (const t of terms) {
       const study = studyOf(t)
@@ -311,6 +325,7 @@ export function GlobalExamScheduler() {
               study: study ? buildStudyConfig(study) : undefined,
               partGapMinutes,
               otherWindows: Math.max(0, (windowsByStudy.get(period.study_id) || 0) - 1),
+              crossStudyAnchors: crossByStudy.get(period.study_id),
               anchors: anchorsByStudy.get(period.study_id),
               onlyAnchorDays: !fullWindows.has(key),
             }
@@ -320,7 +335,7 @@ export function GlobalExamScheduler() {
       })
     }
     return reqs
-  }, [terms, periodMap, subjectMap, studies, venueCalendars, today, partGapMinutes])
+  }, [terms, periodMap, subjectMap, studies, venueCalendars, today, partGapMinutes, breakMinutes])
 
   const studyConfigs: GlobalStudyConfig[] = useMemo(() => studies.map(buildStudyConfig), [studies])
   const windowRequirementIds = useMemo(

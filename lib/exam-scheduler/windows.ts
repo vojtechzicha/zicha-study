@@ -42,6 +42,9 @@ export interface ExpandOptions {
   // fallback when something didn't fit) a day then also offers back-to-back starts from the opening
   // time and back from the last start, so several tests can share a short day.
   otherWindows?: number
+  // Other studies' exams by day as [start, end, required gap] (both transits plus the break, 0 for
+  // online ones). In the full expansion a day also offers starts that far from them.
+  crossStudyAnchors?: Map<string, [number, number, number][]>
   // The study's other candidate terms by day ([start, end] in minutes). Slots are then also
   // offered right before and right after them (the gaps between exams). With `onlyAnchorDays`,
   // only these days are offered, in the slots clear of them, plus the window's first and last open
@@ -201,6 +204,13 @@ function expandAllDays(term: WindowTermInput, opts: ExpandOptions): GlobalTerm[]
     for (let k = 1; k <= packing; k++) {
       for (const start of [early + k * term.durationMinutes, lastStart - k * term.durationMinutes]) {
         if (start >= early && start <= lastStart) starts.add(start)
+      }
+    }
+    if (!opts.onlyAnchorDays) {
+      for (const [b0, b1, gap] of opts.crossStudyAnchors?.get(date) || []) {
+        for (const start of [b0 - gap - term.durationMinutes, b1 + gap]) {
+          if (start >= early && start <= lastStart) starts.add(start)
+        }
       }
     }
     // Right before and after the study's other exams (the solver only forbids overlap), and the

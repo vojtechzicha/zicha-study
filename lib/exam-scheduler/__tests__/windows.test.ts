@@ -342,6 +342,35 @@ describe("windows in the global scheduler", () => {
     expect(comparison.forced.selectedTermIds.map((id) => parseWindowCandidateId(id)!.startTime).sort()).toEqual(["08:00", "09:00", "10:00"])
   })
 
+  it("leaves the transfer time to another study's exams that day", () => {
+    // TC open 08:00–14:00 on 4. 1.; UHK exams 08:00–09:00 and 12:00–14:00; 30-min journeys, no break.
+    const a = { ...czu, travelDurationHours: 0.5 }
+    const b = { ...uhk, travelDurationHours: 0.5 }
+    const cal = calendar([day("2027-01-04", "08:00", "14:00")], "2027-01-04")
+    const u1 = t("u1", "2027-01-04", "08:00", undefined, { durationMinutes: 60, locked: true })
+    const u2 = t("u2", "2027-01-04", "12:00", undefined, { durationMinutes: 120, locked: true })
+    const build = (full: Set<string>) => [
+      req("uhk", "u1", [u1]),
+      req("uhk", "u2", [u2]),
+      req(
+        "czu",
+        "tc",
+        expandWindowTerm(window({ termId: "tc", date: "2027-01-04", windowEnd: "2027-01-04", partIds: undefined, durationMinutes: 60 }), {
+          today: "2026-11-01",
+          periodStart: "2027-01-04",
+          calendars: { tc_pef: cal },
+          study: a,
+          anchors: anchorsOf([]),
+          onlyAnchorDays: !full.has("czu:tc"),
+          crossStudyAnchors: new Map([["2027-01-04", [[480, 540, 60], [720, 840, 60]]]]),
+        })
+      ),
+    ]
+    const { comparison } = scheduleWithWindowFallback(build, (r) => generateGlobalSchedule(r, [a, b], 0, 60), new Set(["czu:tc"]))
+    expect(comparison.forced.unschedulable).toEqual([])
+    expect(comparison.forced.selectedTermIds).toContain("tc@2027-01-04T10:00")
+  })
+
   it("falls back to every open day when windows alone can't be placed", () => {
     // Three one-hour windows on the same five days and no other exams to anchor them.
     const ids = ["a", "b", "c"]
