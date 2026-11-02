@@ -135,6 +135,28 @@ describe("update_practice_module", () => {
     expect(db.updatePracticeModule).not.toHaveBeenCalled()
   })
 
+  it("accepts tutorial blocks with an animation and sanitizes the frames", async () => {
+    const frame = { title: "Výchozí stav", events_html: ["<b>a</b>"], why_html: null, body_html: '<svg class="graph" onload="x"><circle class="node pa"/></svg>' }
+    const { isError } = await call("update_practice_module", {
+      subject_id: "sub1",
+      fields: { intro_blocks: [{ kind: "tutorial", title: "Ukázka", html: "<p>Úvod</p>", frames: [frame], after_html: "<p>Dál</p>" }] },
+    })
+    expect(isError).toBe(false)
+    const [, , content] = db.updatePracticeModule.mock.calls[0]
+    expect(content.intro_blocks[0].frames[0].body_html).toBe('<svg class="graph"><circle class="node pa"></circle></svg>')
+    expect(content.intro_blocks[0].after_html).toBe("<p>Dál</p>")
+  })
+
+  it("refuses frames on a block that isn't a tutorial", async () => {
+    const frame = { title: "x", events_html: [], why_html: null, body_html: "" }
+    const { isError } = await call("update_practice_module", {
+      subject_id: "sub1",
+      fields: { intro_blocks: [{ kind: "note", title: null, html: "", frames: [frame] }] },
+    })
+    expect(isError).toBe(true)
+    expect(db.updatePracticeModule).not.toHaveBeenCalled()
+  })
+
   it("only accepts a primary note of the same study", async () => {
     db.getStudyNoteById.mockResolvedValue({ _id: "n9", study_id: "other" })
     expect((await call("update_practice_module", { subject_id: "sub1", fields: { primary_note_id: "n9" } })).isError).toBe(true)

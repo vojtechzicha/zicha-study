@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { PRACTICE_EXAMPLE_KEY_PATTERN } from "@/lib/constants"
+import { PRACTICE_EXAMPLE_KEY_PATTERN, PRACTICE_INTRO_BLOCK_KINDS } from "@/lib/constants"
 import { dedupeKeys, practiceExampleKey } from "./keys"
 import { sanitizeFragment, type SanitizeIssues } from "./sanitize"
 import {
@@ -49,6 +49,9 @@ function cleanBlocks(blocks: PracticeIntroBlock[], where: string, issues: Saniti
   return blocks.map((block, i) => {
     const at = `${where} ${i + 1}`
     const out: PracticeIntroBlock = { kind: block.kind, title: block.title, html: clean(block.html, at, issues) }
+    if (block.kind !== PRACTICE_INTRO_BLOCK_KINDS.TUTORIAL && (block.frames !== undefined || block.after_html !== undefined)) {
+      issues.errors.push(`${at}: only tutorial blocks can have frames or after_html.`)
+    }
     // Absent fields stay absent: blocks without an animation keep their stored shape and hash.
     if (block.frames !== undefined) {
       out.frames = block.frames.map((frame, f) => ({
