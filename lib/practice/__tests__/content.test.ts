@@ -97,3 +97,36 @@ describe("prepareModuleContent", () => {
     expect(errorsOf(() => prepareModuleContent({ intro_html: '<a href="obsidian://open?vault=x">Zápis</a>' }))).toHaveLength(1)
   })
 })
+
+describe("preparePageContent – tutorials", () => {
+  const tutorial = () => parsePracticePageHtml(fixture("tutorial-page.html")).content
+
+  it("sanitizes the animation frames and keeps their SVG skeleton", () => {
+    const { content } = preparePageContent(tutorial(), { strict: true })
+    const block = content.intro_blocks[1]
+    expect(block.kind).toBe("tutorial")
+    const [first, second] = block.frames!
+    expect(first.body_html).toContain('<circle cx="10" cy="10" r="14" class="node start">')
+    expect(second.body_html).toContain('class="edge tree" stroke-dasharray="4 2"')
+    expect(first.why_html).toBe("Proč tady.")
+    expect(block.after_html).toBe("<p>Po animaci.</p>")
+  })
+
+  it("leaves blocks without an animation in their old shape", () => {
+    const { content } = preparePageContent(tutorial(), { strict: true })
+    expect(Object.keys(content.intro_blocks[0])).toEqual(["kind", "title", "html"])
+    expect(Object.keys(content.intro_blocks[2])).toEqual(["kind", "title", "html"])
+  })
+
+  it("reports problems inside frames", () => {
+    const page = tutorial()
+    page.intro_blocks[1].frames![0].body_html = '<p style="color:#ff0000;background:#123456">x</p>'
+    expect(errorsOf(() => preparePageContent(page, { strict: true })).join(" ")).toContain("intro block 2 frame 1")
+  })
+
+  it("allows frames only on tutorial blocks", () => {
+    const page = tutorial()
+    page.intro_blocks[2].frames = page.intro_blocks[1].frames
+    expect(errorsOf(() => preparePageContent(page, { strict: true })).join(" ")).toContain("Only tutorial blocks")
+  })
+})

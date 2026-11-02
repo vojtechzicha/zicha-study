@@ -243,6 +243,29 @@
 .practice-content p code,
 .practice-content li code { overflow-wrap: anywhere; }
 
+/* Tutorials ("Návod"): the collapsible section and the step player (components/practice/
+   practice-player.tsx). Frames share one SVG skeleton and are morphed in place, so class
+   changes on the graph transition. */
+.practice-content .tutorials h2 { margin: 24px 0 0; }
+.practice-content .tutorial h4 { margin: 0 0 .4em; }
+.practice-content p.meta svg { vertical-align: middle; }
+.practice-content .anim { margin: 14px 0 4px; }
+.practice-content .anim:focus-visible { outline: 2px solid var(--pc-accent); outline-offset: 6px; }
+.practice-content .frame { border-top: 1px dashed var(--pc-line); padding-top: 14px; margin-top: 10px; }
+.practice-content .frame ol { margin: .8em 0 .4em; padding-left: 1.3em; }
+.practice-content .frame li { margin: .25em 0; }
+.practice-content .why { border-left: 3px solid var(--pc-line); padding: 2px 0 2px 12px; margin: .6em 0 0; color: var(--pc-muted); }
+.practice-content[data-flavour="graph"] .framebody { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.practice-content[data-flavour="calc"] .framebody { display: block; }
+.practice-content .framebody > :not(.state) { min-width: 0; max-width: 100%; }
+.practice-content .framebody > .state { max-width: 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .practice-content .anim svg * { transition: fill .3s ease, stroke .3s ease, stroke-width .3s ease, opacity .3s ease; }
+  .practice-content .anim .mx td,
+  .practice-content .anim .mx th,
+  .practice-content .anim .tbl td { transition: background-color .3s ease, color .3s ease; }
+}
+
 /* Print: keep each card (example, intro block) on one page where possible */
 @media print {
   .practice-content .card { break-inside: avoid; }

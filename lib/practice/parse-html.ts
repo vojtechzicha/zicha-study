@@ -38,17 +38,77 @@ function isElement(node: AnyNode): node is Element {
   return node.type === "tag" || node.type === "script" || node.type === "style"
 }
 
-function introBlock($: CheerioAPI, card: Cheerio<Element>): PracticeIntroBlock {
-  const kind = card.hasClass("exam")
-    ? PRACTICE_INTRO_BLOCK_KINDS.EXAM
-    : card.find(".legend").length > 0
-      ? PRACTICE_INTRO_BLOCK_KINDS.LEGEND
-      : PRACTICE_INTRO_BLOCK_KINDS.NOTE
+function introBlock($: CheerioAPI, card: Cheerio<Element>, errors: string[], warnings: string[]): PracticeIntroBlock {
+  const kind = card.hasClass("tutorial")
+    ? PRACTICE_INTRO_BLOCK_KINDS.TUTORIAL
+    : card.hasClass("exam")
+      ? PRACTICE_INTRO_BLOCK_KINDS.EXAM
+      : card.find(".legend").length > 0
+        ? PRACTICE_INTRO_BLOCK_KINDS.LEGEND
+        : PRACTICE_INTRO_BLOCK_KINDS.NOTE
   const heading = card.children("h3").first()
   const title = heading.length > 0 ? text(heading) : null
   const body = card.clone()
   body.children("h3").first().remove()
-  return { kind, title: title || null, html: innerHtml($, body) }
+  if (kind !== PRACTICE_INTRO_BLOCK_KINDS.TUTORIAL) return { kind, title: title || null, html: innerHtml($, body) }
+  return tutorialBlock($, body, title || null, errors, warnings)
+}
+
+// .card.tutorial: content, at most one div.anim (a direct child) with its .frame children,
+// more content. The animation becomes structured frames; the content around it html/after_html.
+function tutorialBlock(
+  $: CheerioAPI,
+  body: Cheerio<Element>,
+  title: string | null,
+  errors: string[],
+  warnings: string[]
+): PracticeIntroBlock {
+  const where = `Tutorial „${title ?? "bez nadpisu"}“`
+  const anims = body.children(".anim")
+  if (body.find(".anim").length > anims.length) errors.push(`${where}: .anim must be a direct child of the card.`)
+  if (anims.length > 1) errors.push(`${where}: only one .anim per card (found ${anims.length}).`)
+  if (anims.length === 0) return { kind: PRACTICE_INTRO_BLOCK_KINDS.TUTORIAL, title, html: innerHtml($, body) }
+
+  const anim = anims.first()
+  const contents = body.contents().toArray()
+  const at = contents.indexOf(anim.get(0)!)
+  const frameNodes = anim.children(".frame").toArray()
+  const others = anim.children().length - frameNodes.length
+  if (others > 0) warnings.push(`${where}: ignored ${others} element(s) in .anim that aren't .frame.`)
+  if (frameNodes.length === 0) errors.push(`${where}: .anim has no .frame.`)
+
+  const frames = frameNodes.map((node, index) => {
+    const frame = $(node)
+    const heading = frame.children("h4").first()
+    const list = frame.children("ol").first()
+    const why = frame.children("p.why").first()
+    const framebody = frame.children(".framebody").first()
+    let body_html: string
+    if (framebody.length > 0) {
+      body_html = innerHtml($, framebody)
+    } else {
+      const rest = frame.clone()
+      rest.children("h4").first().remove()
+      rest.children("ol").first().remove()
+      rest.children("p.why").first().remove()
+      body_html = innerHtml($, rest)
+    }
+    return {
+      title: text(heading) || `Krok ${index + 1}`,
+      events_html: list.children("li").toArray().map((li) => innerHtml($, $(li))),
+      why_html: why.length > 0 ? innerHtml($, why) : null,
+      body_html,
+    }
+  })
+
+  const after = outerHtml($, contents.slice(at + 1))
+  return {
+    kind: PRACTICE_INTRO_BLOCK_KINDS.TUTORIAL,
+    title,
+    html: outerHtml($, contents.slice(0, at)),
+    frames,
+    ...(after ? { after_html: after } : {}),
+  }
 }
 
 function parseStep($: CheerioAPI, step: Cheerio<Element>, index: number): PracticeStep {
@@ -149,7 +209,7 @@ export function parsePracticePageHtml(html: string, options: { urlSlug?: string 
   const introEnd = firstExample < 0 ? nodes.length : firstExample
   for (let i = h1Index + 1; i < introEnd; i++) {
     const node = $(nodes[i])
-    if (node.is(".card") && !node.is("nav")) intro_blocks.push(introBlock($, node as Cheerio<Element>))
+    if (node.is(".card") && !node.is("nav")) intro_blocks.push(introBlock($, node as Cheerio<Element>, errors, warnings))
   }
 
   // Nav meta per example ("(9 vrcholů, 12 hran)" → "9 vrcholů, 12 hran"), keyed by #pN.

@@ -7,17 +7,17 @@
 export const PRACTICE_SERIES_CLASSES = ["ser1", "ser2", "ser3", "ser4", "ser5", "ser6", "ser7", "ser8"] as const
 
 export const PRACTICE_CLASSES: ReadonlySet<string> = new Set([
-  "abc", "ans", "arc", "art", "bad", "box", "c", "calc", "card", "dash", "dim", "edge", "err", "exam",
-  "faint", "gap", "given", "good", "graph", "grid", "hl", "hot", "hx", "k1", "k2", "k3", "k4", "k5", "k6",
+  "abc", "anim", "ans", "arc", "art", "bad", "box", "c", "calc", "card", "dash", "dim", "edge", "err", "exam",
+  "faint", "frame", "framebody", "gap", "given", "good", "graph", "grid", "hl", "hot", "hx", "k1", "k2", "k3", "k4", "k5", "k6",
   "k7", "kc", "kring", "lab", "layer", "lead", "legend", "lifo", "lt", "meta", "mono", "mx", "new", "nl",
   "node", "non", "num", "pa", "pb", "pf", "res", "result", "rm", "row", "sb", "scroll", "sel", "start",
-  "state", "step", "stepbody", "sw", "t", "task", "tbl", "tree", "u", "wl", "wt", "x",
+  "state", "step", "stepbody", "sw", "t", "task", "tbl", "tree", "tutorial", "u", "why", "wl", "wt", "x",
   ...PRACTICE_SERIES_CLASSES,
 ])
 
 // Classes app/practice-content.css styles for the app's own page shell (rendered by React, never
 // accepted in uploaded content).
-export const PRACTICE_SHELL_CLASSES: ReadonlySet<string> = new Set(["back"])
+export const PRACTICE_SHELL_CLASSES: ReadonlySet<string> = new Set(["back", "tutorials"])
 
 // Generator CSS variables → scoped names. The generators' --card/--muted/--accent would clash
 // with the shadcn tokens, so every one gets a --pc- prefix (app/practice-content.css defines them).

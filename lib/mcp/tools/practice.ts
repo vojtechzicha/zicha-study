@@ -5,7 +5,7 @@ import { PRACTICE_FLAVOURS, PRACTICE_INTRO_BLOCK_KINDS, PRACTICE_SLUG_PATTERN } 
 import { dryRun, enumOf, recordId, text } from "@/lib/mcp/schemas"
 import { ToolError, audit, commitDelete, commitUpdate, defineTool, requireDoc, type ToolContext } from "@/lib/mcp/tool-kit"
 import { prepareModuleContent, PracticeContentError } from "@/lib/practice/content"
-import { manifestGroupSchema, practiceExampleKeySchema } from "@/lib/practice/schema"
+import { PRACTICE_MAX_FRAMES, animationFrameSchema, manifestGroupSchema, practiceExampleKeySchema } from "@/lib/practice/schema"
 import { PRACTICE_UPLOAD_MAX_BYTES, issuePracticeUploadToken } from "@/lib/practice/upload"
 import { practiceLinks } from "@/lib/practice/urls"
 
@@ -19,13 +19,21 @@ const DEFAULT_ORIGIN = "https://www.zicha.study"
 
 const practiceSlug = z.string().regex(PRACTICE_SLUG_PATTERN, "Use 2–50 lowercase letters, digits, - or _.")
 
+// Same fields and tutorial-only rule as introBlockSchema (lib/practice/schema.ts), so blocks read
+// with get_practice_module can be sent back unchanged, animations included.
 const blockSchema = z
   .object({
     kind: enumOf(PRACTICE_INTRO_BLOCK_KINDS),
     title: z.string().trim().max(300).nullable(),
     html: z.string().max(200_000),
+    frames: z.array(animationFrameSchema).min(1).max(PRACTICE_MAX_FRAMES).optional().describe("Tutorial animation frames (kind tutorial only)."),
+    after_html: z.string().max(200_000).optional().describe("Tutorial content after the animation (kind tutorial only)."),
   })
   .strict()
+  .refine(
+    (block) => block.kind === PRACTICE_INTRO_BLOCK_KINDS.TUTORIAL || (block.frames === undefined && block.after_html === undefined),
+    { message: "Only tutorial blocks can have frames or after_html." }
+  )
 
 function origin(ctx: ToolContext) {
   return ctx.origin || DEFAULT_ORIGIN

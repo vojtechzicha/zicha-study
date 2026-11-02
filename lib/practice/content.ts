@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { PRACTICE_EXAMPLE_KEY_PATTERN } from "@/lib/constants"
+import { PRACTICE_EXAMPLE_KEY_PATTERN, PRACTICE_INTRO_BLOCK_KINDS } from "@/lib/constants"
 import { dedupeKeys, practiceExampleKey } from "./keys"
 import { sanitizeFragment, type SanitizeIssues } from "./sanitize"
 import {
@@ -46,11 +46,24 @@ function clean(html: string, where: string, issues: SanitizeIssues): string {
 }
 
 function cleanBlocks(blocks: PracticeIntroBlock[], where: string, issues: SanitizeIssues): PracticeIntroBlock[] {
-  return blocks.map((block, i) => ({
-    kind: block.kind,
-    title: block.title,
-    html: clean(block.html, `${where} ${i + 1}`, issues),
-  }))
+  return blocks.map((block, i) => {
+    const at = `${where} ${i + 1}`
+    const out: PracticeIntroBlock = { kind: block.kind, title: block.title, html: clean(block.html, at, issues) }
+    if (block.kind !== PRACTICE_INTRO_BLOCK_KINDS.TUTORIAL && (block.frames !== undefined || block.after_html !== undefined)) {
+      issues.errors.push(`${at}: only tutorial blocks can have frames or after_html.`)
+    }
+    // Absent fields stay absent: blocks without an animation keep their stored shape and hash.
+    if (block.frames !== undefined) {
+      out.frames = block.frames.map((frame, f) => ({
+        title: frame.title,
+        events_html: frame.events_html.map((e, k) => clean(e, `${at} frame ${f + 1} event ${k + 1}`, issues)),
+        why_html: frame.why_html === null ? null : clean(frame.why_html, `${at} frame ${f + 1} why`, issues),
+        body_html: clean(frame.body_html, `${at} frame ${f + 1}`, issues),
+      }))
+    }
+    if (block.after_html !== undefined) out.after_html = clean(block.after_html, `${at} after the animation`, issues)
+    return out
+  })
 }
 
 export function hashPracticeContent(content: PracticePageContent): string {
