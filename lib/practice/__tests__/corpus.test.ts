@@ -41,7 +41,17 @@ describe.skipIf(dirs.length === 0)("practice corpus", () => {
         expect(content.examples.length).toBe(count(html, /<section class="card example"/g))
         expect(content.examples.reduce((n, ex) => n + ex.steps.length, 0)).toBe(count(html, /<div class="step"/g))
         expect(content.examples.filter((ex) => ex.nav_meta).length).toBe(count(html, /<li><a href="#p\d+">[^<]*<\/a> <span class="meta">/g))
-        expect(content.intro_blocks.length).toBe(count(html, /<div class="card( exam)?"><h3>/g))
+        expect(content.intro_blocks.length).toBe(count(html, /<div class="card( exam| tutorial)?"><h3>/g))
+        // Tutorial animations: every frame kept, and within one animation every frame's graph has
+        // the same skeleton after sanitizing (the player morphs it in place).
+        const animated = content.intro_blocks.filter((block) => block.frames)
+        expect(animated.reduce((n, block) => n + block.frames!.length, 0)).toBe(count(html, /<div class="frame">/g))
+        for (const block of animated) {
+          const skeletons = block.frames!.map((frame) =>
+            (frame.body_html.match(/<svg[^>]*class="graph"[\s\S]*?<\/svg>/g) || []).map((svg) => svg.match(/<[a-z]+/g)!.join(""))
+          )
+          for (const skeleton of skeletons) expect(skeleton, block.title ?? "").toEqual(skeletons[0])
+        }
         expect(content.footer_html).toBeTruthy()
         expect(parsed.slug).toMatch(/^[a-z0-9_-]{2,50}$/)
         // SVG drawings keep their viewBox (case-sensitive) and lose literal colours.

@@ -8,6 +8,7 @@ import { PRACTICE_EXAMPLE_KEY_PATTERN, PRACTICE_INTRO_BLOCK_KINDS, PRACTICE_SLUG
 export const PRACTICE_MAX_PAGE_BYTES = 1_000_000
 export const PRACTICE_MAX_EXAMPLES = 300
 export const PRACTICE_MAX_STEPS = 60
+export const PRACTICE_MAX_FRAMES = 40
 
 const html = z.string().max(PRACTICE_MAX_PAGE_BYTES)
 const line = (max: number) => z.string().trim().min(1).max(max)
@@ -18,13 +19,32 @@ export const practiceExampleKeySchema = z
   .string()
   .regex(PRACTICE_EXAMPLE_KEY_PATTERN, "Use 1–80 lowercase letters, digits or -.")
 
+// One frame of a tutorial animation (.anim > .frame). Within one animation every frame's
+// svg.graph has the same skeleton, so the player morphs it in place (components/practice/
+// practice-player.tsx).
+export const animationFrameSchema = z
+  .object({
+    title: line(300),
+    events_html: z.array(html).max(50),
+    why_html: html.nullable(),
+    body_html: html,
+  })
+  .strict()
+
+// A tutorial block is html (before the animation), the animation's frames, then after_html.
+// Other kinds have neither field.
 export const introBlockSchema = z
   .object({
     kind: z.enum(Object.values(PRACTICE_INTRO_BLOCK_KINDS) as [string, ...string[]]),
     title: line(300).nullable(),
     html,
+    frames: z.array(animationFrameSchema).min(1).max(PRACTICE_MAX_FRAMES).optional(),
+    after_html: html.optional(),
   })
   .strict()
+  .refine((block) => block.kind === PRACTICE_INTRO_BLOCK_KINDS.TUTORIAL || (block.frames === undefined && block.after_html === undefined), {
+    message: "Only tutorial blocks can have frames or after_html.",
+  })
 
 export const stepSchema = z
   .object({
@@ -59,6 +79,7 @@ export const pageContentInputSchema = z
   .strict()
 
 export type PracticeIntroBlock = z.infer<typeof introBlockSchema>
+export type PracticeAnimationFrame = z.infer<typeof animationFrameSchema>
 export type PracticeStep = z.infer<typeof stepSchema>
 export type PracticeExampleInput = z.infer<typeof exampleInputSchema>
 export type PracticePageContentInput = z.infer<typeof pageContentInputSchema>

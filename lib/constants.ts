@@ -632,6 +632,8 @@ export const PRACTICE_INTRO_BLOCK_KINDS = {
   EXAM: 'exam',
   LEGEND: 'legend',
   NOTE: 'note',
+  // "Návod" cards before the examples; may carry an animation (frames) played by the step player
+  TUTORIAL: 'tutorial',
 } as const
 
 export type PracticeIntroBlockKind = (typeof PRACTICE_INTRO_BLOCK_KINDS)[keyof typeof PRACTICE_INTRO_BLOCK_KINDS]

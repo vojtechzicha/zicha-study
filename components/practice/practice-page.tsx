@@ -52,7 +52,7 @@ export function PracticePage({ view, indexHref }: { view: PracticePageView; inde
       </p>
       <h1>{page.title}</h1>
       {page.leadHtml && <p className="lead" dangerouslySetInnerHTML={{ __html: page.leadHtml }} />}
-      <PracticeBlocks blocks={page.introBlocks} />
+      <PracticeBlocks blocks={page.introBlocks} storageKey={`zs_practice_tutorial:${page.id}`} />
 
       {error && (
         <p role="alert" className="sticky top-2 z-10 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">

@@ -67,3 +67,45 @@ describe("parsePracticePageHtml", () => {
     expect(parsePracticePageHtml("<main><h1>Prázdná</h1></main>").errors).toContain("The page has no examples (section.example).")
   })
 })
+
+describe("parsePracticePageHtml – tutorials", () => {
+  const parsed = parsePracticePageHtml(fixture("tutorial-page.html"))
+  const [plain, animated, legend] = parsed.content.intro_blocks
+
+  it("keeps tutorial cards in order before the other intro cards", () => {
+    expect(parsed.errors).toEqual([])
+    expect(parsed.content.intro_blocks.map((b) => [b.kind, b.title])).toEqual([
+      ["tutorial", "1. Jak funguje průchod"],
+      ["tutorial", "2. Ukázka krok za krokem"],
+      ["legend", "Zápis"],
+    ])
+    expect(plain.html).toContain("<details>")
+    expect(plain.frames).toBeUndefined()
+    expect(plain.after_html).toBeUndefined()
+    expect(legend.frames).toBeUndefined()
+  })
+
+  it("splits an animated card into html, frames and after_html", () => {
+    expect(animated.html).toBe(
+      '<p>Úvod.</p><p class="meta"><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" class="node pa"></circle></svg> navštívený</p>'
+    )
+    expect(animated.after_html).toBe("<p>Po animaci.</p>")
+    expect(animated.frames).toHaveLength(2)
+    const [first, second] = animated.frames!
+    expect(first).toMatchObject({ title: "Výchozí stav", events_html: ["Začnu v <b>a</b>."], why_html: "Proč tady." })
+    expect(first.body_html.startsWith('<svg viewBox="0 0 100 60" class="graph">')).toBe(true)
+    expect(first.body_html).toContain('<dl class="state">')
+    expect(second.why_html).toBeNull()
+    expect(second.events_html).toHaveLength(2)
+    expect(second.body_html).toContain('stroke-dasharray="4 2"')
+    expect(parsed.warnings).toEqual(["Tutorial „2. Ukázka krok za krokem“: ignored 1 element(s) in .anim that aren't .frame."])
+  })
+
+  it("rejects a nested or repeated .anim", () => {
+    const html = fixture("tutorial-page.html")
+    const nested = html.replace('<div class="anim">', '<div><div class="anim">').replace("<p>Po animaci.</p>", "</div><p>Po animaci.</p>")
+    expect(parsePracticePageHtml(nested).errors[0]).toContain("direct child")
+    const twice = html.replace("<p>Po animaci.</p>", '<div class="anim"><div class="frame"><h4>x</h4></div></div>')
+    expect(parsePracticePageHtml(twice).errors[0]).toContain("only one .anim")
+  })
+})

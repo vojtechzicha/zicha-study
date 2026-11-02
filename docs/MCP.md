@@ -56,6 +56,13 @@ Practice pages are too large for tool arguments, so content goes in over HTTP:
    `data-key` on every example) or a JSON envelope. Pages are upserted by slug; the previous content
    is kept as a version (newest 3); an identical upload changes nothing.
 
+Tutorials: `<div class="card tutorial"><h3>…</h3>…</div>` cards between `p.lead` and the examples become
+intro blocks of kind `tutorial`, shown in a collapsible "Návod" section. A tutorial card may hold one
+`<div class="anim">` (a direct child) of `<div class="frame">` elements, each `h4` title, `ol` events,
+optional `p.why` and `div.framebody`; it is stored as `html` (before the animation), `frames` and
+`after_html`, and played step by step. Keep every frame's `svg.graph` skeleton identical (same elements
+in the same order; only attributes and text change): the player morphs it in place so colours animate.
+
 Send the token as `Authorization: Bearer <token>`. It stops working when the connection is revoked,
 the email leaves `ALLOWED_EMAILS` or practice is turned off for the subject; `revoke_practice_upload`
 ends it early. All HTML is sanitized (`lib/practice/sanitize.ts`): unknown classes and styles are
