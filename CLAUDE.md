@@ -120,9 +120,13 @@ token is on `session.accessToken`. In API routes use `getOneDriveToken()` / `mak
 
 ## Build and checks
 
-- `next.config.mjs` sets `typescript.ignoreBuildErrors`, so the build won't catch type errors. Run
-  `pnpm exec tsc --noEmit` and add no new errors. Don't edit `components/ui/` to fix type errors.
-- `pnpm lint` must show no errors, and preferably no warnings.
+- **The baseline is clean: `pnpm exec tsc --noEmit` and `pnpm lint` both report zero errors and zero warnings.**
+  No PR may introduce any. Every error or warning in their output is caused by your change, so fix it before
+  committing; never call one "pre-existing". Fix the cause rather than silencing it with `as any`, `@ts-ignore` /
+  `@ts-expect-error` or `eslint-disable`; a rule-specific `eslint-disable-next-line <rule>` is only for a deliberate
+  exception (e.g. `@next/next/no-img-element` for a blob preview).
+- `next.config.mjs` sets `typescript.ignoreBuildErrors`, so `pnpm build` won't catch type errors; run
+  `pnpm exec tsc --noEmit` yourself. Don't edit `components/ui/` to fix type errors.
 - Vitest suites live next to the code (`*.test.ts`, `lib/exam-scheduler/__tests__/`).
 - Environment variables: `.env.local` (see `.env.example`); `vercel env pull .env.local` fetches them.
 
