@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, type JSX } from "react"
+import { useState, useMemo } from "react"
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { FileText, FileArchive, ExternalLink, Download, Trash2, Search, Globe, MoreVertical, Copy, Check } from "lucide-react"
+import { ExternalLink, Download, Trash2, Search, Globe, MoreVertical, Copy, Check } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +33,9 @@ import { createCacheShareLinkAction } from "@/lib/actions/onedrive-cache"
 import type { Material } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { getShareUrl } from "@/lib/utils/share-url"
+import { getMaterialOpenLabel, getMaterialOpenUrl, getMaterialSubtitle } from "@/lib/utils/material-link"
+import { MATERIAL_TYPES, getMaterialType } from "@/lib/constants"
+import { MaterialIcon } from "@/components/material-icon"
 
 interface MaterialsTableProps {
   materials: Material[]
@@ -43,25 +46,7 @@ interface MaterialsTableProps {
   isStudyPublic?: boolean
 }
 
-const fileIcons: { [key: string]: JSX.Element } = {
-  pdf: <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />,
-  doc: <FileText className="h-4 w-4 text-primary" />,
-  docx: <FileText className="h-4 w-4 text-primary" />,
-  xls: <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />,
-  xlsx: <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />,
-  ppt: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
-  pptx: <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
-  zip: <FileArchive className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
-  default: <FileText className="h-4 w-4 text-muted-foreground" />,
-}
-
-function getFileIcon(extension: string | null) {
-  if (!extension) return fileIcons.default
-  const ext = extension.toLowerCase().replace(".", "")
-  return fileIcons[ext] || fileIcons.default
-}
-
-function formatFileSize(bytes: number | null): string {
+function formatFileSize(bytes: number | null | undefined): string {
   if (!bytes) return ""
   const sizes = ["B", "KB", "MB", "GB"]
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
@@ -140,7 +125,10 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
     try {
       let publicShareUrl = null
 
-      if (isPublic) {
+      const isLink = getMaterialType(material) === MATERIAL_TYPES.LINK
+
+      // A link is published as it is; only OneDrive files need a share link
+      if (isPublic && !isLink) {
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
           headers: {
@@ -168,7 +156,7 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
       const result = await updateMaterialAction(material.id, {
         is_public: isPublic,
         public_slug: slug,
-        public_share_url: publicShareUrl,
+        ...(isLink ? {} : { public_share_url: publicShareUrl }),
       })
 
       if (result.error) throw new Error(result.error.message)
@@ -211,6 +199,8 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
       const searchableFields = [
         material.name?.toLowerCase() || "",
         material.file_name?.toLowerCase() || "",
+      material.link_url?.toLowerCase() || "",
+        material.link_url?.toLowerCase() || "",
         material.description?.toLowerCase() || "",
         material.category?.toLowerCase() || "",
         ...(material.tags || []).map((tag) => tag.toLowerCase()),
@@ -269,10 +259,10 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                 <TableRow key={material.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {getFileIcon(material.file_extension)}
+                      <MaterialIcon material={material} />
                       <div>
                         <div className="font-medium">{material.name}</div>
-                        <div className="text-sm text-muted-foreground">{material.file_name}</div>
+                        <div className="text-sm text-muted-foreground">{getMaterialSubtitle(material)}</div>
                         {material.description && (
                           <div className="text-sm text-muted-foreground mt-1">{material.description}</div>
                         )}
@@ -304,20 +294,19 @@ export function MaterialsTable({ materials, onDelete, onUpdate, loading, studySl
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                      >
-                        <a
-                          href={material.onedrive_web_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Otevřít v OneDrive"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
+                      {getMaterialOpenUrl(material) && (
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={getMaterialOpenUrl(material)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={getMaterialOpenLabel(material)}
+                            aria-label={getMaterialOpenLabel(material)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

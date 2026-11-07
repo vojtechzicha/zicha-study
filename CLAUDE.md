@@ -52,7 +52,8 @@ lib/
 
 ## Data
 
-MongoDB collections: `studies`, `subjects`, `final_exams`, `materials`, `subject_materials`, `study_notes`
+MongoDB collections: `studies`, `subjects`, `final_exams`, `materials`, `subject_materials` (OneDrive files or
+links, told apart by `material_type`; links keep `link_url` and skip the OneDrive share and backup), `study_notes`
 (Word, Obsidian and Markdown notes, told apart by `note_type`; linked subjects/exams are denormalized into
 `linked_subjects[]` / `linked_final_exams[]`), `study_notes_cache` and `study_notes_media` (converted HTML and
 images), `study_note_versions` and `markdown_note_media` (Markdown notes), `tasks`, `exam_periods`, `exam_terms`,

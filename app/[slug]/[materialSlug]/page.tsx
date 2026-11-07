@@ -1,10 +1,11 @@
-import type { JSX } from 'react'
 import * as db from "@/lib/mongodb/db"
 import { auth } from "@/auth"
 import { checkFileExists } from "@/lib/utils/onedrive-cache"
 import { redirect, notFound } from "next/navigation"
-import { NOTE_TYPES, getNoteType } from "@/lib/constants"
-import { Loader2, FileText, FileArchive, ArrowLeft, Globe, AlertCircle } from "lucide-react"
+import { MATERIAL_TYPES, NOTE_TYPES, getMaterialType, getNoteType } from "@/lib/constants"
+import { normalizeLinkUrl } from "@/lib/utils/material-link"
+import { MaterialIcon } from "@/components/material-icon"
+import { Loader2, ArrowLeft, Globe, AlertCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -146,55 +147,45 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
     }
   }
 
+  const isLink = getMaterialType(material as { material_type?: string | null }) === MATERIAL_TYPES.LINK
+
   // Prefer the original share URL, fall back to the cache copy's
   let shareUrl: string | null = null
   let shareError: string | null = null
 
-  try {
-    const session = await auth()
+  if (isLink) {
+    // Validated again here: the address ends up in a redirect
+    shareUrl = normalizeLinkUrl((material as any).link_url)
+    if (!shareUrl) shareError = "Odkaz na tento materiál není k dispozici."
+  } else {
+    try {
+      const session = await auth()
 
-    if (session?.accessToken && (material as any).onedrive_id) {
-      // Only a signed-in session can check whether the original still exists
-      try {
-        const { exists } = await checkFileExists((material as any).onedrive_id)
-        if (exists) {
+      if (session?.accessToken && (material as any).onedrive_id) {
+        // Only a signed-in session can check whether the original still exists
+        try {
+          const { exists } = await checkFileExists((material as any).onedrive_id)
+          if (exists) {
+            shareUrl = (material as any).public_share_url || (material as any).cache_public_share_url || null
+          } else {
+            // Original gone
+            shareUrl = (material as any).cache_public_share_url || (material as any).public_share_url || null
+          }
+        } catch {
           shareUrl = (material as any).public_share_url || (material as any).cache_public_share_url || null
-        } else {
-          // Original gone
-          shareUrl = (material as any).cache_public_share_url || (material as any).public_share_url || null
         }
-      } catch {
+      } else {
+        // Can't verify without a session
         shareUrl = (material as any).public_share_url || (material as any).cache_public_share_url || null
       }
-    } else {
-      // Can't verify without a session
-      shareUrl = (material as any).public_share_url || (material as any).cache_public_share_url || null
+
+      if (!shareUrl) {
+        shareError = "Odkaz na tento materiál není k dispozici."
+      }
+    } catch (error) {
+      console.error("Error accessing share link:", error)
+      shareError = "Nepodařilo se načíst odkaz na soubor."
     }
-
-    if (!shareUrl) {
-      shareError = "Odkaz na tento materiál není k dispozici."
-    }
-  } catch (error) {
-    console.error("Error accessing share link:", error)
-    shareError = "Nepodařilo se načíst odkaz na soubor."
-  }
-
-  const fileIcons: { [key: string]: JSX.Element } = {
-    pdf: <FileText className="h-12 w-12 text-red-600 dark:text-red-400" />,
-    doc: <FileText className="h-12 w-12 text-primary" />,
-    docx: <FileText className="h-12 w-12 text-primary" />,
-    xls: <FileText className="h-12 w-12 text-green-600 dark:text-green-400" />,
-    xlsx: <FileText className="h-12 w-12 text-green-600 dark:text-green-400" />,
-    ppt: <FileText className="h-12 w-12 text-orange-600 dark:text-orange-400" />,
-    pptx: <FileText className="h-12 w-12 text-orange-600 dark:text-orange-400" />,
-    zip: <FileArchive className="h-12 w-12 text-amber-600 dark:text-amber-400" />,
-    default: <FileText className="h-12 w-12 text-muted-foreground" />,
-  }
-
-  function getFileIcon(extension: string | null) {
-    if (!extension) return fileIcons.default
-    const ext = extension.toLowerCase().replace(".", "")
-    return fileIcons[ext] || fileIcons.default
   }
 
   function formatFileSize(bytes: number | null): string {
@@ -238,11 +229,13 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
           <CardContent className="p-8">
             <div className="flex items-start gap-6">
               <div className="flex-shrink-0 p-4 bg-primary-50 dark:bg-primary-950 rounded-xl">
-                {getFileIcon((material as any).file_extension)}
+                <MaterialIcon material={material as { material_type?: string | null; file_extension?: string | null }} size="lg" />
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-bold text-foreground mb-2">{(material as any).name}</h2>
-                <p className="text-sm text-muted-foreground mb-2">Soubor: {(material as any).file_name}</p>
+                {!isLink && (
+                  <p className="text-sm text-muted-foreground mb-2">Soubor: {(material as any).file_name}</p>
+                )}
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                   {(material as any).category && (
@@ -271,7 +264,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
                   <div className="flex items-center justify-center py-8">
                     <div className="text-center">
                       <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                      <p className="text-muted-foreground">Přesměrování na OneDrive…</p>
+                      <p className="text-muted-foreground">{isLink ? "Přesměrování…" : "Přesměrování na OneDrive…"}</p>
                     </div>
                   </div>
                 )}
@@ -285,7 +278,7 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
           <div className="mt-6 text-center">
             <Button asChild className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white">
               <a href={shareUrl} target="_blank" rel="noopener noreferrer">
-                Otevřít v OneDrive
+                {isLink ? "Otevřít odkaz" : "Otevřít v OneDrive"}
               </a>
             </Button>
           </div>

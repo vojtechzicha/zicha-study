@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, type JSX } from "react"
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, FileArchive, Download, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check } from "lucide-react"
+import { Download, ExternalLink, MoreVertical, Trash2, Globe, Copy, Check } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,9 @@ import { createCacheShareLinkAction } from "@/lib/actions/onedrive-cache"
 import type { Material } from "@/lib/types/materials"
 import { createSlug, cleanSlugInput } from "@/lib/utils/slug"
 import { getShareUrl } from "@/lib/utils/share-url"
+import { getMaterialOpenLabel, getMaterialOpenUrl, getMaterialSubtitle } from "@/lib/utils/material-link"
+import { MATERIAL_TYPES, getMaterialType } from "@/lib/constants"
+import { MaterialIcon } from "@/components/material-icon"
 
 interface MaterialCardProps {
   material: Material
@@ -33,24 +36,6 @@ interface MaterialCardProps {
   onUpdate?: () => void
   studySlug?: string
   isStudyPublic?: boolean
-}
-
-const fileIcons: { [key: string]: JSX.Element } = {
-  pdf: <FileText className="h-8 w-8 text-red-600 dark:text-red-400" />,
-  doc: <FileText className="h-8 w-8 text-primary" />,
-  docx: <FileText className="h-8 w-8 text-primary" />,
-  xls: <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />,
-  xlsx: <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />,
-  ppt: <FileText className="h-8 w-8 text-orange-600 dark:text-orange-400" />,
-  pptx: <FileText className="h-8 w-8 text-orange-600 dark:text-orange-400" />,
-  zip: <FileArchive className="h-8 w-8 text-amber-600 dark:text-amber-400" />,
-  default: <FileText className="h-8 w-8 text-muted-foreground" />,
-}
-
-function getFileIcon(extension: string | null) {
-  if (!extension) return fileIcons.default
-  const ext = extension.toLowerCase().replace(".", "")
-  return fileIcons[ext] || fileIcons.default
 }
 
 function formatFileSize(bytes: number | null): string {
@@ -69,8 +54,11 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const [copied, setCopied] = useState(false)
 
+  const isLink = getMaterialType(material) === MATERIAL_TYPES.LINK
+  const openUrl = getMaterialOpenUrl(material)
+
   const handleCardClick = () => {
-    window.open(material.onedrive_web_url, '_blank', 'noopener,noreferrer')
+    if (openUrl) window.open(openUrl, '_blank', 'noopener,noreferrer')
   }
 
   const checkSlugAvailability = async (slug: string) => {
@@ -113,7 +101,8 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
     try {
       let publicShareUrl = null
 
-      if (isPublicNew) {
+      // A link is published as it is; only OneDrive files need a share link
+      if (isPublicNew && !isLink) {
         const response = await fetch('/api/onedrive/share', {
           method: 'POST',
           headers: {
@@ -141,7 +130,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
       const result = await updateMaterialAction(material.id, {
         is_public: isPublicNew,
         public_slug: slug,
-        public_share_url: publicShareUrl,
+        ...(isLink ? {} : { public_share_url: publicShareUrl }),
       })
 
       if (result.error) throw new Error(result.error.message)
@@ -191,7 +180,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
             className="flex-shrink-0 p-2 bg-primary-50 dark:bg-primary-950 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
             onClick={handleCardClick}
           >
-            {getFileIcon(material.file_extension)}
+            <MaterialIcon material={material} size="md" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -199,7 +188,7 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                 <h3 className="font-medium text-foreground truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                   {material.name}
                 </h3>
-                <p className="text-sm text-muted-foreground truncate">{material.file_name}</p>
+                <p className="text-sm text-muted-foreground truncate">{getMaterialSubtitle(material)}</p>
                 <div className="flex items-center gap-2 mt-1">
                   {material.category && (
                     <Badge variant="secondary" className="text-xs">
@@ -230,17 +219,19 @@ export function MaterialCard({ material, onDelete, onUpdate, studySlug, isStudyP
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <a
-                      href={material.onedrive_web_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center"
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Otevřít v OneDrive
-                    </a>
-                  </DropdownMenuItem>
+                  {openUrl && (
+                    <DropdownMenuItem asChild>
+                      <a
+                        href={openUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center"
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {getMaterialOpenLabel(material)}
+                      </a>
+                    </DropdownMenuItem>
+                  )}
                   {material.onedrive_download_url && (
                     <DropdownMenuItem asChild>
                       <a

@@ -114,7 +114,7 @@ export function MaterialsSection({ studyId, study }: MaterialsSectionProps) {
                 Zatím žádné materiály
               </h3>
               <p className="text-muted-foreground mb-6">
-                Materiály se přidávají ze souborů v OneDrive.
+                Materiály se přidávají ze souborů v OneDrive nebo jako odkazy.
               </p>
               <Button
                 onClick={() => setShowAddDialog(true)}

@@ -25,11 +25,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { FileText, AlertCircle } from "lucide-react"
+import { FileText, AlertCircle, Link2 } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchStudyMaterialSettings } from "@/lib/actions/studies"
 import { createMaterial, createSubjectMaterial } from "@/lib/actions/materials"
 import { cacheFileToOneDrive } from "@/lib/actions/onedrive-cache"
-import { getMaterialCategoryOptions } from "@/lib/constants"
+import { MATERIAL_TYPES, getMaterialCategoryOptions, type MaterialType } from "@/lib/constants"
+import { normalizeLinkUrl } from "@/lib/utils/material-link"
 import type { OneDriveFile, MaterialFormData } from "@/lib/types/materials"
 import { OneDriveFilePicker, OneDriveFilePickerLoading } from "@/components/onedrive-file-picker"
 
@@ -56,6 +58,8 @@ export function AddMaterialDialog({
 }: AddMaterialDialogProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [materialType, setMaterialType] = useState<MaterialType>(MATERIAL_TYPES.FILE)
+  const [linkUrl, setLinkUrl] = useState("")
   const [selectedFile, setSelectedFile] = useState<OneDriveFile | null>(null)
   const [showFilePicker, setShowFilePicker] = useState(false)
   const [studyMaterialSettingsData, setStudyMaterialSettingsData] = useState<StudyMaterialSettingsData>({})
@@ -98,7 +102,54 @@ export function AddMaterialDialog({
     setShowFilePicker(true)
   }
 
+  const isLink = materialType === MATERIAL_TYPES.LINK
+
+  const handleLinkSubmit = async () => {
+    const url = normalizeLinkUrl(linkUrl)
+    if (!url) {
+      setError("Zadejte platný odkaz.")
+      return
+    }
+
+    if (!formData.name?.trim()) {
+      setError("Vyplňte název.")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const materialData = {
+        study_id: studyId,
+        material_type: MATERIAL_TYPES.LINK,
+        link_url: url,
+        name: formData.name.trim(),
+        description: formData.description?.trim() || null,
+        category: formData.category || null,
+      }
+
+      const result = subjectId
+        ? await createSubjectMaterial({ ...materialData, subject_id: subjectId })
+        : await createMaterial(materialData)
+
+      if (result.error) throw new Error(result.error.message)
+
+      onSuccess()
+      handleClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nepodařilo se přidat materiál.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async () => {
+    if (isLink) {
+      await handleLinkSubmit()
+      return
+    }
+
     if (!selectedFile) {
       setError("Vyberte soubor z OneDrive.")
       return
@@ -117,6 +168,7 @@ export function AddMaterialDialog({
 
       const materialData = {
         study_id: studyId,
+        material_type: MATERIAL_TYPES.FILE,
         name: formData.name.trim(),
         file_name: selectedFile.name,
         file_extension: fileExtension ? `.${fileExtension}` : null,
@@ -163,6 +215,8 @@ export function AddMaterialDialog({
   }
 
   const handleClose = () => {
+    setMaterialType(MATERIAL_TYPES.FILE)
+    setLinkUrl("")
     setSelectedFile(null)
     setShowFilePicker(false)
     setStudyMaterialSettingsData({})
@@ -197,6 +251,49 @@ export function AddMaterialDialog({
     return `${nameWithoutExt.substring(0, availableLength)  }…${  extension}`
   }
 
+  const detailFields = (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="name">Název *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder={isLink ? "Např. Skupinový projekt – podklady" : "Např. Přednáška 1 – úvod"}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="category">Kategorie</Label>
+        <Select
+          value={formData.category}
+          onValueChange={(value) => setFormData({ ...formData, category: value })}
+        >
+          <SelectTrigger id="category">
+            <SelectValue placeholder="Vyberte kategorii" />
+          </SelectTrigger>
+          <SelectContent>
+            {getMaterialCategoryOptions().map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Popis</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={3}
+        />
+      </div>
+    </>
+  )
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]" aria-describedby={undefined}>
@@ -214,7 +311,42 @@ export function AddMaterialDialog({
             </Alert>
           )}
 
-          {showFilePicker && !settingsLoaded ? (
+          {!showFilePicker && (
+            <Tabs value={materialType} onValueChange={(value) => setMaterialType(value as MaterialType)}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value={MATERIAL_TYPES.FILE} disabled={loading}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Soubor z OneDrive
+                </TabsTrigger>
+                <TabsTrigger value={MATERIAL_TYPES.LINK} disabled={loading}>
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Odkaz
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          {isLink ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="link-url">Odkaz *</Label>
+                <Input
+                  id="link-url"
+                  type="url"
+                  inputMode="url"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onBlur={() => {
+                    const url = normalizeLinkUrl(linkUrl)
+                    if (url) setLinkUrl(url)
+                  }}
+                  placeholder="https://…"
+                />
+              </div>
+
+              {detailFields}
+            </div>
+          ) : showFilePicker && !settingsLoaded ? (
             // The start folder comes from the study settings: mounting the
             // picker before they load would open it at the drive root
             <OneDriveFilePickerLoading />
@@ -264,44 +396,7 @@ export function AddMaterialDialog({
                 </Button>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Název *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Např. Přednáška 1 – úvod"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Kategorie</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Vyberte kategorii" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getMaterialCategoryOptions().map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Popis</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                />
-              </div>
+              {detailFields}
             </div>
           )}
         </div>
@@ -318,7 +413,7 @@ export function AddMaterialDialog({
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={loading || !selectedFile || !formData.name?.trim()}
+                disabled={loading || !formData.name?.trim() || (isLink ? !linkUrl.trim() : !selectedFile)}
                 className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white"
               >
                 {loading ? "Přidávání…" : "Přidat materiál"}
