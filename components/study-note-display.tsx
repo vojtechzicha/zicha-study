@@ -26,7 +26,7 @@ interface StudyNoteDisplayProps {
     subjects?: {
       id: string
       name: string
-      abbreviation: string
+      abbreviation: string | null
       studies?: {
         id: string
         name: string

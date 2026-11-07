@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react"
 import { useSession } from "next-auth/react"
 import { fetchStudy } from "@/lib/actions/studies"
+import type { StudyStatus } from "@/lib/constants"
 import { StudyDetail } from "@/components/study-detail"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -15,7 +16,7 @@ interface Study {
   form: string
   start_year: number
   end_year?: number
-  status: "active" | "completed" | "paused" | "abandoned"
+  status: StudyStatus
   logo_url?: string
   diploma_url?: string | null
   diploma_mime_type?: string

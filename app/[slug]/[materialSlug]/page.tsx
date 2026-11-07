@@ -122,7 +122,8 @@ export default async function PublicMaterialPage({ params, searchParams }: PageP
             subjects: allSubjects
           }}
           subject={primarySubject}
-          study={study}
+          // getStudyBySlugMetadata only matches public studies by this slug
+          study={{ id: study.id, name: study.name, is_public: true, public_slug: slug, logo_url: study.logo_url }}
           flush={search?.flush === '1'}
         />
       </div>

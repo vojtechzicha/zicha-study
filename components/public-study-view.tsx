@@ -38,7 +38,7 @@ interface Subject {
   id: string
   study_id: string
   semester: string
-  abbreviation: string
+  abbreviation: string | null
   name: string
   completion_type: string
   subject_type: string

@@ -1,10 +1,12 @@
 import { getDb } from "./connection"
-import { type Filter, Binary } from "mongodb"
+import { type Document, type Filter, Binary } from "mongodb"
 import crypto from "crypto"
 import { PRACTICE_PAGE_MAX_VERSIONS, RESERVED_STUDY_CHILD_SLUGS } from "@/lib/constants"
 import type { Sanitized, SanitizedModuleContent } from "@/lib/practice/content"
 import type { PracticePageContent } from "@/lib/practice/schema"
 import { userLockOwnershipPatch } from "@/lib/exam-import/lock"
+import type { Study, Subject } from "@/lib/status-utils"
+import type { StudyNote } from "@/lib/types/study-notes"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -12,8 +14,21 @@ function newId(): string {
   return crypto.randomUUID()
 }
 
-function col(name: string) {
-  return getDb().then((db) => db.collection(name))
+// Every document is keyed by a string (a UUID from newId(), a token hash or a composite key), never an ObjectId.
+type StoredDocument = Document & { _id: string }
+
+function col<T extends StoredDocument = StoredDocument>(name: string) {
+  return getDb().then((db) => db.collection<T>(name))
+}
+
+// Known fields of studies, subjects and notes; other stored fields stay reachable through the index signature.
+export type StudyDocument = StoredDocument & Omit<Study, "id">
+export type SubjectDocument = StoredDocument & Omit<Subject, "id">
+export type StudyNoteDocument = StoredDocument & Omit<StudyNote, "id">
+
+// What normalizeId() returns: `_id` renamed to `id`, logo and diploma binaries dropped.
+export type Normalized<T> = { [K in keyof T as K extends "_id" | "logo_data" | "diploma_data" ? never : K]: T[K] } & {
+  id: string
 }
 
 // Material and note addresses that a static route under /<study>/ would shadow.
@@ -25,17 +40,17 @@ function isReservedStudyChildSlug(slug: string) {
 
 export async function getStudies() {
   const c = await col("studies")
-  return c.find().toArray()
+  return c.find<StudyDocument>({}).toArray()
 }
 
 export async function getStudyById(id: string) {
   const c = await col("studies")
-  return c.findOne({ _id: id as any })
+  return c.findOne<StudyDocument>({ _id: id })
 }
 
 export async function getStudyBySlug(slug: string) {
   const c = await col("studies")
-  return c.findOne({ public_slug: slug, is_public: true })
+  return c.findOne<StudyDocument>({ public_slug: slug, is_public: true })
 }
 
 export async function getStudyBySlugMetadata(slug: string, fields: Record<string, 1>) {
@@ -105,7 +120,7 @@ export async function checkStudySlugAvailability(slug: string, excludeId?: strin
 
 export async function getStudiesWithPublicSlug() {
   const c = await col("studies")
-  return c.find({ public_slug: { $ne: null } }).sort({ created_at: -1 }).toArray()
+  return c.find<StudyDocument>({ public_slug: { $ne: null } }).sort({ created_at: -1 }).toArray()
 }
 
 // Subset of the given study ids whose study is published (is_public).
@@ -123,17 +138,17 @@ export async function getPublicStudyIds(studyIds: string[]): Promise<Set<string>
 
 export async function getSubjectsByStudyId(studyId: string, sort?: Record<string, 1 | -1>) {
   const c = await col("subjects")
-  return c.find({ study_id: studyId }).sort(sort || { semester: 1 }).toArray()
+  return c.find<SubjectDocument>({ study_id: studyId }).sort(sort || { semester: 1 }).toArray()
 }
 
 export async function getSubjectById(id: string) {
   const c = await col("subjects")
-  return c.findOne({ _id: id as any })
+  return c.findOne<SubjectDocument>({ _id: id })
 }
 
 export async function getSubjectsByIds(ids: string[]) {
   const c = await col("subjects")
-  return c.find({ _id: { $in: ids as any[] } }).toArray()
+  return c.find<SubjectDocument>({ _id: { $in: ids } }).toArray()
 }
 
 export async function getSubjectsForRepeatSelection(studyId: string, excludeId?: string) {
@@ -461,14 +476,14 @@ export async function getStudyNoteBySlug(slug: string, studyId?: string) {
   const c = await col("study_notes")
   const filter: Filter<any> = { public_slug: slug }
   if (studyId) filter.study_id = studyId
-  return c.findOne(filter)
+  return c.findOne<StudyNoteDocument>(filter)
 }
 
 export async function getPublicStudyNoteBySlug(slug: string, studyId?: string) {
   const c = await col("study_notes")
   const filter: Filter<any> = { public_slug: slug, is_public: true }
   if (studyId) filter.study_id = studyId
-  return c.findOne(filter)
+  return c.findOne<StudyNoteDocument>(filter)
 }
 
 export async function createStudyNote(data: Record<string, any>) {
@@ -1682,12 +1697,12 @@ export async function revokePracticeUploadToken(id: string) {
   await c.updateOne({ _id: id as any, revoked_at: null }, { $set: { revoked_at: new Date() } })
 }
 
-export function normalizeId<T extends Record<string, any>>(doc: T | null): (Omit<T, '_id'> & { id: string }) | null {
+export function normalizeId<T extends Record<string, any>>(doc: T | null): Normalized<T> | null {
   if (!doc) return null
   const { _id, logo_data: _logoData, diploma_data: _diplomaData, ...rest } = doc
-  return { id: _id as string, ...rest } as any
+  return { id: _id as string, ...rest } as unknown as Normalized<T>
 }
 
-export function normalizeIds<T extends Record<string, any>>(docs: T[]): (Omit<T, '_id'> & { id: string })[] {
+export function normalizeIds<T extends Record<string, any>>(docs: T[]): Normalized<T>[] {
   return docs.map((doc) => normalizeId(doc)!)
 }
