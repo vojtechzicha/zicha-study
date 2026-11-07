@@ -37,8 +37,8 @@ export function getLinkHost(url: string | null | undefined): string {
   }
 }
 
-// Fields that only make sense for a OneDrive file
-const FILE_ONLY_FIELDS = [
+// Fields that only make sense for a OneDrive file; link materials never store them
+export const FILE_ONLY_FIELDS = [
   "file_name",
   "file_extension",
   "file_size",
