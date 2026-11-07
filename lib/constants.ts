@@ -255,6 +255,7 @@ export const MATERIAL_CATEGORIES = {
   SYLLABUS: 'Sylabus',
   STUDY_MATERIALS: 'Studijní materiály',
   MY_WORK: 'Moje práce',
+  GROUP_WORK: 'Skupinová práce',
   EVALUATION: 'Hodnocení',
   THESIS: 'Závěrečná práce',
   DOCUMENTS: 'Dokumenty',

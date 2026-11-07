@@ -32,11 +32,13 @@ revokes an app immediately.
 | Exam scheduler | `list_exam_periods`, `create_/update_/delete_exam_period`, `create_/update_/delete_exam_term` (terms synced from UIS: docs/EXAM_IMPORT.md) |
 | Notes | `list_notes`, `get_note`, `create_markdown_note`, `update_note`, `set_markdown_note_content`, `delete_note`, `link_note`, `unlink_note` |
 | Procvičování | `get_practice_module`, `update_practice_module`, `get_practice_page`, `update_practice_page`, `delete_practice_page`, `set_practice_progress`, `create_practice_upload`, `revoke_practice_upload` (enable with `update_subject` `practice_enabled`) |
+| Materials | `list_materials`, `create_link_material`, `update_material`, `delete_material` (links fully; OneDrive files: metadata and unpublishing only) |
 | History | `list_recent_changes` |
 
-Left to the app, because it needs OneDrive (a Microsoft token the server doesn't keep) or file uploads: materials,
-Word/Obsidian note content, logos, diplomas, the materials folder. `delete_study` and `delete_note` refuse records
-that have OneDrive backup copies, and `delete_note` only deletes Markdown notes.
+Left to the app, because it needs OneDrive (a Microsoft token the server doesn't keep) or file uploads: adding,
+publishing and deleting OneDrive file materials, Word/Obsidian note content, logos, diplomas, the materials folder.
+`delete_study` and `delete_note` refuse records that have OneDrive backup copies, `delete_note` only deletes Markdown
+notes, and `delete_material` only deletes link materials.
 
 Every tool goes through `lib/mongodb/db.ts`, like the Server Actions, so cascades and checks (repeat chains, slug
 availability) behave the same. Inputs are validated with zod against the values in `lib/constants.ts`; unknown
