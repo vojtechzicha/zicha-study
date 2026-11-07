@@ -1,18 +1,25 @@
+import type { MaterialType } from "@/lib/constants"
+
 export interface Material {
   id: string
   study_id: string
   user_id: string
   
-  // OneDrive metadata
   name: string
-  file_name: string
-  file_extension: string | null
-  file_size: number | null
-  mime_type: string | null
-  onedrive_id: string
-  onedrive_web_url: string
-  onedrive_download_url: string | null
-  parent_path: string | null
+  // Missing on materials stored before link materials existed (= file)
+  material_type?: MaterialType
+  // Link materials only
+  link_url?: string | null
+
+  // OneDrive metadata (file materials only)
+  file_name?: string | null
+  file_extension?: string | null
+  file_size?: number | null
+  mime_type?: string | null
+  onedrive_id?: string | null
+  onedrive_web_url?: string | null
+  onedrive_download_url?: string | null
+  parent_path?: string | null
   
   description: string | null
   category: string | null
@@ -23,13 +30,13 @@ export interface Material {
   public_share_url: string | null
 
   // OneDrive cache
-  cache_onedrive_id: string | null
-  cache_onedrive_web_url: string | null
-  cache_public_share_url: string | null
+  cache_onedrive_id?: string | null
+  cache_onedrive_web_url?: string | null
+  cache_public_share_url?: string | null
 
   created_at: string
   updated_at: string
-  last_modified_onedrive: string | null
+  last_modified_onedrive?: string | null
 }
 
 export interface SubjectMaterial {
@@ -38,16 +45,21 @@ export interface SubjectMaterial {
   study_id: string
   user_id: string
 
-  // OneDrive metadata
   name: string
-  file_name: string
-  file_extension: string | null
-  file_size: number | null
-  mime_type: string | null
-  onedrive_id: string
-  onedrive_web_url: string
-  onedrive_download_url: string | null
-  parent_path: string | null
+  // Missing on materials stored before link materials existed (= file)
+  material_type?: MaterialType
+  // Link materials only
+  link_url?: string | null
+
+  // OneDrive metadata (file materials only)
+  file_name?: string | null
+  file_extension?: string | null
+  file_size?: number | null
+  mime_type?: string | null
+  onedrive_id?: string | null
+  onedrive_web_url?: string | null
+  onedrive_download_url?: string | null
+  parent_path?: string | null
 
   description: string | null
   category: string | null
@@ -58,13 +70,13 @@ export interface SubjectMaterial {
   public_share_url: string | null
 
   // OneDrive cache
-  cache_onedrive_id: string | null
-  cache_onedrive_web_url: string | null
-  cache_public_share_url: string | null
+  cache_onedrive_id?: string | null
+  cache_onedrive_web_url?: string | null
+  cache_public_share_url?: string | null
 
   created_at: string
   updated_at: string
-  last_modified_onedrive: string | null
+  last_modified_onedrive?: string | null
 }
 
 export interface OneDriveFile {

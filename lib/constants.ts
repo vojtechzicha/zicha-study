@@ -265,6 +265,19 @@ export type MaterialCategory = (typeof MATERIAL_CATEGORIES)[keyof typeof MATERIA
 
 export const getMaterialCategoryOptions = () => Object.values(MATERIAL_CATEGORIES)
 
+// 'file' → a OneDrive file (copied to the backup folder, shared via OneDrive)
+// 'link' → an external address, e.g. a shared group project
+export const MATERIAL_TYPES = {
+  FILE: 'file',
+  LINK: 'link',
+} as const
+
+export type MaterialType = (typeof MATERIAL_TYPES)[keyof typeof MATERIAL_TYPES]
+
+// Materials without an explicit material_type are OneDrive files.
+export const getMaterialType = (material: { material_type?: string | null } | null | undefined): MaterialType =>
+  material?.material_type === MATERIAL_TYPES.LINK ? MATERIAL_TYPES.LINK : MATERIAL_TYPES.FILE
+
 // Státní závěrečná zkouška (state final exam)
 export interface FinalExam {
   id: string
