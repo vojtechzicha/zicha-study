@@ -77,18 +77,20 @@ export interface StudyNoteFinalExamLink {
   linked_by?: string | null
 }
 
-// Element of the denormalized link arrays on a study_notes document
+// Element of the denormalized link arrays on a study_notes document (no own id)
 export interface RawStudyNoteSubjectLink {
-  id: string
-  is_primary: boolean
   subject_id: string
+  is_primary: boolean
+  linked_at?: string
+  linked_by?: string | null
 }
 
-// Element of the denormalized link arrays on a study_notes document
+// Element of the denormalized link arrays on a study_notes document (no own id)
 export interface RawStudyNoteFinalExamLink {
-  id: string
-  is_primary: boolean
   final_exam_id: string
+  is_primary: boolean
+  linked_at?: string
+  linked_by?: string | null
 }
 
 export interface SubjectInfo {

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { fetchSubjectsByStudyId } from "@/lib/actions/subjects"
 import { fetchTasks } from "@/lib/actions/tasks"
 import { groupTasksForDisplay } from "@/lib/utils/task-utils"
-import { todayLocalIso, type Task } from "@/lib/constants"
+import { todayLocalIso, type StudyStatus, type Task } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { BarChart3, Edit, Settings } from "lucide-react"
 import { StudyHeader } from "./study-header"
@@ -29,7 +29,7 @@ interface Study {
   form: string
   start_year: number
   end_year?: number
-  status: "active" | "completed" | "paused" | "abandoned"
+  status: StudyStatus
   graduation_result?: string | null
   logo_url?: string
   diploma_url?: string | null
@@ -52,7 +52,7 @@ interface Subject {
   id: string
   study_id: string
   semester: string
-  abbreviation: string
+  abbreviation: string | null
   name: string
   completion_type: string
   subject_type: string
