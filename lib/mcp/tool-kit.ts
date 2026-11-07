@@ -62,7 +62,10 @@ export async function runTool(def: ToolDefinition, args: unknown, ctx: ToolConte
     return textResult(await def.handler(args as never, ctx))
   } catch (err: any) {
     if (err instanceof ToolError) return errorResult(err.message)
-    if (err?.code === 11000) return errorResult("A record with the same unique value already exists.")
+    if (err?.code === 11000) {
+      const fields = Object.keys(err.keyPattern ?? {}).join(", ")
+      return errorResult(`A record with the same unique value already exists${fields ? ` (${fields})` : ""}.`)
+    }
     // db.ts throws plain Errors with Czech, user-facing messages for rule violations
     // (repeat cycles, subjects still referenced), so pass those through.
     console.error(`MCP tool ${def.name} failed:`, err)

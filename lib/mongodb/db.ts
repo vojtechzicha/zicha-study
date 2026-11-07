@@ -7,6 +7,7 @@ import type { PracticePageContent } from "@/lib/practice/schema"
 import { userLockOwnershipPatch } from "@/lib/exam-import/lock"
 import type { Study, Subject } from "@/lib/status-utils"
 import type { StudyNote } from "@/lib/types/study-notes"
+import { planMaterialIndexRebuilds, type ExistingIndex } from "./material-indexes"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -355,6 +356,57 @@ export async function getTasksEnabledStudies() {
 
 // ─── Materials ──────────────────────────────────────────────────────────────
 
+// Link materials have no OneDrive fields. A unique index over one of them (onedrive_id, from the
+// files-only days) would let only one link per scope in, so it is replaced by a partial index first.
+let materialIndexesPromise: Promise<void> | null = null
+
+function ensureMaterialIndexes() {
+  if (!materialIndexesPromise) {
+    materialIndexesPromise = getDb()
+      .then(async (db) => {
+        for (const name of ["materials", "subject_materials"]) {
+          const collection = db.collection(name)
+          // A collection that doesn't exist yet has no indexes (NamespaceNotFound).
+          const indexes = (await collection
+            .listIndexes()
+            .toArray()
+            .catch((err) => (err?.code === 26 ? [] : Promise.reject(err)))) as ExistingIndex[]
+          for (const rebuild of planMaterialIndexRebuilds(indexes)) {
+            const key = rebuild.key as Record<string, 1 | -1>
+            const createReplacement = () =>
+              collection.createIndex(key, {
+                name: rebuild.replacementName,
+                unique: true,
+                partialFilterExpression: rebuild.partialFilterExpression,
+              })
+            // Replacement first: if either step fails, a unique index still guards the files and the
+            // old index is still there for the next attempt to find.
+            const created = await createReplacement().then(
+              () => true,
+              // IndexOptionsConflict / IndexKeySpecsConflict: the server won't keep both side by side.
+              (err) => (err?.code === 85 || err?.code === 86 ? false : Promise.reject(err))
+            )
+            await collection.dropIndex(rebuild.name)
+            if (!created) {
+              await createReplacement().catch(async (err) => {
+                // Put the original back rather than leave the files without a unique index.
+                await collection.createIndex(key, { name: rebuild.name, unique: true })
+                throw err
+              })
+            }
+            console.warn(`Replaced unique index ${name}.${rebuild.name} with partial ${rebuild.replacementName} for link materials.`)
+          }
+        }
+      })
+      .catch((err) => {
+        // Don't block file uploads over it; the next insert tries again.
+        materialIndexesPromise = null
+        console.error("Rebuilding material indexes failed:", err)
+      })
+  }
+  return materialIndexesPromise
+}
+
 export async function getMaterialsByStudyId(studyId: string) {
   const c = await col("materials")
   return c.find({ study_id: studyId }).sort({ created_at: -1 }).toArray()
@@ -376,6 +428,7 @@ export async function getMaterialById(id: string) {
 }
 
 export async function createMaterial(data: Record<string, any>) {
+  await ensureMaterialIndexes()
   const c = await col("materials")
   const doc = { _id: newId() as any, ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
   await c.insertOne(doc)
@@ -418,6 +471,7 @@ export async function getSubjectMaterialById(id: string) {
 }
 
 export async function createSubjectMaterial(data: Record<string, any>) {
+  await ensureMaterialIndexes()
   const c = await col("subject_materials")
   const doc = { _id: newId() as any, ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
   await c.insertOne(doc)
