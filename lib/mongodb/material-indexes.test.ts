@@ -11,17 +11,18 @@ describe("planMaterialIndexRebuilds", () => {
     ).toEqual([
       {
         name: "study_id_1_onedrive_id_1",
+        replacementName: "study_id_1_onedrive_id_1_files",
         key: { study_id: 1, onedrive_id: 1 },
-        partialFilterExpression: { onedrive_id: { $type: "string" } },
+        partialFilterExpression: { onedrive_id: { $exists: true } },
       },
     ])
   })
 
-  it("covers every OneDrive key of the index", () => {
+  it("covers every OneDrive key of the index, numeric ones included", () => {
     const [rebuild] = planMaterialIndexRebuilds([
-      { name: "file", key: { parent_path: 1, file_name: 1 }, unique: true },
+      { name: "file", key: { onedrive_id: 1, file_size: 1 }, unique: true },
     ])
-    expect(rebuild.partialFilterExpression).toEqual({ parent_path: { $type: "string" }, file_name: { $type: "string" } })
+    expect(rebuild.partialFilterExpression).toEqual({ onedrive_id: { $exists: true }, file_size: { $exists: true } })
   })
 
   it("leaves other indexes alone", () => {
@@ -34,7 +35,7 @@ describe("planMaterialIndexRebuilds", () => {
           name: "already_partial",
           key: { onedrive_id: 1 },
           unique: true,
-          partialFilterExpression: { onedrive_id: { $type: "string" } },
+          partialFilterExpression: { onedrive_id: { $exists: true } },
         },
       ])
     ).toEqual([])

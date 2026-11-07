@@ -357,7 +357,7 @@ export async function getTasksEnabledStudies() {
 // ─── Materials ──────────────────────────────────────────────────────────────
 
 // Link materials have no OneDrive fields. A unique index over one of them (onedrive_id, from the
-// files-only days) would let only one link per scope in, so it is rebuilt as a partial index first.
+// files-only days) would let only one link per scope in, so it is replaced by a partial index first.
 let materialIndexesPromise: Promise<void> | null = null
 
 function ensureMaterialIndexes() {
@@ -372,13 +372,29 @@ function ensureMaterialIndexes() {
             .toArray()
             .catch((err) => (err?.code === 26 ? [] : Promise.reject(err)))) as ExistingIndex[]
           for (const rebuild of planMaterialIndexRebuilds(indexes)) {
+            const key = rebuild.key as Record<string, 1 | -1>
+            const createReplacement = () =>
+              collection.createIndex(key, {
+                name: rebuild.replacementName,
+                unique: true,
+                partialFilterExpression: rebuild.partialFilterExpression,
+              })
+            // Replacement first: if either step fails, a unique index still guards the files and the
+            // old index is still there for the next attempt to find.
+            const created = await createReplacement().then(
+              () => true,
+              // IndexOptionsConflict / IndexKeySpecsConflict: the server won't keep both side by side.
+              (err) => (err?.code === 85 || err?.code === 86 ? false : Promise.reject(err))
+            )
             await collection.dropIndex(rebuild.name)
-            await collection.createIndex(rebuild.key as Record<string, 1 | -1>, {
-              name: rebuild.name,
-              unique: true,
-              partialFilterExpression: rebuild.partialFilterExpression,
-            })
-            console.warn(`Rebuilt unique index ${name}.${rebuild.name} as a partial index for link materials.`)
+            if (!created) {
+              await createReplacement().catch(async (err) => {
+                // Put the original back rather than leave the files without a unique index.
+                await collection.createIndex(key, { name: rebuild.name, unique: true })
+                throw err
+              })
+            }
+            console.warn(`Replaced unique index ${name}.${rebuild.name} with partial ${rebuild.replacementName} for link materials.`)
           }
         }
       })
