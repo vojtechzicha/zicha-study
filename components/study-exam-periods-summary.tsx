@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { CalendarDays, Lock, ExternalLink, Loader2, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react"
 import { fetchStudyExamPeriods } from "@/lib/actions/exam-scheduler"
 import { sourceLabel } from "@/lib/exam-import/format"
+import { upcomingTerms } from "@/lib/exam-scheduler/calendar"
+import { pragueNow } from "@/components/exam-scheduler/plan-model"
 
 interface SummarySubject {
   id: string
@@ -51,6 +53,8 @@ interface TermRow {
   period_id: string
   subject_id: string
   locked: boolean
+  date: string
+  window_end?: string | null
 }
 
 function formatDateShort(dateStr: string): string {
@@ -87,6 +91,7 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
   }, [load, refreshTrigger])
 
   const subjectMap = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects])
+  const [today] = useState(() => pragueNow().slice(0, 10))
 
   return (
     <Card>
@@ -141,7 +146,9 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
                     ) : (
                       subjectIds.map((sid) => {
                         const subj = subjectMap.get(sid)
-                        const grpTerms = terms.filter((t) => t.period_id === p.id && t.subject_id === sid)
+                        // Only terms that can still be taken count (as in the scheduler).
+                        const allTerms = terms.filter((t) => t.period_id === p.id && t.subject_id === sid)
+                        const grpTerms = upcomingTerms(allTerms, today)
                         const hasLock = grpTerms.some((t) => t.locked)
                         if (subj?.completed) {
                           return (
@@ -163,11 +170,17 @@ export function StudyExamPeriodsSummary({ studyId, subjects, refreshTrigger = 0 
                               key={sid}
                               variant="secondary"
                               className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-normal"
-                              title="Do rozvrhu se nezahrne, dokud nebude mít termíny"
+                              title={
+                                allTerms.length > 0
+                                  ? "Termíny už proběhly. Do rozvrhu se nezahrne, dokud nebude mít další"
+                                  : "Do rozvrhu se nezahrne, dokud nebude mít termíny"
+                              }
                             >
                               <AlertTriangle className="h-3 w-3 mr-1" />
                               {subj?.abbreviation || subj?.name || "?"}
-                              <span className="ml-1 text-amber-600 dark:text-amber-400">(bez termínů)</span>
+                              <span className="ml-1 text-amber-600 dark:text-amber-400">
+                                {allTerms.length > 0 ? "(bez dalších termínů)" : "(bez termínů)"}
+                              </span>
                             </Badge>
                           )
                         }

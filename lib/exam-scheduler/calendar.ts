@@ -180,6 +180,14 @@ export function termsToUnlock(terms: LockableTerm[], termId: string, parts?: Exa
     .map((t) => t.id)
 }
 
+/**
+ * Terms that can still be taken: an exam day from today on, or a window that has not closed yet.
+ * A subject whose terms have all passed (a failed předtermín, an exam already written) has none.
+ */
+export function upcomingTerms<T extends { date: string; window_end?: string | null }>(terms: T[], today: string): T[] {
+  return terms.filter((t) => (t.window_end || t.date) >= today)
+}
+
 /** Where sign-up for a synced term stands at `now` ("YYYY-MM-DDTHH:MM", Prague time). */
 export type RegistrationState =
   | { kind: "registered" }

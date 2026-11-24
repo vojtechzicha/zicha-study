@@ -47,6 +47,7 @@ import {
   registrationState,
   relevantMonths,
   termsToUnlock,
+  upcomingTerms,
 } from "@/lib/exam-scheduler/calendar"
 import {
   DEFAULT_WORKING_DAYS,
@@ -479,14 +480,17 @@ export function GlobalExamScheduler() {
     return map
   }, [terms])
 
-  // Subjects of current periods without any candidate term: the plan can't include them yet.
+  // Subjects of current periods without a term that can still be taken (none at all, or only
+  // ones that have passed): the plan can't include them yet.
   const missing: MissingTerms[] = useMemo(() => {
     const out: MissingTerms[] = []
     const sorted = [...periods].sort((a, b) => a.start_date.localeCompare(b.start_date))
     for (const p of sorted) {
       if (p.due_date < today) continue
       const subjectsWithout = (p.subject_ids || [])
-        .filter((sid) => !subjectMap.get(sid)?.completed && !termsByPeriodSubject.has(`${p.id}:${sid}`))
+        .filter(
+          (sid) => !subjectMap.get(sid)?.completed && upcomingTerms(termsByPeriodSubject.get(`${p.id}:${sid}`) || [], today).length === 0
+        )
         .map((sid) => subjectShortcut(subjectMap.get(sid)))
       if (subjectsWithout.length > 0) out.push({ periodId: p.id, periodName: p.name, studyId: p.study_id, subjects: subjectsWithout })
     }
@@ -838,6 +842,7 @@ export function GlobalExamScheduler() {
                             terms={terms}
                             subjectMap={subjectMap}
                             termsByPeriodSubject={termsByPeriodSubject}
+                            today={today}
                             onEdit={() => openEditPeriod(p)}
                             onDelete={() => setDeleteTarget(p)}
                           />
@@ -987,6 +992,7 @@ function PeriodRow({
   terms,
   subjectMap,
   termsByPeriodSubject,
+  today,
   onEdit,
   onDelete,
 }: {
@@ -994,6 +1000,7 @@ function PeriodRow({
   terms: TermData[]
   subjectMap: Map<string, SubjectData>
   termsByPeriodSubject: Map<string, TermData[]>
+  today: string
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -1029,7 +1036,9 @@ function PeriodRow({
         ) : (
           subjectIds.map((sid) => {
             const subj = subjectMap.get(sid)
-            const grpTerms = termsByPeriodSubject.get(`${p.id}:${sid}`) || []
+            // Only terms that can still be taken count: a term that has passed says nothing about the plan.
+            const allTerms = termsByPeriodSubject.get(`${p.id}:${sid}`) || []
+            const grpTerms = upcomingTerms(allTerms, today)
             const hasLock = grpTerms.some((t) => t.locked)
             if (subj?.completed) {
               return (
@@ -1045,7 +1054,11 @@ function PeriodRow({
                   key={sid}
                   variant="secondary"
                   className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-normal"
-                  title="Do plánu se nezahrne, dokud nebude mít termíny"
+                  title={
+                    allTerms.length > 0
+                      ? "Termíny už proběhly. Do plánu se nezahrne, dokud nebude mít další"
+                      : "Do plánu se nezahrne, dokud nebude mít termíny"
+                  }
                 >
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   {subj?.abbreviation || subj?.name || "?"}
