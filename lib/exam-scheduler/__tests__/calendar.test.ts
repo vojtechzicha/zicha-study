@@ -7,6 +7,7 @@ import {
   registrationState,
   relevantMonths,
   termsToUnlock,
+  upcomingTerms,
   weekTripSegments,
 } from "../calendar"
 import type { ScheduleItem } from "../types"
@@ -131,5 +132,31 @@ describe("registrationState and lockPriority", () => {
     ]
     const sorted = [...keys].sort((a, b) => a[0] - b[0] || a[1].localeCompare(b[1]))
     expect(sorted.map((k) => k[0])).toEqual([0, 1, 2])
+  })
+})
+
+describe("upcomingTerms", () => {
+  const today = "2026-11-24"
+
+  it("keeps terms from today on and drops the ones that have passed", () => {
+    const terms = [
+      { id: "past", date: "2026-11-21" },
+      { id: "today", date: "2026-11-24" },
+      { id: "later", date: "2027-01-04" },
+    ]
+    expect(upcomingTerms(terms, today).map((t) => t.id)).toEqual(["today", "later"])
+  })
+
+  it("keeps a window until its last day, even when it has already started", () => {
+    const terms = [
+      { id: "open", date: "2026-11-01", window_end: "2026-11-24" },
+      { id: "closed", date: "2026-11-01", window_end: "2026-11-23" },
+      { id: "plain", date: "2026-11-01", window_end: null },
+    ]
+    expect(upcomingTerms(terms, today).map((t) => t.id)).toEqual(["open"])
+  })
+
+  it("has nothing for a subject whose only term is a failed předtermín", () => {
+    expect(upcomingTerms([{ id: "obda", date: "2026-11-21", locked: false }], today)).toEqual([])
   })
 })
