@@ -122,6 +122,42 @@ describe("calculateCost", () => {
   });
 });
 
+describe("staying over between exam days", () => {
+  it("does not stay when travel and accommodation are both free (a study in the home city)", () => {
+    const homeCity = { ...DEFAULT_CONFIG, travelCostOneWay: 0, accommodationCostPerNight: 0, travelDurationHours: 1.5, earliestArrivalTime: "06:00" };
+    const december = createExam("e1", "2026-12-13", "12:15", 120, false);
+    const january = createExam("e2", "2027-01-04", "07:30", 50, false);
+    const result = calculateCost([december, january], homeCity);
+
+    // Two trips three weeks apart, not one trip with 22 nights in between.
+    expect(result.accommodationNights).toBe(0);
+    expect(result.travelTrips).toBe(4);
+    expect(result.totalCost).toBe(0);
+  });
+
+  it("goes home when a night costs exactly as much as the round trip", () => {
+    const tie = { ...DEFAULT_CONFIG, accommodationCostPerNight: 400 }; // round trip 2 × 200
+    const exam1 = createExam("e1", "2025-01-10", "12:00", 60, false);
+    const exam2 = createExam("e2", "2025-01-11", "12:00", 60, false);
+    const result = calculateCost([exam1, exam2], tie);
+
+    expect(result.accommodationNights).toBe(0);
+    expect(result.travelTrips).toBe(4);
+    expect(result.totalCost).toBe(800);
+  });
+
+  it("stays when the night is cheaper than the round trip", () => {
+    const cheapNight = { ...DEFAULT_CONFIG, accommodationCostPerNight: 300 };
+    const exam1 = createExam("e1", "2025-01-10", "12:00", 60, false);
+    const exam2 = createExam("e2", "2025-01-11", "12:00", 60, false);
+    const result = calculateCost([exam1, exam2], cheapNight);
+
+    expect(result.accommodationNights).toBe(1);
+    expect(result.travelTrips).toBe(2);
+    expect(result.totalCost).toBe(300 + 400);
+  });
+});
+
 describe("buildScheduleDays", () => {
   it("groups exams by date", () => {
     const exam1 = createExam("e1", "2025-01-10", "10:00", 60);

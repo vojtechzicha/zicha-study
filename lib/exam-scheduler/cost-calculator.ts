@@ -86,7 +86,10 @@ export function buildScheduleDays(
 
 /**
  * Splits in-person exam days into trips. For each gap between consecutive days,
- * stays in the city if the extra nights cost no more than a round trip home.
+ * stays in the city only if that is cheaper than a round trip home, or if it adds no
+ * night at all (the nights in between are needed anyway). On equal money the student
+ * goes home: with free travel and free accommodation (a study in the home city) two
+ * exams weeks apart are two trips, not one trip with every night in between.
  */
 export function buildTripSegments(
   offlineDays: ScheduleDay[],
@@ -119,7 +122,7 @@ export function buildTripSegments(
     const stayCost = additionalStayNights * config.accommodationCostPerNight;
     const goHomeCost = 2 * config.travelCostOneWay; // Round trip
 
-    if (stayCost <= goHomeCost) {
+    if (additionalStayNights === 0 || stayCost < goHomeCost) {
       currentSegmentDays.push(nextDay);
     } else {
       segments.push(createSegment(currentSegmentDays, config));
